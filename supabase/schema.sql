@@ -1,0 +1,7 @@
+-- DEPRECATED. 9arini migrated from Supabase to local Postgres + Drizzle.
+-- The schema is now defined in TypeScript at  lib/db/schema.ts  (source of truth).
+-- Create the tables locally with:
+--     npm run db:up        # start Postgres in Docker
+--     npm run db:push      # apply lib/db/schema.ts to the database
+--     npm run db:seed      # insert demo data
+-- This file is kept only as a historical reference and is no longer used.

@@ -1,0 +1,15 @@
+/node_modules
+/.next
+/out
+.env*.local
+.DS_Store
+*.tsbuildinfo
+next-env.d.ts
+
+# Uploaded verification documents (sensitive — never commit)
+/.storage
+
+# Env / secrets — keep only .env.example tracked
+.env
+.env.*
+!.env.example
