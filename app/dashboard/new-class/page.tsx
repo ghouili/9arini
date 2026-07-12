@@ -9,8 +9,15 @@ import { useToast } from "@/components/useToast";
 import { SiteShell } from "@/components/SiteShell";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 
+/* A tutor must be verified before publishing (enforced server-side in createClass).
+   Without a specific message this failure is opaque and unfixable-looking. */
+const NOT_VERIFIED_MSG = {
+  fr: "Ton profil doit d'abord être vérifié. Va dans « Vérification » pour envoyer tes documents.",
+  ar: "لازم بروفايلك يتثبّت الأول. أمشي لـ « التثبّت » وابعث وثائقك.",
+} as const;
+
 export default function NewClassPage() {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
 
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
@@ -23,18 +30,25 @@ export default function NewClassPage() {
   const [quizUrl, setQuizUrl] = useState("");
   const [freeFirst, setFreeFirst] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  // Only ever true when the server action itself reports demo mode (no DB).
+  const [demo, setDemo] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    setSubmitted(true);
     const res = await createClass({
       title, description: desc, scheduledAt: datetime,
       durationMin: Number(duration), priceTnd: Number(price), seats: Number(seats),
       isFreeFirst: freeFirst, meetUrl: videoUrl, whiteboardUrl, quizUrl,
     });
-    setSubmitted(true);
-    showToast(res.ok
-      ? (res.demo ? `${t.extra.classPublished} · ${t.common.demoMode}` : t.extra.classPublished)
-      : t.extra.error);
+    if (res.ok) {
+      setDemo(Boolean(res.demo));
+      showToast(res.demo ? `${t.extra.classPublished} · ${t.common.demoMode}` : t.extra.classPublished);
+    } else {
+      // Server-side validation (past date, negative price, bad URL…) — let them fix it.
+      setSubmitted(false);
+      showToast(res.error === "not-verified" ? NOT_VERIFIED_MSG[locale] : t.extra.error);
+    }
   }
   const { toast, showToast } = useToast();
 
@@ -289,15 +303,18 @@ export default function NewClassPage() {
                     {t.createClass.create}
                   </Button>
 
-                  <p style={{
-                    textAlign: "center",
-                    fontSize: 11.5,
-                    color: "var(--muted)",
-                    marginTop: 12,
-                    lineHeight: 1.5,
-                  }}>
-                    {t.common.demoMode}
-                  </p>
+                  {/* Shown ONLY when the server action reports demo mode (no DB connected). */}
+                  {demo && (
+                    <p style={{
+                      textAlign: "center",
+                      fontSize: 11.5,
+                      color: "var(--muted)",
+                      marginTop: 12,
+                      lineHeight: 1.5,
+                    }}>
+                      {t.common.demoMode}
+                    </p>
+                  )}
                 </form>
               </div>
             </div>

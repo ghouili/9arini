@@ -5,7 +5,6 @@ import { SiteShell } from "@/components/SiteShell";
 import { useLocale } from "@/components/LocaleProvider";
 import { Verified } from "@/components/ui";
 import {
-  Star,
   Shield,
   Users,
   Clock,
@@ -15,8 +14,6 @@ import {
   Search,
   Video,
   Wallet,
-  Lock,
-  Bank,
 } from "@/components/icons";
 
 /* =====================================================================
@@ -37,19 +34,25 @@ const copy = {
     h1aHi: "Bac",
     h1aEnd: ".",
     h1b: "Des profs vérifiés.",
-    h1c: "Payé en dinar.",
+    h1c: "Essaie sans payer.",
     heroSub:
-      "Des avis d'élèves, un tarif clair. Teste sans engagement.",
+      "Un tarif clair, des profs vérifiés à la main. Teste sans engagement.",
     ctaPrimary: "Trouve ton prof",
     ctaGhost: "Voir tous les profs",
     heroMicro: "0 TND pour commencer · sans carte · annulation libre.",
+    heroChips: [
+      "1ère séance offerte",
+      "Tu t'arranges avec ton prof",
+      "Sans abonnement",
+    ],
 
-    // hero animated cards
+    // hero animated cards (illustration — pas de vrais profs)
     heroSearch: "Prof de Maths · Bac",
     heroResults: "3 profs trouvés",
     cardFree: "1ère séance offerte",
+    cardVerified: "Vérifié",
+    cardFirstLabel: "1ère séance",
     booked: "Réservé ✓ — séance gratuite",
-    reviewsLabel: "avis",
     nextLabel: "Demain · 18:00",
 
     subjEyebrow: "Matières",
@@ -64,76 +67,86 @@ const copy = {
       { t: "Cherche ton prof", p: "Filtre par matière, niveau, ville ou en ligne." },
       { t: "Réserve ta 1ère séance gratuite", p: "0 TND, sans carte, sans engagement." },
       { t: "Assiste au cours en direct", p: "Depuis ton téléphone, où que tu sois." },
-      { t: "Continue si tu aimes", p: "Tarif fixé par le prof, affiché avant de réserver." },
+      { t: "Continue si tu aimes", p: "Le prof fixe son tarif — tu le règles directement avec lui." },
     ],
 
     trustEyebrow: "Pourquoi tu peux faire confiance",
-    trustTitle: "Sérieux, sécurisé, 1ère séance offerte.",
-    trust1Title: "Profs vérifiés",
+    trustTitle: "Vérifiés à la main. 1ère séance offerte.",
+    trust1Title: "Profs vérifiés à la main",
     trust1Body:
-      "Identité vérifiée, diplômes affichés. Lis les avis d'autres élèves avant de réserver.",
-    reviewsHeading: "Ce que disent les élèves",
-    reviews: [
-      { who: "Yasmine, Bac Maths", text: "Explique calmement jusqu'à ce que tu comprennes. Top." },
-      { who: "Le père de Malek", text: "Mon fils attend chaque séance. Sérieux et à l'heure." },
-      { who: "Aziz, Bac Physique", text: "Mieux que les cours de groupe. Direct au but." },
+      "Aucune page de prof n'est publiée avant qu'on ait vérifié son identité. Nous-mêmes, une par une.",
+    verifyHeading: "Ce qu'on vérifie",
+    verifyList: [
+      "L'identité du prof (CIN)",
+      "Les matières et les niveaux qu'il enseigne",
+      "Sa page, relue à la main",
     ],
-    trust2Title: "Paie en sécurité",
+    reviewsSoon:
+      "Les avis viendront des vraies séances, une fois qu'elles auront eu lieu. On n'en inventera aucun.",
+    trust2Title: "Zéro risque pour essayer",
     trust2Body:
-      "Flouci, D17, Konnect. Ton paiement est retenu jusqu'à la fin du cours — si le prof ne vient pas, tu es remboursé.",
+      "La 1ère séance est vraiment gratuite : rien à payer, aucune carte. Et tu peux annuler librement jusqu'à 24h avant.",
+    trust2Flow: [
+      "Tu réserves ta 1ère séance — 0 TND",
+      "Tu suis le cours en direct",
+      "Ça t'a plu ? Tu t'arranges avec ton prof",
+    ],
+    trust2Chips: ["Sans carte", "Sans abonnement", "Paiement en ligne bientôt"],
     trust3Title: "1ère séance offerte",
     trust3Sub: "pour la 1ère séance · sans carte · sans abonnement.",
 
-    resultsEyebrow: "Résultats",
-    resultsTitle: "Ils ont eu leur Bac avec un prof 9arini.",
-    results: [
+    pilotEyebrow: "On démarre",
+    pilotTitle: "9arini est tout neuf. Les premiers élèves, c'est vous.",
+    pilotLead:
+      "Zéro séance donnée pour l'instant — et on ne va pas te raconter l'inverse. Voilà ce qu'on te promet dès aujourd'hui.",
+    pilotBadgeLabel: "Garanti dès aujourd'hui",
+    pilot: [
       {
-        initials: "YA",
-        name: "Yasmine",
-        meta: "Bac Maths · Tunis",
-        before: "14/20 en novembre",
-        after: "17 au Bac",
+        tag: "0 TND",
+        t: "Essayer ne te coûte rien",
+        p: "1ère séance à 0 TND, sans carte. Si le courant ne passe pas, tu n'as rien perdu.",
       },
       {
-        initials: "PM",
-        name: "Le père de Malek",
-        meta: "Bac Physique · Sfax",
-        before: "trop juste à mi-année",
-        after: "son Bac avec mention",
+        tag: "Vérifié à la main",
+        t: "On connaît chaque prof",
+        p: "On contrôle son identité et on relit sa page avant de la publier. Un par un.",
       },
       {
-        initials: "RB",
-        name: "Rania",
-        meta: "Bac SVT · Sousse",
-        before: "stressée, perdue",
-        after: "admise du premier coup",
+        tag: "Vrais avis",
+        t: "On n'invente pas les avis",
+        p: "Ta note après la séance : c'est ça qui fera la réputation des profs ici.",
       },
     ],
     arrow: "→",
-    statsSessions: "séances données",
-    statsRating: "★ note moyenne",
+    statsFreeVal: "0",
     statsFree: "TND la 1ère séance",
+    statsVerifVal: "100 %",
+    statsVerified: "des profs vérifiés à la main",
+    statsCancelVal: "24h",
+    statsCancel: "pour annuler, sans frais",
 
     pricingEyebrow: "Tarifs",
     pricingTitle: "Combien ça coûte vraiment ?",
     priceFirstLabel: "Ta 1ère séance",
-    priceFirstNote: "sans carte, sans engagement",
+    priceFirstNote: "0 TND, sans carte, sans engagement",
     priceSessionLabel: "Ensuite, la séance",
     priceSessionValue: "Fixé par le prof",
-    priceSessionNote: "affiché avant de réserver",
+    priceSessionNote: "affiché avant de réserver · tu règles ton prof directement",
     priceSubLabel: "Abonnement",
     priceSubValue: "Aucun",
-    priceSubNote: "tu paies séance par séance",
+    priceSubNote: "aucun frais 9arini, aujourd'hui",
     priceBadge: "Le plus choisi",
+    pricingNote:
+      "Aujourd'hui, 9arini ne gère aucun paiement : la 1ère séance est offerte, et pour les suivantes tu t'arranges directement avec ton prof. Le paiement en ligne arrive bientôt.",
 
-    finalTitle: "Ton prochain cours commence ce soir. 1ère séance offerte.",
+    finalTitle: "Choisis ton prof. La 1ère séance est offerte.",
     finalCta: "Trouve ton prof",
-    finalUrgency: "Les créneaux se remplissent vite avant les examens.",
-    finalReassure: "0 TND pour commencer · annulation libre · paie en dinar.",
+    finalUrgency: "Nouveau en Tunisie — tu seras parmi les premiers.",
+    finalReassure: "0 TND pour commencer · sans carte · annulation libre.",
 
     profOutroTitle: "Tu es prof, du primaire au Bac ?",
     profOutroBody:
-      "Donne tes cours en direct, fixe ton tarif, encaisse en dinar.",
+      "Donne tes cours en direct, fixe ton tarif, garde 100 % — zéro commission.",
     profOutroCta: "Commence à enseigner →",
   },
 
@@ -146,18 +159,25 @@ const copy = {
     h1aHi: "باك",
     h1aEnd: ".",
     h1b: "أساتذة متثبّت منهم.",
-    h1c: "تخلّص بالدينار.",
+    h1c: "جرّب بلا ما تخلّص.",
     heroSub:
-      "آراء تلامذة وتعريفة واضحة. جرّب بلا أي التزام.",
+      "تعريفة واضحة وأساتذة متثبّت منهم بيدينا. جرّب بلا أي التزام.",
     ctaPrimary: "لقّي أستاذك",
     ctaGhost: "شوف الأساتذة الكل",
     heroMicro: "0 دينار باش تبدا · بلا كارت · تنجّم تلغي.",
+    heroChips: [
+      "أول حصة بلاش",
+      "تتفاهم مباشرة مع أستاذك",
+      "بلا اشتراك",
+    ],
 
+    // الكروت متاع الهيرو (مثال توضيحي — موش أساتذة حقيقيين)
     heroSearch: "أستاذ رياضيات · باك",
     heroResults: "3 أساتذة تلقاو",
     cardFree: "أول حصة بلاش",
+    cardVerified: "متثبّت منه",
+    cardFirstLabel: "أول حصة",
     booked: "تحجزت ✓ — حصة بلاش",
-    reviewsLabel: "رأي",
     nextLabel: "غدوة · 18:00",
 
     subjEyebrow: "المواد",
@@ -172,75 +192,85 @@ const copy = {
       { t: "لوّج على أستاذك", p: "فلتري حسب المادة، المستوى، المدينة، ولا أونلاين." },
       { t: "احجز أول حصة بلاش", p: "0 دينار، من غير كارت، من غير التزام." },
       { t: "احضر الدرس مباشرة", p: "من تليفونك، فينما كنت." },
-      { t: "كمّل كان عجبك", p: "الثمن يحدّدو الأستاذ، يبان قبل ما تحجز." },
+      { t: "كمّل كان عجبك", p: "الأستاذ يحدّد ثمنو — وتخلّصو مباشرة معاه." },
     ],
 
     trustEyebrow: "علاش تنجّم تثق",
-    trustTitle: "جدّية، أمان، وأول حصة بلاش.",
-    trust1Title: "أساتذة متثبّت منهم",
+    trustTitle: "متثبّت منهم بيدينا. وأول حصة بلاش.",
+    trust1Title: "أساتذة متثبّت منهم بيدينا",
     trust1Body:
-      "الهوية متثبّتة، والشهائد تتعرض. اقرا آراء التلامذة قبل ما تحجز.",
-    reviewsHeading: "شنوة يقولوا التلامذة",
-    reviews: [
-      { who: "ياسمين، باك رياضيات", text: "يشرح بالراحة حتى تفهم. أحسن أستاذ." },
-      { who: "بوه نتاع مالك", text: "ولدي يستنّى في كل حصة. جدّي وفي الوقت." },
-      { who: "عزيز، باك فيزياء", text: "خير من دروس المجموعات. مباشرة للهدف." },
+      "حتى صفحة أستاذ ما تتنشر قبل ما نتثبّتو من هويتو. بيدينا، وحدة وحدة.",
+    verifyHeading: "شنوّة نتثبّتو منّو",
+    verifyList: [
+      "هوية الأستاذ (بطاقة التعريف)",
+      "المواد والمستويات اللي يقرّيهم",
+      "صفحتو، مقروية بيدينا",
     ],
-    trust2Title: "تخلّص بأمان",
+    reviewsSoon:
+      "الآراء باش تجي من حصص حقيقية، كي يصيرو. ما نخترعو حتى رأي.",
+    trust2Title: "جرّب بلا أي مخاطرة",
     trust2Body:
-      "فلوسي، D17، كونيكت. الخلاص يتحجز حتى تكمّل الحصة — كان الأستاذ ما جاش، فلوسك ترجعلك.",
+      "أول حصة بلاش بالحق: ما تخلّص والو، وما تحتاج كارت. وتنجّم تلغي بحرية حتى 24 ساعة قبل.",
+    trust2Flow: [
+      "تحجز أول حصة — 0 دينار",
+      "تحضر الدرس مباشرة",
+      "عجبك؟ تتفاهم مع أستاذك",
+    ],
+    trust2Chips: ["بلا كارت", "بلا اشتراك", "الخلاص أونلاين قريب"],
     trust3Title: "أول حصة بلاش",
     trust3Sub: "للحصة الأولى · من غير كارت · من غير اشتراك.",
 
-    resultsEyebrow: "النتائج",
-    resultsTitle: "نجحوا في الباك مع أستاذ من 9arini.",
-    results: [
+    pilotEyebrow: "توّا نبداو",
+    pilotTitle: "9arini جديدة. التلامذة الأوائل، هوما إنتوما.",
+    pilotLead:
+      "حتى حصة ما تعطات لتوّا — وما نكذبوش عليك. هاذي اللي نضمنولك من اليوم.",
+    pilotBadgeLabel: "مضمون من اليوم",
+    pilot: [
       {
-        initials: "YA",
-        name: "ياسمين",
-        meta: "باك رياضيات · تونس",
-        before: "14/20 في نوفمبر",
-        after: "17 في الباك",
+        tag: "0 دينار",
+        t: "التجربة ما تكلّفك والو",
+        p: "أول حصة بـ 0 دينار، بلا كارت. كان ما عجبكش، ما خسّرت والو.",
       },
       {
-        initials: "PM",
-        name: "بوه نتاع مالك",
-        meta: "باك فيزياء · صفاقس",
-        before: "ضعيف في نص العام",
-        after: "نجح بميزة",
+        tag: "متثبّت منه بيدينا",
+        t: "نعرفو كل أستاذ",
+        p: "نتثبّتو من هويتو ونقراو صفحتو قبل ما ننشروها. واحد واحد.",
       },
       {
-        initials: "RB",
-        name: "رانية",
-        meta: "باك علوم · سوسة",
-        before: "متوترة وضايعة",
-        after: "نجحت من أول مرة",
+        tag: "آراء حقيقية",
+        t: "ما نخترعوش الآراء",
+        p: "تنقيطك بعد الحصة: هو اللي باش يعمل سمعة الأساتذة هوني.",
       },
     ],
     arrow: "←",
-    statsSessions: "حصة تعطات",
-    statsRating: "★ معدّل التقييم",
+    statsFreeVal: "0",
     statsFree: "دينار أول حصة",
+    statsVerifVal: "100 %",
+    statsVerified: "من الأساتذة متثبّت منهم بيدينا",
+    statsCancelVal: "24 ساعة",
+    statsCancel: "باش تلغي، بلا مصاريف",
 
     pricingEyebrow: "الأثمنة",
     pricingTitle: "قدّاش تكلّف بالحق؟",
     priceFirstLabel: "أول حصة",
-    priceFirstNote: "من غير كارت، من غير التزام",
+    priceFirstNote: "0 دينار، من غير كارت، من غير التزام",
     priceSessionLabel: "بعدها، الحصة",
     priceSessionValue: "يحدّدو الأستاذ",
-    priceSessionNote: "يبان قبل ما تحجز",
+    priceSessionNote: "يبان قبل ما تحجز · وتخلّص أستاذك مباشرة",
     priceSubLabel: "اشتراك",
     priceSubValue: "والو",
-    priceSubNote: "تخلّص حصة بحصة",
+    priceSubNote: "ما فماش حتى فريسي لـ 9arini اليوم",
     priceBadge: "الأكثر اختيار",
+    pricingNote:
+      "اليوم 9arini ما تسيّر حتى خلاص: أول حصة بلاش، والحصص اللي بعدها تتفاهم فيها مباشرة مع أستاذك. الخلاص أونلاين جاي قريب.",
 
-    finalTitle: "درسك الجاي يبدا الليلة. أول حصة بلاش.",
+    finalTitle: "اختار أستاذك. أول حصة بلاش.",
     finalCta: "لقّي أستاذك",
-    finalUrgency: "الأوقات يتعمّروا فيسع قبل الامتحانات.",
-    finalReassure: "0 دينار باش تبدا · تنجّم تلغي · تخلّص بالدينار.",
+    finalUrgency: "جديد في تونس — تكون من الأوائل.",
+    finalReassure: "0 دينار باش تبدا · بلا كارت · تنجّم تلغي.",
 
     profOutroTitle: "إنتي أستاذ، من الابتدائي للباك؟",
-    profOutroBody: "قرّي مباشرة، حدّد ثمنك، واقبض بكل ساهلة.",
+    profOutroBody: "قرّي مباشرة، حدّد ثمنك، واحتفظ بـ 100 % — بلا عمولة.",
     profOutroCta: "ابدا تقرّي ←",
   },
 } as const;
@@ -258,11 +288,14 @@ const SUBJECTS: { slug: string; fr: string; ar: string }[] = [
   { slug: "technique", fr: "Technique", ar: "تقني" },
 ];
 
-// Mock tutor result cards for the hero composition.
+// Illustrative (NOT real) result cards for the hero composition. Deliberately
+// generic: no invented tutor names, no fabricated ratings, no invented prices —
+// they must never read as a real listing. Only the free 1st session is shown,
+// which is a real, honoured promise.
 const HERO_CARDS = [
-  { initials: "YK", name: "Yassine K.", fr: "Maths · Bac", ar: "رياضيات · باك", rating: "4.9", price: "20" },
-  { initials: "ST", name: "Sonia T.", fr: "Physique · Bac", ar: "فيزياء · باك", rating: "4.8", price: "18" },
-  { initials: "RB", name: "Rania B.", fr: "SVT · Bac", ar: "علوم · باك", rating: "4.9", price: "22" },
+  { id: "maths", ini: "M", fr: "Prof de Maths", ar: "أستاذ رياضيات", frMeta: "Bac · en ligne", arMeta: "باك · أونلاين" },
+  { id: "physique", ini: "P", fr: "Prof de Physique", ar: "أستاذ فيزياء", frMeta: "Bac · Tunis", arMeta: "باك · تونس" },
+  { id: "svt", ini: "S", fr: "Prof de SVT", ar: "أستاذ علوم", frMeta: "Bac · en ligne", arMeta: "باك · أونلاين" },
 ];
 
 /* Hook: reveal-on-scroll. Adds `is-in` to opted-in elements as they enter
@@ -660,10 +693,13 @@ export default function HomePage() {
                 <p style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.6 }}>
                   {c.heroMicro}
                 </p>
-                <div className="lp-pay-row" aria-hidden="true">
-                  <span className="lp-pay-chip"><span className="lp-pay-dot" />Flouci</span>
-                  <span className="lp-pay-chip"><span className="lp-pay-dot" />D17</span>
-                  <span className="lp-pay-chip"><span className="lp-pay-dot" />Konnect</span>
+                <div className="lp-pay-row">
+                  {c.heroChips.map((chip) => (
+                    <span key={chip} className="lp-pay-chip">
+                      <span className="lp-pay-dot" aria-hidden="true" />
+                      {chip}
+                    </span>
+                  ))}
                 </div>
               </div>
             </div>
@@ -674,8 +710,8 @@ export default function HomePage() {
               role="img"
               aria-label={
                 isAr
-                  ? "بحث عن أستاذ رياضيات للباكالوريا يظهر نتائج أساتذة متثبّت منهم مع تقييمات وأثمنة بالدينار وأول حصة بلاش، ثم تأكيد الحجز"
-                  : "Recherche d'un prof de Maths au Bac affichant des résultats de profs vérifiés avec notes, prix en dinar et 1ère séance offerte, puis une confirmation de réservation"
+                  ? "رسم توضيحي: بحث عن أستاذ رياضيات للباكالوريا يظهر أساتذة متثبّت منهم وأول حصة بلاش، ثم تأكيد الحجز"
+                  : "Illustration : une recherche de prof de Maths au Bac affichant des profs vérifiés et la 1ère séance offerte, puis une confirmation de réservation"
               }
             >
               <div className="lp-stage-glow" aria-hidden="true" />
@@ -706,23 +742,23 @@ export default function HomePage() {
                 {/* result cards */}
                 <div className="lp-cards">
                   {HERO_CARDS.map((card, i) => (
-                    <div key={card.initials} className={`lp-card lp-card-${i}`}>
+                    <div key={card.id} className={`lp-card lp-card-${i}`}>
                       <div
                         className="avatar sq"
                         style={{ width: 50, height: 50, fontSize: 19, borderRadius: 14, flex: "none" }}
                       >
-                        {card.initials}
+                        {card.ini}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div className="lp-card-name">
-                          {card.name}
+                          {isAr ? card.ar : card.fr}
                           <Verified />
                         </div>
-                        <div className="lp-card-sub">{isAr ? card.ar : card.fr}</div>
+                        <div className="lp-card-sub">{isAr ? card.arMeta : card.frMeta}</div>
                         <div className="metaline">
                           <span>
-                            <Star style={{ color: "var(--amber)" }} />
-                            <b style={{ fontFamily: "var(--fd)", color: "var(--ink)" }}>{card.rating}</b>
+                            <Shield style={{ width: 13, height: 13, color: "var(--green)" }} />
+                            <b style={{ fontFamily: "var(--fd)", color: "var(--ink)" }}>{c.cardVerified}</b>
                           </span>
                           <span>
                             <Clock />
@@ -731,9 +767,10 @@ export default function HomePage() {
                         </div>
                       </div>
                       <div style={{ textAlign: "end", flex: "none" }}>
-                        <div className="lp-card-price">
-                          {card.price} <span style={{ fontSize: 12, color: "var(--muted)" }}>TND</span>
+                        <div className="lp-card-price" style={{ color: "var(--green)" }}>
+                          0 <span style={{ fontSize: 12, color: "var(--muted)" }}>TND</span>
                         </div>
+                        <div style={{ fontSize: 11, color: "var(--muted)" }}>{c.cardFirstLabel}</div>
                       </div>
                     </div>
                   ))}
@@ -889,65 +926,49 @@ export default function HomePage() {
                 <p className="text-[14px] leading-relaxed text-ink2">{c.trust1Body}</p>
               </div>
 
-              {/* Sample rating */}
-              <div className="flex items-center gap-2">
-                <span className="stars" aria-hidden="true">
-                  {[0, 1, 2, 3, 4].map((i) => (
-                    <Star key={i} />
-                  ))}
-                </span>
-                <b className="font-display text-[15px] text-ink">4.9</b>
-                <span className="text-[12.5px] text-muted">· 47 {c.reviewsLabel}</span>
-              </div>
-
-              {/* Mock reviews */}
+              {/* What we actually check, by hand — no ratings, no reviews yet */}
               <div className="mt-auto flex flex-col gap-2.5">
-                <div className="text-[12.5px] font-bold text-muted">{c.reviewsHeading}</div>
-                {c.reviews.map((r, i) => (
+                <div className="text-[12.5px] font-bold text-muted">{c.verifyHeading}</div>
+                {c.verifyList.map((v, i) => (
                   <div
                     key={i}
-                    className="rounded-[14px] border border-solid border-line bg-cream p-3 transition hover:border-blue hover:shadow-[var(--sh-s)]"
+                    className="flex items-center gap-2.5 rounded-[14px] border border-solid border-line bg-cream p-3 transition hover:border-blue hover:shadow-[var(--sh-s)]"
                   >
-                    <div className="mb-[7px] text-[13.5px] leading-snug text-ink2">“{r.text}”</div>
-                    <div className="flex items-center gap-[7px] text-[12px] font-bold">
-                      <span className="stars" aria-hidden="true">
-                        {[0, 1, 2, 3, 4].map((j) => (
-                          <Star key={j} className="h-[11px] w-[11px]" />
-                        ))}
-                      </span>
-                      <span className="text-muted">{r.who}</span>
-                    </div>
+                    <span
+                      aria-hidden="true"
+                      className="grid h-7 w-7 flex-none place-items-center rounded-[9px] bg-blue50 text-blue"
+                    >
+                      <Shield className="h-[14px] w-[14px]" />
+                    </span>
+                    <span className="text-[13.5px] leading-snug text-ink2">{v}</span>
                   </div>
                 ))}
+                <p className="text-[12.5px] leading-relaxed text-muted">{c.reviewsSoon}</p>
               </div>
             </div>
 
-            {/* (b) Secure payment + escrow mini-flow */}
+            {/* (b) Zero-risk trial — free 1st session, free cancellation, no online payment yet */}
             <div className="lp-rv relative flex h-full flex-col gap-4 overflow-hidden rounded-[var(--r-l)] border border-solid border-line border-t-2 border-t-green bg-paper p-5 shadow-[var(--sh-s)] transition hover:-translate-y-1 hover:shadow-[var(--sh)] sm:p-6" style={{ ["--d" as string]: "90ms" }}>
               <div aria-hidden="true" className="grid h-[46px] w-[46px] flex-none place-items-center rounded-[14px] bg-green50 text-green">
-                <Lock />
+                <Wallet />
               </div>
               <div>
                 <h3 className="mb-1.5 font-display text-[17px] font-bold text-ink">{c.trust2Title}</h3>
                 <p className="text-[14px] leading-relaxed text-ink2">{c.trust2Body}</p>
               </div>
 
-              {/* Escrow mini-flow: tu paies → retenu → versé après le cours */}
+              {/* Mini-flow: tu réserves (0 TND) → cours en direct → tu t'arranges avec ton prof */}
               <div className="my-auto flex flex-col gap-2.5 rounded-[var(--r)] border border-solid border-line bg-cream p-4">
-                {[
-                  { Icon: Wallet, label: isAr ? "تخلّص" : "Tu paies" },
-                  { Icon: Lock, label: isAr ? "يتحجز" : "Retenu en sécurité" },
-                  { Icon: Bank, label: isAr ? "يتعطى للأستاذ بعد الحصة" : "Versé au prof après le cours" },
-                ].map((s, i, arr) => (
+                {[Gift, Video, Users].map((Icon, i, arr) => (
                   <div key={i} className="flex flex-col gap-2.5">
                     <div className="flex items-center gap-3">
                       <span
                         aria-hidden="true"
                         className="grid h-8 w-8 flex-none place-items-center rounded-[10px] bg-green50 text-green"
                       >
-                        <s.Icon className="h-[16px] w-[16px]" />
+                        <Icon className="h-[16px] w-[16px]" />
                       </span>
-                      <span className="text-[13px] font-bold text-ink">{s.label}</span>
+                      <span className="text-[13px] font-bold text-ink">{c.trust2Flow[i]}</span>
                     </div>
                     {i < arr.length - 1 && (
                       <span aria-hidden="true" className="ms-[15px] block h-3 w-px bg-green/40" />
@@ -956,9 +977,9 @@ export default function HomePage() {
                 ))}
               </div>
 
-              {/* Payment chips */}
+              {/* Honest reassurance chips — no payment rails, nothing we can't honour */}
               <div className="mt-auto flex flex-wrap items-center gap-2">
-                {["Flouci", "D17", "Konnect"].map((m) => (
+                {c.trust2Chips.map((m) => (
                   <span key={m} className="chip chip-sand">
                     {m}
                   </span>
@@ -1006,70 +1027,91 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── 5) RESULTS / SOCIAL PROOF ─────────────────────────────────── */}
+      {/* ── 5) PRE-LAUNCH / EARLY ADOPTER ─────────────────────────────────
+          We have taught zero lessons and have zero reviews. This section says
+          so, out loud, and sells what IS true: free trial, hand-verified
+          tutors, and reviews we will never fabricate. No invented students,
+          no invented outcomes, no unearned numbers.
+          ──────────────────────────────────────────────────────────────────── */}
       <section className="lp-sec">
         <div className="container">
           <div className="lp-head" style={{ marginBottom: 30 }}>
             <p className="lp-eyebrow lp-rv" style={{ marginBottom: 14 }}>
-              {c.resultsEyebrow}
+              {c.pilotEyebrow}
             </p>
             <h2 className="lp-h2 lp-rv" style={{ ["--d" as string]: "60ms" }}>
-              {c.resultsTitle}
+              {c.pilotTitle}
             </h2>
+            <p
+              className="lp-rv"
+              style={{
+                marginTop: 12,
+                maxWidth: 620,
+                fontSize: 15,
+                lineHeight: 1.65,
+                color: "var(--ink2)",
+                ["--d" as string]: "100ms",
+              }}
+            >
+              {c.pilotLead}
+            </p>
           </div>
 
           <div className="grid-3" style={{ marginBottom: 38 }}>
-            {c.results.map((r, i) => (
-              <div key={i} className="lp-rcard lp-rv" style={{ ["--d" as string]: `${i * 90}ms` }}>
-                <div style={{ display: "flex", gap: 13, alignItems: "center" }}>
-                  <div
-                    className="avatar sq"
-                    style={{ width: 52, height: 52, fontSize: 19, borderRadius: 15, flex: "none" }}
-                  >
-                    {r.initials}
-                  </div>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontFamily: "var(--fd)", fontWeight: 700, fontSize: 15.5 }}>{r.name}</div>
-                    <div className="muted" style={{ fontSize: 12.5 }}>
-                      {r.meta}
+            {c.pilot.map((p, i) => {
+              const Icon = [Gift, Shield, Users][i];
+              return (
+                <div key={i} className="lp-rcard lp-rv" style={{ ["--d" as string]: `${i * 90}ms` }}>
+                  <div style={{ display: "flex", gap: 13, alignItems: "center" }}>
+                    <span
+                      aria-hidden="true"
+                      style={{
+                        width: 48,
+                        height: 48,
+                        borderRadius: 14,
+                        background: "var(--blue50)",
+                        color: "var(--blue)",
+                        display: "grid",
+                        placeItems: "center",
+                        flex: "none",
+                      }}
+                    >
+                      <Icon />
+                    </span>
+                    <div style={{ minWidth: 0, fontFamily: "var(--fd)", fontWeight: 700, fontSize: 15.5 }}>
+                      {p.t}
                     </div>
                   </div>
-                  <span className="stars" aria-hidden="true" style={{ marginInlineStart: "auto", flex: "none" }}>
-                    {[0, 1, 2, 3, 4].map((j) => (
-                      <Star key={j} style={{ width: 12, height: 12 }} />
-                    ))}
-                  </span>
+                  <p style={{ fontSize: 14, color: "var(--ink2)", lineHeight: 1.6 }}>{p.p}</p>
+                  <div className="lp-outcome" style={{ marginTop: "auto" }}>
+                    <span style={{ fontSize: 13, color: "var(--ink2)" }}>{c.pilotBadgeLabel}</span>
+                    <span className="lp-outcome-badge">{p.tag}</span>
+                  </div>
                 </div>
-                <div className="lp-outcome">
-                  <span style={{ fontSize: 13.5, color: "var(--ink2)" }}>{r.before}</span>
-                  <span style={{ fontFamily: "var(--fd)", color: "var(--green)", fontWeight: 700 }}>
-                    {c.arrow}
-                  </span>
-                  <b style={{ fontFamily: "var(--fd)", color: "#13724f", fontSize: 14.5 }}>{r.after}</b>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
-          {/* Stats band */}
+          {/* Facts band — every number here is a promise we control, not a
+              metric we claim to have earned. */}
           <div className="lp-stats lp-rv">
             <div className="lp-stat">
-              <b>
-                <Bolt style={{ width: 26, height: 26, color: "var(--amber)" }} /> +1 240
+              <b style={{ color: "#5BD1A6" }}>
+                <Gift style={{ width: 24, height: 24, color: "#5BD1A6" }} /> {c.statsFreeVal}
               </b>
-              <span>{c.statsSessions}</span>
+              <span>{c.statsFree}</span>
             </div>
             <div className="lp-stat">
               <b style={{ color: "var(--amber)" }}>
-                <Star style={{ width: 24, height: 24, color: "var(--amber)" }} /> 4.9
+                <Shield style={{ width: 24, height: 24, color: "var(--amber)" }} /> {c.statsVerifVal}
               </b>
-              <span>{c.statsRating}</span>
+              <span>{c.statsVerified}</span>
             </div>
             <div className="lp-stat">
-              <b style={{ color: "#5BD1A6" }}>
-                <Gift style={{ width: 24, height: 24, color: "#5BD1A6" }} /> 0
+              <b style={{ color: "#9EC5EE" }}>
+                <Clock style={{ width: 24, height: 24, color: "#9EC5EE" }} /> {c.statsCancelVal}
               </b>
-              <span>{c.statsFree}</span>
+              <span>{c.statsCancel}</span>
             </div>
           </div>
         </div>
@@ -1119,6 +1161,25 @@ export default function HomePage() {
               <p className="lp-pnote">{c.priceSubNote}</p>
             </div>
           </div>
+
+          {/* The plain truth about money during the free pilot. */}
+          <p
+            className="lp-rv"
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 10,
+              marginTop: 20,
+              maxWidth: 720,
+              fontSize: 13.5,
+              lineHeight: 1.6,
+              color: "var(--ink2)",
+              ["--d" as string]: "240ms",
+            }}
+          >
+            <Shield style={{ width: 16, height: 16, flex: "none", marginTop: 3, color: "var(--green)" }} />
+            <span>{c.pricingNote}</span>
+          </p>
         </div>
       </section>
 

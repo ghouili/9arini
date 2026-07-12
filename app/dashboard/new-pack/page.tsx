@@ -3,19 +3,45 @@ import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { Button, Field } from "@/components/ui";
 import { useLocale } from "@/components/LocaleProvider";
-import { Back, Box, Upload } from "@/components/icons";
+import { Back, Box, Bulb } from "@/components/icons";
 import { useToast } from "@/components/useToast";
 import { SiteShell } from "@/components/SiteShell";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { createPack } from "@/app/actions";
 
+/* Page-local copy (never edit lib/i18n.ts from here). FR + Derija, RTL-safe. */
+const copy = {
+  fr: {
+    hintTitle: "Fiches, PDFs, vidéos",
+    hintBody: "Décris ton pack, fixe ton prix. Tes élèves le voient sur ta vitrine.",
+    deliveryTitle: "La livraison des fichiers arrive bientôt",
+    deliveryBody:
+      "Pour l'instant, l'upload n'est pas encore branché : publie la description et le prix, et envoie le fichier à tes élèves toi-même (WhatsApp, mail). On te préviendra dès que la livraison automatique est prête.",
+    metaHelp: "ex. 42 pages · 6 vidéos · 3 exercices corrigés",
+    // Publishing requires a verified profile (enforced server-side in createPack).
+    notVerified: "Ton profil doit d'abord être vérifié. Va dans « Vérification » pour envoyer tes documents.",
+  },
+  ar: {
+    hintTitle: "فيشات، PDF، فيديوهات",
+    hintBody: "وصّف الپاك متاعك، وحطّ السوم. تلاميذك يشوفوه في واجهتك.",
+    deliveryTitle: "توصيل الملفّات يوصل قريب",
+    deliveryBody:
+      "توّا الرفع ما زال ما تربطش: انشر الوصف والسوم، وابعث الملف لتلاميذك بيدك (واتساب، إيميل). نعيّطولك أوّل ما التوصيل الأوتوماتيكي يكون جاهز.",
+    metaHelp: "مثال: 42 صفحة · 6 فيديوهات · 3 تمارين مصحّحة",
+    notVerified: "لازم بروفايلك يتثبّت الأول. أمشي لـ « التثبّت » وابعث وثائقك.",
+  },
+} as const;
+
 export default function NewPackPage() {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
+  const c = copy[locale];
 
   const [title, setTitle] = useState("");
   const [meta, setMeta] = useState("");
   const [price, setPrice] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  // Only ever true when the server action itself reports demo mode (no DB).
+  const [demo, setDemo] = useState(false);
 
   const { toast, showToast } = useToast();
 
@@ -24,9 +50,11 @@ export default function NewPackPage() {
     setSubmitted(true);
     const res = await createPack({ title, meta, priceTnd: Number(price) || 0 });
     if (res.ok) {
+      setDemo(Boolean(res.demo));
       showToast(res.demo ? `${t.extra.packPublished} · ${t.common.demoMode}` : t.extra.packPublished);
     } else {
-      showToast(t.extra.error);
+      // Server-side validation (empty title, negative price…) — let them fix it.
+      showToast(res.error === "not-verified" ? c.notVerified : t.extra.error);
       setSubmitted(false);
     }
   }
@@ -90,10 +118,10 @@ export default function NewPackPage() {
                   </div>
                   <div>
                     <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--blue)" }}>
-                      Fiches, PDFs, vidéos
+                      {c.hintTitle}
                     </div>
                     <div style={{ fontSize: 12, color: "var(--blue700)", marginTop: 3, lineHeight: 1.5 }}>
-                      Vends tes supports une fois, encaisse pour chaque vente.
+                      {c.hintBody}
                     </div>
                   </div>
                 </div>
@@ -116,7 +144,7 @@ export default function NewPackPage() {
                   {/* Meta */}
                   <Field
                     label={t.createPack.meta}
-                    help="ex. 42 pages · 6 vidéos · 3 exercices corrigés"
+                    help={c.metaHelp}
                   >
                     <div className="inp">
                       <input
@@ -145,33 +173,28 @@ export default function NewPackPage() {
                     </div>
                   </Field>
 
-                  {/* Upload placeholder */}
+                  {/* Honest note — no fake dropzone. File delivery isn't built yet, so we
+                      don't ship a control that pretends to upload. */}
                   <div style={{
-                    border: "2px dashed var(--line)",
+                    display: "flex",
+                    gap: 12,
+                    alignItems: "flex-start",
+                    padding: "14px 16px",
                     borderRadius: 14,
-                    padding: "22px 16px",
-                    textAlign: "center",
+                    background: "var(--cream)",
+                    border: "1px solid var(--line)",
                     marginBottom: 20,
-                    color: "var(--muted)",
                   }}>
-                    <div style={{
-                      marginBottom: 6,
-                      display: "flex",
-                      justifyContent: "center",
-                      color: "var(--muted)",
-                    }}>
-                      <Upload style={{ width: 26, height: 26 }} />
-                    </div>
-                    <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 4 }}>
-                      Ajouter des fichiers
-                    </div>
-                    <div style={{ fontSize: 12, lineHeight: 1.5 }}>
-                      PDF, MP4, ZIP — jusqu'à 500 Mo
-                      <br />
-                      <span style={{ color: "var(--blue)", fontWeight: 700 }}>
-                        {/* TODO file upload — Supabase Storage */}
-                        (bientôt disponible)
-                      </span>
+                    <span style={{ color: "var(--ochre)", display: "inline-flex", flexShrink: 0, marginTop: 1 }}>
+                      <Bulb style={{ width: 18, height: 18 }} />
+                    </span>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 3 }}>
+                        {c.deliveryTitle}
+                      </div>
+                      <div style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.6 }}>
+                        {c.deliveryBody}
+                      </div>
                     </div>
                   </div>
 
@@ -180,15 +203,18 @@ export default function NewPackPage() {
                     {t.createPack.create}
                   </Button>
 
-                  <p style={{
-                    textAlign: "center",
-                    fontSize: 11.5,
-                    color: "var(--muted)",
-                    marginTop: 12,
-                    lineHeight: 1.5,
-                  }}>
-                    {t.common.demoMode}
-                  </p>
+                  {/* Shown ONLY when the server action reports demo mode (no DB connected). */}
+                  {demo && (
+                    <p style={{
+                      textAlign: "center",
+                      fontSize: 11.5,
+                      color: "var(--muted)",
+                      marginTop: 12,
+                      lineHeight: 1.5,
+                    }}>
+                      {t.common.demoMode}
+                    </p>
+                  )}
                 </form>
               </div>
             </div>

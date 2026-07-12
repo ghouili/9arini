@@ -94,18 +94,34 @@ export type DashboardPack = {
   price_tnd: number;
 };
 
+// One student who booked one of the tutor's classes (see getDashboard).
+export type DashboardBooking = {
+  bookingId: string;
+  classId: string;
+  classTitle: string;
+  studentName: string | null;
+  studentPhone: string | null;   // tutors can call/WhatsApp their students
+  bookedAt: string;              // ISO
+  classTs: number;               // epoch ms of the class start (sort/upcoming)
+  isFree: boolean;
+  status: "reserved" | "paid" | "attended" | "cancelled";
+};
+
 // Real dashboard payload for the signed-in tutor (see getDashboard in app/actions.ts).
 export type DashboardData = {
   name: string | null;       // tutor display name (for the greeting)
   slug: string | null;       // storefront slug; null until they publish a page
   has_storefront: boolean;
-  balance_tnd: number;       // 0 until payments are wired
+  balance_tnd: number;       // real withdrawable balance — 0 while payments are OFF
+  paymentsEnabled: boolean;  // false → the UI must not promise earnings/payouts
   students: number;
   sessions: number;          // number of classes created
   rating: number;
+  reviewCount: number;       // how many reviews back that rating
   status: TutorVerifStatus;   // verification state (draft until submitted)
   classes: DashboardClass[];
   packs: DashboardPack[];
+  bookings: DashboardBooking[]; // who actually booked (across all their classes)
 };
 
 // A booked class as shown on the student's dashboard.
@@ -152,6 +168,57 @@ export type TutorVerification = {
   reviewNote: string | null;
   docKinds: string[];
 };
+// ---- Explore feed ----
+// A verified tutor card on /explore. rating/review_count are computed from the
+// reviews table — an empty feed returns [] (we never ship demo tutors as real).
+export type ExploreTutor = {
+  slug: string;
+  full_name: string;
+  subject: string;
+  level: string;
+  bio: string;
+  avatar_initials: string;
+  rating: number;          // 0 when nobody has reviewed yet
+  review_count: number;
+  students_count: number;
+  price_from_tnd: number | null; // cheapest upcoming class; null if none published
+};
+
+// ---- Reviews ----
+export type Review = {
+  id: string;
+  rating: number;              // 1–5
+  text: string | null;
+  studentName: string | null;  // "Amine K." — never the phone
+  classTitle: string | null;
+  createdAt: string;           // ISO
+};
+
+export type TutorReviews = {
+  items: Review[];
+  average: number;             // 0 when there are none
+  count: number;
+};
+
+// ---- Notifications ----
+export type NotificationKind =
+  | "booking_confirmed"
+  | "class_reminder"
+  | "verification_approved"
+  | "verification_rejected"
+  | "new_booking"
+  | "booking_cancelled";   // student pulled out — the tutor needs to know a seat freed up
+
+export type NotificationItem = {
+  id: string;
+  kind: NotificationKind;
+  title: string;
+  body: string;
+  href: string | null;
+  read: boolean;
+  createdAt: string;           // ISO
+};
+
 // A pending application as seen by an admin reviewer (getPendingVerifications).
 export type PendingTutor = {
   tutorId: string;

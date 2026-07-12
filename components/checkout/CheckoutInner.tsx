@@ -3,19 +3,77 @@ import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useLocale } from "@/components/LocaleProvider";
-import { Shield, Lock } from "@/components/icons";
+import { Check, Calendar, Clock, Users } from "@/components/icons";
 import { Spinner } from "@/components/ui";
 import { getClass, reserveSeat } from "@/app/actions";
 import type { ClassItem } from "@/lib/types";
 
-/* ---------- types ---------- */
-type PayMethod = "flouci" | "card" | "d17";
+/* Payments are OFF for the pilot (lib/payments.ts). This screen is a free
+   seat reservation, not a checkout: no rails, no card, no "paiement sécurisé".
+   Page-local copy — lib/i18n.ts is shared with other screens. */
+const copy = {
+  fr: {
+    title: "Confirmer ma réservation",
+    summary: "Ce que tu réserves",
+    when: "Quand",
+    who: "Avec",
+    seats: "Places restantes",
+    priceLine: "1ère séance",
+    freeTag: "Gratuite",
+    nextLine: (p: number) => `Séances suivantes : ${p} TND`,
+    noPayNow: "Aucun paiement en ligne : 9arini ne prend pas encore les paiements. Tu règles les séances suivantes directement avec ton prof, s'il te convient.",
+    paidNotice: (p: number) =>
+      `Cette séance est à ${p} TND. Le règlement se fait directement avec ton prof — 9arini ne prend aucun paiement en ligne pour l'instant.`,
+    cancelRule: "Annulation gratuite jusqu'à 24h avant le cours, depuis « Mes cours ».",
+    confirm: "Confirmer ma place",
+    confirming: "…",
+    okTitle: "C'est réservé !",
+    okBody: "Ta place est confirmée. Retrouve le lien de la séance dans « Mes cours ».",
+    okAlready: "Tu avais déjà cette place. Le lien de la séance est dans « Mes cours ».",
+    okCta: "Voir mes cours",
+    errAuth: "Connecte-toi pour réserver ta place.",
+    errFull: "Plus de places pour cette séance.",
+    errUnavailable: "Cette séance n'est plus disponible.",
+    errConsent: "Il manque l'accord de ton parent ou tuteur pour réserver.",
+    errConsentCta: "Donner l'accord",
+    errGeneric: "La réservation n'a pas marché. Réessaie.",
+    signIn: "Se connecter",
+    notFound: "Séance introuvable.",
+  },
+  ar: {
+    title: "أكّد حجزي",
+    summary: "شنوّة قاعد تحجز",
+    when: "الوقت",
+    who: "مع",
+    seats: "الأماكن الباقية",
+    priceLine: "الحصة الأولى",
+    freeTag: "مجانية",
+    nextLine: (p: number) => `الحصص الموالية : ${p} د.ت`,
+    noPayNow: "ما فماش خلاص أونلاين : 9arini ما زالت ما تقبلش الدفع. الحصص الموالية تخلّصهم مباشرة مع أستاذك، كان عجبك.",
+    paidNotice: (p: number) =>
+      `هذه الحصة بـ ${p} د.ت. الخلاص يتم مباشرة مع أستاذك — 9arini ما تقبلش الدفع أونلاين توّا.`,
+    cancelRule: "الإلغاء مجاني حتى 24 ساعة قبل الحصة، من « حصصي ».",
+    confirm: "أكّد مكاني",
+    confirming: "…",
+    okTitle: "تم الحجز !",
+    okBody: "مكانك مؤكّد. تلقى رابط الحصة في « حصصي ».",
+    okAlready: "مكانك كان محجوز من قبل. رابط الحصة في « حصصي ».",
+    okCta: "شوف حصصي",
+    errAuth: "تسجّل الدخول باش تحجز مكانك.",
+    errFull: "ما عادش فما أماكن في هاذي الحصة.",
+    errUnavailable: "هذه الحصة ما عادش متوفّرة.",
+    errConsent: "لازم موافقة وليّك باش تنجّم تحجز.",
+    errConsentCta: "أعطي الموافقة",
+    errGeneric: "الحجز ما مشاش. عاود حاول.",
+    signIn: "تسجيل الدخول",
+    notFound: "الحصة ما تلقاتش.",
+  },
+} as const;
 
 /* ---------- confetti ---------- */
 const CONFETTI_COLORS = ["#E0852E", "#1B9C6F", "#0E5AA6", "#F3C24B"];
 
 function Confetti() {
-  // 12 pieces scattered around the check circle
   const pieces = Array.from({ length: 12 }, (_, i) => ({
     key: i,
     color: CONFETTI_COLORS[i % 4],
@@ -56,105 +114,8 @@ function Confetti() {
   );
 }
 
-/* ---------- payment option row ---------- */
-interface PmOptProps {
-  selected: boolean;
-  onSelect: () => void;
-  logoColor: string;
-  logoText: string;
-  title: string;
-  subtitle: string;
-}
-function PmOpt({ selected, onSelect, logoColor, logoText, title, subtitle }: PmOptProps) {
-  return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={selected}
-      aria-label={title}
-      onClick={onSelect}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 13,
-        padding: "14px 16px",
-        border: selected
-          ? "1.6px solid var(--blue)"
-          : "1.6px solid var(--lineCool)",
-        borderRadius: 15,
-        marginBottom: 10,
-        cursor: "pointer",
-        background: "var(--paper)",
-        width: "100%",
-        textAlign: "start",
-        transition: "border-color .15s",
-        boxShadow: selected ? "0 0 0 3px rgba(14,90,166,.12)" : "none",
-        minHeight: 56,
-      }}
-    >
-      {/* Logo badge */}
-      <div
-        style={{
-          width: 48,
-          height: 34,
-          borderRadius: 9,
-          flex: "none",
-          display: "grid",
-          placeItems: "center",
-          background: logoColor,
-          fontFamily: "var(--fd)",
-          fontWeight: 700,
-          fontSize: 11,
-          color: "#fff",
-          letterSpacing: 0.3,
-        }}
-      >
-        {logoText}
-      </div>
-
-      {/* Label */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 700, fontSize: 14 }}>{title}</div>
-        <div style={{ color: "var(--muted)", fontSize: 11.5, marginTop: 2 }}>{subtitle}</div>
-      </div>
-
-      {/* Radio indicator */}
-      <div
-        style={{
-          width: 21,
-          height: 21,
-          borderRadius: "50%",
-          border: `2px solid ${selected ? "var(--blue)" : "var(--lineCool)"}`,
-          flex: "none",
-          display: "grid",
-          placeItems: "center",
-          marginInlineStart: "auto",
-          transition: "border-color .15s",
-        }}
-      >
-        {selected && (
-          <div
-            style={{
-              width: 11,
-              height: 11,
-              borderRadius: "50%",
-              background: "var(--blue)",
-            }}
-          />
-        )}
-      </div>
-    </button>
-  );
-}
-
 /* ---------- success overlay ---------- */
-interface SuccessOverlayProps {
-  show: boolean;
-  okTitle: string;
-  okBody: string;
-  okCta: string;
-}
-function SuccessOverlay({ show, okTitle, okBody, okCta }: SuccessOverlayProps) {
+function SuccessOverlay({ show, okTitle, okBody, okCta }: { show: boolean; okTitle: string; okBody: string; okCta: string }) {
   if (!show) return null;
   return (
     <div
@@ -173,10 +134,8 @@ function SuccessOverlay({ show, okTitle, okBody, okCta }: SuccessOverlayProps) {
         borderRadius: "inherit",
       }}
     >
-      {/* Confetti burst */}
       <Confetti />
 
-      {/* Green check circle */}
       <div
         style={{
           width: 98,
@@ -192,9 +151,7 @@ function SuccessOverlay({ show, okTitle, okBody, okCta }: SuccessOverlayProps) {
         }}
       >
         <style dangerouslySetInnerHTML={{ __html: `
-          @keyframes draw-check {
-            to { stroke-dashoffset: 0; }
-          }
+          @keyframes draw-check { to { stroke-dashoffset: 0; } }
           .succ-check {
             stroke-dasharray: 40;
             stroke-dashoffset: 40;
@@ -203,89 +160,58 @@ function SuccessOverlay({ show, okTitle, okBody, okCta }: SuccessOverlayProps) {
         `}} />
         <svg
           viewBox="0 0 24 24"
-          style={{
-            width: 50,
-            height: 50,
-            stroke: "#fff",
-            fill: "none",
-            strokeWidth: 3.4,
-            strokeLinecap: "round",
-            strokeLinejoin: "round",
-          }}
+          style={{ width: 50, height: 50, stroke: "#fff", fill: "none", strokeWidth: 3.4, strokeLinecap: "round", strokeLinejoin: "round" }}
         >
           <polyline points="5 13 10 18 19 7" className="succ-check" />
         </svg>
       </div>
 
-      <h2
-        style={{
-          fontFamily: "var(--fd)",
-          fontSize: 24,
-          letterSpacing: -0.5,
-          marginBottom: 10,
-          position: "relative",
-          zIndex: 2,
-        }}
-      >
+      <h2 style={{ fontFamily: "var(--fd)", fontSize: 24, letterSpacing: -0.5, marginBottom: 10, position: "relative", zIndex: 2 }}>
         {okTitle}
       </h2>
-      <p
-        style={{
-          color: "var(--muted)",
-          fontSize: 14,
-          lineHeight: 1.65,
-          maxWidth: 260,
-          marginBottom: 28,
-          position: "relative",
-          zIndex: 2,
-        }}
-      >
+      <p style={{ color: "var(--muted)", fontSize: 14, lineHeight: 1.65, maxWidth: 280, marginBottom: 28, position: "relative", zIndex: 2 }}>
         {okBody}
       </p>
 
-      <Link
-        href="/student"
-        className="btn btn-ink"
-        style={{ width: "100%", maxWidth: 220, position: "relative", zIndex: 2 }}
-      >
+      <Link href="/student" className="btn btn-ink" style={{ width: "100%", maxWidth: 220, position: "relative", zIndex: 2 }}>
         {okCta}
       </Link>
     </div>
   );
 }
 
-/* ---------- main component ---------- */
+/* ---------- main ---------- */
 export default function CheckoutInner() {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
+  const c = copy[locale];
   const searchParams = useSearchParams();
   const classId = searchParams.get("class") ?? "";
 
-  // Fetch the real class (demo class in demo mode).
   const [cls, setCls] = useState<ClassItem | null | undefined>(undefined);
   useEffect(() => {
+    if (!classId) { setCls(null); return; }
     getClass(classId).then(setCls).catch(() => setCls(null));
   }, [classId]);
 
-  const [selected, setSelected] = useState<PayMethod>("flouci");
-  const [paid, setPaid] = useState(false);
-  const [reserving, setReserving] = useState(false);
-  const [err, setErr] = useState<"auth" | "full" | "generic" | null>(null);
+  const [done, setDone] = useState<null | "new" | "already">(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<"auth" | "full" | "unavailable" | "consent" | "generic" | null>(null);
 
-  const handlePay = useCallback(async () => {
+  const handleConfirm = useCallback(async () => {
     setErr(null);
-    setReserving(true);
+    setBusy(true);
     const res = await reserveSeat({ classId });
-    setReserving(false);
-    if (res.ok) {
-      setPaid(true);
-      return;
-    }
+    setBusy(false);
+    if (res.ok) { setDone(res.already ? "already" : "new"); return; }
     if (res.error === "not-authenticated") setErr("auth");
     else if (res.error === "full") setErr("full");
+    else if (res.error === "unavailable") setErr("unavailable");
+    // Guardian consent (INPDP) is enforced server-side in reserveSeat. Retrying
+    // can never fix it — send them to the consent form and back to this class.
+    else if (res.error === "needs-consent") setErr("consent");
     else setErr("generic");
   }, [classId]);
 
-  // ── Loading / not-found ──
   if (cls === undefined) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 240 }}>
@@ -296,7 +222,7 @@ export default function CheckoutInner() {
   if (cls === null) {
     return (
       <div className="card card-pad" style={{ textAlign: "center", maxWidth: 460, marginInline: "auto" }}>
-        <h1 style={{ fontFamily: "var(--fd)", fontSize: 18, marginBottom: 12 }}>{t.checkout.errGeneric}</h1>
+        <h1 style={{ fontFamily: "var(--fd)", fontSize: 18, marginBottom: 12 }}>{c.notFound}</h1>
         <Link href="/explore" className="btn btn-primary" style={{ maxWidth: 220, marginInline: "auto" }}>
           {t.nav.explore}
         </Link>
@@ -307,162 +233,79 @@ export default function CheckoutInner() {
   const isFree = cls.is_free_first;
 
   return (
-    /*
-     * Outer wrapper: relative so the success overlay can fill it.
-     * max-width + mx-auto centres on wide viewports; width:100% ensures
-     * it fills the container-narrow column on small screens.
-     */
-    <div
-      style={{
-        position: "relative",
-        width: "100%",
-        maxWidth: 560,
-        marginInline: "auto",
-      }}
-    >
-      {/* ── Page title + back link ── */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          marginBottom: 24,
-        }}
-      >
-        <Link
-          href={`/class/${cls.id}`}
-          className="iconbtn"
-          aria-label={t.common.back}
-          style={{ flexShrink: 0 }}
-        >
+    <div style={{ position: "relative", width: "100%", maxWidth: 560, marginInline: "auto" }}>
+
+      {/* Title + back */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+        <Link href={`/class/${cls.id}`} className="iconbtn" aria-label={t.common.back} style={{ flexShrink: 0 }}>
           <svg viewBox="0 0 24 24" className="ic flip" aria-hidden="true">
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </Link>
-        <h1
-          style={{
-            fontFamily: "var(--fd)",
-            fontSize: "clamp(18px,3vw,22px)",
-            fontWeight: 700,
-            letterSpacing: -0.4,
-          }}
-        >
-          {t.checkout.title}
+        <h1 style={{ fontFamily: "var(--fd)", fontSize: "clamp(18px,3vw,22px)", fontWeight: 700, letterSpacing: -0.4 }}>
+          {c.title}
         </h1>
       </div>
 
-      {/* ── Class summary card ── */}
-      <div
-        className="card card-pad"
-        style={{
-          display: "flex",
-          gap: 13,
-          alignItems: "center",
-          marginBottom: 16,
-        }}
-      >
-        <div
-          className="thumb"
-          style={{ background: "var(--blue)", color: "#fff", flexShrink: 0 }}
-        >
+      {/* What you're booking */}
+      <div className="sec" style={{ marginBottom: 10 }}>
+        <span>{c.summary}</span>
+      </div>
+
+      <div className="card card-pad" style={{ display: "flex", gap: 13, alignItems: "center", marginBottom: 16 }}>
+        <div className="thumb" style={{ background: "var(--blue)", color: "#fff", flexShrink: 0 }}>
           <b>{cls.day}</b>
           <span>{cls.month}</span>
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div
-            style={{
-              fontWeight: 700,
-              fontSize: 14.5,
-              marginBottom: 3,
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
+          <div style={{ fontWeight: 700, fontSize: 14.5, marginBottom: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {cls.title}
           </div>
-          <div style={{ color: "var(--muted)", fontSize: 12 }}>
-            {t.classDetail.with} {cls.tutor_name ?? "—"} · {cls.time}
+          <div className="metaline">
+            <span>
+              <Clock />
+              {cls.time} · {cls.duration_min} {t.common.min}
+            </span>
+            <span>
+              <Users />
+              {t.common.seats(cls.seats_left)}
+            </span>
           </div>
+          {cls.tutor_name && (
+            <div style={{ color: "var(--muted)", fontSize: 12, marginTop: 4 }}>
+              {c.who} {cls.tutor_name}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* ── Price lines ── */}
-      <div
-        className="panel panel-pad"
-        style={{ marginBottom: 16 }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            padding: "10px 0",
-            fontSize: 14,
-          }}
-        >
-          <span style={{ color: "var(--muted)" }}>{t.checkout.trial}</span>
-          <span className="price" style={{ color: "var(--green)" }}>
-            0 {t.common.tnd}
-          </span>
-        </div>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            padding: "10px 0",
-            borderTop: "1px solid var(--line)",
-            fontSize: 14,
-          }}
-        >
-          <span>{t.checkout.nextSessions}</span>
-          <span className="price">
-            {cls.price_tnd} {t.common.tnd}
-          </span>
-        </div>
+      {/* Price — free first session; nothing is charged here */}
+      <div className="panel panel-pad" style={{ marginBottom: 16 }}>
+        {isFree ? (
+          <>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", fontSize: 14 }}>
+              <span style={{ color: "var(--muted)" }}>{c.priceLine}</span>
+              <span className="price" style={{ color: "var(--green)" }}>0 {t.common.tnd}</span>
+            </div>
+            {cls.price_tnd > 0 && (
+              <div style={{ paddingTop: 10, borderTop: "1px solid var(--line)", fontSize: 12.5, color: "var(--muted)", lineHeight: 1.6 }}>
+                <div style={{ fontWeight: 700, color: "var(--ink2)", marginBottom: 3 }}>{c.nextLine(cls.price_tnd)}</div>
+                {c.noPayNow}
+              </div>
+            )}
+          </>
+        ) : (
+          <div style={{ fontSize: 13, color: "var(--ink2)", lineHeight: 1.6 }}>{c.paidNotice(cls.price_tnd)}</div>
+        )}
       </div>
 
-      {/* ── Payment method section ── */}
-      <div className="sec" style={{ marginBottom: 10 }}>
-        <span>{t.checkout.method}</span>
+      {/* The one rule that actually binds: 24h cancellation */}
+      <div style={{ display: "flex", gap: 9, alignItems: "flex-start", background: "var(--green50)", borderRadius: 13, padding: "12px 13px", fontSize: 12.5, color: "#13724f", lineHeight: 1.55, marginBottom: 20 }}>
+        <Calendar style={{ color: "var(--green)", flexShrink: 0, marginTop: 1, width: 17, height: 17 }} />
+        <span>{c.cancelRule}</span>
       </div>
 
-      <div role="radiogroup" aria-label={t.checkout.method} style={{ marginBottom: 16 }}>
-        <PmOpt
-          selected={selected === "flouci"}
-          onSelect={() => setSelected("flouci")}
-          logoColor="#5B3DF5"
-          logoText="flouci"
-          title="Flouci"
-          subtitle={t.checkout.flouci}
-        />
-        <PmOpt
-          selected={selected === "card"}
-          onSelect={() => setSelected("card")}
-          logoColor="var(--blue)"
-          logoText="CIB"
-          title={t.checkout.card}
-          subtitle={t.checkout.cardSub}
-        />
-        <PmOpt
-          selected={selected === "d17"}
-          onSelect={() => setSelected("d17")}
-          logoColor="#0A7D3E"
-          logoText="D17"
-          title="D17"
-          subtitle={t.checkout.d17}
-        />
-      </div>
-
-      {/* ── Trust block ── */}
-      <div className="trust" style={{ marginBottom: 20 }}>
-        <Shield />
-        <p>
-          <strong>{t.checkout.trust.split(".")[0]}.</strong>{" "}
-          {t.checkout.trust.split(".").slice(1).join(".")}
-        </p>
-      </div>
-
-      {/* ── Error (auth / full / generic) ── */}
+      {/* Errors */}
       {err && (
         <div
           role="alert"
@@ -471,61 +314,45 @@ export default function CheckoutInner() {
             borderRadius: 12, padding: "11px 13px", fontSize: 13, marginBottom: 12, textAlign: "center",
           }}
         >
-          {err === "auth" ? t.checkout.errAuth : err === "full" ? t.checkout.errFull : t.checkout.errGeneric}
+          {err === "auth"
+            ? c.errAuth
+            : err === "full"
+              ? c.errFull
+              : err === "unavailable"
+                ? c.errUnavailable
+                : err === "consent"
+                  ? c.errConsent
+                  : c.errGeneric}
           {err === "auth" && (
             <>
               {" "}
-              <Link href="/auth" style={{ color: "var(--blue)", fontWeight: 700, textDecoration: "underline" }}>
-                {t.auth.title}
+              <Link href={`/auth?next=${encodeURIComponent(`/checkout?class=${cls.id}`)}`} style={{ color: "var(--blue)", fontWeight: 700, textDecoration: "underline" }}>
+                {c.signIn}
+              </Link>
+            </>
+          )}
+          {err === "consent" && (
+            <>
+              {" "}
+              <Link href={`/auth/consent?next=${encodeURIComponent(`/checkout?class=${cls.id}`)}`} style={{ color: "var(--blue)", fontWeight: 700, textDecoration: "underline" }}>
+                {c.errConsentCta}
               </Link>
             </>
           )}
         </div>
       )}
 
-      {/* ── Pay button + fine print ── */}
-      <button
-        className="btn btn-primary"
-        onClick={handlePay}
-        disabled={paid || reserving}
-        style={{ minHeight: 52 }}
-      >
-        <Lock />
-        <span>{reserving ? "…" : isFree ? t.checkout.pay : t.checkout.payPaid(cls.price_tnd)}</span>
+      {/* Confirm */}
+      <button className="btn btn-primary" onClick={handleConfirm} disabled={busy || done !== null} style={{ minHeight: 52, marginBottom: 32 }}>
+        <Check />
+        <span>{busy ? c.confirming : c.confirm}</span>
       </button>
 
-      <p
-        style={{
-          textAlign: "center",
-          color: "var(--muted)",
-          fontSize: 11.5,
-          marginTop: 11,
-          fontWeight: 600,
-        }}
-      >
-        {t.checkout.noCharge}
-      </p>
-
-      {/* Demo pending note */}
-      <p
-        style={{
-          textAlign: "center",
-          color: "var(--muted)",
-          fontSize: 11,
-          marginTop: 6,
-          fontStyle: "italic",
-          marginBottom: 32,
-        }}
-      >
-        {t.checkout.pending}
-      </p>
-
-      {/* ── Success overlay ── */}
       <SuccessOverlay
-        show={paid}
-        okTitle={t.checkout.okTitle}
-        okBody={t.checkout.okBody}
-        okCta={t.checkout.okCta}
+        show={done !== null}
+        okTitle={c.okTitle}
+        okBody={done === "already" ? c.okAlready : c.okBody}
+        okCta={c.okCta}
       />
     </div>
   );

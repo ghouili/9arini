@@ -1,11 +1,200 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { unstable_cache } from "next/cache";
 import { StorefrontView } from "@/components/storefront/StorefrontView";
-import { getStorefront } from "@/lib/data";
+import { JsonLd } from "@/components/JsonLd";
+import { getCachedStorefront, STOREFRONT_TTL, tutorTag } from "@/lib/cache";
+import { getTutorReviews } from "@/app/actions";
+
+type Props = { params: { slug: string } };
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://9arini.tn";
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   RENDERING STRATEGY — this is the page that goes viral.
+
+   A tutor drops 9arini.tn/<slug> in a WhatsApp group; thousands of mid-range
+   Androids on 3G open it inside a few minutes. Before this change, EVERY one of
+   those hits ran four sequential Postgres queries (tutor, classes, packs,
+   reviews) and re-rendered the whole React tree — the database was the first
+   thing to fall over, and it would take the login flow (same pool) down with it.
+
+   Two layers now stand in front of that:
+
+     1. ISR (`revalidate` below). Next renders the page once, then serves the
+        SAME HTML from disk to everyone for up to 60s, re-rendering in the
+        background afterwards (stale-while-revalidate: nobody ever waits for it).
+        A cache HIT costs zero database queries and zero React renders. This is
+        the layer that actually survives the spike.
+
+     2. unstable_cache around the data reads (lib/cache.ts). Belt and braces for
+        the paths ISR does not cover — generateMetadata, a background
+        re-render, an on-demand revalidation — so even a cache MISS storm from
+        N workers collapses to one query per slug per window.
+
+   Safe to cache as HTML because this page is 100% anonymous: it reads no
+   cookies, and the only session-aware thing on screen (the header's login state)
+   is fetched client-side by SiteHeader via getMe(). Nothing user-specific is
+   ever baked into the cached bytes.
+
+   60s is the staleness ceiling for a REJECTED tutor's page staying up — the
+   trade-off is argued in full in lib/cache.ts. approveTutor/rejectTutor should
+   call revalidateTutor(slug) to make it instant; see SCALABILITY.md.
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+/* ISR window, in seconds. Next only accepts a statically analyzable literal here,
+   so this cannot import STOREFRONT_TTL — keep the two equal (both 60). */
+export const revalidate = 60;
+
+/* Slugs not rendered at build time are generated on first request and then
+   cached like any other (this is the default; it is stated explicitly because
+   the whole marketplace depends on a brand-new tutor's link working the second
+   they share it). */
+export const dynamicParams = true;
+
+/** Reviews come from a "use server" module, so they get their own cache wrapper here. */
+const cachedTutorReviews = (slug: string) =>
+  unstable_cache(
+    async (s: string) => getTutorReviews(s),
+    ["tutor-reviews"],
+    { revalidate: STOREFRONT_TTL, tags: [tutorTag(slug)] },
+  )(slug);
+
+/** Trim a bio down to something that survives a WhatsApp/Google preview. */
+function clamp(s: string, max: number) {
+  const clean = s.replace(/[«»"]/g, "").replace(/\s+/g, " ").trim();
+  if (clean.length <= max) return clean;
+  const cut = clean.slice(0, max);
+  const stop = Math.max(cut.lastIndexOf(" "), max - 20);
+  return `${cut.slice(0, stop).trimEnd()}…`;
+}
+
+/* This is the single most-shared page in the product: tutors paste their link on
+   WhatsApp, TikTok and Insta. The preview card has to say WHO the tutor is and
+   WHAT they teach — not "9arini — apprends avec ton prof". */
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  // Same cached read as the page body → the OG-card crawler (WhatsApp fetches the
+  // link preview once per share) does not add a second round of queries.
+  const data = await getCachedStorefront(params.slug);
+
+  // Unknown / unverified slug → the page 404s anyway; don't let it get indexed.
+  if (!data) {
+    return { title: "Prof introuvable", robots: { index: false, follow: false } };
+  }
+
+  const { tutor } = data;
+  const url = `/${params.slug}`;
+  // layout.tsx applies the "%s · 9arini" template on top of this.
+  const title = `${tutor.full_name} — ${tutor.subject}`;
+  const pitch = "Réserve un cours en direct — 1ère séance offerte, paiement en dinar.";
+  const description = tutor.bio ? `${clamp(tutor.bio, 120)} · ${pitch}` : `${tutor.subject}. ${pitch}`;
+  const ogTitle = `${title} · 9arini`;
+  const alt = `${tutor.full_name} sur 9arini — ${tutor.subject}`;
+  const [firstName, ...rest] = tutor.full_name.trim().split(/\s+/);
+
+  return {
+    title,
+    description,
+    keywords: [
+      tutor.full_name,
+      tutor.subject,
+      tutor.level,
+      "cours particuliers",
+      "cours en direct",
+      "Tunisie",
+      "9arini",
+    ].filter(Boolean),
+    alternates: { canonical: url },
+    openGraph: {
+      type: "profile",
+      firstName,
+      lastName: rest.join(" ") || undefined,
+      username: tutor.slug,
+      url,
+      siteName: "9arini",
+      locale: "fr_TN",
+      alternateLocale: ["ar_TN"],
+      title: ogTitle,
+      description,
+      images: [{ url: "/og.png", width: 1200, height: 630, alt }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: ogTitle,
+      description,
+      images: ["/og.png"],
+    },
+  };
+}
 
 // Public tutor storefront (9arini.tn/<slug>). Server component: fetches from Postgres
-// via the data layer (falls back to demo data when no DATABASE_URL is set).
-export default async function StorefrontPage({ params }: { params: { slug: string } }) {
-  const data = await getStorefront(params.slug);
+// via the cached data layer (falls back to demo data when no DATABASE_URL is set).
+// Reviews are fetched here (server-side) so the storefront ships them in the first
+// paint — no client round-trip on a 3G phone.
+export default async function StorefrontPage({ params }: Props) {
+  // Still parallel: on a cold cache the two reads overlap, so the miss costs one
+  // round trip's latency, not two.
+  const [data, reviews] = await Promise.all([
+    getCachedStorefront(params.slug),
+    cachedTutorReviews(params.slug),
+  ]);
   if (!data) notFound();
-  return <StorefrontView data={data} />;
+
+  const { tutor } = data;
+  const url = `${SITE_URL}/${params.slug}`;
+  /* Truthful structured data for the storefront. The AggregateRating is emitted
+     ONLY when this tutor has real reviews (reviews.count > 0) — marking up a rating
+     that does not exist is structured-data spam and draws a Google manual action,
+     and it is exactly the fabricated social proof the truth rule forbids. A new
+     tutor ships Person + Service + BreadcrumbList and NO rating markup. */
+  const jsonLd: object[] = [
+    {
+      "@context": "https://schema.org",
+      "@type": "Person",
+      name: tutor.full_name,
+      url,
+      jobTitle: tutor.subject,
+      ...(tutor.bio ? { description: tutor.bio } : {}),
+      worksFor: { "@type": "Organization", name: "9arini", url: SITE_URL },
+      knowsLanguage: ["fr", "ar"],
+      areaServed: { "@type": "Country", name: "Tunisia" },
+      ...(reviews.count > 0
+        ? {
+            aggregateRating: {
+              "@type": "AggregateRating",
+              ratingValue: reviews.average,
+              reviewCount: reviews.count,
+              bestRating: 5,
+              worstRating: 1,
+            },
+          }
+        : {}),
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "Service",
+      serviceType: "Cours particuliers en direct",
+      provider: { "@type": "Person", name: tutor.full_name, url },
+      areaServed: { "@type": "Country", name: "Tunisia" },
+      availableLanguage: ["fr", "ar"],
+      description: tutor.bio || tutor.subject,
+      offers: { "@type": "Offer", price: "0", priceCurrency: "TND", description: "Première séance offerte" },
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Accueil", item: SITE_URL },
+        { "@type": "ListItem", position: 2, name: "Explorer", item: `${SITE_URL}/explore` },
+        { "@type": "ListItem", position: 3, name: tutor.full_name, item: url },
+      ],
+    },
+  ];
+
+  return (
+    <>
+      <JsonLd data={jsonLd} />
+      <StorefrontView data={data} reviews={reviews} />
+    </>
+  );
 }

@@ -3,17 +3,29 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useLocale } from "./LocaleProvider";
 import { LocaleToggle } from "./LocaleToggle";
-import { getMe } from "@/app/actions";
+
+/* The coarse role for nav, read from the readable ROLE_HINT_COOKIE (lib/auth.ts).
+   This REPLACES a getMe() server-action POST that used to fire on every page load —
+   which meant every perfectly-cached page still dragged an uncacheable POST behind
+   it for every visitor (SCALABILITY.md / launch brief Phase 2). Reading a cookie is
+   zero network. It is a display hint only: a stale/forged value at worst shows a nav
+   link that bounces to /auth (middleware) — every action re-checks the real session. */
+function readRoleHint(): string | null {
+  if (typeof document === "undefined") return null;
+  const m = document.cookie.match(/(?:^|;\s*)9arini_role=([^;]+)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
 
 /* Responsive top navigation for the full-width web layout.
    Auth-aware (shows account/dashboard when logged in). On phones the inline
    links collapse into a hamburger menu so every destination stays reachable. */
 export function SiteHeader() {
   const { t } = useLocale();
-  const [me, setMe] = useState<{ name: string | null; role: string } | null>(null);
+  const [role, setRole] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
 
-  useEffect(() => { getMe().then(setMe).catch(() => setMe(null)); }, []);
+  // Post-hydration read (server render is auth-agnostic so the HTML stays cacheable).
+  useEffect(() => { setRole(readRoleHint()); }, []);
 
   const close = () => setOpen(false);
 
@@ -34,9 +46,9 @@ export function SiteHeader() {
 
         <div className="nav-right">
           <LocaleToggle />
-          {me ? (
-            <Link href={me.role === "tutor" ? "/dashboard" : "/account"} className="btn btn-ink btn-sm hide-mobile">
-              {me.role === "tutor" ? t.nav.dashboard : t.account.title}
+          {role ? (
+            <Link href={role === "tutor" ? "/dashboard" : "/account"} className="btn btn-ink btn-sm hide-mobile">
+              {role === "tutor" ? t.nav.dashboard : t.account.title}
             </Link>
           ) : (
             <Link href="/onboarding" className="btn btn-primary btn-sm hide-mobile">{t.home.becomeTutor}</Link>
@@ -59,9 +71,9 @@ export function SiteHeader() {
           <Link href="/explore">{t.nav.explore}</Link>
           <Link href="/onboarding">{t.home.becomeTutor}</Link>
           <Link href="/student">{t.home.forStudents}</Link>
-          {me ? (
-            <Link href={me.role === "tutor" ? "/dashboard" : "/account"}>
-              {me.role === "tutor" ? t.nav.dashboard : t.account.title}
+          {role ? (
+            <Link href={role === "tutor" ? "/dashboard" : "/account"}>
+              {role === "tutor" ? t.nav.dashboard : t.account.title}
             </Link>
           ) : (
             <Link href="/auth">{t.auth.title}</Link>

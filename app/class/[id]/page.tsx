@@ -5,13 +5,35 @@ import { Chip, Spinner } from "@/components/ui";
 import { SiteShell } from "@/components/SiteShell";
 import { Calendar, Clock, Users, Shield } from "@/components/icons";
 import { useLocale } from "@/components/LocaleProvider";
-import { getClass } from "@/app/actions";
-import type { ClassItem } from "@/lib/types";
+import { getClass, getExploreTutors } from "@/app/actions";
+import type { ClassItem, ExploreTutor } from "@/lib/types";
+
+/* Page-local copy (lib/i18n.ts is shared). t.common.secure promises
+   "Paiement sécurisé · Flouci & D17" — there is no payment rail in the pilot,
+   so this page states what is actually true: free first session + 24h cancellation. */
+const copy = {
+  fr: { reassure: "1ère séance gratuite · annulation gratuite jusqu'à 24h avant" },
+  ar: { reassure: "الحصة الأولى مجانية · إلغاء مجاني حتى 24 ساعة قبل" },
+} as const;
 
 export default function ClassDetailPage({ params }: { params: { id: string } }) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
+  const c = copy[locale];
   const [cls, setCls] = useState<ClassItem | null | undefined>(undefined);
+  // The tutor behind this class (real slug + real subject/level — no hardcoded
+  // "/yassine-math" back-link, no hardcoded "Prof · Bac"). Null when we can't
+  // resolve them (demo mode / unverified tutor) → we simply show less.
+  const [tutor, setTutor] = useState<ExploreTutor | null>(null);
+
   useEffect(() => { getClass(params.id).then(setCls).catch(() => setCls(null)); }, [params.id]);
+
+  const tutorNameFromClass = cls?.tutor_name;
+  useEffect(() => {
+    if (!tutorNameFromClass) { setTutor(null); return; }
+    getExploreTutors({ q: tutorNameFromClass })
+      .then((rows) => setTutor(rows?.find((r) => r.full_name === tutorNameFromClass) ?? null))
+      .catch(() => setTutor(null));
+  }, [tutorNameFromClass]);
 
   if (cls === undefined) {
     return (
@@ -39,6 +61,14 @@ export default function ClassDetailPage({ params }: { params: { id: string } }) 
 
   const tutorName = cls.tutor_name ?? "—";
   const tutorInits = tutorName.split(" ").filter(Boolean).map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "?";
+  // Back to the tutor's real storefront when we know it, else to the catalogue.
+  const backHref = tutor?.slug ? `/${tutor.slug}` : "/explore";
+  // Real subject/level from the tutor row — shown only when we actually have it.
+  const tutorMeta = tutor
+    ? [tutor.subject, tutor.level && !tutor.subject.includes(tutor.level) ? tutor.level : ""]
+        .filter(Boolean)
+        .join(" · ")
+    : "";
 
   return (
     <SiteShell>
@@ -48,7 +78,7 @@ export default function ClassDetailPage({ params }: { params: { id: string } }) 
           {/* Back breadcrumb */}
           <div style={{ marginBottom: 22 }}>
             <Link
-              href="/yassine-math"
+              href={backHref}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -192,11 +222,19 @@ export default function ClassDetailPage({ params }: { params: { id: string } }) 
                 >
                   {tutorInits}
                 </div>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 14.5 }}>{tutorName}</div>
-                  <div style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 2 }}>
-                    Prof · Bac
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14.5 }}>
+                    {tutor?.slug ? (
+                      <Link href={`/${tutor.slug}`} style={{ color: "inherit" }}>{tutorName}</Link>
+                    ) : (
+                      tutorName
+                    )}
                   </div>
+                  {tutorMeta && (
+                    <div style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 2 }}>
+                      {tutorMeta}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -261,7 +299,7 @@ export default function ClassDetailPage({ params }: { params: { id: string } }) 
                   }}
                 >
                   <Shield style={{ width: 13, height: 13, color: "var(--green)" } as CSSProperties} />
-                  <span>{t.common.secure}</span>
+                  <span>{c.reassure}</span>
                 </div>
               </div>
             </div>
@@ -286,7 +324,7 @@ export default function ClassDetailPage({ params }: { params: { id: string } }) 
               }}
             >
               <Shield style={{ width: 13, height: 13, color: "var(--green)" } as CSSProperties} />
-              <span>{t.common.secure}</span>
+              <span>{c.reassure}</span>
             </div>
           </div>
 

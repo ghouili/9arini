@@ -1,46 +1,185 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { Button, Field } from "@/components/ui";
+import { Button, Spinner } from "@/components/ui";
 import { useLocale } from "@/components/LocaleProvider";
-import { Back, Wallet, Shield, Bank } from "@/components/icons";
-import { useToast } from "@/components/useToast";
-import { demoTutorStatsEarning } from "@/lib/demo";
+import { Back, Wallet, Shield, Bank, Bulb } from "@/components/icons";
 import { SiteShell } from "@/components/SiteShell";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
+import { getDashboard } from "@/app/actions";
+import type { DashboardData } from "@/lib/types";
 
-type Method = "flouci_wallet" | "bank_rib";
+/* Page-local copy (never edit lib/i18n.ts from here). FR + Derija, RTL-safe. */
+const copy = {
+  fr: {
+    signedOutTitle: "Connecte-toi pour voir ton solde",
+    signedOutBody: "Ton solde et tes retraits s'affichent ici une fois connecté.",
+    signIn: "Se connecter",
+    soonTitle: "Les paiements arrivent bientôt",
+    soonBody:
+      "On finalise Flouci et D17. En attendant, tes élèves réservent sans payer en ligne — donc ton solde est à 0, pour de vrai. Dès que les paiements s'ouvrent, chaque réservation payée arrive ici et tu pourras retirer.",
+    soonNote: "On te préviendra dès que le retrait est ouvert. Rien à faire de ton côté.",
+    comingRails: "Retraits prévus vers",
+    disabledBtn: "Retrait pas encore disponible",
+    zeroTitle: "Rien à retirer pour l'instant",
+    zeroBody: "Ton solde est à 0. Il montera dès qu'un élève paiera une de tes séances.",
+    backDash: "Retour au tableau de bord",
+  },
+  ar: {
+    signedOutTitle: "ادخل لحسابك باش تشوف رصيدك",
+    signedOutBody: "رصيدك والسحوبات يبانو هوني كي تدخل.",
+    signIn: "دخول",
+    soonTitle: "الدفع يوصل قريب",
+    soonBody:
+      "قاعدين نكمّلو في فلوسي و D17. توّا التلاميذ يحجزو بلا ما يخلّصو على الخط — علاخاطر هكّا رصيدك 0، بصحّ. كي يتفتح الدفع، كل حجز مخلّص يوصل لهوني وتنجم تسحب.",
+    soonNote: "نعيّطولك أوّل ما السحب يتفتح. ما عندك ما تعمل.",
+    comingRails: "السحب باش يمشي نحو",
+    disabledBtn: "السحب ما زال ما تفعّلش",
+    zeroTitle: "ما فماش شيء تسحبو توّا",
+    zeroBody: "رصيدك 0. يطلع أوّل ما تلميذ يخلّص حصة متاعك.",
+    backDash: "ارجع للوحة",
+  },
+} as const;
 
 export default function PayoutPage() {
-  const { t } = useLocale();
-  const available = demoTutorStatsEarning.balance_tnd;
+  const { t, locale } = useLocale();
+  const c = copy[locale];
 
-  const [method, setMethod] = useState<Method>("flouci_wallet");
-  const [amount, setAmount] = useState(String(available));
-  const [requested, setRequested] = useState(false);
-  const { toast, showToast } = useToast();
+  // undefined = loading · null = signed out · object = real data (real balance)
+  const [data, setData] = useState<DashboardData | null | undefined>(undefined);
 
-  function handleRequest(e: React.FormEvent) {
-    e.preventDefault();
-    const num = parseFloat(amount);
-    if (!num || num <= 0 || num > available) return;
-    // TODO real payout — POST to a server action once payments clear legal
-    setRequested(true);
-    showToast(`${t.extra.payoutRequested} · ${t.common.demoMode}`);
+  useEffect(() => {
+    let alive = true;
+    getDashboard()
+      .then((d) => alive && setData(d))
+      .catch(() => alive && setData(null));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const balance = data?.balance_tnd ?? 0;
+  const paymentsEnabled = data?.paymentsEnabled ?? false;
+  // No payout rail is implemented yet (lib/payments.ts throws) — we never confirm
+  // a withdrawal we can't actually make.
+  const canWithdraw = false;
+
+  const railRow = (label: string, Icon: typeof Wallet) => (
+    <div
+      key={label}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 13,
+        padding: "14px 16px",
+        borderRadius: 14,
+        border: "1.5px solid var(--line)",
+        background: "var(--cream)",
+        marginBottom: 10,
+        opacity: 0.75,
+      }}
+    >
+      <span style={{ color: "var(--blue)", display: "inline-flex", flexShrink: 0 }}>
+        <Icon />
+      </span>
+      <span style={{ fontSize: 14, fontWeight: 600 }}>{label}</span>
+    </div>
+  );
+
+  let body: React.ReactNode;
+
+  if (data === undefined) {
+    body = (
+      <div className="panel panel-pad" style={{ display: "grid", placeItems: "center", minHeight: 200 }}>
+        <Spinner />
+      </div>
+    );
+  } else if (data === null) {
+    body = (
+      <div className="panel panel-pad" style={{ textAlign: "center" }}>
+        <div
+          style={{
+            width: 60, height: 60, borderRadius: 18, background: "var(--blue50)", color: "var(--blue)",
+            display: "grid", placeItems: "center", margin: "0 auto 13px",
+          }}
+        >
+          <Shield />
+        </div>
+        <h3 style={{ fontFamily: "var(--fd)", fontSize: 18, marginBottom: 7 }}>{c.signedOutTitle}</h3>
+        <p style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.6, marginBottom: 18 }}>{c.signedOutBody}</p>
+        <Link href="/auth" className="btn btn-primary" style={{ maxWidth: 260, marginInline: "auto" }}>
+          {c.signIn}
+        </Link>
+      </div>
+    );
+  } else {
+    body = (
+      <>
+        {/* Available balance — the REAL number from getDashboard (0 while payments are off) */}
+        <div className="balance zellige hero-blue" style={{ borderRadius: "var(--r-l)", marginBottom: 20 }}>
+          <div className="lbl">
+            <Wallet />
+            {t.payout.available}
+          </div>
+          <div className="amt">
+            {balance.toLocaleString("fr-FR")}
+            <small> TND</small>
+          </div>
+        </div>
+
+        <div className="panel panel-pad">
+          {/* Honest state: payments (and therefore payouts) are not live yet. */}
+          <div
+            style={{
+              display: "flex",
+              gap: 13,
+              alignItems: "flex-start",
+              padding: "16px",
+              borderRadius: 14,
+              background: "var(--blue50)",
+              marginBottom: 20,
+            }}
+          >
+            <span style={{ color: "var(--blue)", display: "inline-flex", flexShrink: 0, marginTop: 2 }}>
+              <Bulb />
+            </span>
+            <div>
+              <div style={{ fontFamily: "var(--fd)", fontSize: 15, fontWeight: 700, color: "var(--blue)", marginBottom: 5 }}>
+                {paymentsEnabled ? c.zeroTitle : c.soonTitle}
+              </div>
+              <p style={{ fontSize: 13, color: "var(--blue700)", lineHeight: 1.65 }}>
+                {paymentsEnabled ? c.zeroBody : c.soonBody}
+              </p>
+            </div>
+          </div>
+
+          {/* What the payout rails will be — shown as inert preview, not a live form. */}
+          <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 10, color: "var(--ink2)" }}>
+            {c.comingRails}
+          </div>
+          {railRow(t.payout.wallet, Wallet)}
+          {railRow(t.payout.bank, Bank)}
+
+          <div className="trust" style={{ marginTop: 18, marginBottom: 18 }}>
+            <Shield />
+            <p>{c.soonNote}</p>
+          </div>
+
+          {/* Never confirms a fake withdrawal: no submit, no toast, always disabled. */}
+          <Button type="button" variant="green" disabled={!canWithdraw}>
+            <Wallet />
+            {c.disabledBtn}
+          </Button>
+
+          <div style={{ marginTop: 12, textAlign: "center" }}>
+            <Link href="/dashboard" className="linklike" style={{ fontSize: 12.5 }}>
+              {c.backDash}
+            </Link>
+          </div>
+        </div>
+      </>
+    );
   }
-
-  const radioStyle = (active: boolean): React.CSSProperties => ({
-    display: "flex",
-    alignItems: "center",
-    gap: 13,
-    padding: "14px 16px",
-    borderRadius: 14,
-    border: active ? "2px solid var(--blue)" : "1.5px solid var(--line)",
-    background: active ? "var(--blue50)" : "var(--paper)",
-    cursor: "pointer",
-    marginBottom: 10,
-    transition: ".15s",
-  });
 
   return (
     <SiteShell>
@@ -52,171 +191,37 @@ export default function PayoutPage() {
             {/* Main content column */}
             <div style={{ minWidth: 0 }}>
               {/* Page header */}
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                marginBottom: "clamp(18px,3vw,28px)",
-              }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  marginBottom: "clamp(18px,3vw,28px)",
+                }}
+              >
                 <Link href="/dashboard">
                   <button className="iconbtn" aria-label={t.common.back}>
                     <Back />
                   </button>
                 </Link>
-                <h1 style={{
-                  fontFamily: "var(--fd)",
-                  fontSize: "clamp(20px,2.6vw,28px)",
-                  letterSpacing: "-0.6px",
-                  color: "var(--ink)",
-                }}>
+                <h1
+                  style={{
+                    fontFamily: "var(--fd)",
+                    fontSize: "clamp(20px,2.6vw,28px)",
+                    letterSpacing: "-0.6px",
+                    color: "var(--ink)",
+                  }}
+                >
                   {t.payout.title}
                 </h1>
               </div>
 
-              {/* Form card */}
-              <div style={{ maxWidth: 620, width: "100%" }}>
-
-                {/* Available balance card */}
-                <div
-                  className="balance zellige hero-blue"
-                  style={{ borderRadius: "var(--r-l)", marginBottom: 20 }}
-                >
-                  <div className="lbl">
-                    <Wallet />
-                    {t.payout.available}
-                  </div>
-                  <div className="amt">
-                    {available.toLocaleString("fr-TN")}<small> TND</small>
-                  </div>
-                </div>
-
-                {/* Payout form */}
-                <div className="panel panel-pad">
-                  <form onSubmit={handleRequest}>
-                    {/* Method selection */}
-                    <div style={{
-                      fontSize: 12,
-                      fontWeight: 700,
-                      marginBottom: 10,
-                      color: "var(--ink2)",
-                    }}>
-                      {t.payout.to}
-                    </div>
-
-                    <div role="radiogroup" aria-label={t.payout.to}>
-                      {(
-                        [
-                          { value: "flouci_wallet", label: t.payout.wallet, Icon: Wallet },
-                          { value: "bank_rib", label: t.payout.bank, Icon: Bank },
-                        ] as { value: Method; label: string; Icon: typeof Wallet }[]
-                      ).map((opt) => (
-                        <div
-                          key={opt.value}
-                          role="radio"
-                          aria-checked={method === opt.value}
-                          aria-label={opt.label}
-                          tabIndex={0}
-                          onKeyDown={(e) => {
-                            if (e.key === " " || e.key === "Enter") {
-                              e.preventDefault();
-                              setMethod(opt.value);
-                            }
-                          }}
-                          style={radioStyle(method === opt.value)}
-                          onClick={() => setMethod(opt.value)}
-                        >
-                          {/* Custom radio dot */}
-                          <div
-                            style={{
-                              width: 20,
-                              height: 20,
-                              minWidth: 20,
-                              borderRadius: "50%",
-                              border: method === opt.value ? "6px solid var(--blue)" : "2px solid var(--line)",
-                              flexShrink: 0,
-                              transition: ".15s",
-                            }}
-                          />
-                          <span style={{ color: "var(--blue)", display: "inline-flex" }}>
-                            <opt.Icon />
-                          </span>
-                          <span style={{ fontSize: 14, fontWeight: 600 }}>{opt.label}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Amount input */}
-                    <div style={{ marginTop: 6 }}>
-                      <Field label={t.payout.amount}>
-                        <div className="inp">
-                          <input
-                            type="number"
-                            min={1}
-                            max={available}
-                            step={0.5}
-                            value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
-                            required
-                            style={{ fontFamily: "var(--fd)", fontSize: 18, fontWeight: 700 }}
-                          />
-                          <span className="pre">{t.common.tnd}</span>
-                        </div>
-                      </Field>
-                    </div>
-
-                    {/* Quick-fill chips — flex-wrap so they stack on very narrow screens */}
-                    <div style={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      gap: 8,
-                      marginBottom: 18,
-                    }}>
-                      {[available, Math.floor(available / 2), 100].map((v) => (
-                        <button
-                          key={v}
-                          type="button"
-                          onClick={() => setAmount(String(v))}
-                          className="btn btn-ghost btn-sm"
-                          style={{ flex: "1 1 80px", minWidth: 0 }}
-                        >
-                          {v} TND
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Trust note */}
-                    <div className="trust" style={{ marginBottom: 18 }}>
-                      <Shield />
-                      <p>
-                        <strong>{t.payout.note}</strong>
-                        <br />
-                        {t.payout.pending}
-                      </p>
-                    </div>
-
-                    {/* Request button */}
-                    <Button
-                      type="submit"
-                      variant="green"
-                      disabled={
-                        requested ||
-                        !amount ||
-                        parseFloat(amount) <= 0 ||
-                        parseFloat(amount) > available
-                      }
-                    >
-                      <Wallet />
-                      {t.payout.request}
-                    </Button>
-                  </form>
-                </div>
-              </div>
+              <div style={{ maxWidth: 620, width: "100%" }}>{body}</div>
             </div>
             {/* end main column */}
           </div>
         </div>
       </section>
-      {toast}
     </SiteShell>
   );
 }

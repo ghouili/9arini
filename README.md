@@ -1,66 +1,98 @@
-# 9arini — MVP app (قرّيني)
+# 9arini — قرّيني
 
-*"Shopify for Tunisian tutors."* A complete, runnable MVP: tutor storefronts, live-class booking, the payment moment, tutor dashboard + payouts, student space + live lobby, auth + guardian consent — **mobile-first, bilingual FR/العربية with full RTL**, on the approved cobalt/sand/ochre design system. It **runs with zero backend** (demo data); stand up the **local Postgres** to use real data.
+*"Shopify for Tunisian tutors."* Every verified tutor gets a public storefront at `9arini.tn/<slug>` — their live classes, their packs, their **real** reviews — and a link they can paste on WhatsApp, TikTok or Insta. Students book a seat; the first session is free.
 
-## Quickstart (demo mode — zero setup)
+Mobile-first, bilingual **FR / العربية with full RTL**, on the cobalt/sand/ochre design system.
+
+---
+
+## Quickstart
+
 ```bash
 npm install
-npm run dev      # http://localhost:3000
+cp .env.example .env.local     # set DATABASE_URL (+ AUTH_SECRET)
+npm run db:push                # create tables from lib/db/schema.ts
+npm run db:seed                # optional: one demo tutor for local dev
+npm run dev                    # http://localhost:3000
 ```
-No env needed — it boots in **demo mode** (in-memory demo data). Toggle **Français / العربية** on any screen to see RTL.
 
-## Run with the real database (local Postgres + Drizzle)
-```bash
-cp .env.example .env.local        # DATABASE_URL is already filled for the Docker DB
-npm run db:up                     # start Postgres 16 in Docker
-npm run db:push                   # create tables from lib/db/schema.ts
-npm run db:seed                   # insert the demo tutor + classes + packs
-npm run dev
-```
-Now the **storefront reads from Postgres**, **login creates real accounts + sessions**, and **onboarding / create-class write to it**. Browse data with `npm run db:studio`. Set `NEXT_PUBLIC_BACKEND_READY=1` in `.env.local` to hide the "demo mode" notice.
+You need a **Postgres** running (local install, or a free Neon DB — no Docker; the `db:up` script is gone). Browse the data with `npm run db:studio`.
 
-### Auth (phone OTP + sessions, on Postgres)
-Custom, no external auth dependency (`lib/auth.ts`): phone → one-time code → opaque session token in an HTTP-only cookie, backed by the `sessions` table. **No SMS account needed in dev** — when `SMS_PROVIDER_KEY` is unset, `/auth` shows the code on-screen so you can complete login. End-to-end flow that actually persists:
-1. `/auth` → pick role, enter phone → **Recevoir le code** → the dev code appears → enter it → **Vérifier**.
-2. A `profiles` row + `sessions` cookie are created. Tutors land on `/onboarding`; new students pass through `/auth/consent` (writes a `consents` row, INPDP).
-3. `/onboarding` now creates a tutor storefront **tied to your account** → your `9arini.tn/<slug>` persists. `/dashboard`, `/onboarding`, `/account` are guarded by `middleware.ts`. `/account` shows your real phone/role and **logs out**.
-> After pulling this, **re-run `npm run db:push`** — it adds the `sessions` + `otp_codes` tables and a unique constraint on `profiles.phone`.
+**Without `DATABASE_URL`** the app still boots **in development** on in-memory fixtures (`lib/demo.ts`), so you can see every screen with zero setup. That fallback is **hard-disabled in production**: a prod boot with no database throws (`DatabaseNotConfiguredError` in `lib/data.ts`) and serves the 500 page instead of inventing a tutor. See *Demo mode* below.
 
-> Migrated **off Supabase** → self-hosted Postgres + **Drizzle ORM**. If you pulled an older build, run `npm install` again (dependencies changed: `@supabase/*` removed; `drizzle-orm`, `postgres`, `drizzle-kit`, `tsx`, `dotenv` added).
+---
 
-## Try these routes
-`/` landing · `/onboarding` create page · `/yassine-math` storefront · `/class/c1` · `/checkout?class=c1` (payment moment) · `/dashboard` (toggle empty⇄earning) · `/dashboard/new-class · new-pack · payout` · `/student` · `/live/c1` (lobby + teaching-tool launchers) · `/explore · /account · /auth · /auth/consent`
+## What the app actually does
+
+**Auth — phone OTP, no external provider.** `lib/auth.ts`: phone → 6-digit code → opaque session token in an HTTP-only cookie, backed by the `sessions` + `otp_codes` tables. SMS goes out via Twilio (`lib/sms.ts`, provider-agnostic) when `TWILIO_*` is set; **in dev, with no SMS credentials, the code is shown on-screen** so you can complete login. Never in production.
+
+**Guardian consent (INPDP).** A minor is routed to `/auth/consent` before they can use the app; signing writes a `consents` row. `?next=` is carried through the whole flow (auth → consent → wherever they were going), behind an open-redirect guard.
+
+**Tutors are hand-verified — one by one.** `/onboarding` creates the storefront (status `draft`), `/onboarding/verify` uploads identity documents, and a human approves or rejects in `/admin/verifications` (gated by `ADMIN_PHONES`). **Only `status = "verified"` tutors are public** — on `/explore`, on `/[slug]`, and in the sitemap. Everyone else 404s.
+
+**Reviews are real.** One review per (student, class), writable only by a student who actually booked it, only after the class started (`createReview` in `app/actions.ts`). `tutors.rating` / `students_count` are recomputed from the `reviews` / `bookings` tables. **A tutor with no reviews shows "Nouveau" — never a fabricated star score.** A tutor with no published class shows an honest empty state, not a broken booking button.
+
+**Free first session.** `classes.is_free_first` — booking it takes a seat and creates a `booking`, no money involved.
+
+**Live classes — Jitsi, one room per class.** `lib/live.ts` derives the room from the class id (`https://meet.jit.si/9arini-<classId>`), so tutor and student always compute the same URL and the "Rejoindre" button is never blank. A tutor can override it with their own Zoom/Meet/Jitsi link via `classes.meet_url`.
+
+**Payments — OFF.** Nothing in this app moves money. `lib/payments.ts` is a provider-agnostic scaffold (Konnect / Flouci adapters, both stubs) behind a master switch: `paymentsEnabled()` is true **only** when `PAYMENTS_ENABLED=1`. While off, every adapter method throws and the tutor balance is a real `0` — we never fabricate earnings. Do not flip it until counsel signs off **and** the provider contract + webhook signature verification exist.
+
+**ID-document retention.** `/privacy` promises identity documents are deleted at most **90 days** after the verification decision. That promise is kept by `lib/retention.ts` — but **only if the purge is actually scheduled**. Run it as a cron: `npm run db:purge`, or `POST /api/cron/purge` with a `CRON_SECRET` bearer token. **See DEPLOY.md — this is a launch blocker, not a nice-to-have.**
+
+**Notifications.** In-app `notifications` rows are the always-on channel; SMS is best-effort on top (`lib/notify.ts`). WhatsApp reminders are **not** built.
+
+---
 
 ## Architecture
-- **Next.js 14 (App Router) + TypeScript.** Path alias `@/*`.
-- **Data layer (the Supabase replacement):**
-  - `lib/db/schema.ts` — Drizzle schema (source of truth; plain Postgres, no RLS).
-  - `lib/db/index.ts` — server-only Drizzle client (`dbReady` flag).
-  - `lib/data.ts` — server **reads** (e.g. `getStorefront`), demo fallback.
-  - `app/actions.ts` — server **writes** (`createTutor`, `createClass`).
-  - `lib/config.ts` — client `backendReady` flag (DATABASE_URL is server-only).
-  - The browser never touches Postgres: server components / server actions do.
-- **Shared foundation** — design tokens (`app/globals.css`), full **FR/AR i18n**, types, UI primitives, providers.
-- **Feature modules** under `app/*` and `components/*`.
 
-## What's built vs. stubbed
-**Built & working:** every screen, bilingual + RTL, design system, storefront (now **Postgres-backed**), booking, payment-moment UI + success, dashboard (both states) + create/payout forms (create-class/onboarding **write to Postgres**), student space, live lobby + teaching-tool launchers, auth UI, guardian-consent gate.
+- **Next.js 14 (App Router) + TypeScript.** Path alias `@/*`. Postgres + **Drizzle** (no Supabase — it was removed; there is no `supabaseReady` flag and no `lib/config.ts` / `backendReady` flag either).
+- `lib/db/schema.ts` — Drizzle schema, the source of truth. Plain Postgres, no RLS: **authorization is enforced in the server layer**, not the database.
+- `lib/db/index.ts` — server-only client. `dbReady` is false when `DATABASE_URL` is unset.
+- `lib/data.ts` — server **reads** (`getStorefront`, `getPublicTutorRefs`). Owns the demo-vs-production gate.
+- `app/actions.ts` — server **writes** (`verifyOtp`, `createTutor`, `createClass`, `bookClass`, `createReview`, …) + reads that need the session.
+- `lib/demo.ts` — dev-only fixtures. Inert in a production build.
+- `middleware.ts` — route guards (`/dashboard`, `/student`, `/onboarding`, `/account`, `/live`), bounces guests to `/auth?next=…`.
+- The browser never touches Postgres: server components and server actions do.
 
-**Stubbed on purpose (wire to go live):**
-1. **Auth** — ✅ **built**: custom phone-OTP + sessions on Postgres (`lib/auth.ts`, `app/actions.ts`, `middleware.ts`). Only **SMS delivery** is stubbed (dev code shown on-screen) until you set `SMS_PROVIDER_KEY`.
-2. **Payments — DO NOT WIRE until legal sign-off** (`../validation/legal-questions.md`). Konnect/Flouci collect + 12% ledger + payouts. UI done; `pending` notes disclose demo mode.
-3. **Live video** — opens a Jitsi/Meet link; embed LiveKit/Jitsi later (`../10-live-class-playbook.md`).
-4. **WhatsApp reminders** — `lib/notify.ts` stub; **Storage** (replays, pack files) — local disk or S3/MinIO later.
+## Routes
 
-## "Connect to go live" checklist
-- [ ] Legal/payments structure confirmed → wire Konnect/Flouci.
-- [ ] SUARL + Startup Label + Konnect/Flouci merchant accounts.
-- [ ] **Database**: keep local Postgres or host it (Neon / Railway / your VPS) — set `DATABASE_URL`, run `db:push` + `db:seed`. (EU/Tunisia residency per INPDP — confirm with counsel.)
-- [ ] **Auth**: choose Auth.js/Lucia/custom on Postgres (phone-OTP via an SMS provider).
-- [ ] INPDP declaration; guardian-consent gate already in UI + schema.
-- [ ] WhatsApp Cloud API for reminders; replace the support number in `app/account/page.tsx`.
-- [ ] Buy `9arini.tn` + `9arini.com`; deploy on Vercel (+ managed/again Postgres).
-- [ ] PWA polish, real-device testing on mid-range Android.
+`/` landing · `/pour-les-profs` tutor landing · `/explore` marketplace · `/<slug>` storefront · `/class/[id]` · `/checkout?class=<id>` · `/live/[id]` · `/dashboard` (+ `new-class`, `new-pack`, `payout`) · `/student` · `/onboarding` (+ `/verify`) · `/admin/verifications` · `/account` · `/auth` (+ `/consent`) · `/terms` · `/privacy`
+
+There is **no** `/messages` route.
+
+## Scripts
+
+| script | what it does |
+| --- | --- |
+| `npm run dev` / `build` / `start` / `lint` | Next.js |
+| `npm run db:push` | apply `lib/db/schema.ts` to the database |
+| `npm run db:generate` / `db:migrate` | versioned migrations (use these in production) |
+| `npm run db:studio` | Drizzle Studio |
+| `npm run db:seed` | one demo tutor, **local dev only** (refuses to run with `NODE_ENV=production`) |
+| `npm run db:purge` | delete expired ID documents. `-- --dry-run` to preview |
+
+## Demo mode (development only)
+
+With no `DATABASE_URL`, **in development**, `lib/data.ts` serves the fixtures in `lib/demo.ts` and any slug resolves to the demo storefront. Handy; also a loaded gun.
+
+The demo tutor is described as *verified, 4.9★, 1,240 students*. None of it is real. So the gate is the **environment**, not the database:
+
+- `demoEnabled === (process.env.NODE_ENV !== "production")`.
+- In a production build the fixtures are **inert** (empty arrays; a zeroed, unverified, unrated storefront) — the fake rating isn't even in the bundle.
+- `getStorefront()` **throws** in production when `dbReady === false`. It does not return `null`: a site-wide 404 storm would tell Google to deindex every real tutor page, while a 5xx honestly says "we are broken" — and pages us.
+
+If production ever serves the 500 page on every storefront, the cause is a missing `DATABASE_URL`. That is the intended behaviour.
+
+## Before real users
+
+- [ ] **Schedule the ID-doc purge** (`CRON_SECRET` + a daily cron — DEPLOY.md §7). `/privacy` already promises it.
+- [ ] `DATABASE_URL`, `AUTH_SECRET`, `ADMIN_PHONES`, `NEXT_PUBLIC_SITE_URL` set; `STORAGE_DIR` on a **persistent volume**.
+- [ ] Real SMS credentials (`TWILIO_*`) — otherwise nobody outside dev can log in.
+- [ ] Leave `PAYMENTS_ENABLED` unset until legal sign-off. The payout UI is gated on it.
+- [ ] INPDP declaration; EU/Tunisia data residency confirmed with counsel.
+- [ ] Buy `9arini.tn`; deploy per DEPLOY.md.
 
 ## Honest status
-Verified **statically** (file tree, imports, exports, server/client boundaries, no Supabase left in source). It has **not** been through `npm run build` here (sandbox has no npm network). Run `npm install && npm run dev` — if anything errors on first compile it'll be a minor nit; send it and I'll fix it. **Demo-ready**, not yet production-launched (payments legally gated; auth to be chosen).
+
+Verified **statically** — imports/exports, server/client boundaries, no Supabase and no `lib/config.ts` left in source. It has **not** been run through `npm run build` in this environment. Payments are legally gated and off. Everything else is wired to real data.

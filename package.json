@@ -8,11 +8,14 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "db:push": "drizzle-kit push",
+    "db:sql": "tsx scripts/apply-sql.ts",
+    "db:push": "echo \"BLOCKED: drizzle-kit 0.28 is not PostgreSQL 17-safe (it tries to DROP the NOT NULL constraints on ~60 columns). Use 'npm run db:sql' instead — see scripts/sql/. Details in scripts/apply-sql.ts.\" && exit 1",
+    "db:push:unsafe": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
-    "db:seed": "tsx lib/db/seed.ts"
+    "db:seed": "tsx lib/db/seed.ts",
+    "db:purge": "tsx scripts/purge-docs.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.36.4",

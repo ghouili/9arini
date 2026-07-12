@@ -1,13 +1,16 @@
 "use client";
 /* ───────────────────────────────────────────────────────────────────────────
    /pour-les-profs — 9arini TUTOR (teacher) landing page.
-   "Shopify for Tunisian tutors": branded page, live classes, paid in TND, keep 88%.
+   "Shopify for Tunisian tutors": branded page, live classes, you set your price.
+   FREE PILOT: 9arini processes no money. The student pays the tutor DIRECTLY,
+   off-platform; we take 0 % commission and issue no payouts. Online payment +
+   the 12 % platform fee are "bientôt" only — never stated as current features.
    Self-contained: bilingual copy (FR + Tunisian Derija) lives in `copy` below.
    Uses the app design system (globals.css tokens + utility classes), SiteShell,
    useLocale. One primary CTA everywhere → /onboarding. RTL-safe (logical props).
 
    VISUAL/MOTION PASS: hero is now a composite animated storefront scene
-   (floating phone + class filling + LIVE + TND count-up + drifting payout chips);
+   (floating phone + class filling + LIVE + example count-up + booking chips);
    every section is elevated with scroll-reveal, depth, and refined micro-motion.
    All page-scoped CSS is prefixed `lpp-` and lives in the inline <style> blocks.
    Honors prefers-reduced-motion (static final state, no motion).
@@ -26,7 +29,6 @@ import {
   Star,
   Users,
   Bolt,
-  Book,
   Forward,
 } from "@/components/icons";
 
@@ -39,11 +41,12 @@ const copy = {
     eyebrow: "Pour les profs",
     h1a: "Ta page de prof.",
     h1b: "Tes cours en direct.",
-    h1c: "Payé en dinar.",
+    h1c: "Tu gardes 100 %.",
     sub: "Ta boutique de prof, gérée depuis ton téléphone.",
     ctaPrimary: "Crée ta page de prof",
-    ctaGhost: "Voir un exemple de page",
-    micro: "Gratuit. Sans carte.",
+    ctaGhost: "Voir les profs sur 9arini",
+    micro: "Gratuit. Sans carte. Zéro commission.",
+    pilotChip: "Pilote — on lance",
 
     // share / growth loop
     shareEyebrow: "Ton lien, ta pub",
@@ -53,46 +56,54 @@ const copy = {
     shareChannels: ["WhatsApp", "TikTok", "Instagram", "Facebook"],
     shareLinkLabel: "Ton lien",
     shareLinkExample: "9arini.tn/ta-page",
-    // hero phone
-    phoneName: "Yassine Khelifi",
+    // hero phone (illustration — pas de vraies données)
+    phoneName: "Ta page de prof",
     phoneSubject: "Maths · primaire → Bac",
     live: "EN DIRECT",
-    balanceLbl: "Solde",
+    balanceLbl: "Exemple — ce mois-ci",
     tnd: "TND",
     sessionTitle: "Intégrales — révision express",
     sessionMeta: "Sam 14h · 90 min",
     free1st: "1er cours offert",
     heroSceneLabel:
-      "Page de prof 9arini : une classe se remplit en direct et le solde en dinar augmente.",
+      "Illustration : une page de prof 9arini, avec une classe qui se remplit en direct.",
     booked: "réservé",
+    newBooking: "Nouvelle réservation",
     joined: "a rejoint",
     classFilling: "Classe en cours de remplissage",
+    phoneBadges: ["1er cours offert", "0 % de commission", "Paiement direct"],
 
     // income anchor
     incomeEyebrow: "Combien tu peux gagner",
     incomeLead:
-      "Tu fixes ton tarif, tu gardes 88 %. Un exemple — pas un plafond :",
+      "Tu fixes ton tarif et tu gardes 100 %. Un exemple — pas un plafond :",
     inStudents: "8 élèves",
     inSessions: "2 séances / sem",
     inPrice: "20 TND / séance",
-    inGross: "1 280 TND / mois",
-    inKeepLbl: "Tu gardes",
-    inKeep: "1 126 TND",
-    inWithdraw: "Retraits sous 48 h sur Flouci, Konnect & D17. Sans carte.",
-    inYou: "Toi · 88 %",
-    inFee: "9arini · 12 %",
+    inGross: "Exemple : 8 élèves × 2 séances × 20 TND",
+    inKeepLbl: "Tu gardes, aujourd'hui",
+    inKeep: "1 280 TND",
+    inWithdraw:
+      "Pendant le pilote, l'élève te paie directement, de la main à la main. 9arini ne prend aucune commission et ne touche pas à ton argent. Paiement en ligne : bientôt.",
+    inYou: "Toi · 100 %",
+    inFee: "9arini · 0 %",
+    payBadges: [
+      "Tu gardes 100 %",
+      "Zéro commission",
+      "Paiement en ligne bientôt",
+    ],
 
     // features
     featEyebrow: "Tout ce qu'il te faut",
     featTitle: "Une boutique de prof, prête en 2 minutes",
     f1t: "Ta page brandée",
     f1b: "Ton nom, ta photo, tes matières. Un seul lien à partager partout.",
-    f2t: "Payé en dinar — tu gardes 88 %",
-    f2b: "Tes élèves paient en TND. 9arini prend 12 %, le reste est à toi.",
+    f2t: "Ton tarif — tu gardes 100 %",
+    f2b: "Tu fixes ton prix, sans plafond. L'élève te paie directement : 9arini ne prend aucune commission.",
     f3t: "Cours en direct",
     f3b: "Lance un cours live, partage l'écran, enregistre. Tout intégré.",
-    f4t: "Vends tes fiches",
-    f4b: "Résumés, exercices, séries corrigées : un revenu qui tourne 24h/24.",
+    f4t: "Tes avis d'élèves",
+    f4b: "Après chaque séance, ton élève te note. Que de vrais avis — on n'en fabrique aucun.",
 
     // how it works
     howEyebrow: "Comment ça marche",
@@ -101,39 +112,41 @@ const copy = {
     s1b: "Nom, matière, photo. Deux minutes, c'est en ligne.",
     s2t: "Partage ton lien",
     s2b: "WhatsApp, Insta, TikTok. Tes élèves réservent en un clic.",
-    s3t: "Encaisse dès la 1ère réservation",
-    s3b: "L'élève paie à la réservation. L'argent arrive sous 48 h.",
+    s3t: "Donne ton 1er cours",
+    s3b: "La 1ère séance est offerte à l'élève. Ensuite, il te paie directement — 9arini ne prend rien.",
 
-    // social proof
-    proofEyebrow: "Ils enseignent déjà",
-    proofTitle: "Des profs tunisiens, payés chaque semaine",
-    statStudents: "élèves",
-    statRating: "note moyenne",
-    statTutors: "profs actifs",
-    t1: "J'ai partagé mon lien sur WhatsApp le soir. Le lendemain, 4 réservations. Mon retrait Flouci en deux jours.",
-    t1n: "Yassine",
-    t1m: "Maths · Sousse",
-    t2: "Avant je courais après les paiements. Là : l'élève paie, je donne le cours, je suis payée. Net.",
-    t2n: "Ines",
-    t2m: "Anglais · Sfax",
-    t3: "Mes fiches de physique se vendent même quand je dors. Un vrai deuxième revenu.",
-    t3n: "Skander",
-    t3m: "Physique · Gafsa",
+    // founding tutors — pre-launch, zero users: no stats, no testimonials
+    proofEyebrow: "Profs fondateurs",
+    proofTitle: "On lance. Sois parmi les premiers profs.",
+    proofLead:
+      "9arini démarre : aucun cours donné, aucun avis, aucun chiffre à te gonfler. Juste une place à prendre avant tout le monde.",
+    statCommissionVal: "0 %",
+    statCommission: "de commission, aujourd'hui",
+    statYoursVal: "100 %",
+    statYours: "de ton tarif, pour toi",
+    statSetupVal: "2 min",
+    statSetup: "et ta page est en ligne",
+    fd1t: "Ta page avant les autres",
+    fd1b: "Tu arrives sur une plateforme neuve. Ton lien, ta page, zéro bruit autour de toi.",
+    fd2t: "Zéro commission pendant le pilote",
+    fd2b: "L'élève te paie directement, de la main à la main. 9arini ne touche pas à ton argent.",
+    fd3t: "On construit avec toi",
+    fd3b: "Dis-nous ce qui manque : pendant le pilote, l'avis des premiers profs pèse lourd.",
 
     // faq
     faqEyebrow: "Avant de te lancer",
     faqTitle: "Les questions qu'on nous pose",
-    q1: "Qui paie les frais ?",
-    a1: "9arini prend 12 %, zéro frais caché. Tu vois ce que tu gardes avant de publier.",
+    q1: "Combien 9arini prend ?",
+    a1: "Rien, aujourd'hui. Pendant le pilote, tu gardes 100 % : l'élève te paie directement, 9arini ne touche pas à l'argent. Quand le paiement en ligne arrivera, une commission de 12 % s'appliquera — et on te préviendra avant.",
     q2: "Si un élève ne vient pas ?",
-    a2: "Il a payé à la réservation — tu gardes la séance. Aucun temps gratuit.",
+    a2: "Tu es prévenu et tu peux replanifier. Comme rien ne passe par 9arini, l'arrangement se fait directement entre toi et l'élève.",
     q3: "Faut-il un diplôme ?",
-    a3: "Non. Maîtrise ta matière, une bonne connexion, et tu démarres aujourd'hui.",
+    a3: "Non. Maîtrise ta matière, une bonne connexion, et tu démarres aujourd'hui. On vérifie ton identité à la main avant que ta page soit publiée.",
 
     // final
     finalTitle: "Ta page de prof t'attend.",
     finalSub: "Crée-la en 2 minutes.",
-    finalReassure: "Gratuit · sans carte · supprimable à tout moment.",
+    finalReassure: "Gratuit · sans carte · zéro commission · supprimable à tout moment.",
 
     crossBottom: "Tu es élève ? Trouve ton prof",
   },
@@ -142,11 +155,12 @@ const copy = {
     eyebrow: "للأساتذة",
     h1a: "صفحتك متاع أستاذ.",
     h1b: "دروسك مباشرة.",
-    h1c: "وخلاصك بالدينار.",
+    h1c: "وتحتفظ بـ 100 %.",
     sub: "بوتيك متاع أستاذ، تسيّرها الكل من تيليفونك.",
     ctaPrimary: "اعمل صفحتك متاع أستاذ",
-    ctaGhost: "شوف مثال متاع صفحة",
-    micro: "فابور. بلا كارت.",
+    ctaGhost: "شوف الأساتذة في 9arini",
+    micro: "فابور. بلا كارت. بلا عمولة.",
+    pilotChip: "تجربة — توّا نبداو",
 
     // share / growth loop
     shareEyebrow: "اللينك متاعك، هو الرﭬلام متاعك",
@@ -156,46 +170,54 @@ const copy = {
     shareChannels: ["واتساب", "تيكتوك", "إنستا", "فايسبوك"],
     shareLinkLabel: "اللينك متاعك",
     shareLinkExample: "9arini.tn/صفحتك",
-    // hero phone
-    phoneName: "ياسين الخليفي",
+    // hero phone (مثال توضيحي — موش معطيات حقيقية)
+    phoneName: "صفحتك متاع أستاذ",
     phoneSubject: "رياضيات · من الابتدائي للباك",
     live: "مباشر",
-    balanceLbl: "الرصيد",
+    balanceLbl: "مثال — هذا الشهر",
     tnd: "دينار",
     sessionTitle: "التكامل — مراجعة سريعة",
     sessionMeta: "السبت 14س · 90 دقيقة",
     free1st: "أول درس فابور",
     heroSceneLabel:
-      "صفحة أستاذ 9arini : القسم يتعمّر مباشرة والرصيد بالدينار يزيد.",
+      "رسم توضيحي : صفحة أستاذ في 9arini، والقسم يتعمّر مباشرة.",
     booked: "محجوز",
+    newBooking: "حجز جديد",
     joined: "دخل",
     classFilling: "القسم في طور التعمير",
+    phoneBadges: ["أول درس فابور", "0 % عمولة", "خلاص مباشر"],
 
     // income anchor
     incomeEyebrow: "قداش تنجم تربح",
     incomeLead:
-      "إنتي تحدّد التعريفة، تحتفظ بـ 88 %. مثال — موش سقف :",
+      "إنتي تحدّد التعريفة وتحتفظ بـ 100 %. مثال — موش سقف :",
     inStudents: "8 تلامذة",
     inSessions: "حصتين / جمعة",
     inPrice: "20 دينار / حصة",
-    inGross: "1 280 دينار / شهر",
-    inKeepLbl: "تحتفظ بـ",
-    inKeep: "1 126 دينار",
-    inWithdraw: "السحب في ظرف 48 ساعة على Flouci و Konnect و D17. بلا كارت.",
-    inYou: "إنتي · 88 %",
-    inFee: "9arini · 12 %",
+    inGross: "مثال : 8 تلامذة × حصتين × 20 دينار",
+    inKeepLbl: "تحتفظ بيه، اليوم",
+    inKeep: "1 280 دينار",
+    inWithdraw:
+      "في فترة التجربة، التلميذ يخلّصك مباشرة، يد بيد. 9arini ما تاخذ حتى عمولة وما تلمسش فلوسك. الخلاص أونلاين : قريب.",
+    inYou: "إنتي · 100 %",
+    inFee: "9arini · 0 %",
+    payBadges: [
+      "تحتفظ بـ 100 %",
+      "بلا عمولة",
+      "الخلاص أونلاين قريب",
+    ],
 
     // features
     featEyebrow: "الكل اللي تحتاجو",
     featTitle: "بوتيك متاع أستاذ، حاضرة في دقيقتين",
     f1t: "صفحتك بإسمك",
     f1b: "إسمك، تصويرتك، موادك. لينك وحيد تنجم تبعثو في كل بلاصة.",
-    f2t: "خلاصك بالدينار — تحتفظ بـ 88 %",
-    f2b: "تلامذتك يخلصو بالدينار. 9arini تاخذ 12 %، والباقي الكل متاعك.",
+    f2t: "ثمنك إنتي — وتحتفظ بـ 100 %",
+    f2b: "إنتي تحدّد ثمنك، بلا سقف. التلميذ يخلّصك مباشرة : 9arini ما تاخذ حتى عمولة.",
     f3t: "دروس مباشرة",
     f3b: "ابدا درس مباشر، شارك الإيكران، سجّل. الكل داخل المنصة.",
-    f4t: "بيع فيشاتك",
-    f4b: "ملخصات، تمارين، سلاسل مصحّحة : مدخول يدور 24 ساعة على 24.",
+    f4t: "آراء تلامذتك",
+    f4b: "بعد كل حصة، التلميذ ينقّطك. آراء حقيقية برك — ما نخترعو والو.",
 
     // how it works
     howEyebrow: "كيفاش يخدم",
@@ -204,39 +226,41 @@ const copy = {
     s1b: "إسم، مادة، تصويرة. دقيقتين، وتولّي أونلاين.",
     s2t: "شارك اللينك متاعك",
     s2b: "واتساب، إنستا، تيكتوك. تلامذتك يحجزو بكليكة.",
-    s3t: "اقبض من أول حجز",
-    s3b: "التلميذ يخلّص وقت الحجز. الفلوس توصلك في ظرف 48 ساعة.",
+    s3t: "اعطي أول درس",
+    s3b: "أول حصة فابور للتلميذ. وبعدها يخلّصك مباشرة — 9arini ما تاخذ والو.",
 
-    // social proof
-    proofEyebrow: "أساتذة يقرّيو معانا",
-    proofTitle: "أساتذة تونسيين، يتخلّصو كل جمعة",
-    statStudents: "تلميذ",
-    statRating: "معدّل التنقيط",
-    statTutors: "أستاذ نشيط",
-    t1: "نشرت اللينك متاعي في واتساب في الليل. في الغدوة لقيت 4 حجوزات. سحب Flouci وصلني في يومين.",
-    t1n: "ياسين",
-    t1m: "رياضيات · سوسة",
-    t2: "قبل كنت نجري ورا الخلاص. توا : التلميذ يخلّص، نعطي الدرس، ونتخلّص. صافي.",
-    t2n: "إيناس",
-    t2m: "أنڨليزية · صفاقس",
-    t3: "الفيشات متاع الفيزيا يتباعو حتى كي نكون راقد. مدخول ثاني بالحق.",
-    t3n: "إسكندر",
-    t3m: "فيزياء · ڨفصة",
+    // الأساتذة المؤسّسين — قبل الإطلاق: لا أرقام لا شهادات
+    proofEyebrow: "أساتذة مؤسّسين",
+    proofTitle: "توّا نبداو. كون من الأساتذة الأوائل.",
+    proofLead:
+      "9arini تبدا توّا : حتى درس ما تعطا، حتى رأي ما فما، وحتى رقم ما باش نكبّروه عليك. برك بلاصة تاخذها قبل الكل.",
+    statCommissionVal: "0 %",
+    statCommission: "عمولة، اليوم",
+    statYoursVal: "100 %",
+    statYours: "من تعريفتك، ليك إنتي",
+    statSetupVal: "دقيقتين",
+    statSetup: "وصفحتك تولّي أونلاين",
+    fd1t: "صفحتك قبل الكل",
+    fd1b: "تجي لمنصة جديدة. اللينك متاعك، صفحتك، بلا زحمة حواليك.",
+    fd2t: "بلا عمولة في فترة التجربة",
+    fd2b: "التلميذ يخلّصك مباشرة، يد بيد. 9arini ما تلمسش فلوسك.",
+    fd3t: "نبنيوها معاك",
+    fd3b: "قلّنا شنوّة ناقص : في فترة التجربة، رأي الأساتذة الأوائل يزن برشة.",
 
     // faq
     faqEyebrow: "قبل ما تبدا",
     faqTitle: "الأسئلة اللي يسقسيونا عليها",
-    q1: "شكون يخلّص الفريسي ؟",
-    a1: "9arini تاخذ 12 %، بلا حتى فريسي مخبّي. تشوف شنوّة باش تحتفظ بيه قبل ما تنشر.",
+    q1: "قدّاش تاخذ 9arini ؟",
+    a1: "والو، اليوم. في فترة التجربة تحتفظ بـ 100 % : التلميذ يخلّصك مباشرة، و9arini ما تلمسش الفلوس. كي يجي الخلاص أونلاين، باش تولّي فما عمولة 12 % — ونعلموك قبل.",
     q2: "كان التلميذ ما جاش ؟",
-    a2: "هو خلّص وقت الحجز — تحتفظ بالحصة. ما تخدمش فابور.",
+    a2: "تتعلّم بيها وتنجّم تبدّل الوقت. وبما إلي حتى حاجة ما تعدّي من 9arini، الاتفاق يكون مباشرة بيناتكم.",
     q3: "يلزم شهادة ؟",
-    a3: "لا. اتقن مادتك، كنكسيون مليحة، وتبدا اليوم.",
+    a3: "لا. اتقن مادتك، كنكسيون مليحة، وتبدا اليوم. نتثبّتو من هويتك بيدينا قبل ما تتنشر صفحتك.",
 
     // final
     finalTitle: "صفحتك متاع أستاذ تستنّى فيك.",
     finalSub: "اعملها في دقيقتين.",
-    finalReassure: "فابور · بلا كارت · تنجم تمسحها وقتلي تحب.",
+    finalReassure: "فابور · بلا كارت · بلا عمولة · تنجم تمسحها وقتلي تحب.",
 
     crossBottom: "إنتي تلميذ ؟ لقا أستاذك",
   },
@@ -376,8 +400,9 @@ function fmt(n: number) {
      • floating phone (the tutor's 9arini page) w/ zellige + glow + parallax
      • a class filling: student avatars pop in one-by-one on an arc
      • LIVE / EN DIRECT pill pulsing
-     • TND balance count-up (Space Grotesk numerals)
-     • payout chips drifting upward ("+15 TND · réservé ✓")
+     • illustrative monthly-earnings count-up, explicitly labelled "Exemple"
+       (money the STUDENT pays the tutor directly — never a 9arini balance/payout)
+     • booking chips drifting upward ("Nouvelle réservation") — bookings, not payouts
    role="img" + aria-label describes the whole scene; inner bits aria-hidden.
    ═══════════════════════════════════════════════════════════════════════════ */
 function HeroScene({ c }: { c: Copy }) {
@@ -435,13 +460,13 @@ function HeroScene({ c }: { c: Copy }) {
         ))}
       </div>
 
-      {/* drifting payout chips (decorative) */}
+      {/* drifting booking chips (decorative) — bookings, never payouts */}
       <div className="lpp-payouts" aria-hidden="true">
         <span className="lpp-payout lpp-payout-a">
-          <Check style={{ width: 13, height: 13 }} /> +15 {c.tnd} · {c.booked}
+          <Check style={{ width: 13, height: 13 }} /> {c.newBooking}
         </span>
         <span className="lpp-payout lpp-payout-b">
-          <Check style={{ width: 13, height: 13 }} /> +20 {c.tnd} · {c.booked}
+          <Check style={{ width: 13, height: 13 }} /> {c.free1st} · {c.booked}
         </span>
       </div>
 
@@ -669,7 +694,7 @@ function HeroScene({ c }: { c: Copy }) {
               </span>
             </div>
 
-            {/* payment trust row */}
+            {/* trust row — pilot truths, no payment rails */}
             <div
               style={{
                 marginTop: "auto",
@@ -679,7 +704,7 @@ function HeroScene({ c }: { c: Copy }) {
                 flexWrap: "wrap",
               }}
             >
-              {["Flouci", "Konnect", "D17"].map((p) => (
+              {c.phoneBadges.map((p) => (
                 <span
                   key={p}
                   style={{
@@ -705,14 +730,12 @@ function HeroScene({ c }: { c: Copy }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Sub-component: payment trust chips (text badges)
+   Sub-component: pilot trust chips (text badges).
+   NOT payment rails — 9arini processes no money during the free pilot.
    ═══════════════════════════════════════════════════════════════════════════ */
-function PayChips() {
-  const items: { name: string; color: string }[] = [
-    { name: "Flouci", color: "var(--blue)" },
-    { name: "Konnect", color: "var(--green)" },
-    { name: "D17", color: "var(--ochre)" },
-  ];
+function PayChips({ c }: { c: Copy }) {
+  const colors = ["var(--green)", "var(--blue)", "var(--ochre)"];
+  const items = c.payBadges.map((name, i) => ({ name, color: colors[i] }));
   return (
     <div className="cluster" style={{ gap: 10 }}>
       {items.map((p) => (
@@ -801,61 +824,6 @@ function FeatureCard({
         <p style={{ fontSize: 14, color: "var(--ink2)", lineHeight: 1.6 }}>
           {body}
         </p>
-      </div>
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   Sub-component: testimonial card
-   ═══════════════════════════════════════════════════════════════════════════ */
-function Testimonial({
-  quote,
-  name,
-  meta,
-  initials,
-}: {
-  quote: string;
-  name: string;
-  meta: string;
-  initials: string;
-}) {
-  return (
-    <div
-      className="panel panel-pad lpp-quote"
-      style={{ display: "flex", flexDirection: "column", gap: 16 }}
-    >
-      <span className="stars" aria-hidden="true">
-        {[0, 1, 2, 3, 4].map((i) => (
-          <Star key={i} />
-        ))}
-      </span>
-      <p
-        style={{
-          fontSize: 14.5,
-          color: "var(--ink)",
-          lineHeight: 1.65,
-          flex: 1,
-        }}
-      >
-        &ldquo;{quote}&rdquo;
-      </p>
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div
-          className="avatar"
-          aria-hidden="true"
-          style={{ width: 42, height: 42, fontSize: 15, borderRadius: 14 }}
-        >
-          {initials}
-        </div>
-        <div>
-          <div
-            style={{ fontFamily: "var(--fd)", fontWeight: 700, fontSize: 14.5 }}
-          >
-            {name}
-          </div>
-          <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{meta}</div>
-        </div>
       </div>
     </div>
   );
@@ -1160,11 +1128,11 @@ export default function PourLesProfsPage() {
         }
         .lpp-connector { position: absolute; inset-block-start: 23px; z-index: 0; height: 2px; background: repeating-linear-gradient(90deg, var(--line) 0 7px, transparent 7px 14px); }
 
-        /* ---- money panel breakdown bar ---- */
+        /* ---- money panel breakdown bar (pilot: tutor keeps 100 %, 9arini takes 0 %) ---- */
         .lpp-split { height: 12px; border-radius: 999px; overflow: hidden; display: flex; background: rgba(255,255,255,.16); }
         .lpp-split-you { background: linear-gradient(90deg,#54D6AC,#1B9C6F); width: 0; transition: width 1.1s cubic-bezier(.2,.7,.2,1) .15s; }
         .lpp-split-fee { background: rgba(255,255,255,.30); flex: 1; }
-        .lpp-split.is-in .lpp-split-you { width: 88%; }
+        .lpp-split.is-in .lpp-split-you { width: 100%; }
 
         /* ---- quote / stat / faq / cross micro ---- */
         .lpp-quote { transition: transform .2s, box-shadow .2s; }
@@ -1238,12 +1206,13 @@ export default function PourLesProfsPage() {
                 }}
               >
                 <span className="web-eyebrow">{c.eyebrow}</span>
+                {/* Pre-launch, not "live activity" — we claim newness, not traffic. */}
                 <span
                   className="chip lpp-live"
                   style={{ background: "var(--green)", color: "#fff", gap: 6 }}
                 >
                   <span className="lpp-live-dot" aria-hidden="true" />
-                  {c.live}
+                  {c.pilotChip}
                 </span>
               </Reveal>
 
@@ -1279,7 +1248,7 @@ export default function PourLesProfsPage() {
                   <Forward style={{ width: 18, height: 18 }} />
                 </Link>
                 <Link
-                  href="/yassine-math"
+                  href="/explore"
                   className="btn btn-ghost btn-sm lpp-cta-ghost"
                   style={{
                     width: "auto",
@@ -1563,7 +1532,7 @@ export default function PourLesProfsPage() {
                 ))}
               </div>
 
-              <PayChips />
+              <PayChips c={c} />
             </Reveal>
 
             {/* right: result panel */}
@@ -1600,7 +1569,7 @@ export default function PourLesProfsPage() {
                 b: c.f3b,
               },
               {
-                icon: <Book />,
+                icon: <Star />,
                 bg: "var(--blue50)",
                 fg: "var(--blue)",
                 t: c.f4t,
@@ -1702,12 +1671,30 @@ export default function PourLesProfsPage() {
         </div>
       </section>
 
-      {/* ═══ SOCIAL PROOF ═══ */}
+      {/* ═══ FOUNDING TUTORS ═══════════════════════════════════════════════
+          Pre-launch: zero lessons taught, zero tutors, zero reviews. No
+          testimonials, no user counts, no average rating. The band below shows
+          only structural facts we control (0 % commission, you keep 100 %,
+          2-minute setup), and the cards sell being early.
+          ═══════════════════════════════════════════════════════════════════ */}
       <section className="web-section">
         <div className="container">
           <SectionHead eyebrow={c.proofEyebrow} title={c.proofTitle} center />
 
-          {/* stats band */}
+          <Reveal
+            as="p"
+            className="web-lead"
+            style={{
+              textAlign: "center",
+              maxWidth: 620,
+              marginInline: "auto",
+              marginBottom: "clamp(22px,3.5vw,34px)",
+            }}
+          >
+            {c.proofLead}
+          </Reveal>
+
+          {/* facts band — promises we control, not metrics we claim to have earned */}
           <Reveal
             className="panel lpp-stat-band"
             style={{
@@ -1721,9 +1708,9 @@ export default function PourLesProfsPage() {
             }}
           >
             {[
-              { v: "+1 240", l: c.statStudents, color: "var(--blue)" },
-              { v: "4.9 ★", l: c.statRating, color: "var(--amber)" },
-              { v: "180", l: c.statTutors, color: "var(--green)" },
+              { v: c.statCommissionVal, l: c.statCommission, color: "var(--green)" },
+              { v: c.statYoursVal, l: c.statYours, color: "var(--blue)" },
+              { v: c.statSetupVal, l: c.statSetup, color: "var(--ochre)" },
             ].map((s, i) => (
               <React.Fragment key={s.l}>
                 {i > 0 && (
@@ -1768,22 +1755,65 @@ export default function PourLesProfsPage() {
             ))}
           </Reveal>
 
+          {/* why be early — no invented tutors, no invented quotes */}
           <div className="grid-3">
             {[
-              { q: c.t1, n: c.t1n, m: c.t1m, ini: "ي" },
-              { q: c.t2, n: c.t2n, m: c.t2m, ini: "إ" },
-              { q: c.t3, n: c.t3n, m: c.t3m, ini: "إ" },
-            ].map((t, i) => (
+              {
+                icon: <Bolt />,
+                bg: "var(--blue50)",
+                fg: "var(--blue)",
+                t: c.fd1t,
+                b: c.fd1b,
+              },
+              {
+                icon: <Wallet />,
+                bg: "var(--green50)",
+                fg: "var(--green)",
+                t: c.fd2t,
+                b: c.fd2b,
+              },
+              {
+                icon: <Users />,
+                bg: "#FFF4DF",
+                fg: "var(--ochre)",
+                t: c.fd3t,
+                b: c.fd3b,
+              },
+            ].map((f, i) => (
               <Reveal key={i} delay={i * 90}>
-                <Testimonial
-                  quote={t.q}
-                  name={t.n}
-                  meta={t.m}
-                  initials={t.ini}
+                <FeatureCard
+                  icon={f.icon}
+                  bg={f.bg}
+                  fg={f.fg}
+                  title={f.t}
+                  body={f.b}
                 />
               </Reveal>
             ))}
           </div>
+
+          <Reveal
+            delay={280}
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              marginTop: "clamp(26px,4vw,40px)",
+            }}
+          >
+            <Link
+              href="/onboarding"
+              className="btn btn-primary btn-sm lpp-cta-primary"
+              style={{
+                width: "auto",
+                paddingInline: 28,
+                paddingBlock: 15,
+                fontSize: 15.5,
+              }}
+            >
+              {c.ctaPrimary}
+              <Forward style={{ width: 18, height: 18 }} />
+            </Link>
+          </Reveal>
         </div>
       </section>
 
@@ -1915,8 +1945,8 @@ export default function PourLesProfsPage() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Sub-component: income result panel (confident money panel with split bar).
-   Animates the 88% split bar when it scrolls into view.
+   Sub-component: income result panel (illustrative earnings example + split bar).
+   Animates the split bar (tutor 100 % / 9arini 0 % during the free pilot).
    ═══════════════════════════════════════════════════════════════════════════ */
 function IncomePanel({ c }: { c: Copy }) {
   const { ref, shown } = useReveal<HTMLDivElement>();
@@ -1965,7 +1995,7 @@ function IncomePanel({ c }: { c: Copy }) {
           {c.inKeep}
         </div>
 
-        {/* 88/12 split bar */}
+        {/* 100 / 0 split bar — no commission during the pilot */}
         <div style={{ marginTop: 18 }}>
           <div className={`lpp-split ${shown ? "is-in" : ""}`}>
             <span className="lpp-split-you" />
