@@ -1,47 +1,64 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { DEFAULT_LOCALE, isLocale, localeFromPath, stripLocale } from "@/lib/locale";
 
-/* Lightweight route guard: redirects to /auth when the session cookie is absent
-   on protected (tutor/account) routes. Real session validation happens in the
-   server actions / data layer via getSession(); middleware only checks presence
-   (it runs on the edge and shouldn't touch Postgres). */
+/* Two jobs, in order:
+
+   1. LOCALE ROUTING. Every page lives under /fr/… or /ar/… (app/[locale]/…). A
+      request with no locale prefix is redirected to the preferred locale (the
+      NEXT_LOCALE cookie set by the language toggle, else French). This is what puts
+      the locale in the URL — visible to crawlers, and knowable server-side so the
+      public pages can stay statically/ISR-rendered per locale.
+
+   2. AUTH GUARD (presence only). Redirects to /<locale>/auth when the session cookie
+      is absent on a protected route. Real validation happens server-side via
+      getSession(); the edge only checks presence and never touches Postgres. */
+
 const SESSION_COOKIE = "9arini_session";
 
+/* Path prefixes (locale-stripped) that require a session. Mirrors the old matcher. */
+const PROTECTED = ["/dashboard", "/onboarding", "/account", "/student", "/checkout", "/live", "/admin"];
+
 export function middleware(req: NextRequest) {
-  const raw = req.cookies.get(SESSION_COOKIE)?.value ?? "";
-  // "demo" is the dev-mode sentinel (lib/auth.ts::setDemoCookie). It is never a
-  // valid session token — real tokens are 64 hex chars — but it is trivially
-  // forgeable, so don't even let it satisfy the presence check on a real deploy.
-  // (Authorization itself never trusts this cookie's value: every action re-reads
-  // the session from Postgres via getSession(). This is defence in depth.)
-  const hasSession = Boolean(raw) && !(process.env.NODE_ENV === "production" && raw === "demo");
-  if (!hasSession) {
-    // Carry the FULL destination (path + query), not just the pathname: a guest
-    // bounced off /checkout?class=<id> must come back to that class, otherwise
-    // they land on a checkout with no class and see "Séance introuvable".
-    // /auth re-validates this with safeNext() before following it.
-    const next = `${req.nextUrl.pathname}${req.nextUrl.search}`;
+  const { pathname } = req.nextUrl;
+  const locale = localeFromPath(pathname);
+
+  // 1. No locale in the URL → send them to the preferred one, preserving path + query.
+  if (!locale) {
+    const cookieLoc = req.cookies.get("NEXT_LOCALE")?.value;
+    const preferred = isLocale(cookieLoc) ? cookieLoc : DEFAULT_LOCALE;
     const url = req.nextUrl.clone();
-    url.pathname = "/auth";
-    url.search = ""; // drop the original query (?class=…) before adding ?next=
-    url.searchParams.set("next", next);
+    url.pathname = pathname === "/" ? `/${preferred}` : `/${preferred}${pathname}`;
     return NextResponse.redirect(url);
   }
+
+  // 2. Auth guard, evaluated on the locale-stripped path.
+  const bare = stripLocale(pathname);
+  const isProtected = PROTECTED.some((p) => bare === p || bare.startsWith(`${p}/`));
+  if (isProtected) {
+    const raw = req.cookies.get(SESSION_COOKIE)?.value ?? "";
+    // "demo" is the dev-mode sentinel (never a valid token, and forgeable) — don't
+    // let it satisfy the presence check in production. Authorization itself never
+    // trusts this cookie: every action re-reads the session from Postgres.
+    const hasSession = Boolean(raw) && !(process.env.NODE_ENV === "production" && raw === "demo");
+    if (!hasSession) {
+      const url = req.nextUrl.clone();
+      url.pathname = `/${locale}/auth`;
+      // Carry the FULL destination (locale-prefixed path + query) so a guest bounced
+      // off /fr/checkout?class=<id> resumes there after login.
+      const next = `${pathname}${req.nextUrl.search}`;
+      url.search = "";
+      url.searchParams.set("next", next);
+      return NextResponse.redirect(url);
+    }
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
-  // Everything behind a login: the tutor's back-office, the student's own
-  // classes, the booking flow, the live room and the admin console.
-  // (/live and /admin stay double-gated server-side — canJoinClass() and
-  // ADMIN_PHONES — the middleware only stops the page rendering to anonymous users.)
-  matcher: [
-    "/dashboard/:path*",
-    "/onboarding/:path*",
-    "/account",
-    "/student",
-    "/checkout",
-    "/live/:path*",
-    "/admin/:path*",
-  ],
+  /* Run on everything EXCEPT: Next internals, API routes, and any path with a file
+     extension (robots.txt, sitemap.xml, llms.txt, favicon.*, og.png, /_next/*).
+     Tutor slugs never contain a dot, so no real page is excluded. */
+  matcher: ["/((?!api|_next/static|_next/image|.*\\..*).*)"],
 };

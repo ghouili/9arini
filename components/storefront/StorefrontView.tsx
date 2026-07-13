@@ -1,5 +1,5 @@
 "use client";
-import Link from "next/link";
+import { Link } from "@/components/Link";
 import { Avatar, Chip, Verified, Button } from "@/components/ui";
 import {
   Share,

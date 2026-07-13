@@ -1,5 +1,5 @@
 "use client";
-import Link from "next/link";
+import { Link } from "@/components/Link";
 import { useEffect, useState } from "react";
 import { useLocale } from "./LocaleProvider";
 import { LocaleToggle } from "./LocaleToggle";

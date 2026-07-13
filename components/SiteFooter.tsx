@@ -1,5 +1,5 @@
 "use client";
-import Link from "next/link";
+import { Link } from "@/components/Link";
 import { useLocale } from "./LocaleProvider";
 
 /* Site footer — brand, product links, legal (terms/privacy) and a contact route.

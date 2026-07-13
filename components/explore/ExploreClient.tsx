@@ -20,7 +20,7 @@
    Copy is page-local (FR + Tunisian Derija) — lib/i18n.ts is owned elsewhere.
    ─────────────────────────────────────────────────────────────────────────── */
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { Link } from "@/components/Link";
 import { useLocale } from "@/components/LocaleProvider";
 import { Verified } from "@/components/ui";
 import { Search, Star, Users, Bolt } from "@/components/icons";

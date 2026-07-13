@@ -1,5 +1,5 @@
 "use client";
-import Link from "next/link";
+import { Link } from "@/components/Link";
 import { usePathname } from "next/navigation";
 import { useLocale } from "./LocaleProvider";
 import { Home, Video, Plus, Wallet, User } from "./icons";

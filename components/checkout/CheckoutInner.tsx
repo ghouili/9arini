@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import Link from "next/link";
+import { Link } from "@/components/Link";
 import { useLocale } from "@/components/LocaleProvider";
 import { Check, Calendar, Clock, Users } from "@/components/icons";
 import { Spinner } from "@/components/ui";
