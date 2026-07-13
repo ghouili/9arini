@@ -55,7 +55,7 @@ const copy = {
     booked: "Réservé ✓ — séance gratuite",
     nextLabel: "Demain · 18:00",
 
-    subjEyebrow: "Matières",
+    subjEyebrow: "Par matière, par niveau",
     subjSub: "Du primaire au Bac. À Tunis, Sfax, Sousse — ou en ligne, partout.",
     seeAll: "Voir tout",
     levelsLabel: "Niveaux",
@@ -180,7 +180,7 @@ const copy = {
     booked: "تحجزت ✓ — حصة بلاش",
     nextLabel: "غدوة · 18:00",
 
-    subjEyebrow: "المواد",
+    subjEyebrow: "حسب المادة والمستوى",
     subjSub: "من الابتدائي للباك. في تونس، صفاقس، سوسة — ولا أونلاين، فين ما كنت.",
     seeAll: "شوف الكل",
     levelsLabel: "المستويات",
@@ -414,7 +414,7 @@ export default function HomePage() {
         .lp-stage-zellige{position:absolute;inset:6% 4%;border-radius:var(--r-xl);z-index:0;opacity:.5}
 
         .lp-panel{position:relative;z-index:1;width:100%;max-width:380px;
-          background:rgba(255,255,255,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+          background:var(--paper);
           border:1px solid var(--line);border-radius:var(--r-l);box-shadow:var(--sh-l);
           padding:16px;animation:lp-float 8s ease-in-out infinite}
 
@@ -461,13 +461,12 @@ export default function HomePage() {
           box-shadow:0 10px 20px -12px rgba(27,156,111,.9);
           animation:lp-pop .5s cubic-bezier(.2,.7,.2,1) 2.2s both}
 
-        .lp-confirm{position:absolute;z-index:5;inset-inline-start:50%;bottom:-18px;
-          transform:translateX(-50%);display:inline-flex;align-items:center;gap:9px;
+        .lp-confirm{position:absolute;z-index:5;inset-inline:0;bottom:-18px;
+          margin-inline:auto;width:max-content;display:inline-flex;align-items:center;gap:9px;
           background:var(--paper);border:1.5px solid var(--green);color:#13724f;
           font-size:13px;font-weight:700;padding:10px 15px;border-radius:14px;
           box-shadow:var(--sh);white-space:nowrap;
           animation:lp-confirm-in .55s cubic-bezier(.2,.7,.2,1) both}
-        html[dir=rtl] .lp-confirm{transform:translateX(50%)}
         .lp-confirm-ring{width:20px;height:20px;flex:none}
         .lp-confirm-ring circle{fill:none;stroke:var(--green);stroke-width:2.4;
           stroke-dasharray:58;stroke-dashoffset:58;
@@ -480,7 +479,7 @@ export default function HomePage() {
         @keyframes lp-rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
         @keyframes lp-fade{from{opacity:0}to{opacity:1}}
         @keyframes lp-pop{0%{opacity:0;transform:scale(.7)}60%{opacity:1;transform:scale(1.08)}100%{opacity:1;transform:scale(1)}}
-        @keyframes lp-confirm-in{0%{opacity:0;transform:translateX(-50%) translateY(10px) scale(.85)}60%{transform:translateX(-50%) translateY(0) scale(1.04)}100%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
+        @keyframes lp-confirm-in{0%{opacity:0;transform:translateY(10px) scale(.85)}60%{transform:translateY(0) scale(1.04)}100%{opacity:1;transform:translateY(0) scale(1)}}
         @keyframes lp-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
         @keyframes lp-wash{0%{transform:translate3d(0,0,0)}100%{transform:translate3d(0,-12px,0)}}
         @keyframes lp-type{from{width:0}to{width:100%}}
@@ -493,7 +492,7 @@ export default function HomePage() {
         .lp-chips-row{display:flex;gap:10px;overflow-x:auto;padding:4px 2px 8px;
           -webkit-overflow-scrolling:touch;scrollbar-width:none}
         .lp-chips-row::-webkit-scrollbar{display:none}
-        .lp-chip{flex:none;display:inline-flex;align-items:center;gap:7px;
+        .lp-chip{flex:none;display:inline-flex;align-items:center;gap:7px;min-height:44px;
           background:var(--paper);border:1.5px solid var(--line);border-radius:999px;
           padding:11px 17px;font-weight:700;font-size:14px;color:var(--ink);
           white-space:nowrap;transition:.16s;box-shadow:var(--sh-s)}
@@ -512,48 +511,6 @@ export default function HomePage() {
           .lp-chips-row{flex-wrap:wrap;overflow-x:visible}
           .lp-fade-edge{display:none}
         }
-
-        /* ── stepper ────────────────────────────────────────────── */
-        .lp-steps{position:relative;display:grid;gap:clamp(14px,2vw,22px);
-          grid-template-columns:1fr}
-        @media (min-width:640px){.lp-steps{grid-template-columns:1fr 1fr}}
-        @media (min-width:1000px){.lp-steps{grid-template-columns:repeat(4,1fr)}}
-        .lp-step{position:relative;background:var(--paper);border:1px solid var(--line);
-          border-radius:var(--r-l);box-shadow:var(--sh-s);padding:clamp(18px,2.2vw,24px);
-          transition:.2s}
-        .lp-step:hover{transform:translateY(-3px);box-shadow:var(--sh)}
-        .lp-step-num{width:42px;height:42px;border-radius:13px;flex:none;display:grid;
-          place-items:center;font-family:var(--fd);font-weight:700;font-size:18px;
-          background:linear-gradient(150deg,var(--blue),var(--blue700));color:#fff;
-          box-shadow:0 8px 18px -10px rgba(14,90,166,.9);margin-bottom:14px}
-        .lp-step-t{font-family:var(--fd);font-weight:700;font-size:16.5px;margin-bottom:6px}
-        .lp-step-p{font-size:14px;color:var(--ink2);line-height:1.6}
-        /* connecting line behind nodes on wide screens */
-        .lp-step::after{content:"";position:absolute;top:calc(clamp(18px,2.2vw,24px) + 21px);
-          inset-inline-start:calc(100% + 1px);width:calc(clamp(14px,2vw,22px) - 0px);height:2px;
-          background:repeating-linear-gradient(to right,var(--blue) 0 6px,transparent 6px 11px);
-          opacity:.4;display:none}
-        html[dir=rtl] .lp-step::after{background:repeating-linear-gradient(to left,var(--blue) 0 6px,transparent 6px 11px)}
-        @media (min-width:1000px){
-          .lp-step::after{display:block}
-          .lp-step:last-child::after{display:none}
-        }
-
-        /* ── trust cards ────────────────────────────────────────── */
-        .lp-tcard{position:relative;background:var(--paper);border:1px solid var(--line);
-          border-radius:var(--r-l);box-shadow:var(--sh-s);padding:clamp(18px,2.4vw,26px);
-          display:flex;flex-direction:column;gap:14px;overflow:hidden;transition:.2s}
-        .lp-tcard:hover{transform:translateY(-3px);box-shadow:var(--sh)}
-        .lp-tcard::before{content:"";position:absolute;inset-block-start:0;inset-inline:0;
-          height:3px;background:var(--accent,var(--blue))}
-        .lp-tico{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;flex:none}
-        .lp-tt{font-family:var(--fd);font-weight:700;font-size:17px;margin-bottom:6px}
-        .lp-tp{font-size:14px;color:var(--ink2);line-height:1.6}
-        .lp-review{background:var(--cream);border:1px solid var(--line);border-radius:14px;
-          padding:11px 13px;transition:.15s}
-        .lp-review:hover{border-color:var(--blue);box-shadow:var(--sh-s)}
-        .lp-bignum{font-family:var(--fd);font-weight:700;letter-spacing:-2px;line-height:1;
-          font-size:clamp(52px,8vw,76px);color:var(--green)}
 
         /* ── results ────────────────────────────────────────────── */
         .lp-rcard{background:var(--paper);border:1px solid var(--line);border-radius:var(--r-l);
@@ -628,8 +585,7 @@ export default function HomePage() {
           .lp-search-txt.is-type{width:100% !important}
           .lp-search-go{opacity:1 !important;transform:none !important}
           .lp-badge{opacity:1 !important;transform:none !important}
-          .lp-confirm{opacity:1 !important;transform:translateX(-50%) !important}
-          html[dir=rtl] .lp-confirm{transform:translateX(50%) !important}
+          .lp-confirm{opacity:1 !important;transform:none !important}
           .lp-confirm-ring circle{stroke-dashoffset:0 !important}
           .lp-confirm-ring path{stroke-dashoffset:0 !important}
           .lp-rv{opacity:1 !important;transform:none !important;transition:none !important}
@@ -797,9 +753,9 @@ export default function HomePage() {
         style={{ borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)", background: "var(--cream)" }}
       >
         <div className="container">
-          <p className="lp-eyebrow lp-rv" style={{ marginBottom: 16 }}>
+          <h2 className="lp-h2 lp-rv" style={{ fontSize: "clamp(20px,2.6vw,26px)", marginBottom: 16 }}>
             {c.subjEyebrow}
-          </p>
+          </h2>
           <div className="lp-chips-wrap lp-rv" style={{ ["--d" as string]: "60ms" }}>
             <div className="lp-fade-edge lp-fade-s" aria-hidden="true" />
             <div className="lp-fade-edge lp-fade-e" aria-hidden="true" />
@@ -853,10 +809,7 @@ export default function HomePage() {
       <section className="lp-sec">
         <div className="container">
           <div className="lp-head" style={{ marginBottom: 30 }}>
-            <p className="lp-eyebrow lp-rv" style={{ marginBottom: 14 }}>
-              {c.howEyebrow}
-            </p>
-            <h2 className="lp-h2 lp-rv" style={{ ["--d" as string]: "60ms" }}>
+            <h2 className="lp-h2 lp-rv">
               {c.howTitle}
             </h2>
           </div>
@@ -907,17 +860,14 @@ export default function HomePage() {
       >
         <div className="container">
           <div className="lp-head" style={{ marginBottom: 30 }}>
-            <p className="lp-eyebrow lp-rv" style={{ marginBottom: 14 }}>
-              {c.trustEyebrow}
-            </p>
-            <h2 className="lp-h2 lp-rv" style={{ ["--d" as string]: "60ms" }}>
+            <h2 className="lp-h2 lp-rv">
               {c.trustTitle}
             </h2>
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-5 md:items-stretch">
             {/* (a) Verified tutors + reviews */}
-            <div className="lp-rv relative flex h-full flex-col gap-4 overflow-hidden rounded-[var(--r-l)] border border-solid border-line border-t-2 border-t-blue bg-paper p-5 shadow-[var(--sh-s)] transition hover:-translate-y-1 hover:shadow-[var(--sh)] sm:p-6">
+            <div className="lp-rv relative flex h-full flex-col gap-4 overflow-hidden rounded-[var(--r-l)] border border-solid border-line bg-paper before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:bg-blue before:content-[''] p-5 shadow-[var(--sh-s)] transition hover:-translate-y-1 hover:shadow-[var(--sh)] sm:p-6">
               <div aria-hidden="true" className="grid h-[46px] w-[46px] flex-none place-items-center rounded-[14px] bg-blue50 text-blue">
                 <Shield />
               </div>
@@ -948,7 +898,7 @@ export default function HomePage() {
             </div>
 
             {/* (b) Zero-risk trial — free 1st session, free cancellation, no online payment yet */}
-            <div className="lp-rv relative flex h-full flex-col gap-4 overflow-hidden rounded-[var(--r-l)] border border-solid border-line border-t-2 border-t-green bg-paper p-5 shadow-[var(--sh-s)] transition hover:-translate-y-1 hover:shadow-[var(--sh)] sm:p-6" style={{ ["--d" as string]: "90ms" }}>
+            <div className="lp-rv relative flex h-full flex-col gap-4 overflow-hidden rounded-[var(--r-l)] border border-solid border-line bg-paper before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:bg-green before:content-[''] p-5 shadow-[var(--sh-s)] transition hover:-translate-y-1 hover:shadow-[var(--sh)] sm:p-6" style={{ ["--d" as string]: "90ms" }}>
               <div aria-hidden="true" className="grid h-[46px] w-[46px] flex-none place-items-center rounded-[14px] bg-green50 text-green">
                 <Wallet />
               </div>
@@ -988,7 +938,7 @@ export default function HomePage() {
             </div>
 
             {/* (c) First session free — centered 0 TND focal point */}
-            <div className="lp-rv relative flex h-full flex-col items-center gap-4 overflow-hidden rounded-[var(--r-l)] border border-solid border-line border-t-2 border-t-ochre bg-paper p-5 text-center shadow-[var(--sh-s)] transition hover:-translate-y-1 hover:shadow-[var(--sh)] sm:p-6" style={{ ["--d" as string]: "180ms" }}>
+            <div className="lp-rv relative flex h-full flex-col items-center gap-4 overflow-hidden rounded-[var(--r-l)] border border-solid border-line bg-paper before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:bg-ochre before:content-[''] p-5 text-center shadow-[var(--sh-s)] transition hover:-translate-y-1 hover:shadow-[var(--sh)] sm:p-6" style={{ ["--d" as string]: "180ms" }}>
               <div aria-hidden="true" className="grid h-[46px] w-[46px] flex-none place-items-center self-start rounded-[14px] bg-[#FFF4DF] text-ochre">
                 <Gift />
               </div>
@@ -1078,9 +1028,9 @@ export default function HomePage() {
                     >
                       <Icon />
                     </span>
-                    <div style={{ minWidth: 0, fontFamily: "var(--fd)", fontWeight: 700, fontSize: 15.5 }}>
+                    <h3 style={{ minWidth: 0, fontFamily: "var(--fd)", fontWeight: 700, fontSize: 15.5 }}>
                       {p.t}
-                    </div>
+                    </h3>
                   </div>
                   <p style={{ fontSize: 14, color: "var(--ink2)", lineHeight: 1.6 }}>{p.p}</p>
                   <div className="lp-outcome" style={{ marginTop: "auto" }}>
@@ -1124,10 +1074,7 @@ export default function HomePage() {
       >
         <div className="container">
           <div className="lp-head" style={{ marginBottom: 30 }}>
-            <p className="lp-eyebrow lp-rv" style={{ marginBottom: 14 }}>
-              {c.pricingEyebrow}
-            </p>
-            <h2 className="lp-h2 lp-rv" style={{ ["--d" as string]: "60ms" }}>
+            <h2 className="lp-h2 lp-rv">
               {c.pricingTitle}
             </h2>
           </div>

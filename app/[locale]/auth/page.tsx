@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { useLocalizedRouter } from "@/components/Link";
 import { Button, Field, Spinner } from "@/components/ui";
 import { useLocale } from "@/components/LocaleProvider";
-import { Phone, Book, User } from "@/components/icons";
+import { Phone, Book, User, Calendar } from "@/components/icons";
 import { requestOtp, verifyOtp } from "@/app/actions";
 import { SiteShell } from "@/components/SiteShell";
 
@@ -90,7 +90,15 @@ function AuthInner() {
     if (!phone.trim() || !role || (role === "student" && !birthYear)) return;
     setLoading(true);
     setError(null);
-    const res = await requestOtp({ phone });
+    let res: Awaited<ReturnType<typeof requestOtp>>;
+    try {
+      res = await requestOtp({ phone });
+    } catch {
+      // Network hiccup on 3G — never leave the button stuck on "Chargement…".
+      setLoading(false);
+      setError(t.extra.error);
+      return;
+    }
     setLoading(false);
     if (res.ok) {
       setCodeSent(true);
@@ -117,7 +125,15 @@ function AuthInner() {
     if (!code.trim() || !role) return;
     setLoading(true);
     setError(null);
-    const res = await verifyOtp({ phone, code, role, locale, birthYear: birthYear ? Number(birthYear) : undefined });
+    let res: Awaited<ReturnType<typeof verifyOtp>>;
+    try {
+      res = await verifyOtp({ phone, code, role, locale, birthYear: birthYear ? Number(birthYear) : undefined });
+    } catch {
+      // Network hiccup on 3G — reset the button and let them retry.
+      setLoading(false);
+      setError(t.extra.error);
+      return;
+    }
     setLoading(false);
     if (!res.ok) {
       setError(t.extra.error);
@@ -184,6 +200,7 @@ function AuthInner() {
             {/* Role selection */}
             <div style={{ marginBottom: 20 }}>
               <p
+                id="auth-role-label"
                 style={{
                   fontSize: 12,
                   fontWeight: 700,
@@ -196,6 +213,8 @@ function AuthInner() {
                 {t.account.role}
               </p>
               <div
+                role="group"
+                aria-labelledby="auth-role-label"
                 style={{
                   display: "grid",
                   gridTemplateColumns: "1fr 1fr",
@@ -274,10 +293,13 @@ function AuthInner() {
             {role === "student" && (
               <Field label={by.label}>
                 <div className="inp">
+                  <Calendar className="" />
                   <select
                     value={birthYear}
                     onChange={(e) => setBirthYear(e.target.value)}
                     disabled={codeSent}
+                    required
+                    aria-required="true"
                     aria-label={by.label}
                     style={{
                       minWidth: 0,
@@ -286,7 +308,6 @@ function AuthInner() {
                       background: "transparent",
                       font: "inherit",
                       color: birthYear ? "var(--ink)" : "var(--muted)",
-                      appearance: "none",
                       cursor: codeSent ? "not-allowed" : "pointer",
                     }}
                   >
@@ -296,18 +317,21 @@ function AuthInner() {
                     ))}
                   </select>
                 </div>
-                <p style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 6, lineHeight: 1.5 }}>{by.note}</p>
+                <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 6, lineHeight: 1.5 }}>{by.note}</p>
               </Field>
             )}
 
-            {/* Error display */}
+            {/* Error display — role="alert" so screen readers announce it on change */}
             {error && (
               <p
+                role="alert"
                 style={{
                   color: "var(--rose)",
-                  fontSize: 12.5,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  lineHeight: 1.5,
                   margin: "0 0 12px",
-                  textAlign: "center",
+                  textAlign: "start",
                 }}
               >
                 {error}

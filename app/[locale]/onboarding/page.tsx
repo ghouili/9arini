@@ -8,6 +8,13 @@ import { SiteShell } from "@/components/SiteShell";
 import { createTutor } from "@/app/actions";
 import { useToast } from "@/components/useToast";
 
+/* Page-local copy (FR + Tunisian Derija). lib/i18n.ts is shared/owned elsewhere;
+   this covers the live-preview placeholders that aren't in the dictionary. */
+const copy = {
+  fr: { yourName: "Ton nom…" },
+  ar: { yourName: "اسمك…" },
+} as const;
+
 function slugify(name: string): string {
   return name
     .toLowerCase()
@@ -27,25 +34,35 @@ function initials(name: string): string {
 }
 
 export default function OnboardingPage() {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
+  const c = copy[locale === "ar" ? "ar" : "fr"];
   const { toast, showToast } = useToast();
 
   const [name, setName] = useState("");
   const [subject, setSubject] = useState("");
   const [bio, setBio] = useState("");
   const [published, setPublished] = useState(false);
+  const [publishing, setPublishing] = useState(false);
 
   const slug = slugify(name);
   const inits = initials(name);
   const step = name && subject ? 2 : 1;
 
   async function handlePublish() {
-    const res = await createTutor({ name, subject, bio, slug });
-    if (res.ok) {
-      showToast(res.demo ? `${t.onboarding.done} · ${t.common.demoMode}` : t.onboarding.done);
-      setPublished(true);
-    } else {
+    if (publishing) return;
+    setPublishing(true);
+    try {
+      const res = await createTutor({ name, subject, bio, slug });
+      if (res.ok) {
+        showToast(res.demo ? `${t.onboarding.done} · ${t.common.demoMode}` : t.onboarding.done);
+        setPublished(true);
+      } else {
+        showToast(t.extra.error);
+      }
+    } catch {
       showToast(t.extra.error);
+    } finally {
+      setPublishing(false);
     }
   }
 
@@ -57,7 +74,15 @@ export default function OnboardingPage() {
             {/* ── Form column ── */}
             <div style={{ minWidth: 0 }}>
               {/* Progress */}
-              <div style={{ display: "flex", gap: 6, marginBottom: 20, maxWidth: 360 }}>
+              <div
+                role="progressbar"
+                aria-valuemin={1}
+                aria-valuemax={3}
+                aria-valuenow={step}
+                aria-valuetext={t.onboarding.step(step, 3)}
+                aria-label={t.onboarding.step(step, 3)}
+                style={{ display: "flex", gap: 6, marginBottom: 20, maxWidth: 360 }}
+              >
                 {[1, 2, 3].map((i) => (
                   <div key={i} style={{ height: 5, flex: 1, borderRadius: 9, background: i <= step ? "var(--ochre)" : "var(--line)", transition: "background .3s" }} />
                 ))}
@@ -86,7 +111,7 @@ export default function OnboardingPage() {
                 </Field>
 
                 <Field label={t.onboarding.link}>
-                  <div className="inp" style={slug ? { borderColor: "var(--blue)" } : {}}>
+                  <div className="inp" dir="ltr" style={slug ? { borderColor: "var(--blue)" } : {}}>
                     <span className="pre" style={{ whiteSpace: "nowrap", flexShrink: 0 }}>9arini.tn/</span>
                     <span style={{ fontWeight: 600, color: slug ? "var(--ink)" : "var(--muted)", fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {slug || "…"}
@@ -98,8 +123,8 @@ export default function OnboardingPage() {
                   {published ? (
                     <Link href="/onboarding/verify" className="btn btn-primary">{t.verif.draftCta}</Link>
                   ) : (
-                    <Button variant="primary" onClick={handlePublish} disabled={!name || !subject}>
-                      {t.onboarding.cta}
+                    <Button variant="primary" onClick={handlePublish} disabled={!name || !subject || publishing}>
+                      {publishing ? t.common.loading : t.onboarding.cta}
                     </Button>
                   )}
                   <p style={{ textAlign: "center", fontSize: 11.5, color: "var(--muted)", marginTop: 11 }}>{t.onboarding.fine}</p>
@@ -117,7 +142,7 @@ export default function OnboardingPage() {
                   <Avatar initials={name ? inits : "??"} size={52} square />
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontFamily: "var(--fd)", fontSize: 16, display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
-                      {name || <span style={{ color: "var(--muted)" }}>Ton nom…</span>}
+                      {name || <span style={{ color: "var(--muted)" }}>{c.yourName}</span>}
                       {name && <Verified />}
                     </div>
                     <div style={{ fontSize: 12, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>

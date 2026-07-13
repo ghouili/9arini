@@ -16,7 +16,11 @@
   --blue:#0E5AA6; --blue700:#0A4684; --blue50:#E9F1FA;
   --sand:#F1E7D6; --cream:#FBF7F0; --paper:#FFFFFF;
   --ochre:#E0852E; --ochre600:#C26E1C; --amber:#F3C24B;
-  --green:#1B9C6F; --green50:#E3F4ED; --rose:#E2483D; --rose50:#FCEDEC;
+  /* --rose darkened #E2483D → #C9302B for WCAG AA: the old value was 4.0:1 on white
+     (fails the 4.5:1 floor for error text and .chip-rose). Rose is a semantic alert
+     color (errors, LIVE indicator), not a brand-identity color, so darkening it is a
+     clean readability win; white-on-rose surfaces (student live badge) also improve. */
+  --green:#1B9C6F; --green50:#E3F4ED; --rose:#C9302B; --rose50:#FCEDEC;
   --line:#EADFCD; --lineCool:#E4EAF1;
   --r-s:12px; --r:18px; --r-l:24px; --r-xl:30px;
   --sh-s:0 4px 14px -8px rgba(16,31,51,.30);
@@ -124,6 +128,7 @@
   .thumb{width:52px;height:58px;border-radius:13px;flex:none;display:grid;place-items:center;text-align:center;line-height:1;background:var(--blue50);color:var(--blue)}
   .thumb b{font-family:var(--fd);font-size:20px;display:block}
   .thumb span{font-size:9.5px;font-weight:700;color:var(--muted);letter-spacing:.5px}
+  html[dir="rtl"] .thumb span{letter-spacing:normal} /* .5px tracking severs Arabic month labels (جانفي) */
   .metaline{font-size:11.5px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap}
   .metaline span{display:inline-flex;gap:4px;align-items:center}
   .metaline .ic{width:13px;height:13px}
@@ -204,6 +209,11 @@
   .web-h1{font-family:var(--fd);font-size:clamp(30px,5.5vw,56px);line-height:1.06;letter-spacing:-1.5px}
   .web-h2{font-family:var(--fd);font-size:clamp(24px,3.6vw,38px);line-height:1.12;letter-spacing:-1px}
   .web-lead{font-size:clamp(15px,1.6vw,19px);line-height:1.6;color:var(--ink2)}
+  /* Arabic web headings: --fd (Space Grotesk) has NO Arabic glyphs, so RTL headings
+     fell back to system-ui; and the negative letter-spacing severs Arabic cursive
+     joins. Both fixed for the shared heading classes (flagged by the storefront +
+     home refine agents). Inline var(--fd) headings in components remain a follow-up. */
+  html[dir="rtl"] .web-h1, html[dir="rtl"] .web-h2 { font-family: var(--fa); letter-spacing: normal }
 
   /* responsive card grids */
   .grid{display:grid;gap:clamp(14px,2vw,22px)}
@@ -233,6 +243,11 @@
 
   /* generic web surfaces */
   .panel{background:var(--paper);border:1px solid var(--line);border-radius:var(--r-l);box-shadow:var(--sh-s)}
+  /* Cascade fix: .panel is defined after .hero-blue, so `panel hero-blue` combos
+     silently painted WHITE (dark-surface text then invisible). Higher specificity
+     here makes the dark surface win without inline overrides (flagged by the
+     tutor-landing agent, which had to force it inline on IncomePanel + final CTA). */
+  .panel.hero-blue{background:linear-gradient(158deg,var(--blue),#082F54);color:#fff;border-color:transparent}
   .panel-pad{padding:clamp(16px,2.4vw,26px)}
   .linklike{color:var(--blue);font-weight:700;cursor:pointer}
   .hide-mobile{display:none}

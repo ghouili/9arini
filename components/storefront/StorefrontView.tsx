@@ -31,6 +31,9 @@ const copy = {
     noReviewsTitle: "Pas encore d'avis",
     noReviewsBody: "Ce prof vient d'arriver. Après ta séance, tu pourras laisser le premier avis.",
     anon: "Élève",
+    // Fallback CTA when the first class is NOT the free session — t.storefront.cta
+    // hardcodes "1ère séance gratuite", so it would be a false promise here.
+    book: "Réserver la séance",
     noClassesTitle: "Ce prof n'a pas encore publié de séance",
     noClassesBody:
       "Sa page est ouverte, mais aucune séance n'est encore programmée. Reviens bientôt — ou trouve un autre prof dès maintenant.",
@@ -44,6 +47,7 @@ const copy = {
     noReviewsTitle: "ما فماش تقييمات توّا",
     noReviewsBody: "الأستاذ هذا جديد. بعد الحصة متاعك، تنجّم تكون أوّل واحد يقيّم.",
     anon: "تلميذ",
+    book: "احجز الحصة",
     noClassesTitle: "هذا الأستاذ مازال ما نشرش حصة",
     noClassesBody:
       "الصفحة متاعو محلولة، أما مازال ما فماش حصة مبرمجة. عاود شوف قريب — ولا لوّج على أستاذ آخر توّا.",
@@ -71,10 +75,15 @@ function fmtDate(iso: string) {
   return `${dd}/${mm}/${d.getUTCFullYear()}`;
 }
 
-/** 5 stars, only `filled` of them lit. No reviews → the caller shows "Nouveau" instead. */
-function Stars({ filled, size = 13 }: { filled: number; size?: number }) {
+/** 5 stars, only `filled` of them lit. No reviews → the caller shows "Nouveau" instead.
+    Decorative by default (aria-hidden) since a nearby number carries the score; pass
+    `label` on a standalone rating (e.g. a review row) so the score is announced. */
+function Stars({ filled, size = 13, label }: { filled: number; size?: number; label?: string }) {
   return (
-    <span className="stars" aria-hidden="true">
+    <span
+      className="stars"
+      {...(label ? { role: "img", "aria-label": label } : { "aria-hidden": true })}
+    >
       {[1, 2, 3, 4, 5].map((i) => (
         <Star
           key={i}
@@ -107,6 +116,11 @@ export function StorefrontView({
      at /explore instead of handing them a broken checkout. */
   const firstClass = classes[0];
   const canBook = Boolean(firstClass);
+
+  /* The shared CTA string promises a free first session. Only say that when the
+     class we'd actually book IS the free one; otherwise fall back to a neutral,
+     honest label so a paid class never carries a "gratuite" promise. */
+  const ctaLabel = firstClass?.is_free_first ? t.storefront.cta : c.book;
 
   // The rating shown is the one backed by the reviews table — never a decorative 5 stars.
   const hasReviews = reviews.count > 0;
@@ -244,13 +258,15 @@ export function StorefrontView({
                   reviews/bookings tables. Don't reintroduce this without a
                   real per-tutor "booked this week" count. */}
 
-              {/* Bio */}
-              <p
-                className="web-lead"
-                style={{ marginBottom: 32, lineHeight: 1.7 }}
-              >
-                {tutor.bio}
-              </p>
+              {/* Bio — guarded so an empty bio doesn't leave a gapped blank block. */}
+              {tutor.bio && (
+                <p
+                  className="web-lead"
+                  style={{ marginBottom: 32, lineHeight: 1.7 }}
+                >
+                  {tutor.bio}
+                </p>
+              )}
 
               {/* ── Classes section ── */}
               <div
@@ -301,7 +317,7 @@ export function StorefrontView({
                     <Clock style={{ width: 20, height: 20 }} />
                   </div>
                   <div style={{ minWidth: 0 }}>
-                    <h4 style={{ fontSize: 14.5, marginBottom: 5 }}>{c.noClassesTitle}</h4>
+                    <h3 style={{ fontSize: 14.5, marginBottom: 5 }}>{c.noClassesTitle}</h3>
                     <p
                       style={{
                         fontSize: 13,
@@ -341,7 +357,7 @@ export function StorefrontView({
 
                       {/* Info */}
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <h4 style={{ fontSize: 14.5, marginBottom: 6, lineHeight: 1.35 }}>{cls.title}</h4>
+                        <h3 style={{ fontSize: 14.5, marginBottom: 6, lineHeight: 1.35 }}>{cls.title}</h3>
                         <div className="metaline">
                           <span>
                             <Clock />
@@ -427,7 +443,7 @@ export function StorefrontView({
                         </div>
 
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <h4 style={{ fontSize: 14, marginBottom: 5, lineHeight: 1.35 }}>{pack.title}</h4>
+                          <h3 style={{ fontSize: 14, marginBottom: 5, lineHeight: 1.35 }}>{pack.title}</h3>
                           <div className="metaline">
                             <span>{pack.meta}</span>
                           </div>
@@ -492,7 +508,7 @@ export function StorefrontView({
                     <Star style={{ width: 20, height: 20 }} />
                   </div>
                   <div style={{ minWidth: 0 }}>
-                    <h4 style={{ fontSize: 14.5, marginBottom: 5 }}>{c.noReviewsTitle}</h4>
+                    <h3 style={{ fontSize: 14.5, marginBottom: 5 }}>{c.noReviewsTitle}</h3>
                     <p style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.6, margin: 0 }}>
                       {c.noReviewsBody}
                     </p>
@@ -560,7 +576,7 @@ export function StorefrontView({
                               >
                                 {r.studentName ?? c.anon}
                               </div>
-                              <Stars filled={r.rating} size={12} />
+                              <Stars filled={r.rating} size={12} label={`${r.rating}/5`} />
                             </div>
                           </div>
                           <time
@@ -615,7 +631,7 @@ export function StorefrontView({
                     >
                       <Clock style={{ width: 20, height: 20 }} />
                     </div>
-                    <h4 style={{ fontSize: 14.5, marginBottom: 6 }}>{c.noClassesTitle}</h4>
+                    <h3 style={{ fontSize: 14.5, marginBottom: 6 }}>{c.noClassesTitle}</h3>
                     <p
                       style={{
                         fontSize: 13,
@@ -651,11 +667,10 @@ export function StorefrontView({
                     <div
                       style={{
                         fontFamily: "var(--fd)",
-                        fontSize: 13,
+                        fontSize: 12.5,
+                        fontWeight: 700,
                         color: "var(--muted)",
                         marginBottom: 4,
-                        textTransform: "uppercase",
-                        letterSpacing: ".5px",
                       }}
                     >
                       {t.storefront.live}
@@ -692,7 +707,7 @@ export function StorefrontView({
                   href={`/checkout?class=${firstClass.id}`}
                   style={{ display: "block" }}
                 >
-                  <Button variant="primary">{t.storefront.cta}</Button>
+                  <Button variant="primary">{ctaLabel}</Button>
                 </Link>
 
                 {/* Secure note */}
@@ -717,7 +732,7 @@ export function StorefrontView({
           The in-page empty state above already offers /explore. */}
       {firstClass && (
         <div
-          className="hide-desktop"
+          data-sf-mobilecta="true"
           style={{
             position: "sticky",
             bottom: 0,
@@ -727,7 +742,7 @@ export function StorefrontView({
           }}
         >
           <Link href={`/checkout?class=${firstClass.id}`} style={{ display: "block" }}>
-            <Button variant="primary">{t.storefront.cta}</Button>
+            <Button variant="primary">{ctaLabel}</Button>
           </Link>
           <div
             style={{
@@ -754,6 +769,10 @@ export function StorefrontView({
           }
           [data-sf-aside="true"] {
             display: block;
+          }
+          /* Aside now carries the CTA — the sticky mobile bar would double it. */
+          [data-sf-mobilecta="true"] {
+            display: none;
           }
         }
         @media (max-width: 959px) {

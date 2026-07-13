@@ -74,16 +74,27 @@ function ConsentInner() {
   const [gPhone, setGPhone] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit() {
     if (!agreed || !gName.trim() || !gPhone.trim()) return;
     setLoading(true);
-    const res = await saveConsent({ guardianName: gName, guardianPhone: gPhone });
+    setError(null);
+    let res: Awaited<ReturnType<typeof saveConsent>>;
+    try {
+      res = await saveConsent({ guardianName: gName, guardianPhone: gPhone });
+    } catch {
+      // Network hiccup on 3G — never leave a legal consent silently un-saved.
+      setLoading(false);
+      setError(t.extra.error);
+      return;
+    }
     setLoading(false);
     // Consent signed → resume whatever the student was doing (a /checkout?class=x
     // they were bounced out of), else the student home. `next` is already
     // validated by safeNext(): a relative, same-origin path.
     if (res.ok) router.push(next ?? "/student");
+    else setError(t.extra.error);
   }
 
   const canSubmit = agreed && gName.trim().length > 0 && gPhone.trim().length > 0 && !loading;
@@ -223,6 +234,23 @@ function ConsentInner() {
                 {t.consent.agree}
               </span>
             </label>
+
+            {/* Error display — role="alert" so screen readers announce a failed save */}
+            {error && (
+              <p
+                role="alert"
+                style={{
+                  color: "var(--rose)",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  lineHeight: 1.5,
+                  margin: "0 0 14px",
+                  textAlign: "start",
+                }}
+              >
+                {error}
+              </p>
+            )}
 
             <Button
               variant="green"

@@ -21,7 +21,6 @@ import { SiteShell } from "@/components/SiteShell";
 import { useLocale } from "@/components/LocaleProvider";
 import {
   Wallet,
-  Trend,
   Video,
   Share,
   Shield,
@@ -75,8 +74,9 @@ const copy = {
 
     // income anchor
     incomeEyebrow: "Combien tu peux gagner",
+    incomeTitle: "Fixe ton tarif, tu gardes tout.",
     incomeLead:
-      "Tu fixes ton tarif et tu gardes 100 %. Un exemple — pas un plafond :",
+      "Voici un exemple concret — une illustration, pas un plafond :",
     inStudents: "8 élèves",
     inSessions: "2 séances / sem",
     inPrice: "20 TND / séance",
@@ -109,7 +109,7 @@ const copy = {
     howEyebrow: "Comment ça marche",
     howTitle: "De zéro à ta 1ère réservation ce soir",
     s1t: "Crée ta page",
-    s1b: "Nom, matière, photo. Deux minutes, c'est en ligne.",
+    s1b: "Nom, matière, photo — deux minutes. On vérifie ton identité à la main, puis ta page passe en ligne.",
     s2t: "Partage ton lien",
     s2b: "WhatsApp, Insta, TikTok. Tes élèves réservent en un clic.",
     s3t: "Donne ton 1er cours",
@@ -125,7 +125,7 @@ const copy = {
     statYoursVal: "100 %",
     statYours: "de ton tarif, pour toi",
     statSetupVal: "2 min",
-    statSetup: "et ta page est en ligne",
+    statSetup: "pour te lancer",
     fd1t: "Ta page avant les autres",
     fd1b: "Tu arrives sur une plateforme neuve. Ton lien, ta page, zéro bruit autour de toi.",
     fd2t: "Zéro commission pendant le pilote",
@@ -189,8 +189,9 @@ const copy = {
 
     // income anchor
     incomeEyebrow: "قداش تنجم تربح",
+    incomeTitle: "حدّد تعريفتك، وتحتفظ بالكل.",
     incomeLead:
-      "إنتي تحدّد التعريفة وتحتفظ بـ 100 %. مثال — موش سقف :",
+      "هاذا مثال ملموس — توضيح برك، موش سقف :",
     inStudents: "8 تلامذة",
     inSessions: "حصتين / جمعة",
     inPrice: "20 دينار / حصة",
@@ -223,7 +224,7 @@ const copy = {
     howEyebrow: "كيفاش يخدم",
     howTitle: "من الصفر لأول حجز متاعك الليلة",
     s1t: "اعمل صفحتك",
-    s1b: "إسم، مادة، تصويرة. دقيقتين، وتولّي أونلاين.",
+    s1b: "إسم، مادة، تصويرة — دقيقتين. نتثبّتو من هويتك بيدينا، ومن بعد صفحتك تولّي أونلاين.",
     s2t: "شارك اللينك متاعك",
     s2b: "واتساب، إنستا، تيكتوك. تلامذتك يحجزو بكليكة.",
     s3t: "اعطي أول درس",
@@ -239,7 +240,7 @@ const copy = {
     statYoursVal: "100 %",
     statYours: "من تعريفتك، ليك إنتي",
     statSetupVal: "دقيقتين",
-    statSetup: "وصفحتك تولّي أونلاين",
+    statSetup: "باش تنطلق",
     fd1t: "صفحتك قبل الكل",
     fd1b: "تجي لمنصة جديدة. اللينك متاعك، صفحتك، بلا زحمة حواليك.",
     fd2t: "بلا عمولة في فترة التجربة",
@@ -584,24 +585,6 @@ function HeroScene({ c }: { c: Copy }) {
                 <small style={{ fontSize: 16, opacity: 0.8, fontWeight: 600 }}>
                   {c.tnd}
                 </small>
-              </div>
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 7,
-                  marginTop: 10,
-                  background: "rgba(243,194,75,.2)",
-                  padding: "7px 10px",
-                  borderRadius: 10,
-                  fontSize: 11.5,
-                  fontFamily: "var(--fd)",
-                  fontWeight: 700,
-                  color: "#EAF2FC",
-                }}
-              >
-                <Trend style={{ width: 14, height: 14 }} />
-                +18%
               </div>
             </div>
 
@@ -1128,11 +1111,19 @@ export default function PourLesProfsPage() {
         }
         .lpp-connector { position: absolute; inset-block-start: 23px; z-index: 0; height: 2px; background: repeating-linear-gradient(90deg, var(--line) 0 7px, transparent 7px 14px); }
 
-        /* ---- money panel breakdown bar (pilot: tutor keeps 100 %, 9arini takes 0 %) ---- */
-        .lpp-split { height: 12px; border-radius: 999px; overflow: hidden; display: flex; background: rgba(255,255,255,.16); }
-        .lpp-split-you { background: linear-gradient(90deg,#54D6AC,#1B9C6F); width: 0; transition: width 1.1s cubic-bezier(.2,.7,.2,1) .15s; }
-        .lpp-split-fee { background: rgba(255,255,255,.30); flex: 1; }
-        .lpp-split.is-in .lpp-split-you { width: 100%; }
+        /* ---- money panel breakdown bar (pilot: tutor keeps 100 %, 9arini takes 0 %) ----
+           GPU-friendly reveal: the fill scales on X (transform, not width) so low-end
+           Android doesn't reflow every frame; the track shows the (0 %) remainder.
+           transform-origin flips for RTL, matching the file's other dir overrides. ---- */
+        .lpp-split { position: relative; height: 12px; border-radius: 999px; overflow: hidden; background: rgba(255,255,255,.18); }
+        .lpp-split-you {
+          position: absolute; inset-block: 0; inset-inline-start: 0; width: 100%;
+          background: linear-gradient(90deg,#54D6AC,#1B9C6F);
+          transform: scaleX(0); transform-origin: left; will-change: transform;
+          transition: transform 1.1s cubic-bezier(.2,.7,.2,1) .15s;
+        }
+        html[dir="rtl"] .lpp-split-you { transform-origin: right; }
+        .lpp-split.is-in .lpp-split-you { transform: scaleX(1); }
 
         /* ---- quote / stat / faq / cross micro ---- */
         .lpp-quote { transition: transform .2s, box-shadow .2s; }
@@ -1471,6 +1462,9 @@ export default function PourLesProfsPage() {
               <div className="web-eyebrow" style={{ marginBottom: 10 }}>
                 {c.incomeEyebrow}
               </div>
+              <h2 className="web-h2" style={{ marginBottom: 12 }}>
+                {c.incomeTitle}
+              </h2>
               <p className="web-lead" style={{ marginBottom: 18 }}>
                 {c.incomeLead}
               </p>
@@ -1851,6 +1845,9 @@ export default function PourLesProfsPage() {
               border: "none",
               textAlign: "center",
               padding: "clamp(36px,6vw,72px) clamp(20px,4vw,48px)",
+              // .panel would otherwise paint this white; force the intended dark
+              // cobalt surface (matches the hero phone) so the light text reads.
+              background: "linear-gradient(158deg,var(--blue),#082F54)",
               boxShadow: "var(--sh-l), 0 40px 80px -44px rgba(14,90,166,.6)",
             }}
           >
@@ -1871,13 +1868,13 @@ export default function PourLesProfsPage() {
                 <Bolt />
               </span>
             </div>
-            <h2 className="web-h2" style={{ color: "var(--blue)", marginBottom: 8 }}>
+            <h2 className="web-h2" style={{ color: "#fff", marginBottom: 8 }}>
               {c.finalTitle}
             </h2>
             <p
               className="web-lead"
               style={{
-                color: "var(--ink2)",
+                color: "#CFE0F3",
                 marginBottom: 26,
                 maxWidth: 520,
                 marginInline: "auto",
@@ -1903,7 +1900,7 @@ export default function PourLesProfsPage() {
             <p
               style={{
                 fontSize: 12.5,
-                color: "var(--blue700)",
+                color: "#CFE0F3",
                 marginTop: 18,
                 display: "flex",
                 alignItems: "center",
@@ -1912,7 +1909,7 @@ export default function PourLesProfsPage() {
                 flexWrap: "wrap",
               }}
             >
-              <Shield style={{ width: 15, height: 15, color: "var(--green)" }} />
+              <Shield style={{ width: 15, height: 15, color: "#54D6AC" }} />
               {c.finalReassure}
             </p>
           </Reveal>
@@ -1954,13 +1951,21 @@ function IncomePanel({ c }: { c: Copy }) {
     <div
       ref={ref}
       className={`panel panel-pad zellige hero-blue lpp-reveal ${shown ? "is-in" : ""}`}
-      style={{ border: "none", position: "relative", overflow: "hidden" }}
+      style={{
+        border: "none",
+        position: "relative",
+        overflow: "hidden",
+        // .panel wins the cascade over hero-blue and would paint this white; force the
+        // intended dark cobalt surface so the light text + zellige texture read right.
+        background: "linear-gradient(158deg,var(--blue),#082F54)",
+        boxShadow: "var(--sh-l), 0 30px 60px -40px rgba(14,90,166,.5)",
+      }}
     >
       <div style={{ position: "relative", zIndex: 1 }}>
         <div
           style={{
             fontSize: 12.5,
-            color: "var(--blue)",
+            color: "#CFE0F3",
             fontWeight: 600,
             marginBottom: 6,
           }}
@@ -1971,7 +1976,7 @@ function IncomePanel({ c }: { c: Copy }) {
           style={{
             fontFamily: "var(--fd)",
             fontSize: 13,
-            color: "var(--ink)",
+            color: "#EAF2FC",
             fontWeight: 600,
             marginBottom: 4,
             display: "flex",
@@ -1988,7 +1993,7 @@ function IncomePanel({ c }: { c: Copy }) {
             fontSize: "clamp(40px,6vw,56px)",
             fontWeight: 700,
             letterSpacing: "-1.6px",
-            color: "var(--ochre)",
+            color: "var(--amber)",
             lineHeight: 1,
           }}
         >
@@ -1999,7 +2004,6 @@ function IncomePanel({ c }: { c: Copy }) {
         <div style={{ marginTop: 18 }}>
           <div className={`lpp-split ${shown ? "is-in" : ""}`}>
             <span className="lpp-split-you" />
-            <span className="lpp-split-fee" />
           </div>
           <div
             style={{
@@ -2013,7 +2017,7 @@ function IncomePanel({ c }: { c: Copy }) {
           >
             <span
               style={{
-                color: "#1B9C6F",
+                color: "#CFE0F3",
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 5,
@@ -2025,27 +2029,26 @@ function IncomePanel({ c }: { c: Copy }) {
                   width: 8,
                   height: 8,
                   borderRadius: 999,
-                  background: "#1B9C6F",
+                  background: "#54D6AC",
                 }}
               />
               {c.inYou}
             </span>
-            <span style={{ color: "var(--ink2)" }}>{c.inFee}</span>
+            <span style={{ color: "#CFE0F3" }}>{c.inFee}</span>
           </div>
         </div>
 
         <div
-          className="trust flex flex-row items-center "
+          className="trust"
           style={{
             marginTop: 18,
             background: "rgba(255,255,255,.12)",
             position: "relative",
             zIndex: 2,
-            
           }}
         >
-          <Shield style={{ color: "var(--green)" }} />
-          <p style={{ color: "var(--ink)" }}>{c.inWithdraw}</p>
+          <Shield style={{ color: "#54D6AC" }} />
+          <p style={{ color: "#EAF2FC" }}>{c.inWithdraw}</p>
         </div>
       </div>
     </div>

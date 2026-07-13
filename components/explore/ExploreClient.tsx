@@ -205,7 +205,7 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
 
           {/* Search bar */}
           <div className="mb-5 max-w-[560px]">
-            <div className="flex items-center gap-2.5 rounded-[var(--r)] border border-solid border-line bg-paper px-3.5 py-2.5 shadow-[var(--sh-s)] transition-colors focus-within:border-blue">
+            <div className="flex min-h-[44px] items-center gap-2.5 rounded-[var(--r)] border border-solid border-line bg-paper px-3.5 py-2.5 shadow-[var(--sh-s)] transition-colors focus-within:border-blue">
               <Search className="size-[18px] shrink-0 text-muted" />
               <input
                 type="search"
@@ -228,7 +228,7 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
                   type="button"
                   onClick={() => setSubj(s.key)}
                   aria-pressed={active}
-                  className={`cursor-pointer whitespace-nowrap rounded-full border border-solid px-4 py-1.5 text-[13px] font-semibold transition-colors ${
+                  className={`inline-flex min-h-[44px] cursor-pointer items-center whitespace-nowrap rounded-full border border-solid px-4 text-[13px] font-semibold transition-colors ${
                     active
                       ? "border-blue bg-blue text-paper shadow-[var(--sh-s)]"
                       : "border-line bg-paper text-ink2 hover:border-blue hover:text-blue"
@@ -285,7 +285,7 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
             /* ── Empty ── two honest flavours: filtered-to-nothing vs no catalogue yet ── */
             <div className="mx-auto max-w-[520px] rounded-[var(--r-l)] border border-solid border-line bg-paper px-6 py-12 text-center shadow-[var(--sh-s)]">
               <div className="mx-auto mb-5 grid size-14 place-items-center rounded-full bg-blue50 text-blue">
-                <Search className="size-6" />
+                {hasFilters ? <Search className="size-6" /> : <Users className="size-6" />}
               </div>
               <h2 className="mb-2 font-display text-lg font-bold text-ink">
                 {hasFilters ? t.extra.noResults : c.emptyTitle}
@@ -297,14 +297,14 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
                 <button
                   type="button"
                   onClick={clearFilters}
-                  className="cursor-pointer rounded-full border border-solid border-line bg-paper px-5 py-2 text-[13.5px] font-semibold text-ink2 transition-colors hover:border-blue hover:text-blue"
+                  className="inline-flex min-h-[44px] cursor-pointer items-center justify-center rounded-full border border-solid border-line bg-paper px-5 text-[13.5px] font-semibold text-ink2 transition-colors hover:border-blue hover:text-blue"
                 >
                   {c.clear}
                 </button>
               ) : (
                 <Link
                   href="/pour-les-profs"
-                  className="inline-flex items-center justify-center rounded-full bg-blue px-6 py-2.5 text-[14px] font-bold text-paper shadow-[var(--sh-s)] transition-colors hover:bg-blue700"
+                  className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-blue px-6 py-2.5 text-[14px] font-bold text-paper shadow-[var(--sh-s)] transition-colors hover:bg-blue700"
                 >
                   {c.emptyCta}
                 </Link>
