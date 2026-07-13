@@ -8,7 +8,11 @@
    utility classes reliably override them. Prefer utilities in new code; these
    classes remain the shared building blocks. */
 :root{
-  --ink:#101F33; --ink2:#33445C; --muted:#6B788A;
+  /* --muted darkened from #6B788A → #5C6879 for WCAG AA: the old value was 4.2:1 on
+     the cream/sand body bg (fails the 4.5:1 floor for body/placeholder text); this
+     hits ≥4.6:1 on every surface (white/cream/sand/blue50/green50) while keeping the
+     muted step below --ink2. Used app-wide (.muted, .help, placeholders, metalines). */
+  --ink:#101F33; --ink2:#33445C; --muted:#5C6879;
   --blue:#0E5AA6; --blue700:#0A4684; --blue50:#E9F1FA;
   --sand:#F1E7D6; --cream:#FBF7F0; --paper:#FFFFFF;
   --ochre:#E0852E; --ochre600:#C26E1C; --amber:#F3C24B;
@@ -68,8 +72,8 @@
   .btn-ink{background:var(--ink);color:#fff}
   .btn-green{background:var(--green);color:#fff;box-shadow:0 14px 24px -12px rgba(27,156,111,.8)}
   .btn-ghost{background:transparent;border:1.5px solid var(--line);color:var(--ink)}
-  .btn-sm{padding:10px 14px;font-size:13.5px;width:auto;border-radius:11px}
-  .iconbtn{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;cursor:pointer;border:0;background:var(--sand);color:var(--ink)}
+  .btn-sm{padding:10px 14px;font-size:13.5px;width:auto;border-radius:11px;min-height:44px}
+  .iconbtn{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;cursor:pointer;border:0;background:var(--sand);color:var(--ink)}
   .iconbtn.on-blue{background:rgba(255,255,255,.16);color:#fff}
 
   /* ---- surfaces ---- */
@@ -185,7 +189,7 @@
     .nav-links a:hover{color:var(--blue)}
   }
   /* mobile menu (hamburger) — shown below 900px */
-  .nav-menu-btn{display:grid;place-items:center;width:42px;height:42px;border-radius:11px;border:1px solid var(--line);background:var(--paper);cursor:pointer;color:var(--ink)}
+  .nav-menu-btn{display:grid;place-items:center;width:44px;height:44px;border-radius:11px;border:1px solid var(--line);background:var(--paper);cursor:pointer;color:var(--ink)}
   @media (min-width:900px){.nav-menu-btn{display:none}}
   .nav-menu{position:absolute;top:64px;inset-inline:0;background:var(--paper);border-bottom:1px solid var(--line);box-shadow:var(--sh);display:flex;flex-direction:column;padding:8px;z-index:51}
   .nav-menu a{padding:13px 14px;border-radius:10px;font-weight:600;color:var(--ink)}
@@ -233,4 +237,20 @@
   .linklike{color:var(--blue);font-weight:700;cursor:pointer}
   .hide-mobile{display:none}
   @media (min-width:768px){.hide-mobile{display:revert}.hide-desktop{display:none}}
+}
+
+/* ─── Reduced motion (WCAG 2.3.3) ───────────────────────────────────────────
+   The landing pages already gate their JS counters/reveals on this query; this is
+   the design-system backstop so the app-wide animations (.rise entrance, .btn
+   transitions, the live-dot blink, hover transitions) also respect it. Outside the
+   cascade layers + !important so it wins over everything. The loading spinner is
+   deliberately EXEMPT: its motion conveys state (loading), which the spec permits. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .spin { animation-duration: 1s !important; animation-iteration-count: infinite !important; }
 }
