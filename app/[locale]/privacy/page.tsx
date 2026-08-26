@@ -44,8 +44,8 @@ const CSS = `
 .lg-notice{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;margin-bottom:26px;
   background:var(--rose50);border:1px solid rgba(226,72,61,.28);border-radius:var(--r);}
 .lg-notice .ic{color:var(--rose);flex:none;margin-top:2px}
-.lg-notice b{display:block;color:#9E2C23;font-size:14px;line-height:1.5}
-.lg-notice span{display:block;margin-top:4px;color:#8A3A34;font-size:13px;line-height:1.6}
+.lg-notice b{display:block;color:var(--rose700);font-size:14px;line-height:1.5}
+.lg-notice span{display:block;margin-top:4px;color:var(--rose600);font-size:13px;line-height:1.6}
 .lg-head{margin-bottom:24px}
 .lg-head .web-h2{margin:8px 0 6px}
 .lg-updated{font-size:13px;font-weight:700;color:var(--muted);margin-bottom:14px}

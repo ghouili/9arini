@@ -91,10 +91,28 @@ const PAIRS = [
   ["Display", "--blue", "--cream", "large", "h1 line 2", "pour-les-profs:723"],
 
   // ── on dark surfaces ──
+  // The cobalt panels are gradients ending at --blue900, so every pair is
+  // checked against the DARKER stop as well; that is the worst case for a light
+  // foreground and the one a spot-check by eye always misses.
   ["On dark", W, "--blue", "normal", ".hero-blue body", "globals.css:135"],
+  ["On dark", W, "--blue900", "normal", ".hero-blue gradient end", "globals.css:135"],
   ["On dark", "--on-blue-soft", "--blue", "normal", ".balance .lbl", "globals.css:159"],
-  ["On dark", "--on-blue-soft", "--blue", "normal", ".lp-final micro", "page.tsx:489"],
+  ["On dark", "--on-blue-soft", "--blue900", "normal", ".sf-subject", "StorefrontView.tsx:603"],
+  ["On dark", "--on-blue", "--blue", "normal", ".lpp income copy", "pour-les-profs:493"],
+  ["On dark", "--on-blue", "--blue900", "normal", ".sf-meta", "StorefrontView.tsx:611"],
+  ["On dark", "--on-dark", "--ink800", "normal", "live-room body", "live/[id]:231"],
+  ["On dark", "--on-dark", "--ink900", "normal", "live-room body (gradient end)", "live/[id]:199"],
+  ["On dark", "--on-dark-soft", "--ink800", "normal", "live-room meta", "live/[id]:223"],
+  ["On dark", "--on-dark-soft", "--ink900", "normal", "student panel meta", "student/page.tsx:272"],
+  ["On dark", "--rose200", "--ink800", "normal", "LIVE badge / alert on dark", "student/page.tsx:338"],
+  ["On dark", "--mint", "--blue900", "ui", "split-bar fill / dot", "pour-les-profs:506"],
+  ["On dark", "--mint200", "--blue900", "ui", ".sf-pill icon", "StorefrontView.tsx:631"],
   ["On dark", W, "--ink", "normal", ".toast / .side-nav .active", "globals.css:186"],
+
+  // ── alert blocks ──
+  ["Alerts", "--rose700", "--rose50", "normal", ".lg-notice b / .ck-alert", "privacy/page.tsx:47"],
+  ["Alerts", "--rose600", "--rose50", "normal", ".lg-notice span", "privacy/page.tsx:48"],
+  ["Alerts", "--blue", "--blue100", "normal", ".lpp-cross:hover", "pour-les-profs:710"],
 
   // ── non-text UI (1.4.11) — ADVISORY, see NOTE ──
   ["UI (advisory)", "--blue", "--cream", "ui", ":focus-visible ring", "globals.css:49"],

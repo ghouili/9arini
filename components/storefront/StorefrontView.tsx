@@ -608,7 +608,7 @@ export function StorefrontView({
         .sf-subject{color:var(--on-blue-soft);font-size:15px;margin-top:5px;font-weight:600;overflow-wrap:anywhere}
         .sf-hero-meta{
           display:flex;align-items:center;gap:8px;margin-top:10px;
-          font-size:13.5px;color:#EAF2FB;flex-wrap:wrap;
+          font-size:13.5px;color:var(--on-blue);flex-wrap:wrap;
         }
         .sf-newtag{background:rgba(255,255,255,.16);border-radius:999px;padding:3px 10px;font-weight:700;font-size:13px;white-space:nowrap}
         @media (max-width:520px){
@@ -628,7 +628,7 @@ export function StorefrontView({
           background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.2);
           border-radius:999px;padding:6px 12px;font-size:13px;font-weight:700;color:#fff;
         }
-        .sf-pill .ic{width:13px;height:13px;color:#9FD9C3}
+        .sf-pill .ic{width:13px;height:13px;color:var(--mint200)}
 
         /* ── layout ── */
         .sf-grid{display:grid;grid-template-columns:1fr;gap:clamp(24px,3vw,40px);align-items:start}

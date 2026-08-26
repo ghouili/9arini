@@ -281,10 +281,10 @@ function HeroScene({ c }: { c: Copy }) {
      width plus a gap means they can never re-enter the content box, at any
      viewport, in either language. */
   const seats = [
-    { grad: "linear-gradient(150deg,#F3C24B,#E0852E)", x: "calc(var(--phone-w) / -2 - 26px)", y: -54, d: 0.6 },
-    { grad: "linear-gradient(150deg,#5FB7F0,#0E5AA6)", x: "calc(var(--phone-w) / 2 + 28px)", y: -30, d: 1.2 },
-    { grad: "linear-gradient(150deg,#54D6AC,#1B9C6F)", x: "calc(var(--phone-w) / -2 - 30px)", y: 64, d: 1.8 },
-    { grad: "linear-gradient(150deg,#F0A85F,#C26E1C)", x: "calc(var(--phone-w) / 2 + 24px)", y: 86, d: 2.4 },
+    { grad: "linear-gradient(150deg,var(--amber),var(--ochre))", x: "calc(var(--phone-w) / -2 - 26px)", y: -54, d: 0.6 },
+    { grad: "linear-gradient(150deg,var(--blue300),var(--blue))", x: "calc(var(--phone-w) / 2 + 28px)", y: -30, d: 1.2 },
+    { grad: "linear-gradient(150deg,var(--mint),var(--green))", x: "calc(var(--phone-w) / -2 - 30px)", y: 64, d: 1.8 },
+    { grad: "linear-gradient(150deg,var(--ochre300),var(--ochre600))", x: "calc(var(--phone-w) / 2 + 24px)", y: 86, d: 2.4 },
   ];
 
   return (
@@ -322,7 +322,7 @@ function HeroScene({ c }: { c: Copy }) {
                 className="avatar sq"
                 style={{
                   width: 42, height: 42, fontSize: 18, flex: "none",
-                  background: "linear-gradient(150deg,#F3C24B,#E0852E)",
+                  background: "linear-gradient(150deg,var(--amber),var(--ochre))",
                   borderColor: "rgba(255,255,255,.3)",
                 }}
               >
@@ -490,7 +490,7 @@ function IncomePanel({ c }: { c: Copy }) {
         <div style={{ fontSize: 13, color: "var(--on-blue-soft)", fontWeight: 600, marginBottom: 8, lineHeight: 1.5 }}>
           {c.inGross}
         </div>
-        <div style={{ fontFamily: "var(--fd)", fontSize: 13, color: "#EAF2FC", fontWeight: 600, marginBottom: 4, display: "flex", alignItems: "center", gap: 7 }}>
+        <div style={{ fontFamily: "var(--fd)", fontSize: 13, color: "var(--on-blue)", fontWeight: 600, marginBottom: 4, display: "flex", alignItems: "center", gap: 7 }}>
           <Wallet style={{ width: 16, height: 16, flex: "none" }} />
           {c.inKeepLbl}
         </div>
@@ -503,7 +503,7 @@ function IncomePanel({ c }: { c: Copy }) {
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginTop: 8, fontFamily: "var(--fd)", fontWeight: 700, fontSize: 13 }}>
             <span style={{ color: "var(--on-blue-soft)", display: "inline-flex", alignItems: "center", gap: 5 }}>
-              <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: 999, background: "#54D6AC", flex: "none" }} />
+              <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: 999, background: "var(--mint)", flex: "none" }} />
               {c.inYou}
             </span>
             <span style={{ color: "var(--on-blue-soft)" }}>{c.inFee}</span>
@@ -511,8 +511,8 @@ function IncomePanel({ c }: { c: Copy }) {
         </div>
 
         <div className="trust" style={{ marginTop: 18, background: "rgba(255,255,255,.12)", position: "relative", zIndex: 2 }}>
-          <Shield style={{ color: "#54D6AC" }} />
-          <p style={{ color: "#EAF2FC" }}>{c.inWithdraw}</p>
+          <Shield style={{ color: "var(--mint)" }} />
+          <p style={{ color: "var(--on-blue)" }}>{c.inWithdraw}</p>
         </div>
       </div>
     </div>
@@ -559,7 +559,7 @@ export default function PourLesProfsPage() {
         .lpp-reveal.lpp-armed { opacity: 0; transform: translateY(18px); }
 
         /* ---- dark cobalt surfaces (beats .panel's white background) ---- */
-        .lpp-dark { background: linear-gradient(158deg,var(--blue),#082F54); color: #fff; border-color: transparent;
+        .lpp-dark { background: linear-gradient(158deg,var(--blue),var(--blue900)); color: #fff; border-color: transparent;
           box-shadow: var(--sh-l), 0 30px 60px -40px rgba(14,90,166,.5); border-radius: var(--r-l); }
 
         /* ---- hero scene ---- */
@@ -596,7 +596,7 @@ export default function PourLesProfsPage() {
         .lpp-phone-wrap { position: relative; z-index: 2; animation: lpp-float 7s ease-in-out infinite; }
         .lpp-phone {
           position: relative; width: var(--phone-w); border-radius: 38px; padding: 12px;
-          background: linear-gradient(160deg,#15263B,#0A1626);
+          background: linear-gradient(160deg,var(--ink800),var(--ink900));
           box-shadow: var(--sh-l), 0 50px 90px -50px rgba(14,90,166,.55);
           border: 1px solid rgba(255,255,255,.08);
         }
@@ -678,7 +678,7 @@ export default function PourLesProfsPage() {
         .lpp-split { position: relative; height: 12px; border-radius: 999px; overflow: hidden; background: rgba(255,255,255,.18); }
         .lpp-split-you {
           position: absolute; inset-block: 0; inset-inline-start: 0; width: 100%;
-          background: linear-gradient(90deg,#54D6AC,#1B9C6F);
+          background: linear-gradient(90deg,var(--mint),var(--green));
           transform-origin: left;
           transition: transform 1.1s cubic-bezier(.2,.7,.2,1) .15s;
         }
@@ -707,7 +707,7 @@ export default function PourLesProfsPage() {
         .lpp-cross { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; font-size: 13.5px;
           color: var(--blue); background: var(--blue50); border-radius: 999px; padding: 10px 16px; min-height: 44px;
           transition: background .16s, transform .16s; }
-        .lpp-cross:hover { background: #DCE9F7; transform: translateY(-1px); }
+        .lpp-cross:hover { background: var(--blue100); transform: translateY(-1px); }
         .lpp-cross-arrow { transition: transform .18s; }
         .lpp-cross:hover .lpp-cross-arrow { transform: translateX(3px); }
         html[dir="rtl"] .lpp-cross:hover .lpp-cross-arrow { transform: translateX(-3px); }
@@ -939,7 +939,7 @@ export default function PourLesProfsPage() {
               <Cta label={c.ctaPrimary} size="lg" />
             </div>
             <p style={{ fontSize: 13, color: "var(--on-blue-soft)", marginTop: 18, display: "flex", alignItems: "center", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
-              <Shield style={{ width: 15, height: 15, color: "#54D6AC", flex: "none" }} />
+              <Shield style={{ width: 15, height: 15, color: "var(--mint)", flex: "none" }} />
               {c.finalReassure}
             </p>
           </Reveal>

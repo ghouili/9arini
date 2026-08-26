@@ -288,7 +288,7 @@ export default function HomePage() {
         .lp-stage{position:relative;display:flex;align-items:center;justify-content:center;
           padding-block:10px}
         .lp-stage-bg{position:absolute;inset:6% 2%;border-radius:var(--r-xl);z-index:0;
-          background:linear-gradient(158deg,var(--blue),#082F54);opacity:.10}
+          background:linear-gradient(158deg,var(--blue),var(--blue900));opacity:.10}
         .lp-stage-zellige{position:absolute;inset:6% 2%;border-radius:var(--r-xl);z-index:0;opacity:.45}
         .lp-panel{position:relative;z-index:1;width:100%;max-width:376px;
           background:var(--paper);border:1px solid var(--line);border-radius:var(--r-l);

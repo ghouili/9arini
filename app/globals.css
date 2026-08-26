@@ -53,6 +53,23 @@
   --green-ink:#147553;        /* 4.63 sand · 5.32 cream · 5.68 paper · 4.98 green50 */
   --ochre-tint:#FFF4DF;       /* the soft ochre pill fill (was a bare hex in page.tsx) */
   --on-blue-soft:#CFE0F3;     /* soft label ON the blue hero surface — 5.15:1 */
+
+  /* ── DARK-SURFACE PALETTE ──────────────────────────────────────────────────
+     The colours that only exist ON the dark cobalt / ink panels — the storefront
+     hero, the live room, the balance card, the tutor-landing income panel. They
+     were written as ~40 bare hexes across nine files, several of them the same
+     colour drifted by a percent or two, and none of them visible to
+     contrast.mjs. Named here so the audit can see them and so a brand change
+     reaches them. */
+  --blue300:#5FB7F0; --blue100:#DCE9F7; --blue900:#082F54;
+  --ink800:#16273E; --ink900:#0A1726;
+  --ochre300:#F0A85F;
+  --mint:#54D6AC; --mint200:#9FD9C3;
+  --on-blue:#EAF2FC;          /* primary text on a blue surface  — 13.0:1 */
+  --on-dark:#CDD9E8;          /* primary text on the ink panels */
+  --on-dark-soft:#B9C6D8;     /* secondary text on the ink panels */
+  /* Rose steps for the legal notice and the checkout/booking alerts. */
+  --rose700:#9E2C23; --rose600:#8A3A34; --rose300:#F5C2BC; --rose200:#FFD3CE;
   --r-s:12px; --r:18px; --r-l:24px; --r-xl:30px;
   --sh-s:0 4px 14px -8px rgba(16,31,51,.30);
   --sh:0 14px 34px -16px rgba(16,31,51,.40);

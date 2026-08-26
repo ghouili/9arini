@@ -16,8 +16,9 @@
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx lib/db/seed.ts",
     "db:purge": "tsx scripts/purge-docs.ts",
-    "ui:audit": "node scripts/ui-audit/contrast.mjs && node scripts/ui-audit/nojs.mjs && node scripts/ui-audit/a11y.mjs",
-    "ui:shots": "node scripts/ui-audit/shots.mjs"
+    "ui:audit": "node scripts/ui-audit/contrast.mjs && node scripts/ui-audit/guardrails.mjs && node scripts/ui-audit/nojs.mjs && node scripts/ui-audit/a11y.mjs",
+    "ui:shots": "node scripts/ui-audit/shots.mjs",
+    "ui:weight": "node scripts/ui-audit/weight.mjs"
   },
   "dependencies": {
     "drizzle-orm": "^0.36.4",

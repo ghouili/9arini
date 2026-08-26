@@ -125,13 +125,15 @@ const copy = {
 } as const;
 
 /* ---------- confetti ---------- */
-const CONFETTI_COLORS = ["#E0852E", "#1B9C6F", "#0E5AA6", "#F3C24B"];
+const CONFETTI_COLORS = ["var(--ochre)", "var(--green)", "var(--blue)", "var(--amber)"];
 
 function Confetti() {
   const pieces = Array.from({ length: 12 }, (_, i) => ({
     key: i,
     color: CONFETTI_COLORS[i % 4],
-    left: 20 + Math.random() * 60,
+    // named `start` to match the insetInlineStart it feeds — as `left` it read
+    // like a physical CSS property in an inline style object, which it is not.
+    start: 20 + Math.random() * 60,
     delay: Math.random() * 0.35,
     size: 7 + Math.random() * 5,
   }));
@@ -154,7 +156,7 @@ function Confetti() {
             height: p.size,
             borderRadius: 2,
             background: p.color,
-            insetInlineStart: `${p.left}%`,
+            insetInlineStart: `${p.start}%`,
             top: "35%",
             animationName: "confetti-pop",
             animationDuration: "0.95s",
@@ -298,7 +300,7 @@ export default function CheckoutInner() {
       .ck-cancel .ic{color:var(--green);flex:none;margin-top:1px;width:17px;height:17px}
 
       /* ── errors / dead ends ── */
-      .ck-alert{background:var(--rose50);border:1px solid #F5C2BC;color:#A3261B;border-radius:12px;
+      .ck-alert{background:var(--rose50);border:1px solid var(--rose300);color:var(--rose700);border-radius:12px;
         padding:12px 14px;font-size:13px;line-height:1.55;margin-bottom:12px;text-align:center}
       .ck-alert a{color:var(--blue);font-weight:700;text-decoration:underline}
       .ck-cta{min-height:52px}

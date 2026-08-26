@@ -550,11 +550,11 @@ function BalanceCard({ d }: { d: DashboardData }) {
       <div
         style={{
           display: "flex", alignItems: "flex-start", gap: 8, marginTop: 15, background: "rgba(255,255,255,.13)",
-          padding: "10px 12px", borderRadius: 12, fontSize: 13, color: "#EAF2FC", position: "relative", zIndex: 2,
+          padding: "10px 12px", borderRadius: 12, fontSize: 13, color: "var(--on-blue)", position: "relative", zIndex: 2,
           lineHeight: 1.55,
         }}
       >
-        <span style={{ display: "inline-flex", color: "#F3C24B", flexShrink: 0, marginTop: 1 }} aria-hidden="true">
+        <span style={{ display: "inline-flex", color: "var(--amber)", flexShrink: 0, marginTop: 1 }} aria-hidden="true">
           <Bulb style={{ width: 16, height: 16 }} />
         </span>
         <span style={{ minWidth: 0 }}>{d.paymentsEnabled ? t.dashboard.emptyNote : c.paymentsSoonBody}</span>

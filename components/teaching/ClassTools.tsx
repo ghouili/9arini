@@ -17,7 +17,7 @@ export function ClassTools({ cls, dark }: { cls: ClassItem; dark?: boolean }) {
   if (!items.length) return null;
   const tileBg = dark ? "rgba(255,255,255,.08)" : "var(--paper)";
   const tileBorder = dark ? "1px solid rgba(255,255,255,.14)" : "1px solid var(--line)";
-  const labelColor = dark ? "#EAF2FC" : "var(--ink)";
+  const labelColor = dark ? "var(--on-blue)" : "var(--ink)";
 
   return (
     <div style={{ margin: "6px 0" }}>

@@ -58,7 +58,7 @@ export default function AccountPage() {
                   height: 72,
                   minWidth: 72,
                   borderRadius: 22,
-                  background: "linear-gradient(150deg, var(--blue), #082F54)",
+                  background: "linear-gradient(150deg, var(--blue), var(--blue900))",
                   display: "grid",
                   placeItems: "center",
                   color: "#fff",
@@ -152,14 +152,14 @@ export default function AccountPage() {
                     height: 40,
                     minWidth: 40,
                     borderRadius: 11,
-                    background: "#E7F9F0",
+                    background: "var(--green50)",
                     display: "grid",
                     placeItems: "center",
                     flexShrink: 0,
                   }}
                   aria-hidden="true"
                 >
-                  <Phone style={{ width: 18, height: 18, stroke: "#1B9C6F" }} />
+                  <Phone style={{ width: 18, height: 18, stroke: "var(--green)" }} />
                 </div>
                 <span style={{ fontSize: 15, fontWeight: 600, minWidth: 0 }}>{t.account.help}</span>
               </div>

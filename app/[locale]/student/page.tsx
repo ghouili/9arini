@@ -113,7 +113,7 @@ function StartsIn({ ts }: { ts: number }) {
       ].map(({ val, label }) => (
         <div key={label} style={{ background: "rgba(255,255,255,.12)", borderRadius: 12, padding: "9px 0", textAlign: "center", flex: 1, maxWidth: 90 }}>
           <b style={{ fontFamily: "var(--fd)", fontSize: 21, display: "block" }}>{val}</b>
-          <span style={{ fontSize: 13, color: "#B9C6D8", letterSpacing: ".3px" }}>{label}</span>
+          <span style={{ fontSize: 13, color: "var(--on-dark-soft)", letterSpacing: ".3px" }}>{label}</span>
         </div>
       ))}
     </div>
@@ -188,7 +188,7 @@ function RateBox({ item, onDone }: { item: StudentClass; onDone: () => void }) {
             style={{
               border: 0, background: "transparent", cursor: "pointer", padding: 4, minWidth: 44, minHeight: 44,
               display: "grid", placeItems: "center",
-              color: n <= rating ? "var(--amber)" : "var(--lineCool, #D8DEE7)",
+              color: n <= rating ? "var(--amber)" : "var(--lineCool)",
             }}
           >
             <Star className={n <= rating ? "fill" : ""} />
@@ -257,7 +257,7 @@ function UpcomingCard({ item, hero, onChanged }: { item: StudentClass; hero: boo
       style={{
         padding: hero ? "clamp(20px, 3vw, 36px)" : "clamp(16px, 2.2vw, 22px)",
         borderRadius: "var(--r-xl)",
-        background: "linear-gradient(155deg,#16273E,#0a1726)",
+        background: "linear-gradient(155deg,var(--ink800),var(--ink900))",
         color: "#fff",
         position: "relative",
         overflow: "hidden",
@@ -269,7 +269,7 @@ function UpcomingCard({ item, hero, onChanged }: { item: StudentClass; hero: boo
           {live && <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#fff", animation: "blink 1.1s infinite", flexShrink: 0 }} />}
           {live ? c.liveNow : t.student.soon}
         </span>
-        <span style={{ color: "#B9C6D8", fontSize: 13, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <span style={{ color: "var(--on-dark-soft)", fontSize: 13, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {t.student.with} {item.tutorName}
         </span>
       </div>
@@ -279,7 +279,7 @@ function UpcomingCard({ item, hero, onChanged }: { item: StudentClass; hero: boo
         {item.title}
       </h3>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", color: "#CDD9E8", fontSize: 13, fontWeight: 600 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", color: "var(--on-dark)", fontSize: 13, fontWeight: 600 }}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
           <Clock /> {item.day} {item.month} · {item.time}
         </span>
@@ -299,7 +299,7 @@ function UpcomingCard({ item, hero, onChanged }: { item: StudentClass; hero: boo
           <button
             onClick={() => setConfirming(true)}
             style={{
-              border: "1px solid rgba(255,255,255,.28)", background: "transparent", color: "#CDD9E8",
+              border: "1px solid rgba(255,255,255,.28)", background: "transparent", color: "var(--on-dark)",
               fontWeight: 700, fontSize: 13, padding: "12px 16px", borderRadius: 999, cursor: "pointer", minHeight: 44,
             }}
           >
@@ -311,7 +311,7 @@ function UpcomingCard({ item, hero, onChanged }: { item: StudentClass; hero: boo
       {confirming && (
         <div style={{ marginTop: 12, padding: 12, borderRadius: 14, background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.14)" }}>
           <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>{c.cancelSure}</div>
-          <div style={{ fontSize: 13, color: "#CDD9E8", marginBottom: 10, lineHeight: 1.5 }}>{c.cancelRule}</div>
+          <div style={{ fontSize: 13, color: "var(--on-dark)", marginBottom: 10, lineHeight: 1.5 }}>{c.cancelRule}</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button
               onClick={doCancel}
@@ -331,11 +331,11 @@ function UpcomingCard({ item, hero, onChanged }: { item: StudentClass; hero: boo
       )}
 
       {!cancellable && !live && (
-        <div style={{ marginTop: 12, fontSize: 13, color: "#B9C6D8", lineHeight: 1.5 }}>{c.cancelLocked}</div>
+        <div style={{ marginTop: 12, fontSize: 13, color: "var(--on-dark-soft)", lineHeight: 1.5 }}>{c.cancelLocked}</div>
       )}
 
       {err && (
-        <div role="alert" style={{ marginTop: 12, background: "rgba(226,72,61,.16)", border: "1px solid rgba(226,72,61,.4)", color: "#FFD3CE", borderRadius: 12, padding: "10px 12px", fontSize: 13, lineHeight: 1.5 }}>
+        <div role="alert" style={{ marginTop: 12, background: "rgba(226,72,61,.16)", border: "1px solid rgba(226,72,61,.4)", color: "var(--rose200)", borderRadius: 12, padding: "10px 12px", fontSize: 13, lineHeight: 1.5 }}>
           {err}
         </div>
       )}
