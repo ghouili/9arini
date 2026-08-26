@@ -3,7 +3,7 @@ import { useState, type FormEvent } from "react";
 import { Link } from "@/components/Link";
 import { Button, Field } from "@/components/ui";
 import { useLocale } from "@/components/LocaleProvider";
-import { Back, Video, Board, Quiz } from "@/components/icons";
+import { Back, Video, Board, Quiz, Shield } from "@/components/icons";
 import { createClass } from "@/app/actions";
 import { useToast } from "@/components/useToast";
 import { SiteShell } from "@/components/SiteShell";
@@ -16,8 +16,27 @@ const NOT_VERIFIED_MSG = {
   ar: "لازم بروفايلك يتثبّت الأول. أمشي لـ « التثبّت » وابعث وثائقك.",
 } as const;
 
+/* Page-local copy (lib/i18n.ts is shared/read-only). */
+const copy = {
+  fr: {
+    lead: "Un titre, une date, ton prix. Ta classe apparaît sur ta page, et les élèves réservent en un clic.",
+    priceHelp: "Tu fixes ton prix. Tu gardes 100 % — pendant le pilote l'élève te paie directement.",
+    verifNote: "Ta classe se publie une fois ton compte vérifié.",
+    verifCta: "Vérifier mon compte",
+    descPh: "ex. Méthodes + annales. On fait 3 exercices types ensemble.",
+  },
+  ar: {
+    lead: "عنوان، وقت، وثمنك. الحصة تبان في صفحتك، والتلامذة يحجزو بكليكة.",
+    priceHelp: "إنتي تحدّد ثمنك. تحتفظ بـ 100 % — في فترة التجربة التلميذ يخلّصك مباشرة.",
+    verifNote: "الحصة تتنشر كي يتثبّت حسابك.",
+    verifCta: "ثبّت حسابي",
+    descPh: "مثال: مناهج + امتحانات. نعملو 3 تمارين نموذجية مع بعضنا.",
+  },
+} as const;
+
 export default function NewClassPage() {
   const { t, locale } = useLocale();
+  const c = copy[locale];
 
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
@@ -68,16 +87,15 @@ export default function NewClassPage() {
                 gap: 12,
                 marginBottom: "clamp(18px,3vw,28px)",
               }}>
-                <Link href="/dashboard">
-                  <button className="iconbtn" aria-label={t.common.back}>
-                    <Back />
-                  </button>
+                <Link href="/dashboard" className="iconbtn" aria-label={t.common.back} style={{ flex: "none" }}>
+                  <Back />
                 </Link>
                 <h1 style={{
                   fontFamily: "var(--fd)",
                   fontSize: "clamp(20px,2.6vw,28px)",
                   letterSpacing: "-0.6px",
                   color: "var(--ink)",
+                  minWidth: 0,
                 }}>
                   {t.createClass.title}
                 </h1>
@@ -85,6 +103,9 @@ export default function NewClassPage() {
 
               {/* Form card — max-width centers comfortably at 1280px */}
               <div className="panel panel-pad" style={{ maxWidth: 620, width: "100%" }}>
+                <p style={{ fontSize: 13.5, color: "var(--ink2)", lineHeight: 1.6, marginBottom: 16 }}>
+                  {c.lead}
+                </p>
                 <form onSubmit={handleSubmit}>
 
                   {/* Title */}
@@ -106,7 +127,7 @@ export default function NewClassPage() {
                     <div className="inp" style={{ alignItems: "flex-start" }}>
                       <textarea
                         rows={3}
-                        placeholder="ex. Méthodes + annales. On fait 3 exercices types ensemble."
+                        placeholder={c.descPh}
                         value={desc}
                         onChange={(e) => setDesc(e.target.value)}
                         style={{ resize: "vertical", minHeight: 80 }}
@@ -150,7 +171,7 @@ export default function NewClassPage() {
                       </Field>
                     </div>
                     <div style={{ flex: "1 1 140px", minWidth: 0 }}>
-                      <Field label={t.createClass.price}>
+                      <Field label={t.createClass.price} help={c.priceHelp}>
                         <div className="inp">
                           <input
                             type="number"
@@ -302,6 +323,19 @@ export default function NewClassPage() {
                   <Button type="submit" variant="primary" disabled={submitted}>
                     {t.createClass.create}
                   </Button>
+
+                  {/* Publishing needs a verified profile (server-side rule) — say it
+                      BEFORE they submit instead of only failing afterwards. */}
+                  <p style={{
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                    flexWrap: "wrap", fontSize: 12, color: "var(--muted)", marginTop: 12, lineHeight: 1.5,
+                  }}>
+                    <Shield style={{ width: 14, height: 14, flex: "none" }} />
+                    {c.verifNote}
+                    <Link href="/onboarding/verify" className="linklike" style={{ fontSize: 12 }}>
+                      {c.verifCta}
+                    </Link>
+                  </p>
 
                   {/* Shown ONLY when the server action reports demo mode (no DB connected). */}
                   {demo && (

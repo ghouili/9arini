@@ -41,6 +41,18 @@ const copy = {
   },
 } as const;
 
+/* Page-scoped CSS (`qp-`), injected with dangerouslySetInnerHTML and UNLAYERED so
+   it wins over globals.css's @layer components.
+   .balance .amt is 42px / -1.4px tracking there: a 5-digit balance overflows the
+   card, Space Grotesk (--fd) has no Arabic glyphs, and the negative tracking
+   severs Arabic cursive joins. Clamped + RTL fallback + LTR-isolated number. */
+const CSS = `
+.qp-balance .amt{font-size:clamp(26px,6.5vw,40px);letter-spacing:-1px;line-height:1.08;
+  overflow-wrap:anywhere;font-variant-numeric:tabular-nums;margin-top:4px}
+html[dir="rtl"] .qp-balance .amt{font-family:var(--fa);letter-spacing:normal}
+.qp-num{direction:ltr;unicode-bidi:isolate;display:inline-block}
+`;
+
 export default function PayoutPage() {
   const { t, locale } = useLocale();
   const c = copy[locale];
@@ -79,10 +91,10 @@ export default function PayoutPage() {
         opacity: 0.75,
       }}
     >
-      <span style={{ color: "var(--blue)", display: "inline-flex", flexShrink: 0 }}>
+      <span style={{ color: "var(--blue)", display: "inline-flex", flexShrink: 0 }} aria-hidden="true">
         <Icon />
       </span>
-      <span style={{ fontSize: 14, fontWeight: 600 }}>{label}</span>
+      <span style={{ fontSize: 14, fontWeight: 600, minWidth: 0 }}>{label}</span>
     </div>
   );
 
@@ -116,14 +128,16 @@ export default function PayoutPage() {
     body = (
       <>
         {/* Available balance — the REAL number from getDashboard (0 while payments are off) */}
-        <div className="balance zellige hero-blue" style={{ borderRadius: "var(--r-l)", marginBottom: 20 }}>
+        <div className="balance qp-balance zellige hero-blue" style={{ borderRadius: "var(--r-l)", marginBottom: 20, minWidth: 0 }}>
           <div className="lbl">
             <Wallet />
             {t.payout.available}
           </div>
           <div className="amt">
-            {balance.toLocaleString("fr-FR")}
-            <small> TND</small>
+            <span className="qp-num">
+              {balance.toLocaleString("fr-FR")}
+              <small> TND</small>
+            </span>
           </div>
         </div>
 
@@ -183,6 +197,7 @@ export default function PayoutPage() {
 
   return (
     <SiteShell>
+      <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <section className="web-section tight">
         <div className="container">
           <div className="app-layout">
@@ -199,10 +214,8 @@ export default function PayoutPage() {
                   marginBottom: "clamp(18px,3vw,28px)",
                 }}
               >
-                <Link href="/dashboard">
-                  <button className="iconbtn" aria-label={t.common.back}>
-                    <Back />
-                  </button>
+                <Link href="/dashboard" className="iconbtn" aria-label={t.common.back} style={{ flex: "none" }}>
+                  <Back />
                 </Link>
                 <h1
                   style={{
@@ -210,6 +223,7 @@ export default function PayoutPage() {
                     fontSize: "clamp(20px,2.6vw,28px)",
                     letterSpacing: "-0.6px",
                     color: "var(--ink)",
+                    minWidth: 0,
                   }}
                 >
                   {t.payout.title}

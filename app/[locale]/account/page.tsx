@@ -9,8 +9,15 @@ import { SiteShell } from "@/components/SiteShell";
 
 const WA_LINK = "https://wa.me/216XXXXXXXX";
 
+/* Page-local copy (lib/i18n.ts is shared/read-only). */
+const copy = {
+  fr: { sub: "Ta langue, ton rôle, et comment nous joindre." },
+  ar: { sub: "لغتك، دورك، وكيفاش تتصل بينا." },
+} as const;
+
 export default function AccountPage() {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
+  const c = copy[locale];
   const [me, setMe] = useState<{ name: string | null; role: string; phone: string | null } | null>(null);
 
   useEffect(() => { getMe().then(setMe).catch(() => setMe(null)); }, []);
@@ -20,19 +27,15 @@ export default function AccountPage() {
     window.location.href = "/";
   }
 
-  const initials = me?.name
-    ? me.name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase()
-    : "?";
-
   return (
     <SiteShell>
       <section className="web-section">
         <div className="container container-narrow" style={{ maxWidth: 760 }}>
 
-          {/* Page heading */}
+          {/* Page heading — the eyebrow used to repeat the h1 verbatim */}
           <div style={{ marginBottom: "clamp(20px, 3vw, 36px)" }}>
-            <p className="web-eyebrow" style={{ marginBottom: 6 }}>{t.account.title}</p>
             <h1 className="web-h2">{t.account.title}</h1>
+            <p className="muted" style={{ fontSize: 13.5, marginTop: 6 }}>{c.sub}</p>
           </div>
 
           {/* Settings panel */}
@@ -68,12 +71,12 @@ export default function AccountPage() {
               >
                 <User style={{ width: 32, height: 32, stroke: "#fff" }} />
               </div>
-              <div style={{ minWidth: 0 }}>
+              <div style={{ flex: "1 1 160px", minWidth: 0 }}>
                 <div style={{ fontFamily: "var(--fd)", fontSize: "clamp(16px, 2vw, 20px)", fontWeight: 700, marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {me?.name || "—"}
                 </div>
                 {me?.phone && (
-                  <div style={{ fontSize: 14, color: "var(--muted)" }}>{me.phone}</div>
+                  <div dir="ltr" style={{ fontSize: 14, color: "var(--muted)", textAlign: "start" }}>{me.phone}</div>
                 )}
               </div>
             </div>
@@ -142,7 +145,7 @@ export default function AccountPage() {
               }}
               aria-label={t.account.help}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
                 <div
                   style={{
                     width: 40,
@@ -158,7 +161,7 @@ export default function AccountPage() {
                 >
                   <Phone style={{ width: 18, height: 18, stroke: "#1B9C6F" }} />
                 </div>
-                <span style={{ fontSize: 15, fontWeight: 600 }}>{t.account.help}</span>
+                <span style={{ fontSize: 15, fontWeight: 600, minWidth: 0 }}>{t.account.help}</span>
               </div>
               <Forward style={{ color: "var(--muted)", width: 18, height: 18, flexShrink: 0 }} aria-hidden="true" />
             </a>

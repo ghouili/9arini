@@ -22,6 +22,37 @@
      clean readability win; white-on-rose surfaces (student live badge) also improve. */
   --green:#1B9C6F; --green50:#E3F4ED; --rose:#C9302B; --rose50:#FCEDEC;
   --line:#EADFCD; --lineCool:#E4EAF1;
+
+  /* ── BRAND vs. TEXT-SAFE colour split ──────────────────────────────────────
+     --ochre / --green above are the BRAND colours. At their brand value they are
+     beautiful large fills but they do NOT carry text: white on --ochre is 2.78:1
+     and --green on --green50 is 3.06:1 — both well under the 4.5:1 WCAG AA floor.
+     Rather than darken the brand (which would change every illustration, avatar
+     gradient and decorative fill in the product), the palette splits by ROLE:
+
+       --ochre / --green            brand fills, gradients, icon strokes, borders,
+                                    anything decorative. UNCHANGED.
+       --ochre-btn / --green-btn    solid button/chip fills that carry a WHITE
+                                    label. Darkened until white clears 4.5:1.
+       --ochre-ink / --green-ink    the same hue used as TEXT on cream / sand /
+                                    paper / green50. Darkened until it clears
+                                    4.5:1 on the darkest of them (--sand).
+
+     Each value is the LIGHTEST shade of the brand hue that still clears the floor
+     (found by scripts/ui-audit/tune.mjs, which walks HSL lightness down while
+     holding hue + saturation) — an over-darkened accent passes the audit but
+     reads as brown / bottle-green and quietly loses the brand. Ratios carry a
+     0.1 margin over the 4.5 floor so a later nudge can't silently drop below it.
+
+     Every value is verified by scripts/ui-audit/contrast.mjs, which reads these
+     declarations directly — the table cannot drift from the CSS. */
+  --ochre-btn:#AE621A;        /* white label 4.60:1 */
+  --ochre-btn-hover:#9B5816;  /* white label 5.52:1 */
+  --green-btn:#17855F;        /* white label 4.61:1 */
+  --ochre-ink:#995617;        /* 4.64 sand · 5.32 cream · 5.68 paper · 5.21 ochre-tint */
+  --green-ink:#147553;        /* 4.63 sand · 5.32 cream · 5.68 paper · 4.98 green50 */
+  --ochre-tint:#FFF4DF;       /* the soft ochre pill fill (was a bare hex in page.tsx) */
+  --on-blue-soft:#CFE0F3;     /* soft label ON the blue hero surface — 5.15:1 */
   --r-s:12px; --r:18px; --r-l:24px; --r-xl:30px;
   --sh-s:0 4px 14px -8px rgba(16,31,51,.30);
   --sh:0 14px 34px -16px rgba(16,31,51,.40);
@@ -63,41 +94,55 @@
   .l-scroll{flex:1;overflow-y:auto}
   .l-pad{padding:18px}
   .appbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 18px}
-  .appbar h1{font-family:var(--fd);font-size:20px}
+  /* min-width:0 + ellipsis: a long AR screen title used to shove the trailing
+     icon button out of the bar (flex items floor at min-content by default). */
+  .appbar h1{font-family:var(--fd);font-size:20px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .statusbar{display:flex;justify-content:space-between;align-items:center;padding:14px 22px 2px;font-size:12.5px;font-weight:700;color:var(--ink)}
 
   /* ---- buttons ---- */
-  .btn{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;border:0;cursor:pointer;font-family:var(--fb);font-weight:700;font-size:15.5px;padding:15px;border-radius:15px;transition:.16s}
+  /* text-align:center + min-height: a long AR label wraps to 2 lines inside the
+     flex button; without these it rendered ragged-start and under 44px tall. */
+  .btn{display:flex;align-items:center;justify-content:center;text-align:center;gap:9px;width:100%;min-height:48px;border:0;cursor:pointer;font-family:var(--fb);font-weight:700;font-size:15.5px;padding:15px;border-radius:15px;transition:.16s}
   html[dir=rtl] .btn{font-family:var(--fa)}
   .btn:active{transform:translateY(1px)}
   .btn:disabled{opacity:.5;cursor:not-allowed}
-  .btn-primary{background:var(--ochre);color:#fff;box-shadow:0 14px 24px -12px rgba(224,133,46,.85)}
-  .btn-primary:hover:not(:disabled){background:var(--ochre600)}
+  .btn-primary{background:var(--ochre-btn);color:#fff;box-shadow:0 14px 24px -12px rgba(224,133,46,.85)}
+  .btn-primary:hover:not(:disabled){background:var(--ochre-btn-hover)}
   .btn-ink{background:var(--ink);color:#fff}
-  .btn-green{background:var(--green);color:#fff;box-shadow:0 14px 24px -12px rgba(27,156,111,.8)}
+  .btn-green{background:var(--green-btn);color:#fff;box-shadow:0 14px 24px -12px rgba(27,156,111,.8)}
   .btn-ghost{background:transparent;border:1.5px solid var(--line);color:var(--ink)}
   .btn-sm{padding:10px 14px;font-size:13.5px;width:auto;border-radius:11px;min-height:44px}
-  .iconbtn{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;cursor:pointer;border:0;background:var(--sand);color:var(--ink)}
+  /* flex:none — a 44px square button squashes to an oblong when it sits in a
+     tight flex row (appbar, toolbars). Same class of bug as .verified below. */
+  .iconbtn{width:44px;height:44px;border-radius:12px;flex:none;display:grid;place-items:center;cursor:pointer;border:0;background:var(--sand);color:var(--ink)}
   .iconbtn.on-blue{background:rgba(255,255,255,.16);color:#fff}
 
   /* ---- surfaces ---- */
-  .card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh-s)}
+  /* .card = the COMPACT surface (radius --r) used inside the 440px app frame.
+     For web-layout cards use .u-card below — that is the canonical primitive. */
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh-s);min-width:0}
   .card-pad{padding:16px}
-  .sec{font-family:var(--fd);font-size:15px;margin:6px 2px 12px;display:flex;justify-content:space-between;align-items:center}
+  .sec{font-family:var(--fd);font-size:15px;margin:6px 2px 12px;display:flex;justify-content:space-between;align-items:center;gap:10px;min-width:0}
   .sec a{color:var(--blue);font-size:12.5px;font-weight:700;cursor:pointer}
   .muted{color:var(--muted)}
   .price{font-family:var(--fd);font-weight:700;letter-spacing:-.3px}
   .divider{height:1px;background:var(--line);margin:4px 0}
 
-  /* ---- chips / badges ---- */
-  .chip{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:999px}
-  .chip-free{background:var(--green);color:#fff}
+  /* ---- chips / badges ----
+     flex:none on every fixed-size inline element. A flex item defaults to
+     flex-shrink:1, so anything with a hard width/height (or intrinsic padding)
+     gets CRUSHED the moment its row is tight — which is every card in AR, and
+     every card at 320–360px. The circular .verified badge was the visible
+     symptom (it deformed into an ellipse next to a truncated tutor name);
+     .chip / .stars / .iconbtn / .nav-menu-btn / .inp .pre had the same defect. */
+  .chip{display:inline-flex;align-items:center;gap:6px;flex:none;max-width:100%;font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:999px}
+  .chip-free{background:var(--green-btn);color:#fff}
   .chip-soft{background:var(--blue50);color:var(--blue)}
   .chip-sand{background:var(--sand);color:var(--ink2)}
   .chip-rose{background:var(--rose50);color:var(--rose)}
-  .verified{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--blue);color:#fff}
+  .verified{display:inline-grid;place-items:center;width:18px;height:18px;flex:none;border-radius:50%;background:var(--blue);color:#fff;vertical-align:middle}
   .verified .ic{width:11px;height:11px;stroke-width:3}
-  .stars{display:inline-flex;gap:1px;color:var(--amber)}
+  .stars{display:inline-flex;gap:1px;flex:none;color:var(--amber)}
   .stars .ic{width:13px;height:13px;fill:var(--amber);stroke:var(--ochre600);stroke-width:1.1}
 
   /* ---- avatar ---- */
@@ -109,8 +154,8 @@
   .field label{font-size:12px;font-weight:700;display:block;margin-bottom:7px}
   .inp{width:100%;background:var(--paper);border:1.6px solid var(--line);border-radius:13px;padding:13px 14px;font-size:14px;font-family:var(--fb);display:flex;align-items:center;gap:6px}
   .inp:focus-within{border-color:var(--blue)}
-  .inp input,.inp textarea,.inp select{border:0;outline:0;font-size:14px;font-family:inherit;width:100%;background:transparent;color:var(--ink)}
-  .inp .pre{color:var(--muted);font-family:var(--fd)}
+  .inp input,.inp textarea,.inp select{border:0;outline:0;font-size:14px;font-family:inherit;width:100%;min-width:0;background:transparent;color:var(--ink)}
+  .inp .pre{color:var(--muted);font-family:var(--fd);flex:none}
   .help{font-size:11.5px;color:var(--muted);margin-top:6px}
   .field-label{font-size:12px;font-weight:700;display:block;margin-bottom:7px}
 
@@ -120,24 +165,35 @@
     conic-gradient(from 45deg at 11.5px 11.5px,transparent 0 25%,#fff 0 26%,transparent 0 50%,#fff 0 51%,transparent 0);background-size:46px 46px}
   .hero-blue{background:linear-gradient(158deg,var(--blue),#082F54);color:#fff}
 
-  /* ---- list rows ---- */
-  .row{display:flex;align-items:center;gap:12px}
-  .between{display:flex;align-items:center;justify-content:space-between;gap:10px}
-  .listrow{display:flex;gap:12px;align-items:center;padding:13px 0;border-bottom:1px solid var(--line)}
+  /* ---- list rows ----
+     `>*{min-width:0}`: flex items floor at min-content, which silently disables
+     every truncate / line-clamp / ellipsis inside them and pushes the row wide.
+     Fixed-size children (.thumb, .avatar, .ic, .chip) opt out via flex:none. */
+  .row{display:flex;align-items:center;gap:12px;min-width:0}
+  .row>*{min-width:0}
+  .between{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0}
+  .between>*{min-width:0}
+  .listrow{display:flex;gap:12px;align-items:center;padding:13px 0;border-bottom:1px solid var(--line);min-width:0}
+  .listrow>*{min-width:0}
   .listrow:last-child{border:0}
   .thumb{width:52px;height:58px;border-radius:13px;flex:none;display:grid;place-items:center;text-align:center;line-height:1;background:var(--blue50);color:var(--blue)}
   .thumb b{font-family:var(--fd);font-size:20px;display:block}
   .thumb span{font-size:9.5px;font-weight:700;color:var(--muted);letter-spacing:.5px}
   html[dir="rtl"] .thumb span{letter-spacing:normal} /* .5px tracking severs Arabic month labels (جانفي) */
-  .metaline{font-size:11.5px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap}
-  .metaline span{display:inline-flex;gap:4px;align-items:center}
+  .metaline{font-size:11.5px;color:var(--muted);display:flex;gap:6px 12px;flex-wrap:wrap;min-width:0}
+  .metaline span{display:inline-flex;gap:4px;align-items:center;min-width:0}
   .metaline .ic{width:13px;height:13px}
   .end{text-align:end;margin-inline-start:auto}
 
   /* ---- balance card ---- */
-  .balance{border-radius:var(--r-l);color:#fff;padding:22px}
-  .balance .lbl{font-size:12.5px;color:#CFE0F3;font-weight:600;display:flex;align-items:center;gap:7px}
-  .balance .amt{font-family:var(--fd);font-size:42px;font-weight:700;margin-top:6px;letter-spacing:-1.4px}
+  .balance{border-radius:var(--r-l);color:#fff;padding:clamp(18px,3vw,22px);min-width:0;overflow:hidden}
+  .balance .lbl{font-size:12.5px;color:var(--on-blue-soft);font-weight:600;display:flex;align-items:center;gap:7px;min-width:0}
+  /* fluid: a 5-digit balance at a flat 42px overflowed the card at 320px. */
+  /* Fluid + tabular: a flat 42px/-1.4px overflowed the card at 5 digits, and
+     proportional figures made the amount jitter as it updated. Both the dashboard
+     and the payout page had independently patched this locally; fixing it here
+     makes those overrides redundant rather than required. */
+  .balance .amt{font-family:var(--fd);font-size:clamp(26px,6.5vw,42px);font-weight:700;margin-top:6px;letter-spacing:-1px;line-height:1.08;font-variant-numeric:tabular-nums}
   .balance .amt small{font-size:18px;opacity:.85;font-weight:600}
 
   /* ---- bottom nav ---- */
@@ -150,12 +206,15 @@
   .barbtn{position:sticky;bottom:0;background:linear-gradient(transparent,var(--cream) 28%);padding:14px 18px 18px}
 
   /* ---- trust note (payment) ---- */
-  .trust{display:flex;gap:11px;align-items:flex-start;padding:13px 14px;background:var(--green50);border-radius:14px}
+  .trust{display:flex;gap:11px;align-items:flex-start;padding:13px 14px;background:var(--green50);border-radius:14px;min-width:0}
   .trust .ic{color:var(--green);width:22px;height:22px;flex:none;margin-top:1px}
-  .trust p{font-size:12.5px;color:#13724f;line-height:1.55}
+  .trust p{font-size:12.5px;color:var(--green-ink);line-height:1.55;min-width:0;overflow-wrap:anywhere}
 
   /* ---- toast ---- */
-  .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;font-size:13.5px;font-weight:600;box-shadow:var(--sh);z-index:60}
+  /* Centred via inset-inline+auto margins instead of left:50%/translateX(-50%):
+     the translate trick let a long AR toast hang off BOTH edges at 320px (→
+     horizontal page scroll). max-width now clamps it inside the viewport. */
+  .toast{position:fixed;inset-inline:16px;bottom:28px;width:max-content;max-width:calc(100% - 32px);margin-inline:auto;background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;font-size:13.5px;font-weight:600;line-height:1.45;box-shadow:var(--sh);z-index:60}
 
   /* ---- landing ---- */
   .land{max-width:560px;margin:0 auto;padding:60px 22px;text-align:center}
@@ -182,23 +241,13 @@
   /* top nav */
   .site-header{position:sticky;top:0;z-index:50;background:rgba(251,247,240,.82);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
   .site-header .container{display:flex;align-items:center;gap:18px;height:64px}
-  .brand-mark{display:flex;align-items:center;gap:10px;font-family:var(--fd);font-size:20px;letter-spacing:-.4px}
+  .brand-mark{display:flex;align-items:center;gap:10px;min-width:0;font-family:var(--fd);font-size:20px;letter-spacing:-.4px}
   .brand-mark .logo{width:38px;height:38px;border-radius:11px;flex:none;background:linear-gradient(150deg,var(--blue),#08365F);display:grid;place-items:center;color:#fff;font-family:var(--fa);font-size:20px;box-shadow:var(--sh-s)}
   .brand-mark .ar{color:var(--blue);font-family:var(--fa)}
-  .nav-links{display:none}
-  .nav-spacer{flex:1}
-  .nav-right{display:flex;align-items:center;gap:10px}
-  @media (min-width:900px){
-    .nav-links{display:flex;align-items:center;gap:26px;font-weight:600;font-size:14.5px}
-    .nav-links a{color:var(--ink2);transition:.15s}
-    .nav-links a:hover{color:var(--blue)}
-  }
-  /* mobile menu (hamburger) — shown below 900px */
-  .nav-menu-btn{display:grid;place-items:center;width:44px;height:44px;border-radius:11px;border:1px solid var(--line);background:var(--paper);cursor:pointer;color:var(--ink)}
-  @media (min-width:900px){.nav-menu-btn{display:none}}
-  .nav-menu{position:absolute;top:64px;inset-inline:0;background:var(--paper);border-bottom:1px solid var(--line);box-shadow:var(--sh);display:flex;flex-direction:column;padding:8px;z-index:51}
-  .nav-menu a{padding:13px 14px;border-radius:10px;font-weight:600;color:var(--ink)}
-  .nav-menu a:hover{background:var(--blue50);color:var(--blue)}
+  /* .nav-links/.nav-spacer/.nav-right/.nav-menu-btn/.nav-menu deleted (zero
+     usages). SiteHeader owns its own scoped .qh-* nav: the old .nav-menu had no
+     max-height, no Escape/outside-click close, and a hardcoded top:64px, and the
+     900px breakpoint overflowed the 64px row between 900–1023px. */
 
   /* footer */
   .site-footer{border-top:1px solid var(--line);background:var(--cream)}
@@ -211,18 +260,32 @@
   .web-lead{font-size:clamp(15px,1.6vw,19px);line-height:1.6;color:var(--ink2)}
   /* Arabic web headings: --fd (Space Grotesk) has NO Arabic glyphs, so RTL headings
      fell back to system-ui; and the negative letter-spacing severs Arabic cursive
-     joins. Both fixed for the shared heading classes (flagged by the storefront +
-     home refine agents). Inline var(--fd) headings in components remain a follow-up. */
-  html[dir="rtl"] .web-h1, html[dir="rtl"] .web-h2 { font-family: var(--fa); letter-spacing: normal }
+     joins. The per-class patch that used to live here is superseded by the
+     "Arabic typography safety net" at the bottom of this file, which fixes both
+     at the TOKEN level (--fd → --fa under dir="rtl") and therefore covers every
+     display-font surface in the codebase, not just these two classes. */
 
-  /* responsive card grids */
-  .grid{display:grid;gap:clamp(14px,2vw,22px)}
-  .grid-auto{display:grid;gap:clamp(14px,2vw,22px);grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
-  .grid-2{display:grid;gap:clamp(14px,2vw,22px);grid-template-columns:1fr}
-  .grid-3{display:grid;gap:clamp(14px,2vw,22px);grid-template-columns:1fr}
+  /* responsive card grids
+     `>*{min-width:0}`: grid items ALSO floor at min-content (auto), so a long
+     unbroken subject string or a nowrap price used to blow the track wider than
+     1fr and push the whole grid past the container → horizontal page scroll.
+     `align-items:stretch` (the default) + .u-card's height:100% is what keeps
+     cards in one row EQUAL HEIGHT; .u-card-foot pins their footers. */
+  /* NOTE: `.grid` collides by name with Tailwind's `grid` display utility, so any
+     className="grid" also inherits this gap. Left as-is (call sites rely on it),
+     but the >* rule below is deliberately NOT applied to it — only to the three
+     design-system grids — so arbitrary Tailwind grids keep their own sizing. */
+  .grid,.grid-auto,.grid-2,.grid-3{display:grid;gap:clamp(14px,2vw,22px);align-items:stretch}
+  .grid-auto>*,.grid-2>*,.grid-3>*{min-width:0}
+  /* min(260px,100%) so the track can never be wider than its container — plain
+     minmax(260px,…) overflows any column narrower than 260px (nested grids,
+     dashboard sidebar, 320px phones). */
+  .grid-auto{grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr))}
+  .grid-2{grid-template-columns:1fr}
+  .grid-3{grid-template-columns:1fr}
   @media (min-width:680px){.grid-2{grid-template-columns:1fr 1fr}.grid-3{grid-template-columns:1fr 1fr}}
   @media (min-width:1000px){.grid-3{grid-template-columns:repeat(3,1fr)}}
-  .cluster{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+  .cluster{display:flex;flex-wrap:wrap;gap:12px;align-items:center;min-width:0}
 
   /* hero split (text + visual) */
   .web-hero{display:grid;gap:clamp(24px,4vw,48px);align-items:center;grid-template-columns:1fr}
@@ -236,13 +299,42 @@
     .app-sidebar{display:block;position:sticky;top:84px}
   }
   .side-nav{display:flex;flex-direction:column;gap:4px}
-  .side-nav a,.side-nav button{display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:12px;font-weight:600;font-size:14px;color:var(--ink2);background:transparent;border:0;cursor:pointer;width:100%;text-align:start}
+  /* min-height:44px — WCAG 2.5.8 target size; 11px padding + 14px text landed at ~41px. */
+  .side-nav a,.side-nav button{display:flex;align-items:center;gap:12px;min-height:44px;padding:11px 13px;border-radius:12px;font-weight:600;font-size:14px;color:var(--ink2);background:transparent;border:0;cursor:pointer;width:100%;min-width:0;text-align:start}
   .side-nav a:hover,.side-nav button:hover{background:var(--blue50);color:var(--blue)}
   .side-nav .active{background:var(--ink);color:#fff}
   .side-nav .ic{width:19px;height:19px}
 
-  /* generic web surfaces */
-  .panel{background:var(--paper);border:1px solid var(--line);border-radius:var(--r-l);box-shadow:var(--sh-s)}
+  /* ── .u-card — THE canonical card primitive ──────────────────────────────
+     One card look for the whole product. It was hand-rolled as
+     `rounded-[var(--r-l)] border border-solid border-line bg-paper p-5
+      shadow-[var(--sh-s)]` in 7+ places (home, explore) and re-declared as
+     .panel, so radius/padding/hover drifted per screen. Use <Card> from
+     components/ui.tsx, or the classes directly:
+       .u-card            surface (paper / --line / --r-l / --sh-s)
+       .u-card-pad        canonical padding, fluid 16→22px
+       .u-card-int        interactive: hover lift + deeper shadow (links/buttons)
+       .u-card-foot       pins a footer to the bottom → footers align across a row
+     Equal heights: flex column + height:100% means every card in a grid row is
+     as tall as the tallest one (grid items stretch by default). height:100%
+     resolves to auto outside a definite-height parent, so it is inert elsewhere.
+     min-width:0 on the card AND its direct children is what actually makes the
+     truncate / line-clamp inside a card work. */
+  .u-card{position:relative;display:flex;flex-direction:column;min-width:0;height:100%;
+    background:var(--paper);border:1px solid var(--line);border-radius:var(--r-l);box-shadow:var(--sh-s);
+    transition:transform .18s cubic-bezier(.2,.7,.2,1),box-shadow .18s cubic-bezier(.2,.7,.2,1),border-color .18s}
+  .u-card>*{min-width:0}
+  .u-card-pad{padding:clamp(16px,2.2vw,22px)}
+  .u-card-int{cursor:pointer}
+  .u-card-int:hover{transform:translateY(-3px);box-shadow:var(--sh);border-color:var(--lineCool)}
+  .u-card-foot{margin-block-start:auto}
+
+  /* generic web surfaces
+     .panel is the legacy alias of .u-card's SURFACE (same paper/line/radius/
+     shadow) — kept because ~40 call sites use it. It deliberately does NOT get
+     the flex-column layout, so existing block layouts are untouched; new cards
+     should use .u-card. */
+  .panel{background:var(--paper);border:1px solid var(--line);border-radius:var(--r-l);box-shadow:var(--sh-s);min-width:0}
   /* Cascade fix: .panel is defined after .hero-blue, so `panel hero-blue` combos
      silently painted WHITE (dark-surface text then invisible). Higher specificity
      here makes the dark surface win without inline overrides (flagged by the
@@ -250,9 +342,35 @@
   .panel.hero-blue{background:linear-gradient(158deg,var(--blue),#082F54);color:#fff;border-color:transparent}
   .panel-pad{padding:clamp(16px,2.4vw,26px)}
   .linklike{color:var(--blue);font-weight:700;cursor:pointer}
-  .hide-mobile{display:none}
-  @media (min-width:768px){.hide-mobile{display:revert}.hide-desktop{display:none}}
+  /* .hide-mobile/.hide-desktop deleted (zero usages). `display:revert` was a trap:
+     on <a class="btn hide-mobile"> it reverted the anchor to display:inline, which
+     silently killed the button's flex box — gap gone, min-height:44px inert. A
+     visibility utility must never guess an element's display type. */
 }
+
+/* ─── Arabic typography safety net (dir="rtl" only) ─────────────────────────
+   Two real defects, two rules — deliberately at the TOKEN level rather than a
+   list of class one-offs, because the offenders are spread across component
+   classes, Tailwind utilities (.font-display, .tracking-*), inline
+   style={{fontFamily:"var(--fd)"}} and page-local <style> blocks (.lp-*, .sf-*,
+   .ck-*, .lpp-*). Enumerating them would rot on the next screen someone builds.
+
+   1. FONT — --fd (Space Grotesk) ships NO Arabic glyphs, so every display-font
+      surface silently fell back to system-ui in AR: wrong face, wrong metrics,
+      visible break from the brand. Redefining the TOKEN on the root element
+      means every `font-family:var(--fd)` in the codebase — however it is
+      written, including inline styles, since custom properties inherit —
+      resolves to the Arabic family. IBM Plex Sans Arabic carries Latin glyphs
+      too, so mixed strings ("15 TND", "9arini") still render correctly.
+   2. TRACKING — letter-spacing SEVERS Arabic cursive joins: كتاب renders as
+      four disconnected letters. This is true of any non-zero tracking, negative
+      (display classes) or positive (uppercase eyebrows), so the correct rule in
+      Arabic is simply "no tracking, anywhere". !important is required to beat
+      inline style attributes in components this pass does not own.
+
+   Both scoped to html[dir="rtl"] — FR/LTR is completely untouched. */
+html[dir="rtl"] { --fd: var(--fa) }
+html[dir="rtl"] * { letter-spacing: normal !important }
 
 /* ─── Reduced motion (WCAG 2.3.3) ───────────────────────────────────────────
    The landing pages already gate their JS counters/reveals on this query; this is

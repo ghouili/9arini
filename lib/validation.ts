@@ -205,3 +205,32 @@ export function vPhone(raw: unknown): Valid<string> {
   if (digits < 8 || digits > 15) return bad("invalid-phone");
   return ok(value);
 }
+
+/* Open-redirect guard for ?next=. Lives here, not in the auth component, because
+   BOTH sides need it: app/[locale]/auth/page.tsx (server) sanitises the query
+   string and components/auth/AuthInner.tsx (client) consumes the result. A
+   function exported from a "use client" module is replaced by a client REFERENCE
+   when a server component imports it — calling it server-side throws
+   "is not a function" — so the sanitiser has to sit in a plain module.
+   middleware.ts and /live bounce guests here with ?next=<path> (e.g. /live/abc,
+   /checkout?class=x). That value is attacker-controllable, so we only ever follow
+   it when it is a *relative, same-origin* path:
+     • must start with a single "/"
+     • "//evil.tn" and "/\evil.tn" are protocol-relative → rejected
+     • any backslash, control char, or "scheme:" prefix → rejected
+     • "/auth..." → rejected (would loop back into this page)
+   Anything suspicious falls through to the normal role-based destination. */
+export function safeNext(raw: string | null): string | null {
+  if (!raw) return null;
+  const v = raw.trim();
+  if (!v.startsWith("/")) return null;                 // absolute URL or bare word
+  if (v.startsWith("//") || v.startsWith("/\\")) return null; // protocol-relative
+  if (/^\/[a-z][a-z0-9+.-]*:/i.test(v)) return null;   // "/javascript:…" & friends
+  if (v.includes("\\")) return null;                   // "/\evil.tn", backslash tricks
+  for (const ch of v) {                                // control chars (CR/LF header smuggling)
+    const c = ch.codePointAt(0) ?? 0;
+    if (c < 0x20 || c === 0x7f) return null;
+  }
+  if (v === "/auth" || v.startsWith("/auth/") || v.startsWith("/auth?")) return null;
+  return v;
+}

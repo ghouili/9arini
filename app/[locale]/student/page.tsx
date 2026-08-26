@@ -162,7 +162,7 @@ function RateBox({ item, onDone }: { item: StudentClass; onDone: () => void }) {
         <button
           onClick={() => { setOpen(true); setMsg(null); }}
           style={{
-            border: 0, background: "var(--sand, var(--blue50))", color: "var(--ochre600)", fontWeight: 700,
+            border: 0, background: "var(--sand, var(--blue50))", color: "var(--ochre-ink)", fontWeight: 700,
             fontSize: 11.5, padding: "8px 13px", borderRadius: 999, cursor: "pointer",
             display: "inline-flex", alignItems: "center", gap: 6, minHeight: 44,
           }}
@@ -266,12 +266,15 @@ function UpcomingCard({ item, hero, onChanged }: { item: StudentClass; hero: boo
           {live && <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#fff", animation: "blink 1.1s infinite", flexShrink: 0 }} />}
           {live ? c.liveNow : t.student.soon}
         </span>
-        <span style={{ color: "#B9C6D8", fontSize: 13 }}>{t.student.with} {item.tutorName}</span>
+        <span style={{ color: "#B9C6D8", fontSize: 13, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {t.student.with} {item.tutorName}
+        </span>
       </div>
 
-      <h2 style={{ fontFamily: "var(--fd)", fontSize: hero ? "clamp(19px, 2.8vw, 28px)" : "clamp(16px, 2vw, 19px)", lineHeight: 1.25, marginBottom: 8 }}>
+      {/* h3: the section above already owns the h2 ("Prochains cours") */}
+      <h3 style={{ fontFamily: "var(--fd)", fontSize: hero ? "clamp(19px, 2.8vw, 28px)" : "clamp(16px, 2vw, 19px)", lineHeight: 1.25, marginBottom: 8 }}>
         {item.title}
-      </h2>
+      </h3>
 
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", color: "#CDD9E8", fontSize: 13, fontWeight: 600 }}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
@@ -415,7 +418,7 @@ export default function StudentPage() {
           {flash && (
             <section className="web-section tight" style={{ paddingBlock: 0 }}>
               <div className="container">
-                <div role="status" style={{ background: "var(--green50)", border: "1px solid rgba(27,156,111,.3)", color: "#13724f", borderRadius: 12, padding: "11px 13px", fontSize: 13, marginBottom: 14 }}>
+                <div role="status" style={{ background: "var(--green50)", border: "1px solid rgba(27,156,111,.3)", color: "var(--green-ink)", borderRadius: 12, padding: "11px 13px", fontSize: 13, marginBottom: 14 }}>
                   {flash}
                 </div>
               </div>

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import { unstable_cache } from "next/cache";
 import { StorefrontView } from "@/components/storefront/StorefrontView";
+import { NotFoundScreen } from "@/components/NotFoundScreen";
 import { JsonLd } from "@/components/JsonLd";
 import { getCachedStorefront, STOREFRONT_TTL, tutorTag } from "@/lib/cache";
 import { getTutorReviews } from "@/app/actions";
@@ -83,7 +83,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // link preview once per share) does not add a second round of queries.
   const data = await getCachedStorefront(params.slug);
 
-  // Unknown / unverified slug → the page 404s anyway; don't let it get indexed.
+  /* Unknown / unverified slug → the body renders <NotFoundScreen> and this keeps
+     the dead URL out of the index. See the note on the render below for why this
+     is noindex-on-200 rather than a hard 404. */
   if (!data) {
     return { title: "Prof introuvable", robots: { index: false, follow: false } };
   }
@@ -94,7 +96,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const canonical = `/${locale}${subpath}`; // this locale's canonical URL
   // layout.tsx applies the "%s · 9arini" template on top of this.
   const title = `${tutor.full_name} — ${tutor.subject}`;
-  const pitch = "Réserve un cours en direct — 1ère séance offerte, paiement en dinar.";
+  /* "paiement en dinar" promised a checkout that does not exist: payments are OFF
+     for the pilot (lib/payments.ts), the storefront takes no card, and the link
+     preview is the first thing a WhatsApp reader sees. Promise what we deliver. */
+  const pitch = "Réserve un cours en direct — 1ère séance offerte, sans carte bancaire.";
   const description = tutor.bio ? `${clamp(tutor.bio, 120)} · ${pitch}` : `${tutor.subject}. ${pitch}`;
   const ogTitle = `${title} · 9arini`;
   const alt = `${tutor.full_name} sur 9arini — ${tutor.subject}`;
@@ -147,10 +152,25 @@ export default async function StorefrontPage({ params }: Props) {
     getCachedStorefront(params.slug),
     cachedTutorReviews(params.slug),
   ]);
-  if (!data) notFound();
+  const loc: AppLocale = isLocale(params.locale) ? params.locale : DEFAULT_LOCALE;
+
+  /* Unknown slug → render the branded "not found" screen INLINE rather than
+     calling notFound().
+
+     Measured on Next 14.2: a runtime notFound() renders its boundary on the
+     CLIENT only. The production <body> for a bad slug came back literally empty
+     (6 bytes) — layout included — so a visitor whose bundle had not landed yet
+     saw a white screen. This is the most-shared URL shape in the product (a
+     tutor pastes their link into WhatsApp); a typo'd or retired slug has to
+     still say what happened and offer a way onward, on a 3G Android, with no JS.
+
+     The cost is that the response is 200 instead of 404. generateMetadata above
+     emits robots: noindex, nofollow for exactly this case, so dead slugs are
+     still kept out of search results. Founder decision, recorded in the audit
+     report — revisit if Next ever server-renders the not-found boundary. */
+  if (!data) return <NotFoundScreen locale={loc} />;
 
   const { tutor } = data;
-  const loc: AppLocale = isLocale(params.locale) ? params.locale : DEFAULT_LOCALE;
   const url = `${SITE_URL}/${loc}/${params.slug}`; // locale-prefixed canonical URL
   /* Truthful structured data for the storefront. The AggregateRating is emitted
      ONLY when this tutor has real reviews (reviews.count > 0) — marking up a rating

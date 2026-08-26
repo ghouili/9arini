@@ -18,6 +18,13 @@ export default {
         ochre: v("ochre"), ochre600: v("ochre600"), amber: v("amber"),
         green: v("green"), green50: v("green50"), rose: v("rose"), rose50: v("rose50"),
         line: v("line"), lineCool: v("lineCool"),
+        /* Text-safe / white-label-safe variants of the two brand hues. `ochre` and
+           `green` are BRAND values and fail WCAG AA as text or under a white label
+           (2.78:1 and 3.48:1) — use `-ink` for text on a light surface and `-btn`
+           for a solid fill that carries a white label. See globals.css :root. */
+        "ochre-ink": v("ochre-ink"), "green-ink": v("green-ink"),
+        "ochre-btn": v("ochre-btn"), "green-btn": v("green-btn"),
+        "ochre-tint": v("ochre-tint"), "on-blue-soft": v("on-blue-soft"),
       },
       fontFamily: {
         display: [v("fd")],

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { DEFAULT_LOCALE, isLocale, localeFromPath, stripLocale } from "@/lib/locale";
+import { DEFAULT_LOCALE, isLocale, localeFromPath, stripLocale, LOCALE_HEADER } from "@/lib/locale";
 
 /* Two jobs, in order:
 
@@ -53,7 +53,16 @@ export function middleware(req: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  /* Expose the resolved locale to the server render.
+
+     app/[locale]/not-found.tsx cannot read `params` (Next does not pass them to a
+     not-found boundary) and it must stay a SERVER component — a client one is
+     shipped as a module reference and resolved in the browser, so none of its
+     markup reaches the HTML and every bad tutor link renders blank without JS.
+     A request header is the one channel that reaches it. */
+  const headers = new Headers(req.headers);
+  headers.set(LOCALE_HEADER, locale);
+  return NextResponse.next({ request: { headers } });
 }
 
 export const config = {

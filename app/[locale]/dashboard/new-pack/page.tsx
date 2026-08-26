@@ -3,7 +3,7 @@ import { useState, type FormEvent } from "react";
 import { Link } from "@/components/Link";
 import { Button, Field } from "@/components/ui";
 import { useLocale } from "@/components/LocaleProvider";
-import { Back, Box, Bulb } from "@/components/icons";
+import { Back, Box, Bulb, Shield } from "@/components/icons";
 import { useToast } from "@/components/useToast";
 import { SiteShell } from "@/components/SiteShell";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
@@ -20,6 +20,10 @@ const copy = {
     metaHelp: "ex. 42 pages · 6 vidéos · 3 exercices corrigés",
     // Publishing requires a verified profile (enforced server-side in createPack).
     notVerified: "Ton profil doit d'abord être vérifié. Va dans « Vérification » pour envoyer tes documents.",
+    titlePh: "ex. Pack révision : Dérivées & Limites",
+    metaPh: "42 pages · 6 vidéos",
+    verifNote: "Ton pack se publie une fois ton compte vérifié.",
+    verifCta: "Vérifier mon compte",
   },
   ar: {
     hintTitle: "فيشات، PDF، فيديوهات",
@@ -29,6 +33,10 @@ const copy = {
       "توّا الرفع ما زال ما تربطش: انشر الوصف والسوم، وابعث الملف لتلاميذك بيدك (واتساب، إيميل). نعيّطولك أوّل ما التوصيل الأوتوماتيكي يكون جاهز.",
     metaHelp: "مثال: 42 صفحة · 6 فيديوهات · 3 تمارين مصحّحة",
     notVerified: "لازم بروفايلك يتثبّت الأول. أمشي لـ « التثبّت » وابعث وثائقك.",
+    titlePh: "مثال: پاك مراجعة : المشتقات والنهايات",
+    metaPh: "42 صفحة · 6 فيديوهات",
+    verifNote: "الپاك يتنشر كي يتثبّت حسابك.",
+    verifCta: "ثبّت حسابي",
   },
 } as const;
 
@@ -75,16 +83,15 @@ export default function NewPackPage() {
                 gap: 12,
                 marginBottom: "clamp(18px,3vw,28px)",
               }}>
-                <Link href="/dashboard">
-                  <button className="iconbtn" aria-label={t.common.back}>
-                    <Back />
-                  </button>
+                <Link href="/dashboard" className="iconbtn" aria-label={t.common.back} style={{ flex: "none" }}>
+                  <Back />
                 </Link>
                 <h1 style={{
                   fontFamily: "var(--fd)",
                   fontSize: "clamp(20px,2.6vw,28px)",
                   letterSpacing: "-0.6px",
                   color: "var(--ink)",
+                  minWidth: 0,
                 }}>
                   {t.createPack.title}
                 </h1>
@@ -103,7 +110,7 @@ export default function NewPackPage() {
                   background: "var(--blue50)",
                   borderRadius: "var(--r)",
                 }}>
-                  <div style={{
+                  <div aria-hidden="true" style={{
                     width: 46,
                     height: 46,
                     minWidth: 46,
@@ -112,11 +119,11 @@ export default function NewPackPage() {
                     color: "#fff",
                     display: "grid",
                     placeItems: "center",
-                    flexShrink: 0,
+                    flex: "none",
                   }}>
                     <Box style={{ width: 24, height: 24 }} />
                   </div>
-                  <div>
+                  <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--blue)" }}>
                       {c.hintTitle}
                     </div>
@@ -132,7 +139,7 @@ export default function NewPackPage() {
                     <div className="inp">
                       <input
                         type="text"
-                        placeholder="ex. Pack révision : Dérivées & Limites"
+                        placeholder={c.titlePh}
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         required
@@ -149,7 +156,7 @@ export default function NewPackPage() {
                     <div className="inp">
                       <input
                         type="text"
-                        placeholder="42 pages · 6 vidéos"
+                        placeholder={c.metaPh}
                         value={meta}
                         onChange={(e) => setMeta(e.target.value)}
                         maxLength={80}
@@ -202,6 +209,19 @@ export default function NewPackPage() {
                   <Button type="submit" variant="primary" disabled={submitted}>
                     {t.createPack.create}
                   </Button>
+
+                  {/* Publishing needs a verified profile (server-side rule) — say it
+                      BEFORE they submit instead of only failing afterwards. */}
+                  <p style={{
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                    flexWrap: "wrap", fontSize: 12, color: "var(--muted)", marginTop: 12, lineHeight: 1.5,
+                  }}>
+                    <Shield style={{ width: 14, height: 14, flex: "none" }} />
+                    {c.verifNote}
+                    <Link href="/onboarding/verify" className="linklike" style={{ fontSize: 12 }}>
+                      {c.verifCta}
+                    </Link>
+                  </p>
 
                   {/* Shown ONLY when the server action reports demo mode (no DB connected). */}
                   {demo && (

@@ -2,24 +2,35 @@
 import { Suspense } from "react";
 import { Spinner } from "@/components/ui";
 import { SiteShell } from "@/components/SiteShell";
+import { useLocale } from "@/components/LocaleProvider";
 import CheckoutInner from "@/components/checkout/CheckoutInner";
 
+/* Shell only. Everything about the reservation — copy, states, layout — lives in
+   CheckoutInner, which needs useSearchParams and therefore a Suspense boundary. */
 export default function CheckoutPage() {
+  const { t } = useLocale();
   return (
     <SiteShell>
       <section className="web-section tight">
         <div className="container container-narrow">
           <Suspense
             fallback={
+              /* A bare spinner tells the user nothing. Label it, and announce it so
+                 a screen reader isn't left on a silent screen. */
               <div
+                role="status"
+                aria-live="polite"
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
+                  display: "grid",
+                  placeItems: "center",
                   minHeight: 240,
+                  textAlign: "center",
                 }}
               >
-                <Spinner />
+                <div>
+                  <Spinner />
+                  <p style={{ color: "var(--muted)", fontSize: 13.5 }}>{t.common.loading}</p>
+                </div>
               </div>
             }
           >

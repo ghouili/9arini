@@ -8,8 +8,14 @@ const fr = {
   common: {
     appName: "9arini",
     free1st: "1ère gratuite",
-    seats: (n: number) => `${n} places`,
-    secure: "Paiement sécurisé · Flouci & D17",
+    /* Pluralised, and "Complet" at 0 — the old `${n} places` rendered "1 places"
+       and, worse, "0 places" on a full class, which reads as still-bookable. */
+    seats: (n: number) =>
+      n <= 0 ? "Complet" : n === 1 ? "1 place restante" : `${n} places restantes`,
+    /* 9arini processes NO payment (lib/payments.ts — paymentsEnabled() is false).
+       This used to read "Paiement sécurisé · Flouci & D17", promising a checkout
+       that does not exist. Keep this string truthful for as long as that holds. */
+    secure: "Sans carte bancaire · tu payes ton prof directement",
     seeAll: "Tout voir",
     copy: "Copier",
     copied: "Copié ✓",
@@ -24,7 +30,7 @@ const fr = {
     loading: "Chargement…",
     demoMode: "Mode démo — aucune base connectée (données d'exemple).",
   },
-  nav: { classes: "Cours", explore: "Explorer", messages: "Messages", profile: "Profil", dashboard: "Tableau", students: "Élèves", earnings: "Revenus" },
+  nav: { classes: "Cours", explore: "Explorer", messages: "Messages", profile: "Profil", dashboard: "Tableau de bord", students: "Élèves", earnings: "Revenus" },
   home: {
     badge: "MVP · 9arini",
     title: "9arini",
@@ -46,11 +52,15 @@ const fr = {
     link: "Ton lien 9arini",
     preview: "Aperçu en direct",
     cta: "Publier ma page",
-    fine: "Gratuit. 9arini prend 12% seulement quand tu es payé.",
+    /* Was "9arini prend 12% seulement quand tu es payé" — contradicted by every
+       other surface (dashboard, new-class, llms.txt) and by the product itself:
+       during the pilot 9arini takes no commission and holds no money. */
+    fine: "Gratuit. Pendant le pilote, 9arini ne prend aucune commission — tu gardes 100 %.",
     done: "Ta page est en ligne 🎉",
   },
   storefront: {
-    bookedThisWeek: "Réservé 23 fois cette semaine",
+    /* `bookedThisWeek: "Réservé 23 fois cette semaine"` deleted: a hardcoded,
+       fabricated number on a platform that has taken zero bookings. */
     live: "Cours en direct",
     packs: "Fiches & enregistrements",
     cta: "Réserver — 1ère séance gratuite",
@@ -58,13 +68,16 @@ const fr = {
     about: "À propos",
   },
   classDetail: { with: "avec", about: "Description", when: "Quand", price: "Prix", book: "Réserver cette séance", freeFirst: "1ère séance gratuite" },
+  /* Payments are OFF (lib/payments.ts). Nothing here may promise a charge:
+     "Confirmer & payer" / "Payer X TND" / "Aucun débit" all implied 9arini takes
+     the money. It does not — the student settles with the tutor directly. */
   checkout: {
-    title: "Confirmer & payer",
+    title: "Confirmer ta réservation",
     trial: "Séance d'essai (1ère gratuite)",
     nextSessions: "Séances suivantes",
     pay: "Réserver ma séance gratuite",
-    payPaid: (p: number) => `Payer ${p} TND`,
-    noCharge: "Aucun débit aujourd'hui.",
+    payPaid: (p: number) => `Réserver — ${p} TND à régler au prof`,
+    noCharge: "Aucun paiement en ligne, aucune carte bancaire.",
     okTitle: "C'est réservé !",
     okBody: "Ta place est confirmée. On t'envoie le lien sur WhatsApp.",
     okCta: "Voir mes cours",
@@ -83,8 +96,10 @@ const fr = {
     shareBtn: "Partager mon lien",
     how: "Comment ça marche",
     s1t: "Partage ton lien", s1p: "À tes élèves actuels et à ton audience.",
-    s2t: "Tes élèves réservent", s2p: "Ils paient en TND — Flouci, carte ou D17.",
-    s3t: "Tu encaisses", s3p: "Retire vers Flouci ou ton compte. Tu gardes 88%.",
+    /* Was "Ils paient en TND — Flouci, carte ou D17" / "Tu gardes 88%": payments
+       are off and the pilot split is 100/0, not 88/12. */
+    s2t: "Tes élèves réservent", s2p: "Tu vois leur nom et leur numéro dans ton tableau de bord.",
+    s3t: "Ils te paient directement", s3p: "De la main à la main pendant le pilote. 9arini ne prend aucune commission. Le paiement en ligne arrivera plus tard.",
     trend: (p: number) => `+${p}% vs le mois dernier`,
     cashout: "Retirer vers Flouci",
     recent: "Activité récente",
@@ -121,7 +136,8 @@ const fr = {
     title: "Connexion", phone: "Numéro de téléphone", phonePh: "+216 ...",
     sendCode: "Recevoir le code", code: "Code reçu par SMS", verify: "Vérifier",
     asTutor: "Je suis prof", asStudent: "Je suis élève / parent",
-    pending: "Le code arrive par SMS une fois le fournisseur SMS branché. En attendant, il s'affiche ici (mode dev).",
+    /* Was our SMS-provider release note, shown verbatim to every visitor. */
+    pending: "Entre ton numéro : on t'envoie un code par SMS. Pas de mot de passe.",
   },
   consent: {
     title: "Accord du parent / tuteur",
@@ -201,8 +217,9 @@ const ar: typeof fr = {
   common: {
     appName: "قرّيني",
     free1st: "الأولى مجانية",
-    seats: (n: number) => `${n} أماكن`,
-    secure: "دفع آمن · فلوسي و D17",
+    seats: (n: number) =>
+      n <= 0 ? "كامل" : n === 1 ? "بلاصة وحدة تبقات" : n === 2 ? "زوز بلايص تبقاو" : `${n} بلايص تبقاو`,
+    secure: "بلا كارت بنكية · تخلّص أستاذك مباشرة",
     seeAll: "عرض الكل",
     copy: "نسخ",
     copied: "تم النسخ ✓",
@@ -217,7 +234,7 @@ const ar: typeof fr = {
     loading: "جاري التحميل…",
     demoMode: "وضع تجريبي — ما فماش قاعدة موصولة (بيانات أمثلة).",
   },
-  nav: { classes: "حصص", explore: "اكتشف", messages: "رسائل", profile: "حسابي", dashboard: "اللوحة", students: "تلاميذ", earnings: "أرباح" },
+  nav: { classes: "حصص", explore: "اكتشف", messages: "رسائل", profile: "حسابي", dashboard: "لوحتي", students: "تلاميذ", earnings: "أرباح" },
   home: {
     badge: "MVP · قرّيني",
     title: "قرّيني",
@@ -239,11 +256,10 @@ const ar: typeof fr = {
     link: "رابطك في قرّيني",
     preview: "معاينة مباشرة",
     cta: "انشر صفحتي",
-    fine: "مجاني. قرّيني تاخذ 12% كان وقت تتخلّص.",
+    fine: "مجاني. في فترة التجربة، قرّيني ما تاخذ حتى عمولة — تحتفظ بـ 100 %.",
     done: "صفحتك على الخط 🎉",
   },
   storefront: {
-    bookedThisWeek: "تمّ الحجز 23 مرة هذا الأسبوع",
     live: "حصص مباشرة",
     packs: "ملخصات وتسجيلات",
     cta: "احجز — الحصة الأولى مجانية",
@@ -252,12 +268,12 @@ const ar: typeof fr = {
   },
   classDetail: { with: "مع", about: "الوصف", when: "الوقت", price: "السعر", book: "احجز هذه الحصة", freeFirst: "الحصة الأولى مجانية" },
   checkout: {
-    title: "تأكيد و دفع",
+    title: "أكّد حجزك",
     trial: "حصة تجريبية (الأولى مجانية)",
     nextSessions: "الحصص الموالية",
     pay: "احجز حصتي المجانية",
-    payPaid: (p: number) => `خلّص ${p} د.ت`,
-    noCharge: "ما فماش خصم اليوم.",
+    payPaid: (p: number) => `احجز — ${p} د.ت تخلّصهم للأستاذ`,
+    noCharge: "ما فماش خلاص أونلاين، وما تحتاجش كارت بنكية.",
     okTitle: "تم الحجز!",
     okBody: "مكانك مؤكّد. نبعثولك الرابط على واتساب.",
     okCta: "شوف حصصي",
@@ -276,8 +292,8 @@ const ar: typeof fr = {
     shareBtn: "شارك رابطي",
     how: "كيفاش يخدم",
     s1t: "شارك رابطك", s1p: "لتلاميذك الحاليين ولجمهورك.",
-    s2t: "تلاميذك يحجزو", s2p: "يخلّصو بالدينار — فلوسي، بطاقة أو D17.",
-    s3t: "تقبض", s3p: "اسحب نحو فلوسي أو حسابك. تحتفظ بـ88%.",
+    s2t: "تلاميذك يحجزو", s2p: "تشوف إسمهم ونمرتهم في لوحتك.",
+    s3t: "يخلّصوك مباشرة", s3p: "يد بيد في فترة التجربة. 9arini ما تاخذ حتى عمولة. الخلاص أونلاين يجي من بعد.",
     trend: (p: number) => `+${p}% مقارنة بالشهر الفارط`,
     cashout: "اسحب نحو فلوسي",
     recent: "النشاط الأخير",
@@ -314,7 +330,7 @@ const ar: typeof fr = {
     title: "الدخول", phone: "رقم الهاتف", phonePh: "+216 ...",
     sendCode: "أرسل الرمز", code: "الرمز عبر SMS", verify: "تأكيد",
     asTutor: "أنا أستاذ", asStudent: "أنا تلميذ / ولي",
-    pending: "الرمز يوصل بالـSMS كي يتربط مزوّد الـSMS. في الانتظار، يظهرلك هوني (وضع التطوير).",
+    pending: "حطّ نمرتك : نبعثولك كود بالـSMS. بلا كلمة سرّ.",
   },
   consent: {
     title: "موافقة الولي",

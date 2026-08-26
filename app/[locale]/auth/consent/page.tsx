@@ -185,6 +185,7 @@ function ConsentInner() {
                 <Phone />
                 <input
                   type="tel"
+                  dir="ltr"
                   placeholder="+216 …"
                   value={gPhone}
                   onChange={(e) => setGPhone(e.target.value)}

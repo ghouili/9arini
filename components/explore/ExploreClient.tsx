@@ -39,6 +39,8 @@ const copy = {
     from: "à partir de",
     tnd: "TND",
     verifiedOnly: "Profs vérifiés",
+    /* Screen-reader name for the blue tick — the badge carried meaning no AT could read. */
+    verifiedBadge: "Prof vérifié",
     emptyTitle: "Aucun prof pour l'instant",
     emptyBody:
       "On vérifie chaque prof à la main, un par un. Les premiers arrivent bientôt. Tu es prof ? Ouvre ta page en 5 minutes — c'est gratuit.",
@@ -55,6 +57,7 @@ const copy = {
     from: "من",
     tnd: "د.ت",
     verifiedOnly: "أساتذة مؤكّدين",
+    verifiedBadge: "أستاذ مؤكّد",
     emptyTitle: "ما فماش أساتذة توّا",
     emptyBody:
       "نأكّدو في كل أستاذ بيدينا، واحد واحد. الأوّلين جايين قريب. إنت أستاذ؟ اعمل صفحتك في 5 دقايق — بلاش.",
@@ -106,6 +109,28 @@ const DEMO_PREVIEW: ExploreTutor[] = [
   },
 ];
 
+/* Subject filters — the URL contract shared with the home page's subject chips
+   (/explore?subject=<slug>). `term` is what we match against tutors.subject, which
+   is free text like "Prof de Maths · Lycée & Bac", so it stays French even in the
+   Arabic UI or the ilike in getExploreTutors would never hit. Keep the slugs in
+   sync with SUBJECTS in app/[locale]/page.tsx — they are the same nine chips. */
+const SUBJECT_FILTERS = [
+  { slug: "maths", term: "Math", fr: "Maths", ar: "رياضيات" },
+  { slug: "physique", term: "Physique", fr: "Physique", ar: "فيزياء" },
+  { slug: "svt", term: "SVT", fr: "SVT", ar: "علوم" },
+  { slug: "francais", term: "Français", fr: "Français", ar: "فرنسية" },
+  { slug: "anglais", term: "Anglais", fr: "Anglais", ar: "إنڨليزية" },
+  { slug: "arabe", term: "Arabe", fr: "Arabe", ar: "عربية" },
+  { slug: "philo", term: "Philo", fr: "Philo", ar: "فلسفة" },
+  { slug: "histoire-geo", term: "Histoire", fr: "Histoire-Géo", ar: "تاريخ-جغرافيا" },
+  { slug: "technique", term: "Technique", fr: "Technique", ar: "تقني" },
+] as const;
+
+/* undefined for "all" (and for an unknown slug) — which is exactly the "no subject
+   filter" value getExploreTutors expects, so callers don't special-case "all". */
+const termFor = (slug: string): string | undefined =>
+  SUBJECT_FILTERS.find((s) => s.slug === slug)?.term;
+
 export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
   const { t, locale } = useLocale();
   const c = copy[locale === "ar" ? "ar" : "fr"];
@@ -124,6 +149,15 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
   // once the user actually changes a filter (skips a redundant fetch on mount).
   const firstRun = useRef(true);
 
+  // Seed the subject filter from ?subject=<slug> — the home page's subject chips
+  // link straight here, and without this every one of them landed on the
+  // unfiltered list. Read from window on mount rather than useSearchParams(): the
+  // hook forces a Suspense boundary and opts this page out of static rendering.
+  useEffect(() => {
+    const slug = new URLSearchParams(window.location.search).get("subject");
+    if (slug && termFor(slug)) setSubj(slug);
+  }, []);
+
   useEffect(() => {
     if (firstRun.current) {
       firstRun.current = false;
@@ -135,7 +169,7 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
 
     const timer = setTimeout(() => {
       getExploreTutors({
-        subject: subj === "all" ? undefined : subj,
+        subject: termFor(subj),
         q: q.trim() || undefined,
       })
         .then((res) => {
@@ -163,10 +197,7 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
 
   const SUBJECTS = [
     { key: "all", label: t.extra.allSubjects },
-    { key: "Math", label: "Maths" },
-    { key: "Physique", label: "Physique" },
-    { key: "Français", label: "Français" },
-    { key: "Anglais", label: "Anglais" },
+    ...SUBJECT_FILTERS.map((s) => ({ key: s.slug, label: locale === "ar" ? s.ar : s.fr })),
   ];
 
   const hasFilters = subj !== "all" || q.trim().length > 0;
@@ -175,7 +206,8 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
   // so the chips and the search box still visibly work.
   const visible = demo
     ? tutors.filter((tu) => {
-        const matchSubj = subj === "all" || tu.subject.includes(subj);
+        const term = termFor(subj);
+        const matchSubj = !term || tu.subject.includes(term);
         const ql = q.trim().toLowerCase();
         const matchQ =
           !ql ||
@@ -261,11 +293,10 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
               aria-live="polite"
               aria-label={c.loading}
             >
+              {/* Skeleton mirrors the real card's box model (u-card + u-card-pad +
+                  two-line footer) so nothing jumps when the results land. */}
               {[0, 1, 2, 3, 4, 5].map((i) => (
-                <div
-                  key={i}
-                  className="animate-pulse rounded-[var(--r-l)] border border-solid border-line bg-paper p-5 shadow-[var(--sh-s)]"
-                >
+                <div key={i} className="u-card u-card-pad animate-pulse">
                   <div className="flex items-start gap-3.5">
                     <div className="size-16 shrink-0 rounded-[var(--r)] bg-line" />
                     <div className="min-w-0 flex-1 space-y-2 pt-1.5">
@@ -273,18 +304,19 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
                       <div className="h-3 w-1/2 rounded bg-line" />
                     </div>
                   </div>
-                  <div className="mt-5 h-3 w-full rounded bg-line" />
+                  <div className="mt-4 h-3 w-full rounded bg-line" />
                   <div className="mt-2 h-3 w-4/5 rounded bg-line" />
-                  <div className="mt-5 border-t border-solid border-line pt-4">
+                  <div className="u-card-foot mt-5 border-t border-solid border-line pt-3.5">
                     <div className="h-3 w-1/2 rounded bg-line" />
+                    <div className="mt-3 h-4 w-1/3 rounded bg-line" />
                   </div>
                 </div>
               ))}
             </div>
           ) : visible.length === 0 ? (
             /* ── Empty ── two honest flavours: filtered-to-nothing vs no catalogue yet ── */
-            <div className="mx-auto max-w-[520px] rounded-[var(--r-l)] border border-solid border-line bg-paper px-6 py-12 text-center shadow-[var(--sh-s)]">
-              <div className="mx-auto mb-5 grid size-14 place-items-center rounded-full bg-blue50 text-blue">
+            <div className="u-card mx-auto max-w-[520px] items-center px-6 py-12 text-center">
+              <div className="mx-auto mb-5 grid size-14 shrink-0 place-items-center rounded-full bg-blue50 text-blue">
                 {hasFilters ? <Search className="size-6" /> : <Users className="size-6" />}
               </div>
               <h2 className="mb-2 font-display text-lg font-bold text-ink">
@@ -316,73 +348,87 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
               {visible.map((tutor) => {
                 const isNew = tutor.review_count === 0;
                 return (
+                  /* .u-card = the canonical card primitive (app/globals.css):
+                     flex column + height:100% → every card in a row is the same
+                     height, and .u-card-foot pins the footer so the price lines
+                     up across the whole grid. .u-card-int adds the hover lift. */
                   <Link
                     key={tutor.slug}
                     href={`/${tutor.slug}`}
-                    className="group relative flex flex-col rounded-[var(--r-l)] border border-solid border-line bg-paper p-5 shadow-[var(--sh-s)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[var(--sh)]"
+                    className="u-card u-card-pad u-card-int group"
                   >
-                    {/* "Nouveau" — honest stand-in for a rating nobody has given yet */}
-                    {isNew && (
-                      <span className="absolute end-4 top-4 rounded-full border border-solid border-green bg-green50 px-2.5 py-1 text-[11px] font-semibold text-green">
-                        {c.isNew}
-                      </span>
-                    )}
-
-                    {/* Top row: square gradient avatar + content column */}
+                    {/* Top row: square gradient avatar + identity column.
+                        The "Nouveau" badge used to be absolutely positioned here
+                        (`absolute end-4 top-4`) with a `pe-16` hack on this
+                        sibling to dodge it — it collided with the name at narrow
+                        widths and duplicated the "Nouveau" already shown in the
+                        meta row. It is now rendered ONCE, in flow, in the rating
+                        slot below, which is exactly what it stands in for. */}
                     <div className="flex items-start gap-3.5">
                       <div className="grid size-16 shrink-0 place-items-center rounded-[var(--r)] bg-gradient-to-br from-blue to-blue700 font-display text-xl font-bold text-paper">
                         {tutor.avatar_initials}
                       </div>
 
-                      <div className={`min-w-0 flex-1 ${isNew ? "pe-16" : ""}`}>
-                        <div className="flex items-center gap-1.5">
-                          <span className="truncate font-display text-base font-bold text-ink">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex min-w-0 items-center gap-1.5">
+                          <span className="min-w-0 truncate font-display text-base font-bold text-ink transition-colors group-hover:text-blue">
                             {tutor.full_name}
                           </span>
-                          {/* Only verified tutors are ever returned by getExploreTutors */}
-                          <Verified />
+                          {/* Only verified tutors are ever returned by getExploreTutors.
+                              .verified is flex:none, so it stays a circle next to
+                              the truncated name instead of squashing to an ellipse. */}
+                          <Verified label={c.verifiedBadge} />
                         </div>
-                        <div className="mt-1 truncate text-[13px] text-muted">{tutor.subject}</div>
+                        {/* line-clamp-2, not truncate: "Prof de Maths · Lycée & Bac"
+                            (and its longer AR form) needs two lines at 284px. */}
+                        <div className="mt-1 line-clamp-2 text-[13px] leading-snug text-muted">
+                          {tutor.subject}
+                        </div>
                       </div>
                     </div>
 
                     {/* Bio teaser */}
                     {tutor.bio && (
-                      <p className="mt-4 line-clamp-2 text-[13px] leading-relaxed text-ink2">
+                      <p className="mt-4 line-clamp-2 break-words text-[13px] leading-relaxed text-ink2">
                         {tutor.bio}
                       </p>
                     )}
 
-                    {/* Meta row: real rating (or "Nouveau"), real students, cheapest class */}
-                    <div className="mt-5 flex items-center justify-between gap-2 border-t border-solid border-line pt-4 text-[13px] text-muted">
-                      {isNew ? (
-                        <span className="inline-flex items-center gap-1.5 font-semibold text-green">
-                          {c.isNew}
-                        </span>
-                      ) : (
-                        <span className="inline-flex min-w-0 items-center gap-1.5">
-                          <Star className="size-4 shrink-0 text-amber" />
-                          <b className="font-display text-amber">{tutor.rating.toFixed(1)}</b>
-                          <span className="truncate">({c.reviews(tutor.review_count)})</span>
-                        </span>
-                      )}
+                    {/* Footer — was ONE justify-between row cramming three
+                        variable-length items (rating + "(37 avis)", students,
+                        "à partir de 15 TND") into a 284px card; in AR the strings
+                        are longer and it overflowed. Now two deliberate rows:
+                        social proof wraps freely, price gets its own line. */}
+                    <div className="u-card-foot mt-5 border-t border-solid border-line pt-3.5">
+                      <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5 text-[12.5px] text-muted">
+                        {isNew ? (
+                          <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-green50 px-2.5 py-0.5 text-[11.5px] font-semibold text-green-ink">
+                            {c.isNew}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                            <Star className="size-4 shrink-0 text-amber" />
+                            <b className="font-display text-ink">{tutor.rating.toFixed(1)}</b>
+                            <span>({c.reviews(tutor.review_count)})</span>
+                          </span>
+                        )}
 
-                      {tutor.students_count > 0 && (
-                        <span className="inline-flex items-center gap-1.5">
-                          <Users className="size-4" />
-                          {tutor.students_count.toLocaleString()}
-                        </span>
-                      )}
+                        {tutor.students_count > 0 && (
+                          <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                            <Users className="size-4 shrink-0" />
+                            {tutor.students_count.toLocaleString()}
+                          </span>
+                        )}
+                      </div>
 
                       {tutor.price_from_tnd !== null && (
-                        <span className="inline-flex min-w-0 items-center gap-1.5">
-                          <span className="truncate">
-                            {c.from}{" "}
-                            <b className="font-display text-ink">
-                              {tutor.price_from_tnd} {c.tnd}
-                            </b>
-                          </span>
-                        </span>
+                        <p className="mt-2.5 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+                          <span className="text-[12px] text-muted">{c.from}</span>
+                          <b className="font-display text-[18px] font-bold leading-none text-ink">
+                            {tutor.price_from_tnd}
+                          </b>
+                          <span className="text-[12.5px] font-semibold text-muted">{c.tnd}</span>
+                        </p>
                       )}
                     </div>
                   </Link>

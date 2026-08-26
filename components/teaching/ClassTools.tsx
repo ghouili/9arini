@@ -22,15 +22,32 @@ export function ClassTools({ cls, dark }: { cls: ClassItem; dark?: boolean }) {
   return (
     <div style={{ margin: "6px 0" }}>
       <div className="sec" style={{ color: dark ? "#fff" : "var(--ink)", marginInline: 2 }}>{t.tools.section}</div>
-      <div style={{ display: "grid", gridTemplateColumns: `repeat(${items.length}, 1fr)`, gap: 10 }}>
+      {/* auto-fit, not repeat(N,1fr): three tiles across a 320px screen leave ~89px
+          each, which crushes "Tableau blanc" / "لوحة بيضاء" into a deformed column.
+          They wrap to two rows instead. */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(96px,1fr))", gap: 10 }}>
         {items.map(({ Icon, label, href, color }) => (
-          <button key={label} onClick={() => window.open(href, "_blank", "noopener,noreferrer")}
-            style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "14px 8px",
-              borderRadius: 16, background: tileBg, border: tileBorder, cursor: "pointer", color: labelColor }}>
-            <span style={{ width: 40, height: 40, borderRadius: 12, display: "grid", placeItems: "center", background: color, color: "#fff" }}>
+          <button
+            key={label}
+            type="button"
+            onClick={() => window.open(href, "_blank", "noopener,noreferrer")}
+            style={{
+              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+              gap: 8, padding: "14px 8px", minHeight: 96, minWidth: 0,
+              borderRadius: 16, background: tileBg, border: tileBorder, cursor: "pointer", color: labelColor,
+            }}
+          >
+            <span
+              style={{
+                width: 40, height: 40, flex: "none", borderRadius: 12, display: "grid",
+                placeItems: "center", background: color, color: "#fff",
+              }}
+            >
               <Icon />
             </span>
-            <span style={{ fontSize: 11.5, fontWeight: 700, textAlign: "center", lineHeight: 1.2 }}>{label}</span>
+            <span style={{ fontSize: 11.5, fontWeight: 700, textAlign: "center", lineHeight: 1.2, overflowWrap: "anywhere" }}>
+              {label}
+            </span>
           </button>
         ))}
       </div>

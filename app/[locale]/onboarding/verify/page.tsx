@@ -89,6 +89,11 @@ const copy = {
     resubmitIntro: "Tu peux modifier et renvoyer ton dossier ci-dessous.",
     // links back
     backDash: "Retour au tableau de bord",
+    // progress + required-summary
+    stepLine: "Étape 2 sur 3 — après ça, tu publies ta 1ʳᵉ classe",
+    reqTitle: "Ce qu'il faut, au minimum",
+    reqBody: "Une photo de ta pièce d'identité (recto). Tout le reste est optionnel.",
+    reqDone: "Pièce d'identité ajoutée — tu peux envoyer.",
   },
   ar: {
     eyebrow: "تأكيد الحساب",
@@ -154,7 +159,10 @@ const copy = {
     rejectedBody: "صلّح النقاط اللي فوق و عاود ابعث ملفك.",
     resubmitIntro: "تنجم تبدّل و تعاود تبعث ملفك تحت.",
     backDash: "ارجع للوحة",
-    rise: "",
+    stepLine: "مرحلة 2 من 3 — من بعدها تنشر أول حصة متاعك",
+    reqTitle: "شنوّة يلزم، على الأقل",
+    reqBody: "تصويرة متاع بطاقة تعريفك (الوجه). الباقي الكل اختياري.",
+    reqDone: "بطاقة التعريف تزادت — تنجم تبعث.",
   },
 } as const;
 
@@ -324,12 +332,39 @@ export default function VerifyPage() {
     <Shell>
       {/* heading */}
       <div className="rise" style={{ marginBottom: "clamp(20px,3vw,30px)" }}>
-        <div className="web-eyebrow" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div className="web-eyebrow" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <Shield style={{ width: 16, height: 16 }} />
           {c.eyebrow}
         </div>
         <h1 className="web-h2" style={{ marginTop: 8 }}>{c.h2}</h1>
+        <p style={{ marginTop: 8, fontSize: 12.5, fontWeight: 700, color: "var(--ochre-ink)" }}>{c.stepLine}</p>
         <p className="web-lead" style={{ marginTop: 12, maxWidth: 620 }}>{c.lead}</p>
+      </div>
+
+      {/* What is actually required — one file. Everything else is a bonus. */}
+      <div
+        className="rise"
+        style={{
+          display: "flex", gap: 12, alignItems: "flex-start", flexWrap: "wrap",
+          padding: "14px 16px", marginBottom: 18, borderRadius: "var(--r)",
+          background: files.idFront ? "var(--green50)" : "var(--blue50)",
+          border: `1px solid ${files.idFront ? "var(--green)" : "transparent"}`,
+        }}
+      >
+        <span
+          aria-hidden="true"
+          style={{ display: "inline-flex", flex: "none", marginTop: 1, color: files.idFront ? "var(--green)" : "var(--blue)" }}
+        >
+          {files.idFront ? <Check style={{ width: 20, height: 20 }} /> : <User style={{ width: 20, height: 20 }} />}
+        </span>
+        <div style={{ flex: "1 1 220px", minWidth: 0 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 700, color: files.idFront ? "var(--green-ink)" : "var(--blue)" }}>
+            {c.reqTitle}
+          </div>
+          <p style={{ fontSize: 12.5, color: "var(--ink2)", marginTop: 3, lineHeight: 1.55 }}>
+            {files.idFront ? c.reqDone : c.reqBody}
+          </p>
+        </div>
       </div>
 
       {/* rejected note */}
@@ -509,6 +544,9 @@ export default function VerifyPage() {
               ? <><Spinner />{c.submitting}</>
               : <><Shield style={{ width: 18, height: 18 }} />{c.submit}</>}
           </Button>
+          <div style={{ marginTop: 12, textAlign: "center" }}>
+            <Link href="/dashboard" className="linklike" style={{ fontSize: 12.5 }}>{c.backDash}</Link>
+          </div>
         </div>
       </form>
     </Shell>
@@ -718,8 +756,14 @@ const errStyle: React.CSSProperties = {
   color: "var(--rose)", fontSize: 13, fontWeight: 600, marginTop: 8, lineHeight: 1.5,
 };
 
-/* page-scoped CSS (dropzone visuals + url grid) */
+/* Page-scoped CSS (dropzone visuals + url grid). UNLAYERED, so it also fixes the
+   shared .spin inside the submit button: globals gives it `margin:30px auto`,
+   which inflated the button by 60px while submitting. */
 const scoped = `
+form .btn .spin{margin:0;width:18px;height:18px;border-width:2.5px;
+  border-color:rgba(255,255,255,.45);border-top-color:#fff}
+/* a .chip is inline-flex: beside a shrinking label it deforms */
+.chip{flex:none}
 .dz{position:relative;display:flex;align-items:center;gap:12px;width:100%;
   background:var(--paper);border:1.8px dashed var(--line);border-radius:14px;
   padding:13px 14px;cursor:pointer;transition:.15s;text-align:start}
@@ -727,7 +771,7 @@ const scoped = `
 .dz[data-filled="true"]{border-style:solid;border-color:var(--green);background:var(--green50)}
 .dz .dz-ic{width:38px;height:38px;min-width:38px;border-radius:11px;display:grid;place-items:center;
   background:var(--sand);color:var(--ink2)}
-.dz[data-filled="true"] .dz-ic{background:var(--green);color:#fff}
+.dz[data-filled="true"] .dz-ic{background:var(--green-btn);color:#fff}
 .dz .dz-txt{display:flex;flex-direction:column;gap:2px;font-size:13.5px;min-width:0;flex:1}
 .dz .dz-txt b{font-weight:700;font-size:13.5px}
 .dz .dz-hint{font-size:11.5px;color:var(--muted);font-weight:500}
