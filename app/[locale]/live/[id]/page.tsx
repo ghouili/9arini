@@ -63,7 +63,7 @@ function LiveCountdown({ ts }: { ts: number }) {
       ].map(({ val, label }) => (
         <div key={label} style={{ background: "rgba(255,255,255,.10)", border: "1px solid rgba(255,255,255,.12)", borderRadius: 16, width: 66, padding: "12px 0", textAlign: "center" }}>
           <b style={{ fontFamily: "var(--fd)", fontSize: 26, display: "block", lineHeight: 1 }}>{val}</b>
-          <span style={{ fontSize: 9.5, color: "#B9C6D8" }}>{label}</span>
+          <span style={{ fontSize: 13, color: "#B9C6D8" }}>{label}</span>
         </div>
       ))}
     </div>
@@ -209,7 +209,7 @@ export default function LiveLobbyPage({ params }: Props) {
               <Link href="/student" className="iconbtn" aria-label={t.common.back} style={{ background: "rgba(255,255,255,.12)", color: "#fff" }}>
                 <Back />
               </Link>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "rgba(226,72,61,.18)", color: "#FFB9B2", border: "1px solid rgba(226,72,61,.4)", fontWeight: 700, fontSize: 11, padding: "5px 12px", borderRadius: 999 }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "rgba(226,72,61,.18)", color: "#FFB9B2", border: "1px solid rgba(226,72,61,.4)", fontWeight: 700, fontSize: 13, padding: "5px 12px", borderRadius: 999 }}>
                 {isLive && <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#FFB9B2", animation: "blink 1.1s infinite" }} />}
                 {isLive ? c.liveNow : showCountdown ? t.live.tag : c.startsAt}
               </span>
@@ -234,12 +234,12 @@ export default function LiveLobbyPage({ params }: Props) {
               )}
 
               {gate.role === "tutor" && (
-                <div style={{ color: "#B9C6D8", fontSize: 12, marginBottom: 10 }}>{c.tutorNote}</div>
+                <div style={{ color: "#B9C6D8", fontSize: 13, marginBottom: 10 }}>{c.tutorNote}</div>
               )}
             </div>
 
             {/* Honest tip — camera/mic are controlled inside the room, not here */}
-            <div style={{ display: "flex", gap: 9, alignItems: "flex-start", background: "rgba(255,255,255,.07)", borderRadius: 13, padding: "12px 13px", fontSize: 12, color: "#CDD9E8", lineHeight: 1.5, marginBottom: 14 }}>
+            <div style={{ display: "flex", gap: 9, alignItems: "flex-start", background: "rgba(255,255,255,.07)", borderRadius: 13, padding: "12px 13px", fontSize: 13, color: "#CDD9E8", lineHeight: 1.5, marginBottom: 14 }}>
               <Bulb style={{ color: "var(--amber)", flexShrink: 0, marginTop: 1, width: 17, height: 17 } as CSSProperties} />
               <div>
                 <div style={{ fontWeight: 600, marginBottom: 3 }}>{c.tipTitle}</div>

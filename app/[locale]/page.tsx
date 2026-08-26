@@ -381,15 +381,15 @@ export default function HomePage() {
                           <span className="min-w-0">{isAr ? card.ar : card.fr}</span>
                           <Verified />
                         </div>
-                        <div className="mt-0.5 text-[11.5px] text-muted">
+                        <div className="mt-0.5 text-[13px] text-muted">
                           {isAr ? card.arMeta : card.frMeta}
                         </div>
                       </div>
                       <div className="flex-none text-end">
                         <div className="lp-t text-[16px] leading-none text-green-ink">
-                          0 <span className="text-[11px] text-muted">TND</span>
+                          0 <span className="text-[13px] text-muted">TND</span>
                         </div>
-                        <div className="mt-1 text-[10.5px] text-muted">{c.cardFirstLabel}</div>
+                        <div className="mt-1 text-[13px] text-muted">{c.cardFirstLabel}</div>
                       </div>
                     </div>
                   ))}

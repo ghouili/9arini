@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { SkipLink } from "./SkipLink";
 import { SiteHeader } from "./SiteHeader";
 import { SiteFooter } from "./SiteFooter";
 
@@ -8,8 +9,12 @@ import { SiteFooter } from "./SiteFooter";
 export function SiteShell({ children, footer = true }: { children: ReactNode; footer?: boolean }) {
   return (
     <div className="site-shell">
+      {/* First focusable element on the page — see SkipLink (WCAG 2.4.1). */}
+      <SkipLink />
       <SiteHeader />
-      <main className="web-main">{children}</main>
+      {/* id + tabIndex: the skip link's target must be focusable for the jump to
+          actually move focus (not just scroll) in Safari and older Chromium. */}
+      <main id="main" tabIndex={-1} className="web-main">{children}</main>
       {footer && <SiteFooter />}
     </div>
   );

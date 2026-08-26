@@ -195,7 +195,7 @@ export function AuthInner({ next }: { next: string | null }) {
               <p
                 id="auth-role-label"
                 style={{
-                  fontSize: 12,
+                  fontSize: 13,
                   fontWeight: 700,
                   marginBottom: 10,
                   color: "var(--muted)",
@@ -260,7 +260,7 @@ export function AuthInner({ next }: { next: string | null }) {
                       <span style={{ display: "block", lineHeight: 1.2, minWidth: 0 }}>{label}</span>
                       <span
                         style={{
-                          display: "block", lineHeight: 1.3, fontSize: 11.5, fontWeight: 600,
+                          display: "block", lineHeight: 1.3, fontSize: 13, fontWeight: 600,
                           color: active ? "var(--blue)" : "var(--muted)", minWidth: 0,
                         }}
                       >
@@ -319,7 +319,7 @@ export function AuthInner({ next }: { next: string | null }) {
                     ))}
                   </select>
                 </div>
-                <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 6, lineHeight: 1.5 }}>{by.note}</p>
+                <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 6, lineHeight: 1.5 }}>{by.note}</p>
               </Field>
             )}
 
@@ -357,14 +357,14 @@ export function AuthInner({ next }: { next: string | null }) {
                     gap: 10, flexWrap: "wrap", marginBottom: 14,
                   }}
                 >
-                  <span style={{ fontSize: 12.5, color: "var(--ink2)", minWidth: 0 }}>
+                  <span style={{ fontSize: 13, color: "var(--ink2)", minWidth: 0 }}>
                     {a.sentTo(phone.trim())}
                   </span>
                   <button
                     type="button"
                     className="linklike"
                     onClick={() => { setCodeSent(false); setCode(""); setDevCode(null); setError(null); }}
-                    style={{ background: 0, border: 0, fontSize: 12.5, minHeight: 44, flex: "none", fontFamily: "inherit" }}
+                    style={{ background: 0, border: 0, fontSize: 13, minHeight: 44, flex: "none", fontFamily: "inherit" }}
                   >
                     {a.changeNumber}
                   </button>
@@ -381,7 +381,7 @@ export function AuthInner({ next }: { next: string | null }) {
                       padding: "10px 12px",
                       marginBottom: 14,
                       textAlign: "center",
-                      fontSize: 12.5,
+                      fontSize: 13,
                       color: "var(--ink2)",
                       lineHeight: 1.5,
                     }}

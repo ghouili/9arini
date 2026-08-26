@@ -271,7 +271,7 @@ export default function CheckoutInner() {
            commitment the student has to be able to read what they are booking. */
         display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
       }
-      .ck-class-who{color:var(--muted);font-size:12.5px;margin-top:5px;overflow-wrap:anywhere}
+      .ck-class-who{color:var(--muted);font-size:13px;margin-top:5px;overflow-wrap:anywhere}
       .ck-soldout{color:var(--rose);font-weight:700}
 
       /* ── money ── */
@@ -282,7 +282,7 @@ export default function CheckoutInner() {
       .ck-pay-note{display:flex;gap:8px;align-items:center;margin-top:8px;font-size:13px;font-weight:700;color:var(--green-ink)}
       .ck-pay-note .ic{width:16px;height:16px;color:var(--green);flex:none}
       .ck-pay-detail{margin-top:12px;padding-top:12px;border-top:1px solid var(--line);
-        font-size:12.5px;color:var(--muted);line-height:1.6}
+        font-size:13px;color:var(--muted);line-height:1.6}
       .ck-pay-detail b{color:var(--ink2);display:block;margin-bottom:2px}
 
       /* ── what happens next ── */
@@ -294,7 +294,7 @@ export default function CheckoutInner() {
       .ck-steps .ic{width:15px;height:15px;color:var(--blue);flex:none;margin-top:2px}
 
       .ck-cancel{display:flex;gap:9px;align-items:flex-start;background:var(--green50);border-radius:13px;
-        padding:12px 13px;font-size:12.5px;color:var(--green-ink);line-height:1.55;margin-bottom:20px}
+        padding:12px 13px;font-size:13px;color:var(--green-ink);line-height:1.55;margin-bottom:20px}
       .ck-cancel .ic{color:var(--green);flex:none;margin-top:1px;width:17px;height:17px}
 
       /* ── errors / dead ends ── */

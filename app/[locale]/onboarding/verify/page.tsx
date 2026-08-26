@@ -337,7 +337,7 @@ export default function VerifyPage() {
           {c.eyebrow}
         </div>
         <h1 className="web-h2" style={{ marginTop: 8 }}>{c.h2}</h1>
-        <p style={{ marginTop: 8, fontSize: 12.5, fontWeight: 700, color: "var(--ochre-ink)" }}>{c.stepLine}</p>
+        <p style={{ marginTop: 8, fontSize: 13, fontWeight: 700, color: "var(--ochre-ink)" }}>{c.stepLine}</p>
         <p className="web-lead" style={{ marginTop: 12, maxWidth: 620 }}>{c.lead}</p>
       </div>
 
@@ -361,7 +361,7 @@ export default function VerifyPage() {
           <div style={{ fontSize: 13.5, fontWeight: 700, color: files.idFront ? "var(--green-ink)" : "var(--blue)" }}>
             {c.reqTitle}
           </div>
-          <p style={{ fontSize: 12.5, color: "var(--ink2)", marginTop: 3, lineHeight: 1.55 }}>
+          <p style={{ fontSize: 13, color: "var(--ink2)", marginTop: 3, lineHeight: 1.55 }}>
             {files.idFront ? c.reqDone : c.reqBody}
           </p>
         </div>
@@ -387,7 +387,7 @@ export default function VerifyPage() {
                 <b>{c.rejectedNote} </b>{verif.reviewNote}
               </p>
             )}
-            <p style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 6, lineHeight: 1.55 }}>
+            <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 6, lineHeight: 1.55 }}>
               {c.resubmitIntro}
             </p>
           </div>
@@ -545,7 +545,7 @@ export default function VerifyPage() {
               : <><Shield style={{ width: 18, height: 18 }} />{c.submit}</>}
           </Button>
           <div style={{ marginTop: 12, textAlign: "center" }}>
-            <Link href="/dashboard" className="linklike" style={{ fontSize: 12.5 }}>{c.backDash}</Link>
+            <Link href="/dashboard" className="linklike" style={{ fontSize: 13 }}>{c.backDash}</Link>
           </div>
         </div>
       </form>
@@ -597,7 +597,7 @@ function SectionPanel({
             </h2>
             <span className={`chip chip-${chipKind}`}>{chip}</span>
           </div>
-          <p style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 2 }}>{sub}</p>
+          <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 2 }}>{sub}</p>
         </div>
       </div>
       <div className="divider" style={{ margin: "12px 0 16px" }} />
@@ -623,7 +623,7 @@ function FileDrop({
   return (
     <div style={{ marginBottom: 14 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7, flexWrap: "wrap" }}>
-        <label htmlFor={inputId} style={{ fontSize: 12, fontWeight: 700 }}>{label}</label>
+        <label htmlFor={inputId} style={{ fontSize: 13, fontWeight: 700 }}>{label}</label>
         <span className={`chip ${required ? "chip-rose" : "chip-sand"}`}>
           {required ? c.s1Req : c.s2Opt}
         </span>
@@ -730,7 +730,7 @@ function StatusPanel({
       </h1>
       <p className="web-lead" style={{ marginTop: 12 }}>{body}</p>
       {note && (
-        <p style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 10, lineHeight: 1.55 }}>{note}</p>
+        <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 10, lineHeight: 1.55 }}>{note}</p>
       )}
       <div style={{ marginTop: 22, display: "flex", justifyContent: "center" }}>
         <Link href="/dashboard">
@@ -774,10 +774,10 @@ form .btn .spin{margin:0;width:18px;height:18px;border-width:2.5px;
 .dz[data-filled="true"] .dz-ic{background:var(--green-btn);color:#fff}
 .dz .dz-txt{display:flex;flex-direction:column;gap:2px;font-size:13.5px;min-width:0;flex:1}
 .dz .dz-txt b{font-weight:700;font-size:13.5px}
-.dz .dz-hint{font-size:11.5px;color:var(--muted);font-weight:500}
-.dz .dz-act{font-size:12px;font-weight:700;color:var(--blue);margin-inline-start:auto;white-space:nowrap}
+.dz .dz-hint{font-size:13px;color:var(--muted);font-weight:500}
+.dz .dz-act{font-size:13px;font-weight:700;color:var(--blue);margin-inline-start:auto;white-space:nowrap}
 .dz-remove{margin-top:6px;background:0;border:0;cursor:pointer;color:var(--rose);
-  font-family:var(--fb);font-size:11.5px;font-weight:700;padding:2px 0}
+  font-family:var(--fb);font-size:13px;font-weight:700;padding:2px 0}
 html[dir="rtl"] .dz-remove{font-family:var(--fa)}
 .vlinks{display:grid;gap:14px;grid-template-columns:1fr}
 @media (min-width:620px){.vlinks{grid-template-columns:1fr 1fr}}

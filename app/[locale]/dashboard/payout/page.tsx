@@ -117,7 +117,9 @@ export default function PayoutPage() {
         >
           <Shield />
         </div>
-        <h3 style={{ fontFamily: "var(--fd)", fontSize: 18, marginBottom: 7 }}>{c.signedOutTitle}</h3>
+        {/* h2, not h3: this panel replaces the page body when signed out, so it
+            is the first heading under the page h1 — an h3 here skips a level. */}
+        <h2 style={{ fontFamily: "var(--fd)", fontSize: 18, marginBottom: 7 }}>{c.signedOutTitle}</h2>
         <p style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.6, marginBottom: 18 }}>{c.signedOutBody}</p>
         <Link href="/auth" className="btn btn-primary" style={{ maxWidth: 260, marginInline: "auto" }}>
           {c.signIn}
@@ -168,7 +170,7 @@ export default function PayoutPage() {
           </div>
 
           {/* What the payout rails will be — shown as inert preview, not a live form. */}
-          <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 10, color: "var(--ink2)" }}>
+          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, color: "var(--ink2)" }}>
             {c.comingRails}
           </div>
           {railRow(t.payout.wallet, Wallet)}
@@ -186,7 +188,7 @@ export default function PayoutPage() {
           </Button>
 
           <div style={{ marginTop: 12, textAlign: "center" }}>
-            <Link href="/dashboard" className="linklike" style={{ fontSize: 12.5 }}>
+            <Link href="/dashboard" className="linklike" style={{ fontSize: 13 }}>
               {c.backDash}
             </Link>
           </div>

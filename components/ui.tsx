@@ -84,7 +84,19 @@ export function Field({ label, children, help }: { label: string; children: Reac
   );
 }
 
-export function Spinner() { return <div className="spin" />; }
+/* role="status" + aria-live: a spinner is a STATUS MESSAGE (WCAG 4.1.3). Without
+   the role, a screen-reader user gets silence during every OTP request, notif
+   fetch and form submit — no way to tell "working" from "nothing happened".
+   `label` is optional so callers that already announce their own state can pass
+   nothing; the visual dot itself stays aria-hidden either way. */
+export function Spinner({ label }: { label?: string } = {}) {
+  return (
+    <div role="status" aria-live="polite">
+      <div className="spin" aria-hidden="true" />
+      {label ? <span className="sr-only">{label}</span> : null}
+    </div>
+  );
+}
 
 /* The blue tick. `.verified` is a fixed 18px circle with flex:none — without
    that it deformed into an ellipse whenever it sat next to a truncated name in

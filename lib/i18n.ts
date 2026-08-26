@@ -31,6 +31,10 @@ const fr = {
     demoMode: "Mode démo — aucune base connectée (données d'exemple).",
   },
   nav: { classes: "Cours", explore: "Explorer", messages: "Messages", profile: "Profil", dashboard: "Tableau de bord", students: "Élèves", earnings: "Revenus" },
+  /* WCAG 2.4.1 Bypass Blocks. Every screen has a sticky header with navigation,
+     so without this a keyboard or screen-reader user tabs the whole nav on every
+     single route before reaching the content. */
+  skipToContent: "Aller au contenu",
   home: {
     badge: "MVP · 9arini",
     title: "9arini",
@@ -235,6 +239,7 @@ const ar: typeof fr = {
     demoMode: "وضع تجريبي — ما فماش قاعدة موصولة (بيانات أمثلة).",
   },
   nav: { classes: "حصص", explore: "اكتشف", messages: "رسائل", profile: "حسابي", dashboard: "لوحتي", students: "تلاميذ", earnings: "أرباح" },
+  skipToContent: "أقفز للمحتوى",
   home: {
     badge: "MVP · قرّيني",
     title: "قرّيني",

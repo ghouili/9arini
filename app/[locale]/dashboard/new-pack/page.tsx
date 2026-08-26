@@ -127,7 +127,7 @@ export default function NewPackPage() {
                     <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--blue)" }}>
                       {c.hintTitle}
                     </div>
-                    <div style={{ fontSize: 12, color: "var(--blue700)", marginTop: 3, lineHeight: 1.5 }}>
+                    <div style={{ fontSize: 13, color: "var(--blue700)", marginTop: 3, lineHeight: 1.5 }}>
                       {c.hintBody}
                     </div>
                   </div>
@@ -199,7 +199,7 @@ export default function NewPackPage() {
                       <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 3 }}>
                         {c.deliveryTitle}
                       </div>
-                      <div style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.6 }}>
+                      <div style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.6 }}>
                         {c.deliveryBody}
                       </div>
                     </div>
@@ -214,11 +214,11 @@ export default function NewPackPage() {
                       BEFORE they submit instead of only failing afterwards. */}
                   <p style={{
                     display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                    flexWrap: "wrap", fontSize: 12, color: "var(--muted)", marginTop: 12, lineHeight: 1.5,
+                    flexWrap: "wrap", fontSize: 13, color: "var(--muted)", marginTop: 12, lineHeight: 1.5,
                   }}>
                     <Shield style={{ width: 14, height: 14, flex: "none" }} />
                     {c.verifNote}
-                    <Link href="/onboarding/verify" className="linklike" style={{ fontSize: 12 }}>
+                    <Link href="/onboarding/verify" className="linklike" style={{ fontSize: 13 }}>
                       {c.verifCta}
                     </Link>
                   </p>
@@ -227,7 +227,7 @@ export default function NewPackPage() {
                   {demo && (
                     <p style={{
                       textAlign: "center",
-                      fontSize: 11.5,
+                      fontSize: 13,
                       color: "var(--muted)",
                       marginTop: 12,
                       lineHeight: 1.5,

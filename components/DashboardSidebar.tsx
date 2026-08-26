@@ -33,7 +33,7 @@ const CSS = `
 .qs-title{display:none}
 @media (min-width:1024px){
   .qs-wrap{position:sticky;top:84px;margin-bottom:0}
-  .qs-title{display:block;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
+  .qs-title{display:block;font-size:13px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
     color:var(--muted);padding:0 13px 10px}
   .qs-nav{flex-direction:column;gap:4px;overflow:visible}
   .qs-nav a{width:100%;border-radius:12px;border-color:transparent;background:transparent;font-size:14px}

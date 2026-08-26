@@ -18,6 +18,7 @@ const copy = {
     yourName: "Ton nom…",
     steps: ["Ta page", "Vérification", "Ta 1ʳᵉ classe"],
     stepOf: (a: number, b: number) => `Étape ${a} sur ${b}`,
+    progressLabel: "Progression de ton inscription",
     fine: "Gratuit, sans carte. Zéro commission pendant le pilote : l'élève te paie directement.",
     perks: [
       "Ta page prête en 2 minutes",
@@ -33,6 +34,7 @@ const copy = {
     yourName: "اسمك…",
     steps: ["صفحتك", "التثبّت", "أول حصة"],
     stepOf: (a: number, b: number) => `مرحلة ${a} من ${b}`,
+    progressLabel: "تقدّم التسجيل متاعك",
     fine: "فابور، بلا كارت. بلا عمولة في فترة التجربة : التلميذ يخلّصك مباشرة.",
     perks: [
       "صفحتك حاضرة في دقيقتين",
@@ -107,6 +109,7 @@ export default function OnboardingPage() {
               {/* Progress — named steps, so "étape 2/3" means something */}
               <div
                 role="progressbar"
+                aria-label={c.progressLabel}
                 aria-valuemin={1}
                 aria-valuemax={3}
                 aria-valuenow={step}
@@ -130,7 +133,7 @@ export default function OnboardingPage() {
                     <div
                       key={label}
                       style={{
-                        flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: 700,
+                        flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700,
                         color: i + 1 <= step ? "var(--ink2)" : "var(--muted)",
                         overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                       }}
@@ -211,7 +214,7 @@ export default function OnboardingPage() {
                     <Button variant="primary" onClick={handlePublish} disabled={!name || !subject || publishing}>
                       {publishing ? t.common.loading : t.onboarding.cta}
                     </Button>
-                    <p style={{ textAlign: "center", fontSize: 11.5, color: "var(--muted)", marginTop: 11, lineHeight: 1.5 }}>
+                    <p style={{ textAlign: "center", fontSize: 13, color: "var(--muted)", marginTop: 11, lineHeight: 1.5 }}>
                       {c.fine}
                     </p>
                   </div>
@@ -223,7 +226,7 @@ export default function OnboardingPage() {
             <div style={{ minWidth: 0 }}>
               <div className="panel panel-pad" style={{ position: "sticky", top: 84, background: "var(--sand)", border: "1px solid var(--line)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-                  <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6, color: "var(--muted)", display: "inline-flex", alignItems: "center", gap: 7 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6, color: "var(--muted)", display: "inline-flex", alignItems: "center", gap: 7 }}>
                     <Eye style={{ width: 14, height: 14 }} /> {t.onboarding.preview}
                   </span>
                   {/* No fake "Vérifié" badge here: the account is not verified yet. */}
@@ -236,7 +239,7 @@ export default function OnboardingPage() {
                     <div style={{ fontFamily: "var(--fd)", fontSize: 16, marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {name || <span style={{ color: "var(--muted)" }}>{c.yourName}</span>}
                     </div>
-                    <div style={{ fontSize: 12, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <div style={{ fontSize: 13, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {subject || t.onboarding.subjectPh}
                     </div>
                   </div>
@@ -245,7 +248,7 @@ export default function OnboardingPage() {
                 {bio && (
                   <p style={{ fontSize: 13, color: "var(--ink2)", lineHeight: 1.6, marginTop: 14 }}>{bio}</p>
                 )}
-                <p style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 14, lineHeight: 1.5 }}>{c.previewNote}</p>
+                <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 14, lineHeight: 1.5 }}>{c.previewNote}</p>
               </div>
             </div>
           </div>

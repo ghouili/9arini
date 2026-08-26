@@ -605,7 +605,7 @@ export function StorefrontView({
           display:flex;align-items:center;gap:8px;margin-top:10px;
           font-size:13.5px;color:#EAF2FB;flex-wrap:wrap;
         }
-        .sf-newtag{background:rgba(255,255,255,.16);border-radius:999px;padding:3px 10px;font-weight:700;font-size:12px;white-space:nowrap}
+        .sf-newtag{background:rgba(255,255,255,.16);border-radius:999px;padding:3px 10px;font-weight:700;font-size:13px;white-space:nowrap}
         @media (max-width:520px){
           /* 88px avatar + Arabic name + share button do not fit at 320px. The size
              is an inline style on <Avatar>, hence !important. */
@@ -621,7 +621,7 @@ export function StorefrontView({
         .sf-pill{
           display:inline-flex;align-items:center;gap:6px;white-space:nowrap;
           background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.2);
-          border-radius:999px;padding:6px 12px;font-size:11.5px;font-weight:700;color:#fff;
+          border-radius:999px;padding:6px 12px;font-size:13px;font-weight:700;color:#fff;
         }
         .sf-pill .ic{width:13px;height:13px;color:#9FD9C3}
 
@@ -660,8 +660,9 @@ export function StorefrontView({
         .sf-amount{font-weight:700;font-size:17px;letter-spacing:-.3px;white-space:nowrap;line-height:1.15}
         .sf-amount-lg{font-size:30px;letter-spacing:-.9px}
         .sf-free{color:var(--green-ink)}
-        .sf-cur{font-size:.72em;font-weight:600;color:var(--muted)}
-        .sf-then{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.4}
+        /* max(13px, .72em): the relative size read 12.2px next to a 17px price. */
+        .sf-cur{font-size:max(13px,.72em);font-weight:600;color:var(--muted)}
+        .sf-then{font-size:13px;color:var(--muted);margin-top:3px;line-height:1.4}
 
         /* ── how it works ── */
         .sf-how{
@@ -672,7 +673,7 @@ export function StorefrontView({
         .sf-steps li{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.55;color:var(--ink2)}
         .sf-step-n{
           flex:none;width:22px;height:22px;border-radius:999px;background:var(--blue);color:#fff;
-          display:grid;place-items:center;font-size:12px;font-weight:700;margin-top:1px;
+          display:grid;place-items:center;font-size:13px;font-weight:700;margin-top:1px;
         }
 
         /* ── packs (informational only — nothing is purchasable) ── */
@@ -682,17 +683,17 @@ export function StorefrontView({
           color:var(--green);display:grid;place-items:center}
         .sf-pack-main{min-width:0}
         .sf-pack-title{font-weight:700;font-size:13.5px;line-height:1.35;margin-bottom:4px;overflow-wrap:anywhere}
-        .sf-packs-note{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.55}
+        .sf-packs-note{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.55}
 
         /* ── reviews ── */
         .sf-avg{flex-direction:row;align-items:center;gap:16px;margin-bottom:12px;flex-wrap:wrap}
         .sf-avg-n{font-size:34px;font-weight:700;letter-spacing:-1px;color:var(--ink);line-height:1}
-        .sf-avg-c{font-size:12.5px;color:var(--muted);margin-top:4px}
+        .sf-avg-c{font-size:13px;color:var(--muted);margin-top:4px}
         .sf-reviews{list-style:none;display:grid;gap:12px;margin:0;padding:0}
         .sf-rev-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;flex-wrap:wrap}
         .sf-rev-who{display:flex;align-items:center;gap:9px;min-width:0}
         .sf-rev-name{font-weight:700;font-size:13.5px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-        .sf-rev-date{font-size:11.5px;color:var(--muted);flex:none}
+        .sf-rev-date{font-size:13px;color:var(--muted);flex:none}
         .sf-rev-text{font-size:13.5px;line-height:1.65;color:var(--ink2);margin:0;overflow-wrap:anywhere}
 
         /* ── empty states ── */
@@ -708,7 +709,7 @@ export function StorefrontView({
         .sf-empty-center .sf-empty-cta{width:100%}
 
         /* ── aside panel ── */
-        .sf-panel-label{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+        .sf-panel-label{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
         .sf-panel-title{font-weight:700;font-size:15.5px;line-height:1.35;margin-bottom:8px;overflow-wrap:anywhere}
         .sf-panel-meta{gap:10px}
         .sf-cta{margin-top:16px;min-height:52px}
@@ -725,11 +726,11 @@ export function StorefrontView({
         .sf-mcta-row{display:flex;align-items:center;gap:12px}
         .sf-mcta-price{min-width:0;display:flex;flex-direction:column;line-height:1.2}
         .sf-mcta-price b{font-family:var(--fd);font-size:17px;letter-spacing:-.3px;white-space:nowrap}
-        .sf-mcta-price span{font-size:11px;color:var(--muted);margin-top:2px}
+        .sf-mcta-price span{font-size:13px;color:var(--muted);margin-top:2px}
         .sf-mcta-btn{flex:1 1 auto;width:auto;max-width:260px;margin-inline-start:auto;min-height:50px}
         .sf-mcta-note{
           display:flex;justify-content:center;align-items:center;gap:6px;
-          margin-top:8px;color:var(--muted);font-size:11.5px;
+          margin-top:8px;color:var(--muted);font-size:13px;
         }
         .sf-mcta-note .ic{width:13px;height:13px;color:var(--green)}
 

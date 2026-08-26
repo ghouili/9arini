@@ -148,7 +148,7 @@ function ConsentInner() {
               <div style={{ minWidth: 0 }}>
                 <p
                   style={{
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: 700,
                     color: "var(--blue)",
                     marginBottom: 6,

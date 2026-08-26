@@ -49,19 +49,20 @@ const CSS = `
   .qf-brand{grid-column:auto}
 }
 .qf-brand p{margin-top:12px;max-width:34ch;font-size:13.5px;line-height:1.6;color:var(--muted)}
-.qf-col h3{font-family:var(--fd);font-size:13px;letter-spacing:.4px;text-transform:uppercase;
+.qf-col h2{font-family:var(--fd);font-size:13px;letter-spacing:.4px;text-transform:uppercase;
   color:var(--ink);margin-bottom:12px}
-html[dir="rtl"] .qf-col h3{font-family:var(--fa);letter-spacing:normal}
+html[dir="rtl"] .qf-col h2{font-family:var(--fa);letter-spacing:normal}
 .qf-col ul{list-style:none;display:flex;flex-direction:column;gap:2px}
-.qf-col a{display:inline-flex;align-items:center;min-height:40px;font-size:13.5px;font-weight:600;
+.qf-col a{display:inline-flex;align-items:center;min-height:44px;font-size:13.5px;font-weight:600;
   color:var(--muted);transition:.15s}
 .qf-col a:hover{color:var(--blue)}
 .qf-bottom{border-top:1px solid var(--line)}
 .site-footer .container.qf-bottom-in{
   display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;
-  padding-top:16px;padding-bottom:26px;font-size:12.5px;color:var(--muted);
+  padding-top:16px;padding-bottom:26px;font-size:13px;color:var(--muted);
 }
-.qf-bottom-in a{word-break:break-word}
+/* min-height:44px — as a bare run of text this mailto measured 106x16. */
+.qf-bottom-in a{word-break:break-word;display:inline-flex;align-items:center;min-height:44px}
 `;
 
 export function SiteFooter() {
@@ -83,7 +84,7 @@ export function SiteFooter() {
         </div>
 
         <nav className="qf-col" aria-label={f.students}>
-          <h3>{f.students}</h3>
+          <h2>{f.students}</h2>
           <ul>
             <li><Link href="/explore">{f.findTutor}</Link></li>
             <li><Link href="/student">{f.myClasses}</Link></li>
@@ -92,7 +93,7 @@ export function SiteFooter() {
         </nav>
 
         <nav className="qf-col" aria-label={f.tutors}>
-          <h3>{f.tutors}</h3>
+          <h2>{f.tutors}</h2>
           <ul>
             <li><Link href="/pour-les-profs">{f.forTutors}</Link></li>
             <li><Link href="/onboarding">{f.createPage}</Link></li>
@@ -101,7 +102,7 @@ export function SiteFooter() {
         </nav>
 
         <nav className="qf-col" aria-label={t.footer.legal}>
-          <h3>{t.footer.legal}</h3>
+          <h2>{t.footer.legal}</h2>
           <ul>
             <li><Link href="/terms">{t.footer.terms}</Link></li>
             <li><Link href="/privacy">{t.footer.privacy}</Link></li>

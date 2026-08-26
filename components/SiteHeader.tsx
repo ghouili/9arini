@@ -68,7 +68,8 @@ const NAV = {
    • The dropdown gets a max-height + scroll so a long menu can't exceed the
      viewport, and logical properties keep it RTL-correct. */
 const CSS = `
-.qh-brand{min-width:0;flex:none}
+/* min-height:44px — as a link this is a tap target, and it measured 86x34. */
+.qh-brand{min-width:0;flex:none;min-height:44px}
 @media (max-width:419px){
   .site-header .qh-brand{font-size:17px;gap:8px}
   .site-header .qh-brand .logo{width:34px;height:34px;font-size:18px}
@@ -97,7 +98,7 @@ const CSS = `
 .qh-menu{position:absolute;inset-block-start:100%;inset-inline:0;background:var(--paper);
   border-block-end:1px solid var(--line);box-shadow:var(--sh);display:flex;flex-direction:column;
   padding:10px;z-index:51;max-height:calc(100vh - 64px);overflow-y:auto;gap:2px}
-.qh-menu .qh-group{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
+.qh-menu .qh-group{font-size:13px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
   color:var(--muted);padding:12px 12px 6px}
 .qh-menu a{display:flex;align-items:center;gap:10px;padding:13px 12px;border-radius:11px;
   font-weight:600;font-size:15px;color:var(--ink);min-height:48px}

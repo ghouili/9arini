@@ -273,11 +273,18 @@ function Reveal({
 function HeroScene({ c }: { c: Copy }) {
   const { locale } = useLocale();
   const seatInits = locale === "ar" ? ["أ", "س", "م", "ر"] : ["A", "S", "M", "R"];
+  /* Seat offsets are derived from --phone-w rather than hardcoded, because the
+     two have to stay related: at a flat +-120px these avatars sat INSIDE a
+     300px-wide phone and landed on top of its content — the "A" covered the "1"
+     of "1er cours offert", so the hero of the page tutors share to recruit other
+     tutors literally read "ler cours offert". Anchoring them to the phone's half
+     width plus a gap means they can never re-enter the content box, at any
+     viewport, in either language. */
   const seats = [
-    { grad: "linear-gradient(150deg,#F3C24B,#E0852E)", x: -118, y: -54, d: 0.6 },
-    { grad: "linear-gradient(150deg,#5FB7F0,#0E5AA6)", x: 120, y: -30, d: 1.2 },
-    { grad: "linear-gradient(150deg,#54D6AC,#1B9C6F)", x: -126, y: 64, d: 1.8 },
-    { grad: "linear-gradient(150deg,#F0A85F,#C26E1C)", x: 128, y: 86, d: 2.4 },
+    { grad: "linear-gradient(150deg,#F3C24B,#E0852E)", x: "calc(var(--phone-w) / -2 - 26px)", y: -54, d: 0.6 },
+    { grad: "linear-gradient(150deg,#5FB7F0,#0E5AA6)", x: "calc(var(--phone-w) / 2 + 28px)", y: -30, d: 1.2 },
+    { grad: "linear-gradient(150deg,#54D6AC,#1B9C6F)", x: "calc(var(--phone-w) / -2 - 30px)", y: 64, d: 1.8 },
+    { grad: "linear-gradient(150deg,#F0A85F,#C26E1C)", x: "calc(var(--phone-w) / 2 + 24px)", y: 86, d: 2.4 },
   ];
 
   return (
@@ -293,7 +300,7 @@ function HeroScene({ c }: { c: Copy }) {
             key={idx}
             className="lpp-seat"
             style={{
-              ["--sx" as any]: `${s.x}px`,
+              ["--sx" as any]: s.x,
               ["--sy" as any]: `${s.y}px`,
               ["--sd" as any]: `${s.d}s`,
               background: s.grad,
@@ -314,7 +321,7 @@ function HeroScene({ c }: { c: Copy }) {
               <div
                 className="avatar sq"
                 style={{
-                  width: 46, height: 46, fontSize: 19, flex: "none",
+                  width: 42, height: 42, fontSize: 18, flex: "none",
                   background: "linear-gradient(150deg,#F3C24B,#E0852E)",
                   borderColor: "rgba(255,255,255,.3)",
                 }}
@@ -325,10 +332,6 @@ function HeroScene({ c }: { c: Copy }) {
                 <div className="lpp-phone-name">{c.phoneName}</div>
                 <div className="lpp-phone-sub">{c.phoneSubject}</div>
               </div>
-              <span className="chip lpp-live" style={{ background: "var(--green)", color: "#fff", fontSize: 10.5, gap: 5, flex: "none" }}>
-                <span className="lpp-live-dot" />
-                {c.live}
-              </span>
             </div>
 
             {/* the class the tutor published: their title, their price */}
@@ -344,7 +347,11 @@ function HeroScene({ c }: { c: Copy }) {
                 <div className="lpp-card-price">{c.priceExample}</div>
               </div>
               <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
-                <span className="chip" style={{ background: "var(--ochre)", color: "#fff", fontSize: 10 }}>
+                <span className="chip lpp-live" style={{ background: "var(--green-btn)", color: "#fff", gap: 5 }}>
+                  <span className="lpp-live-dot" />
+                  {c.live}
+                </span>
+                <span className="chip" style={{ background: "var(--ochre-btn)", color: "#fff" }}>
                   {c.free1st}
                 </span>
                 <span className="lpp-mini">
@@ -480,7 +487,7 @@ function IncomePanel({ c }: { c: Copy }) {
       style={{ position: "relative", overflow: "hidden", minWidth: 0 }}
     >
       <div style={{ position: "relative", zIndex: 1 }}>
-        <div style={{ fontSize: 12.5, color: "var(--on-blue-soft)", fontWeight: 600, marginBottom: 8, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 13, color: "var(--on-blue-soft)", fontWeight: 600, marginBottom: 8, lineHeight: 1.5 }}>
           {c.inGross}
         </div>
         <div style={{ fontFamily: "var(--fd)", fontSize: 13, color: "#EAF2FC", fontWeight: 600, marginBottom: 4, display: "flex", alignItems: "center", gap: 7 }}>
@@ -494,7 +501,7 @@ function IncomePanel({ c }: { c: Copy }) {
           <div className={`lpp-split ${armed ? "lpp-armed" : ""}`}>
             <span className="lpp-split-you" />
           </div>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginTop: 8, fontFamily: "var(--fd)", fontWeight: 700, fontSize: 11.5 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginTop: 8, fontFamily: "var(--fd)", fontWeight: 700, fontSize: 13 }}>
             <span style={{ color: "var(--on-blue-soft)", display: "inline-flex", alignItems: "center", gap: 5 }}>
               <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: 999, background: "#54D6AC", flex: "none" }} />
               {c.inYou}
@@ -556,7 +563,11 @@ export default function PourLesProfsPage() {
           box-shadow: var(--sh-l), 0 30px 60px -40px rgba(14,90,166,.5); border-radius: var(--r-l); }
 
         /* ---- hero scene ---- */
-        .lpp-scene { position: relative; width: 100%; min-height: 470px; display: flex; justify-content: center; isolation: isolate; }
+        /* --phone-w is the scene's single source of truth: the phone uses it for
+           its width and the floating avatars derive their offsets from it, so
+           the two cannot drift apart and collide again. */
+        .lpp-scene { --phone-w: min(340px, 86vw);
+          position: relative; width: 100%; min-height: 470px; display: flex; justify-content: center; isolation: isolate; }
         .lpp-wash {
           position: absolute; inset: -12% 10%; z-index: 0; border-radius: 40px;
           background:
@@ -565,17 +576,26 @@ export default function PourLesProfsPage() {
             radial-gradient(40% 44% at 70% 18%, rgba(243,194,75,.30), transparent 70%);
           filter: blur(6px); animation: lpp-wash 14s ease-in-out infinite;
         }
-        .lpp-zellige-wash { position: absolute; inset: -6%; z-index: 0; opacity: .5; border-radius: 36px; }
+        /* inset: -6% 0 — a symmetric -6% also bled 6% of the scene width past
+           BOTH edges, which is what put horizontal scroll on the page at 320,
+           380 and 768px. The soft edge is wanted vertically, not horizontally. */
+        .lpp-zellige-wash { position: absolute; inset: -6% 0; z-index: 0; opacity: .5; border-radius: 36px; }
         .lpp-zellige-wash::before { opacity: .10; }
+        /* Centred with inset-inline + auto margins, not inset-inline-start:50%
+           + translate:-50%. translate is PHYSICAL and inset-inline-start is
+           LOGICAL, so in Arabic the two pulled in the same direction and threw
+           the glow ~350px off-canvas — the page scrolled sideways to 670px on a
+           320px screen. Same trick .toast already uses in globals.css.
+           width:min(...,100%) so it can never be wider than the scene either. */
         .lpp-glow {
-          position: absolute; inset-block-start: 8%; inset-inline-start: 50%; translate: -50% 0;
-          width: 340px; height: 340px; z-index: 0; border-radius: 999px;
+          position: absolute; inset-block-start: 8%; inset-inline: 0; margin-inline: auto;
+          width: min(340px, 100%); aspect-ratio: 1; z-index: 0; border-radius: 999px;
           background: radial-gradient(circle, rgba(14,90,166,.34), transparent 68%);
           filter: blur(10px); animation: lpp-glow 6s ease-in-out infinite;
         }
         .lpp-phone-wrap { position: relative; z-index: 2; animation: lpp-float 7s ease-in-out infinite; }
         .lpp-phone {
-          position: relative; width: min(300px, 82vw); border-radius: 38px; padding: 12px;
+          position: relative; width: var(--phone-w); border-radius: 38px; padding: 12px;
           background: linear-gradient(160deg,#15263B,#0A1626);
           box-shadow: var(--sh-l), 0 50px 90px -50px rgba(14,90,166,.55);
           border: 1px solid rgba(255,255,255,.08);
@@ -585,23 +605,28 @@ export default function PourLesProfsPage() {
         .lpp-notch { width: 96px; height: 6px; border-radius: 999px; background: rgba(255,255,255,.25); margin: 0 auto 2px; flex: none; }
         .lpp-phone-name { font-family: var(--fd); font-weight: 700; font-size: 14.5px; color: #fff;
           white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .lpp-phone-sub { font-size: 11px; color: var(--on-blue-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .lpp-phone-sub { font-size: 13px; color: var(--on-blue-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .lpp-card { background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.14);
           border-radius: var(--r); padding: 13px 14px; }
         .lpp-card-ic { width: 40px; height: 40px; flex: none; border-radius: 12px; background: rgba(255,255,255,.14);
           color: #fff; display: grid; place-items: center; }
-        .lpp-card-t { font-weight: 700; font-size: 12.5px; color: #fff; margin-bottom: 2px;
-          white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .lpp-card-m { font-size: 11px; color: var(--on-blue-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        /* Wraps to two lines instead of ellipsing. "Integrales - revision express"
+           never fits one line beside the icon and the price, in either language,
+           so nowrap+ellipsis guaranteed a cut-off class title in the hero of the
+           page tutors share to recruit other tutors. */
+        .lpp-card-t { font-weight: 700; font-size: 13px; color: #fff; margin-bottom: 2px;
+          display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+          overflow: hidden; line-height: 1.3; }
+        .lpp-card-m { font-size: 13px; color: var(--on-blue-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .lpp-card-price { font-family: var(--fd); font-weight: 700; font-size: 14px; color: var(--amber); flex: none; white-space: nowrap; }
-        .lpp-card-lbl { display: flex; align-items: center; gap: 7px; font-size: 11px; color: var(--on-blue-soft); font-weight: 600; margin-bottom: 7px; }
+        .lpp-card-lbl { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--on-blue-soft); font-weight: 600; margin-bottom: 7px; }
         .lpp-link { font-family: var(--fd); font-weight: 700; font-size: 14px; color: #fff; text-align: start;
           background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.16); border-radius: 10px;
           padding: 9px 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .lpp-mini { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 600; color: var(--on-blue-soft); min-width: 0; }
+        .lpp-mini { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 600; color: var(--on-blue-soft); min-width: 0; }
         /* a .chip is inline-flex: beside shrinking text in a flex row it deforms */
         .lpp-card .chip, .lpp-scene .chip { flex: none; }
-        .lpp-badge { font-family: var(--fd); font-size: 11px; font-weight: 700; color: #fff;
+        .lpp-badge { font-family: var(--fd); font-size: 13px; font-weight: 700; color: #fff;
           background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.16); border-radius: 999px; padding: 5px 11px; }
         .lpp-seats { position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; pointer-events: none; }
         .lpp-seat {
@@ -765,7 +790,7 @@ export default function PourLesProfsPage() {
                 </Link>
               </Reveal>
 
-              <Reveal delay={280} as="p" style={{ fontSize: 12.5, color: "var(--muted)", display: "flex", alignItems: "center", gap: 7 }}>
+              <Reveal delay={280} as="p" style={{ fontSize: 13, color: "var(--muted)", display: "flex", alignItems: "center", gap: 7 }}>
                 <Check style={{ width: 15, height: 15, color: "var(--green)", flex: "none" }} />
                 {c.micro}
               </Reveal>
@@ -913,7 +938,7 @@ export default function PourLesProfsPage() {
             <div style={{ display: "flex", justifyContent: "center" }}>
               <Cta label={c.ctaPrimary} size="lg" />
             </div>
-            <p style={{ fontSize: 12.5, color: "var(--on-blue-soft)", marginTop: 18, display: "flex", alignItems: "center", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+            <p style={{ fontSize: 13, color: "var(--on-blue-soft)", marginTop: 18, display: "flex", alignItems: "center", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
               <Shield style={{ width: 15, height: 15, color: "#54D6AC", flex: "none" }} />
               {c.finalReassure}
             </p>

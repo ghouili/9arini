@@ -229,7 +229,7 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
       <section className="border-b border-solid border-line bg-cream">
         <div className="container py-10 sm:py-12">
           {/* Eyebrow + heading */}
-          <p className="mb-2 font-display text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+          <p className="mb-2 font-display text-[13px] font-semibold uppercase tracking-[0.16em] text-muted">
             {t.nav.explore}
           </p>
           <h1 className="web-h2 mb-2">{t.extra.featured}</h1>
@@ -237,15 +237,19 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
 
           {/* Search bar */}
           <div className="mb-5 max-w-[560px]">
-            <div className="flex min-h-[44px] items-center gap-2.5 rounded-[var(--r)] border border-solid border-line bg-paper px-3.5 py-2.5 shadow-[var(--sh-s)] transition-colors focus-within:border-blue">
-              <Search className="size-[18px] shrink-0 text-muted" />
+            {/* Vertical padding sits on the INPUT, not the wrapper: with py-2.5
+                on the row the field looked 44px tall but the input's own hit box
+                was 17px, so a tap anywhere in the padding landed on the div and
+                focused nothing. Same fix as .inp in globals.css. */}
+            <div className="flex min-h-[44px] items-stretch gap-2.5 rounded-[var(--r)] border border-solid border-line bg-paper px-3.5 shadow-[var(--sh-s)] transition-colors focus-within:border-blue">
+              <Search className="size-[18px] shrink-0 self-center text-muted" />
               <input
                 type="search"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder={t.extra.searchPh}
                 aria-label={t.extra.searchPh}
-                className="min-w-0 flex-1 border-0 bg-transparent text-[15px] text-ink outline-none placeholder:text-muted"
+                className="min-h-[44px] min-w-0 flex-1 border-0 bg-transparent py-2.5 text-[15px] text-ink outline-none placeholder:text-muted"
               />
             </div>
           </div>
@@ -279,7 +283,7 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
         <div className="container">
           {/* Demo-mode disclosure: never let a preview masquerade as the real catalogue. */}
           {demo && !loading && (
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-solid border-line bg-sand px-3.5 py-1.5 text-[12.5px] font-semibold text-ink2">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-solid border-line bg-sand px-3.5 py-1.5 text-[13px] font-semibold text-ink2">
               <Bolt className="size-4 shrink-0 text-amber" />
               {t.extra.demoPreview}
             </div>
@@ -400,9 +404,9 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
                         are longer and it overflowed. Now two deliberate rows:
                         social proof wraps freely, price gets its own line. */}
                     <div className="u-card-foot mt-5 border-t border-solid border-line pt-3.5">
-                      <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5 text-[12.5px] text-muted">
+                      <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5 text-[13px] text-muted">
                         {isNew ? (
-                          <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-green50 px-2.5 py-0.5 text-[11.5px] font-semibold text-green-ink">
+                          <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-green50 px-2.5 py-0.5 text-[13px] font-semibold text-green-ink">
                             {c.isNew}
                           </span>
                         ) : (
@@ -423,11 +427,11 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
 
                       {tutor.price_from_tnd !== null && (
                         <p className="mt-2.5 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
-                          <span className="text-[12px] text-muted">{c.from}</span>
+                          <span className="text-[13px] text-muted">{c.from}</span>
                           <b className="font-display text-[18px] font-bold leading-none text-ink">
                             {tutor.price_from_tnd}
                           </b>
-                          <span className="text-[12.5px] font-semibold text-muted">{c.tnd}</span>
+                          <span className="text-[13px] font-semibold text-muted">{c.tnd}</span>
                         </p>
                       )}
                     </div>

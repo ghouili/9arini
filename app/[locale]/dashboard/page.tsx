@@ -266,9 +266,12 @@ function NotifBell() {
         )}
       </button>
 
+      {/* Plain <div>, not role="menu". A menu promises menuitem children and
+          arrow-key roving focus; this is a scrollable list of notification
+          links, so the ARIA role was describing a widget that does not exist
+          and broke navigation for anyone relying on it. */}
       {open && (
         <div
-          role="menu"
           aria-label={c.notifTitle}
           className="panel"
           style={{
@@ -324,10 +327,10 @@ function NotifBell() {
                     <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--ink)" }}>
                       {n.title}
                     </span>
-                    <span style={{ display: "block", fontSize: 12.5, color: "var(--ink2)", lineHeight: 1.5, marginTop: 2 }}>
+                    <span style={{ display: "block", fontSize: 13, color: "var(--ink2)", lineHeight: 1.5, marginTop: 2 }}>
                       {n.body}
                     </span>
-                    <span style={{ display: "block", fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
+                    <span style={{ display: "block", fontSize: 13, color: "var(--muted)", marginTop: 4 }}>
                       {timeAgo(n.createdAt, c)}
                     </span>
                   </span>
@@ -391,7 +394,7 @@ function NextSteps({ steps, c }: { steps: Step[]; c: CopyDict }) {
     <div className="panel panel-pad" style={{ marginBottom: "clamp(14px,2vw,22px)" }}>
       <div style={{ marginBottom: 6 }}>
         <h2 style={{ fontFamily: "var(--fd)", fontSize: 16, fontWeight: 700 }}>{c.nextTitle}</h2>
-        <div style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 3 }}>{c.nextSub}</div>
+        <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 3 }}>{c.nextSub}</div>
       </div>
 
       {steps.map((s, i) => (
@@ -405,7 +408,7 @@ function NextSteps({ steps, c }: { steps: Step[]; c: CopyDict }) {
               {s.state === "done" && <span className="chip chip-soft" style={{ background: "var(--green50)", color: "var(--green-ink)" }}>{c.done}</span>}
               {s.state === "waiting" && <span className="chip chip-soft">{c.inProgress}</span>}
             </div>
-            <div style={{ fontSize: 12.5, color: "var(--muted)", lineHeight: 1.6, marginTop: 3 }}>{s.body}</div>
+            <div style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.6, marginTop: 3 }}>{s.body}</div>
           </div>
           {s.cta && (
             <Link href={s.cta.href} className="btn btn-primary btn-sm qd-cta">
@@ -449,7 +452,7 @@ function HowItWorks({ c }: { c: CopyDict }) {
           </div>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>{s.title}</div>
-            <div style={{ fontSize: 12.5, color: "var(--muted)", lineHeight: 1.55 }}>{s.body}</div>
+            <div style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.55 }}>{s.body}</div>
           </div>
         </div>
       ))}
@@ -491,7 +494,7 @@ function StoreLinkBox({ slug }: { slug: string }) {
         onClick={handleCopy}
         style={{
           marginInlineStart: "auto", background: copied ? "var(--green)" : "var(--blue)", color: "#fff",
-          border: 0, padding: "10px 13px", borderRadius: 9, fontWeight: 700, fontSize: 12, cursor: "pointer",
+          border: 0, padding: "10px 13px", borderRadius: 9, fontWeight: 700, fontSize: 13, cursor: "pointer",
           flexShrink: 0, minHeight: 44, fontFamily: "var(--fb)", transition: "background .2s",
           display: "inline-flex", alignItems: "center", gap: 5,
         }}
@@ -509,11 +512,11 @@ function SharePanel({ slug, c }: { slug: string; c: CopyDict }) {
     <div id="share" className="panel panel-pad" style={{ marginBottom: "clamp(14px,2vw,22px)", scrollMarginTop: 84 }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: 4 }}>
         <h2 style={{ fontFamily: "var(--fd)", fontSize: 16, fontWeight: 700 }}>{t.dashboard.shareTitle}</h2>
-        <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".5px" }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".5px" }}>
           {c.shareLabel}
         </span>
       </div>
-      <p style={{ fontSize: 12.5, color: "var(--muted)", lineHeight: 1.6, marginBottom: 12 }}>{t.dashboard.shareBody}</p>
+      <p style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.6, marginBottom: 12 }}>{t.dashboard.shareBody}</p>
       <StoreLinkBox slug={slug} />
       <div style={{ marginTop: 12 }}>
         <Link href={`/${slug}`} className="btn btn-ink btn-sm">
@@ -547,7 +550,7 @@ function BalanceCard({ d }: { d: DashboardData }) {
       <div
         style={{
           display: "flex", alignItems: "flex-start", gap: 8, marginTop: 15, background: "rgba(255,255,255,.13)",
-          padding: "10px 12px", borderRadius: 12, fontSize: 12.5, color: "#EAF2FC", position: "relative", zIndex: 2,
+          padding: "10px 12px", borderRadius: 12, fontSize: 13, color: "#EAF2FC", position: "relative", zIndex: 2,
           lineHeight: 1.55,
         }}
       >
@@ -588,7 +591,7 @@ function BookingsPanel({ d }: { d: DashboardData }) {
     <div className="panel panel-pad" style={{ marginBottom: "clamp(14px,2vw,22px)" }}>
       <div style={{ marginBottom: 14 }}>
         <h2 style={{ fontFamily: "var(--fd)", fontSize: 16, fontWeight: 700 }}>{c.bookings}</h2>
-        <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>{c.bookingsSub}</div>
+        <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 2 }}>{c.bookingsSub}</div>
       </div>
 
       {groups.length === 0 ? (
@@ -603,7 +606,7 @@ function BookingsPanel({ d }: { d: DashboardData }) {
           </span>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 3 }}>{c.bookingsEmpty}</div>
-            <div style={{ fontSize: 12.5, color: "var(--muted)", lineHeight: 1.6 }}>{c.bookingsEmptyBody}</div>
+            <div style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.6 }}>{c.bookingsEmptyBody}</div>
           </div>
         </div>
       ) : (
@@ -629,7 +632,7 @@ function BookingsPanel({ d }: { d: DashboardData }) {
               </Link>
               <span
                 style={{
-                  marginInlineStart: "auto", fontSize: 11.5, fontWeight: 700, color: "var(--blue)",
+                  marginInlineStart: "auto", fontSize: 13, fontWeight: 700, color: "var(--blue)",
                   background: "var(--blue50)", padding: "3px 9px", borderRadius: 999, flexShrink: 0,
                 }}
               >
@@ -666,7 +669,7 @@ function BookingsPanel({ d }: { d: DashboardData }) {
                   </div>
                   <div
                     style={{
-                      fontSize: 11.5, color: "var(--muted)", marginTop: 2,
+                      fontSize: 13, color: "var(--muted)", marginTop: 2,
                       display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap",
                     }}
                   >
@@ -692,7 +695,7 @@ function BookingsPanel({ d }: { d: DashboardData }) {
                 ) : (
                   <span
                     style={{
-                      flex: "none", marginInlineStart: "auto", fontSize: 11.5,
+                      flex: "none", marginInlineStart: "auto", fontSize: 13,
                       color: "var(--muted)", fontStyle: "italic",
                     }}
                   >
@@ -747,11 +750,11 @@ function RealDashboard({ d, steps }: { d: DashboardData; steps: Step[] }) {
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{cl.title}</div>
-                <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 2 }}>{cl.day} {cl.month} · {cl.time}</div>
+                <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 2 }}>{cl.day} {cl.month} · {cl.time}</div>
               </div>
               <div style={{ textAlign: "end", flex: "none", marginInlineStart: "auto" }}>
                 <div className="qd-num" style={{ fontFamily: "var(--fd)", fontWeight: 700, color: "var(--ink)" }}>{cl.price_tnd} TND</div>
-                <div className="qd-num" style={{ fontSize: 11, color: "var(--muted)", display: "flex", alignItems: "center", gap: 4, justifyContent: "flex-end", marginTop: 2 }}>
+                <div className="qd-num" style={{ fontSize: 13, color: "var(--muted)", display: "flex", alignItems: "center", gap: 4, justifyContent: "flex-end", marginTop: 2 }}>
                   <Users style={{ width: 12, height: 12 }} />{cl.seats_left}/{cl.seats}
                 </div>
               </div>
@@ -774,7 +777,7 @@ function RealDashboard({ d, steps }: { d: DashboardData; steps: Step[] }) {
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.title}</div>
-                {p.meta && <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 2 }}>{p.meta}</div>}
+                {p.meta && <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 2 }}>{p.meta}</div>}
               </div>
               <div className="qd-num" style={{ fontFamily: "var(--fd)", fontWeight: 700, color: "var(--ink)", flex: "none", marginInlineStart: "auto" }}>{p.price_tnd} TND</div>
             </div>

@@ -113,7 +113,7 @@ function StartsIn({ ts }: { ts: number }) {
       ].map(({ val, label }) => (
         <div key={label} style={{ background: "rgba(255,255,255,.12)", borderRadius: 12, padding: "9px 0", textAlign: "center", flex: 1, maxWidth: 90 }}>
           <b style={{ fontFamily: "var(--fd)", fontSize: 21, display: "block" }}>{val}</b>
-          <span style={{ fontSize: 9.5, color: "#B9C6D8", letterSpacing: ".3px" }}>{label}</span>
+          <span style={{ fontSize: 13, color: "#B9C6D8", letterSpacing: ".3px" }}>{label}</span>
         </div>
       ))}
     </div>
@@ -153,7 +153,7 @@ function RateBox({ item, onDone }: { item: StudentClass; onDone: () => void }) {
   }
 
   if (msg?.kind === "ok") {
-    return <div style={{ fontSize: 12.5, color: "var(--green)", fontWeight: 700, marginTop: 8 }}>{msg.text}</div>;
+    return <div style={{ fontSize: 13, color: "var(--green)", fontWeight: 700, marginTop: 8 }}>{msg.text}</div>;
   }
 
   if (!open) {
@@ -163,20 +163,20 @@ function RateBox({ item, onDone }: { item: StudentClass; onDone: () => void }) {
           onClick={() => { setOpen(true); setMsg(null); }}
           style={{
             border: 0, background: "var(--sand, var(--blue50))", color: "var(--ochre-ink)", fontWeight: 700,
-            fontSize: 11.5, padding: "8px 13px", borderRadius: 999, cursor: "pointer",
+            fontSize: 13, padding: "8px 13px", borderRadius: 999, cursor: "pointer",
             display: "inline-flex", alignItems: "center", gap: 6, minHeight: 44,
           }}
         >
           <Star /> {c.rate}
         </button>
-        {msg && <div style={{ fontSize: 12, color: "var(--rose)", marginTop: 6 }}>{msg.text}</div>}
+        {msg && <div style={{ fontSize: 13, color: "var(--rose)", marginTop: 6 }}>{msg.text}</div>}
       </div>
     );
   }
 
   return (
     <div style={{ marginTop: 10, padding: 12, borderRadius: 14, background: "var(--paper)", border: "1px solid var(--line)" }}>
-      <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 8 }}>{c.rateWith(item.tutorName)}</div>
+      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>{c.rateWith(item.tutorName)}</div>
       <div style={{ display: "flex", gap: 4, marginBottom: 10 }}>
         {[1, 2, 3, 4, 5].map((n) => (
           <button
@@ -195,9 +195,12 @@ function RateBox({ item, onDone }: { item: StudentClass; onDone: () => void }) {
           </button>
         ))}
       </div>
+      {/* aria-label, not just a placeholder: a placeholder disappears the moment
+          you type and is not a label. This was the only unlabelled input left. */}
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
+        aria-label={c.ratePh}
         placeholder={c.ratePh}
         maxLength={1000}
         rows={3}
@@ -206,7 +209,7 @@ function RateBox({ item, onDone }: { item: StudentClass; onDone: () => void }) {
           fontSize: 13, fontFamily: "inherit", resize: "vertical", background: "var(--cream, #fff)", color: "var(--ink)",
         }}
       />
-      {msg?.kind === "err" && <div style={{ fontSize: 12, color: "var(--rose)", marginTop: 6 }}>{msg.text}</div>}
+      {msg?.kind === "err" && <div style={{ fontSize: 13, color: "var(--rose)", marginTop: 6 }}>{msg.text}</div>}
       <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
         <Button variant="primary" sm onClick={submit} disabled={busy} style={{ width: "auto", padding: "10px 16px", minHeight: 44 }}>
           {busy ? c.sending : c.send}
@@ -262,7 +265,7 @@ function UpcomingCard({ item, hero, onChanged }: { item: StudentClass; hero: boo
       }}
     >
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 7, background: live ? "var(--rose)" : "rgba(255,255,255,.14)", color: "#fff", fontWeight: 700, fontSize: 11, padding: "5px 11px", borderRadius: 999, flexShrink: 0 }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 7, background: live ? "var(--rose)" : "rgba(255,255,255,.14)", color: "#fff", fontWeight: 700, fontSize: 13, padding: "5px 11px", borderRadius: 999, flexShrink: 0 }}>
           {live && <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#fff", animation: "blink 1.1s infinite", flexShrink: 0 }} />}
           {live ? c.liveNow : t.student.soon}
         </span>
@@ -297,7 +300,7 @@ function UpcomingCard({ item, hero, onChanged }: { item: StudentClass; hero: boo
             onClick={() => setConfirming(true)}
             style={{
               border: "1px solid rgba(255,255,255,.28)", background: "transparent", color: "#CDD9E8",
-              fontWeight: 700, fontSize: 12.5, padding: "12px 16px", borderRadius: 999, cursor: "pointer", minHeight: 44,
+              fontWeight: 700, fontSize: 13, padding: "12px 16px", borderRadius: 999, cursor: "pointer", minHeight: 44,
             }}
           >
             {c.cancel}
@@ -308,18 +311,18 @@ function UpcomingCard({ item, hero, onChanged }: { item: StudentClass; hero: boo
       {confirming && (
         <div style={{ marginTop: 12, padding: 12, borderRadius: 14, background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.14)" }}>
           <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>{c.cancelSure}</div>
-          <div style={{ fontSize: 12, color: "#CDD9E8", marginBottom: 10, lineHeight: 1.5 }}>{c.cancelRule}</div>
+          <div style={{ fontSize: 13, color: "#CDD9E8", marginBottom: 10, lineHeight: 1.5 }}>{c.cancelRule}</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button
               onClick={doCancel}
               disabled={busy}
-              style={{ border: 0, background: "var(--rose)", color: "#fff", fontWeight: 700, fontSize: 12.5, padding: "12px 16px", borderRadius: 999, cursor: "pointer", minHeight: 44 }}
+              style={{ border: 0, background: "var(--rose)", color: "#fff", fontWeight: 700, fontSize: 13, padding: "12px 16px", borderRadius: 999, cursor: "pointer", minHeight: 44 }}
             >
               {busy ? "…" : c.cancelYes}
             </button>
             <button
               onClick={() => setConfirming(false)}
-              style={{ border: "1px solid rgba(255,255,255,.28)", background: "transparent", color: "#fff", fontWeight: 700, fontSize: 12.5, padding: "12px 16px", borderRadius: 999, cursor: "pointer", minHeight: 44 }}
+              style={{ border: "1px solid rgba(255,255,255,.28)", background: "transparent", color: "#fff", fontWeight: 700, fontSize: 13, padding: "12px 16px", borderRadius: 999, cursor: "pointer", minHeight: 44 }}
             >
               {c.cancelNo}
             </button>
@@ -328,11 +331,11 @@ function UpcomingCard({ item, hero, onChanged }: { item: StudentClass; hero: boo
       )}
 
       {!cancellable && !live && (
-        <div style={{ marginTop: 12, fontSize: 12, color: "#B9C6D8", lineHeight: 1.5 }}>{c.cancelLocked}</div>
+        <div style={{ marginTop: 12, fontSize: 13, color: "#B9C6D8", lineHeight: 1.5 }}>{c.cancelLocked}</div>
       )}
 
       {err && (
-        <div role="alert" style={{ marginTop: 12, background: "rgba(226,72,61,.16)", border: "1px solid rgba(226,72,61,.4)", color: "#FFD3CE", borderRadius: 12, padding: "10px 12px", fontSize: 12.5, lineHeight: 1.5 }}>
+        <div role="alert" style={{ marginTop: 12, background: "rgba(226,72,61,.16)", border: "1px solid rgba(226,72,61,.4)", color: "#FFD3CE", borderRadius: 12, padding: "10px 12px", fontSize: 13, lineHeight: 1.5 }}>
           {err}
         </div>
       )}
@@ -466,7 +469,7 @@ export default function StudentPage() {
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</div>
-                          <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
+                          <div className="muted" style={{ fontSize: 13, marginTop: 2 }}>
                             {item.day} {item.month} · {item.time} · {t.student.with} {item.tutorName}
                           </div>
                         </div>
@@ -475,7 +478,7 @@ export default function StudentPage() {
                             onClick={() => window.open(item.replayUrl, "_blank", "noopener,noreferrer")}
                             style={{
                               flexShrink: 0, border: 0, background: "var(--blue50)", color: "var(--blue)",
-                              fontWeight: 700, fontSize: 11.5, padding: "8px 13px", borderRadius: 999,
+                              fontWeight: 700, fontSize: 13, padding: "8px 13px", borderRadius: 999,
                               cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6, minHeight: 44,
                             }}
                             aria-label={`${t.student.replay} — ${item.title}`}
@@ -483,7 +486,7 @@ export default function StudentPage() {
                             <Play /> {t.student.replay}
                           </button>
                         ) : (
-                          <span className="muted" style={{ fontSize: 11, flexShrink: 0, maxWidth: 120, textAlign: "end", lineHeight: 1.35 }}>
+                          <span className="muted" style={{ fontSize: 13, flexShrink: 0, maxWidth: 120, textAlign: "end", lineHeight: 1.35 }}>
                             {c.noReplay}
                           </span>
                         )}

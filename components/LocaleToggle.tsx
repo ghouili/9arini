@@ -14,8 +14,8 @@ import { useLocale } from "./LocaleProvider";
 const CSS = `
 .qlt{display:flex;align-items:center;border-radius:999px;padding:3px;flex:none}
 .qlt button{
-  border:0;cursor:pointer;padding:8px 14px;border-radius:999px;font-weight:700;font-size:12.5px;
-  min-height:40px;display:inline-flex;align-items:center;justify-content:center;
+  border:0;cursor:pointer;padding:8px 14px;border-radius:999px;font-weight:700;font-size:13px;
+  min-height:44px;min-width:44px;display:inline-flex;align-items:center;justify-content:center;
   background:transparent;transition:.15s;white-space:nowrap;
 }
 .qlt .qlt-short{display:none}

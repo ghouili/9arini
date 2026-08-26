@@ -36,10 +36,10 @@ const CSS = `
   background:var(--rose50);border:1px solid rgba(226,72,61,.28);border-radius:var(--r);}
 .lg-notice .ic{color:var(--rose);flex:none;margin-top:2px}
 .lg-notice b{display:block;color:#9E2C23;font-size:14px;line-height:1.5}
-.lg-notice span{display:block;margin-top:4px;color:#8A3A34;font-size:12.5px;line-height:1.6}
+.lg-notice span{display:block;margin-top:4px;color:#8A3A34;font-size:13px;line-height:1.6}
 .lg-head{margin-bottom:24px}
 .lg-head .web-h2{margin:8px 0 6px}
-.lg-updated{font-size:12.5px;font-weight:700;color:var(--muted);margin-bottom:14px}
+.lg-updated{font-size:13px;font-weight:700;color:var(--muted);margin-bottom:14px}
 .lg-doc h2{font-family:var(--fd);font-size:18px;line-height:1.35;margin:30px 0 10px;color:var(--ink)}
 .lg-doc h2:first-child{margin-top:0}
 .lg-doc p{font-size:15px;line-height:1.75;color:var(--ink2);margin-bottom:10px}

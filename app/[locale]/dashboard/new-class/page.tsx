@@ -313,7 +313,7 @@ export default function NewClassPage() {
                     </div>
                     <div>
                       <div style={{ fontSize: 14, fontWeight: 600 }}>{t.createClass.freeFirst}</div>
-                      <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
+                      <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 2 }}>
                         {t.common.free1st}
                       </div>
                     </div>
@@ -328,11 +328,11 @@ export default function NewClassPage() {
                       BEFORE they submit instead of only failing afterwards. */}
                   <p style={{
                     display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                    flexWrap: "wrap", fontSize: 12, color: "var(--muted)", marginTop: 12, lineHeight: 1.5,
+                    flexWrap: "wrap", fontSize: 13, color: "var(--muted)", marginTop: 12, lineHeight: 1.5,
                   }}>
                     <Shield style={{ width: 14, height: 14, flex: "none" }} />
                     {c.verifNote}
-                    <Link href="/onboarding/verify" className="linklike" style={{ fontSize: 12 }}>
+                    <Link href="/onboarding/verify" className="linklike" style={{ fontSize: 13 }}>
                       {c.verifCta}
                     </Link>
                   </p>
@@ -341,7 +341,7 @@ export default function NewClassPage() {
                   {demo && (
                     <p style={{
                       textAlign: "center",
-                      fontSize: 11.5,
+                      fontSize: 13,
                       color: "var(--muted)",
                       marginTop: 12,
                       lineHeight: 1.5,

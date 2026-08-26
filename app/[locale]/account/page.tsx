@@ -112,7 +112,7 @@ export default function AccountPage() {
               <span style={{ fontSize: 15, fontWeight: 600 }}>{t.account.role}</span>
               <span
                 style={{
-                  fontSize: 12.5,
+                  fontSize: 13,
                   fontWeight: 700,
                   padding: "6px 14px",
                   borderRadius: 999,

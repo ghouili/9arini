@@ -97,7 +97,7 @@
   /* min-width:0 + ellipsis: a long AR screen title used to shove the trailing
      icon button out of the bar (flex items floor at min-content by default). */
   .appbar h1{font-family:var(--fd);font-size:20px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .statusbar{display:flex;justify-content:space-between;align-items:center;padding:14px 22px 2px;font-size:12.5px;font-weight:700;color:var(--ink)}
+  .statusbar{display:flex;justify-content:space-between;align-items:center;padding:14px 22px 2px;font-size:13px;font-weight:700;color:var(--ink)}
 
   /* ---- buttons ---- */
   /* text-align:center + min-height: a long AR label wraps to 2 lines inside the
@@ -123,7 +123,7 @@
   .card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh-s);min-width:0}
   .card-pad{padding:16px}
   .sec{font-family:var(--fd);font-size:15px;margin:6px 2px 12px;display:flex;justify-content:space-between;align-items:center;gap:10px;min-width:0}
-  .sec a{color:var(--blue);font-size:12.5px;font-weight:700;cursor:pointer}
+  .sec a{color:var(--blue);font-size:13px;font-weight:700;cursor:pointer}
   .muted{color:var(--muted)}
   .price{font-family:var(--fd);font-weight:700;letter-spacing:-.3px}
   .divider{height:1px;background:var(--line);margin:4px 0}
@@ -135,7 +135,7 @@
      every card at 320–360px. The circular .verified badge was the visible
      symptom (it deformed into an ellipse next to a truncated tutor name);
      .chip / .stars / .iconbtn / .nav-menu-btn / .inp .pre had the same defect. */
-  .chip{display:inline-flex;align-items:center;gap:6px;flex:none;max-width:100%;font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:999px}
+  .chip{display:inline-flex;align-items:center;gap:6px;flex:none;max-width:100%;font-size:13px;font-weight:700;padding:5px 11px;border-radius:999px}
   .chip-free{background:var(--green-btn);color:#fff}
   .chip-soft{background:var(--blue50);color:var(--blue)}
   .chip-sand{background:var(--sand);color:var(--ink2)}
@@ -151,13 +151,21 @@
 
   /* ---- forms ---- */
   .field{margin-bottom:14px}
-  .field label{font-size:12px;font-weight:700;display:block;margin-bottom:7px}
-  .inp{width:100%;background:var(--paper);border:1.6px solid var(--line);border-radius:13px;padding:13px 14px;font-size:14px;font-family:var(--fb);display:flex;align-items:center;gap:6px}
+  .field label{font-size:13px;font-weight:700;display:block;margin-bottom:7px}
+  /* The PADDING lives on the control, not on the wrapper, and the wrapper
+     stretches its children. Before, `.inp` carried 13px of vertical padding and
+     centred a 17px-tall <input> inside it: the field LOOKED 46px tall, but the
+     input's own hit box was 17px, and a tap in the padding landed on the div and
+     did not focus anything. Same box, real target. */
+  .inp{width:100%;background:var(--paper);border:1.6px solid var(--line);border-radius:13px;padding:0 14px;font-size:14px;font-family:var(--fb);display:flex;align-items:stretch;gap:6px;min-height:46px}
   .inp:focus-within{border-color:var(--blue)}
-  .inp input,.inp textarea,.inp select{border:0;outline:0;font-size:14px;font-family:inherit;width:100%;min-width:0;background:transparent;color:var(--ink)}
-  .inp .pre{color:var(--muted);font-family:var(--fd);flex:none}
-  .help{font-size:11.5px;color:var(--muted);margin-top:6px}
-  .field-label{font-size:12px;font-weight:700;display:block;margin-bottom:7px}
+  .inp input,.inp textarea,.inp select{border:0;outline:0;font-size:14px;font-family:inherit;width:100%;min-width:0;background:transparent;color:var(--ink);padding-block:13px;min-height:44px}
+  /* textarea has to keep its own rows-based height and must not inherit the
+     flex stretch, or it collapses to one line. */
+  .inp textarea{align-self:stretch;resize:vertical}
+  .inp .pre{color:var(--muted);font-family:var(--fd);flex:none;display:flex;align-items:center}
+  .help{font-size:13px;color:var(--muted);margin-top:6px}
+  .field-label{font-size:13px;font-weight:700;display:block;margin-bottom:7px}
 
   /* ---- zellige header (used on storefront, balance, lobby) ---- */
   .zellige{position:relative;overflow:hidden}
@@ -178,16 +186,16 @@
   .listrow:last-child{border:0}
   .thumb{width:52px;height:58px;border-radius:13px;flex:none;display:grid;place-items:center;text-align:center;line-height:1;background:var(--blue50);color:var(--blue)}
   .thumb b{font-family:var(--fd);font-size:20px;display:block}
-  .thumb span{font-size:9.5px;font-weight:700;color:var(--muted);letter-spacing:.5px}
+  .thumb span{font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.5px}
   html[dir="rtl"] .thumb span{letter-spacing:normal} /* .5px tracking severs Arabic month labels (جانفي) */
-  .metaline{font-size:11.5px;color:var(--muted);display:flex;gap:6px 12px;flex-wrap:wrap;min-width:0}
+  .metaline{font-size:13px;color:var(--muted);display:flex;gap:6px 12px;flex-wrap:wrap;min-width:0}
   .metaline span{display:inline-flex;gap:4px;align-items:center;min-width:0}
   .metaline .ic{width:13px;height:13px}
   .end{text-align:end;margin-inline-start:auto}
 
   /* ---- balance card ---- */
   .balance{border-radius:var(--r-l);color:#fff;padding:clamp(18px,3vw,22px);min-width:0;overflow:hidden}
-  .balance .lbl{font-size:12.5px;color:var(--on-blue-soft);font-weight:600;display:flex;align-items:center;gap:7px;min-width:0}
+  .balance .lbl{font-size:13px;color:var(--on-blue-soft);font-weight:600;display:flex;align-items:center;gap:7px;min-width:0}
   /* fluid: a 5-digit balance at a flat 42px overflowed the card at 320px. */
   /* Fluid + tabular: a flat 42px/-1.4px overflowed the card at 5 digits, and
      proportional figures made the amount jitter as it updated. Both the dashboard
@@ -198,7 +206,7 @@
 
   /* ---- bottom nav ---- */
   .tabbar{position:sticky;bottom:0;background:var(--paper);border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:10px 0 14px;z-index:20}
-  .tabbar a,.tabbar button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:var(--muted);font-weight:600;background:0;border:0;cursor:pointer}
+  .tabbar a,.tabbar button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:13px;color:var(--muted);font-weight:600;background:0;border:0;cursor:pointer}
   .tabbar .active{color:var(--blue)}
   .tabbar .ic{width:21px;height:21px}
 
@@ -208,7 +216,7 @@
   /* ---- trust note (payment) ---- */
   .trust{display:flex;gap:11px;align-items:flex-start;padding:13px 14px;background:var(--green50);border-radius:14px;min-width:0}
   .trust .ic{color:var(--green);width:22px;height:22px;flex:none;margin-top:1px}
-  .trust p{font-size:12.5px;color:var(--green-ink);line-height:1.55;min-width:0;overflow-wrap:anywhere}
+  .trust p{font-size:13px;color:var(--green-ink);line-height:1.55;min-width:0;overflow-wrap:anywhere}
 
   /* ---- toast ---- */
   /* Centred via inset-inline+auto margins instead of left:50%/translateX(-50%):
@@ -221,7 +229,7 @@
   .land .logo{width:64px;height:64px;border-radius:18px;margin:0 auto 18px;background:linear-gradient(150deg,var(--blue),#08365F);display:grid;place-items:center;color:#fff;font-family:var(--fa);font-size:30px;box-shadow:var(--sh)}
   .land h1{font-family:var(--fd);font-size:34px;letter-spacing:-1px;margin-bottom:10px}
   .land p{color:var(--ink2);font-size:16px;line-height:1.6;margin-bottom:24px}
-  .badge{display:inline-block;background:var(--blue50);color:var(--blue);font-weight:700;font-size:12px;padding:6px 12px;border-radius:999px;margin-bottom:16px}
+  .badge{display:inline-block;background:var(--blue50);color:var(--blue);font-weight:700;font-size:13px;padding:6px 12px;border-radius:999px;margin-bottom:16px}
 
   .spin{width:22px;height:22px;border:3px solid var(--line);border-top-color:var(--blue);border-radius:50%;animation:spin 1s linear infinite;margin:30px auto}
   .rise{animation:rise .4s cubic-bezier(.2,.7,.2,1)}
@@ -237,6 +245,23 @@
   .web-main{flex:1;width:100%}
   .web-section{padding:clamp(28px,5vw,64px) 0}
   .web-section.tight{padding:clamp(18px,3vw,32px) 0}
+
+  /* ── skip-to-content (WCAG 2.4.1 Bypass Blocks) ──────────────────────────
+     Off-screen until focused, then a normal pinned button. It must stay in the
+     DOM and in the tab order, so it is clipped rather than display:none /
+     visibility:hidden — both of which would remove it from the tab order and
+     make the control silently useless. `inset-inline-start` so it lands
+     top-right in Arabic. */
+  .skip-link{position:absolute;inset-inline-start:12px;top:12px;z-index:100;
+    width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;
+    background:var(--ink);color:#fff;border-radius:12px;
+    font-weight:700;font-size:14px;line-height:1;text-decoration:none}
+  .skip-link:focus-visible{position:fixed;width:auto;height:auto;min-height:44px;
+    display:inline-flex;align-items:center;padding:12px 18px;clip-path:none;
+    box-shadow:var(--sh);outline:3px solid var(--blue);outline-offset:3px}
+  /* Focusing <main> via the skip link must not paint a ring around the whole
+     page — the jump itself is the feedback. */
+  main:focus{outline:none}
 
   /* top nav */
   .site-header{position:sticky;top:0;z-index:50;background:rgba(251,247,240,.82);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
@@ -254,7 +279,7 @@
   .site-footer .container{padding-top:32px;padding-bottom:32px;display:flex;flex-wrap:wrap;gap:18px;align-items:center;justify-content:space-between;color:var(--muted);font-size:13px}
 
   /* responsive type */
-  .web-eyebrow{font-weight:700;font-size:12.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--blue)}
+  .web-eyebrow{font-weight:700;font-size:13px;letter-spacing:.6px;text-transform:uppercase;color:var(--blue)}
   .web-h1{font-family:var(--fd);font-size:clamp(30px,5.5vw,56px);line-height:1.06;letter-spacing:-1.5px}
   .web-h2{font-family:var(--fd);font-size:clamp(24px,3.6vw,38px);line-height:1.12;letter-spacing:-1px}
   .web-lead{font-size:clamp(15px,1.6vw,19px);line-height:1.6;color:var(--ink2)}
@@ -341,7 +366,13 @@
      tutor-landing agent, which had to force it inline on IncomePanel + final CTA). */
   .panel.hero-blue{background:linear-gradient(158deg,var(--blue),#082F54);color:#fff;border-color:transparent}
   .panel-pad{padding:clamp(16px,2.4vw,26px)}
-  .linklike{color:var(--blue);font-weight:700;cursor:pointer}
+  /* Standalone action link ("Retour au tableau de bord"). Given a real target
+     box: as a bare 16px-tall run of text it measured 156x16, well under the
+     44px the rest of the system holds itself to. Inline uses inside a sentence
+     opt out with .linklike-inline. */
+  .linklike{color:var(--blue);font-weight:700;cursor:pointer;
+    display:inline-flex;align-items:center;min-height:44px}
+  .linklike-inline{display:inline;min-height:0}
   /* .hide-mobile/.hide-desktop deleted (zero usages). `display:revert` was a trap:
      on <a class="btn hide-mobile"> it reverted the anchor to display:inline, which
      silently killed the button's flex box — gap gone, min-height:44px inert. A

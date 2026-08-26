@@ -78,7 +78,7 @@ const PAGE_CSS = `
   /* ── when / meta ── */
   .cd-when{display:flex;align-items:center;gap:12px;margin-bottom:16px}
   .cd-when-main{flex:1 1 0;min-width:0}
-  .cd-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
+  .cd-label{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
     color:var(--muted);margin-bottom:7px}
   .cd-desc{font-size:14.5px;line-height:1.7;color:var(--ink2);overflow-wrap:anywhere}
   .cd-soldout{color:var(--rose);font-weight:700}
@@ -92,7 +92,7 @@ const PAGE_CSS = `
   .cd-amount-lg{font-size:26px;letter-spacing:-.7px}
   .cd-free{color:var(--green-ink)}
   .cd-cur{font-size:.72em;font-weight:600;color:var(--muted)}
-  .cd-then{font-size:11.5px;color:var(--muted);font-weight:600;margin-top:3px;line-height:1.4}
+  .cd-then{font-size:13px;color:var(--muted);font-weight:600;margin-top:3px;line-height:1.4}
 
   .cd-callout{margin-top:14px;padding:11px 13px;background:var(--green50);border-radius:13px;
     font-size:13px;color:var(--green-ink);line-height:1.55;display:flex;gap:9px;align-items:flex-start}
@@ -104,14 +104,14 @@ const PAGE_CSS = `
     background:linear-gradient(150deg,var(--amber),var(--ochre));display:grid;place-items:center;
     font-family:var(--fd);font-size:20px;color:#fff;font-weight:700}
   .cd-tutor-name{font-weight:700;font-size:14.5px;overflow-wrap:anywhere}
-  .cd-tutor-meta{font-size:12.5px;color:var(--muted);margin-top:2px;overflow-wrap:anywhere}
+  .cd-tutor-meta{font-size:13px;color:var(--muted);margin-top:2px;overflow-wrap:anywhere}
 
   /* ── booking panel ── */
   .cd-panel{position:sticky;top:84px}
   .cd-panel-title{font-weight:700;font-size:15.5px;margin-bottom:6px;line-height:1.3;overflow-wrap:anywhere}
   .cd-cta{min-height:52px;margin-top:4px}
   .cd-note{display:flex;justify-content:center;align-items:center;gap:7px;margin-top:11px;
-    color:var(--muted);font-size:11.5px;text-align:center;line-height:1.45}
+    color:var(--muted);font-size:13px;text-align:center;line-height:1.45}
   .cd-note .ic{width:13px;height:13px;color:var(--green);flex:none}
 
   /* ── sold out ── */
@@ -131,7 +131,7 @@ const PAGE_CSS = `
   .cd-mcta-row{display:flex;align-items:center;gap:12px}
   .cd-mcta-price{min-width:0;display:flex;flex-direction:column;line-height:1.2}
   .cd-mcta-price b{font-family:var(--fd);font-size:17px;letter-spacing:-.3px;white-space:nowrap}
-  .cd-mcta-price span{font-size:11px;color:var(--muted);margin-top:2px}
+  .cd-mcta-price span{font-size:13px;color:var(--muted);margin-top:2px}
   .cd-mcta-btn{flex:1 1 auto;width:auto;max-width:260px;margin-inline-start:auto;min-height:50px}
 
   /* on tablet/desktop: two columns, panel right */
