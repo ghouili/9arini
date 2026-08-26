@@ -68,6 +68,23 @@
 
 @layer base {
   *{box-sizing:border-box;margin:0;padding:0}
+  /* ── the border reset Tailwind's preflight would normally provide ──────────
+     preflight is OFF (globals.css owns the reset), and this one rule of it is
+     load-bearing for the border utilities.
+
+     CSS initial values are `border-style: none` + `border-width: medium` (3px).
+     A single-side utility like `border-t` only sets border-TOP-width, so on its
+     own it does nothing visible — which is why `border-t border-solid` is the
+     idiomatic pairing. But `border-solid` sets the style on ALL FOUR sides, and
+     the moment a side has a style its `medium` width becomes real. The result
+     was a 3px currentColor box around anything meant to have one hairline rule:
+     the price block on every /explore card rendered as a sharp-cornered
+     rectangle inside a fully-rounded card, reading as a rendering artifact.
+
+     Zeroing the widths and defaulting the style to solid makes `border-t` mean
+     what it says. Every explicit border in this file uses the shorthand (`border:
+     1px solid var(--line)`), which has class-level specificity and is unaffected. */
+  *,*::before,*::after{border-width:0;border-style:solid;border-color:var(--line)}
   html,body{height:100%}
   body{font-family:var(--fb);color:var(--ink);-webkit-font-smoothing:antialiased;
     background:radial-gradient(1100px 600px at 10% -8%,#FFF4E0 0%,transparent 52%),
@@ -400,7 +417,12 @@
       inline style attributes in components this pass does not own.
 
    Both scoped to html[dir="rtl"] — FR/LTR is completely untouched. */
-html[dir="rtl"] { --fd: var(--fa) }
+/* --fd AND --fb both remap to the Arabic face. --fd because Space Grotesk ships
+   no Arabic glyphs (see above). --fb because otherwise every `font-family:var(--fb)`
+   in Arabic (.inp, .btn, body) still asked for Plus Jakarta Sans — which is now
+   not even loaded on /ar — and fell through to system-ui, giving Arabic screens a
+   different face inside form fields than everywhere else. One token, all of it. */
+html[dir="rtl"] { --fd: var(--fa); --fb: var(--fa) }
 html[dir="rtl"] * { letter-spacing: normal !important }
 
 /* ─── Reduced motion (WCAG 2.3.3) ───────────────────────────────────────────

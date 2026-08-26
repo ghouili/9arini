@@ -23,12 +23,34 @@ export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const locale = localeFromPath(pathname);
 
-  // 1. No locale in the URL → send them to the preferred one, preserving path + query.
+  /* 1. No locale in the URL → serve the preferred one.
+
+     THE ROOT IS REWRITTEN, NOT REDIRECTED. "9arini.tn" is the URL people type,
+     read out loud and print; a 307 there costs a whole extra round trip before
+     the first byte of HTML — 0.5-1s on Tunisian 3G — on the single most common
+     entry point in the product. A rewrite serves /<locale> under the typed URL
+     with no extra hop.
+
+     Deeper paths still REDIRECT, deliberately: "/explore" and "/fr/explore"
+     would otherwise both serve the same page at two URLs, which splits ranking
+     signals and duplicates the crawl. The canonical form is the prefixed one,
+     and a redirect is how you say so. The root is the one place where the
+     canonical URL is genuinely the unprefixed one — layout.tsx already points
+     its canonical/hreflang at the prefixed variants. */
   if (!locale) {
     const cookieLoc = req.cookies.get("NEXT_LOCALE")?.value;
     const preferred = isLocale(cookieLoc) ? cookieLoc : DEFAULT_LOCALE;
     const url = req.nextUrl.clone();
     url.pathname = pathname === "/" ? `/${preferred}` : `/${preferred}${pathname}`;
+    if (pathname === "/") {
+      const headers = new Headers(req.headers);
+      headers.set(LOCALE_HEADER, preferred);
+      /* Vary: Cookie — the response body depends on NEXT_LOCALE, so a shared
+         cache must not serve one visitor's language to the next. */
+      const res = NextResponse.rewrite(url, { request: { headers } });
+      res.headers.set("Vary", "Cookie");
+      return res;
+    }
     return NextResponse.redirect(url);
   }
 

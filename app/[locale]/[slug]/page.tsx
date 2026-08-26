@@ -224,7 +224,7 @@ export default async function StorefrontPage({ params }: Props) {
   return (
     <>
       <JsonLd data={jsonLd} />
-      <StorefrontView data={data} reviews={reviews} />
+      <StorefrontView data={data} reviews={reviews} locale={loc} />
     </>
   );
 }

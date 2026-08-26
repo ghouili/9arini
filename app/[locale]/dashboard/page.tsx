@@ -888,7 +888,9 @@ function DashHeader({
   showTools,
 }: {
   title: string;
-  subtitle: string;
+  /* Optional: the signed-out state's whole message lives in the <SignedOut>
+     panel, so repeating it here rendered the same sentence twice on the page. */
+  subtitle?: string;
   actions?: React.ReactNode;
   showTools?: boolean;
 }) {
@@ -904,7 +906,7 @@ function DashHeader({
         <h1 style={{ fontFamily: "var(--fd)", fontSize: "clamp(20px,2.4vw,28px)", letterSpacing: "-.5px", lineHeight: 1.15 }}>
           {title}
         </h1>
-        <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 3 }}>{subtitle}</div>
+        {subtitle ? <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 3 }}>{subtitle}</div> : null}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", flex: "none" }}>
         {actions}
@@ -1008,7 +1010,10 @@ export default function DashboardPage() {
     );
   } else if (data === null) {
     // No session (or no DB). Never render fabricated earnings — prompt sign-in.
-    header = <DashHeader title={c.signedOutTitle} subtitle={c.signedOutBody} />;
+    /* Title is the page name, not the panel's message: passing signedOutTitle +
+       signedOutBody here printed the identical heading and paragraph twice, once
+       as the page header and again inside <SignedOut>. */
+    header = <DashHeader title={t.nav.dashboard} />;
     body = <SignedOut />;
   } else if (!data.has_storefront) {
     header = <DashHeader title={t.dashboard.createStore} subtitle={t.dashboard.createStoreBody} showTools />;

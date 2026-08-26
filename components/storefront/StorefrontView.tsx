@@ -1,8 +1,22 @@
-"use client";
+/* SERVER component. This is the URL a tutor pastes into WhatsApp, so it is the
+   most-loaded page in the product and the one that has to paint on a 3G Android
+   before anything else. It used to be 750 lines of "use client": both locale
+   dictionaries, the price/seats branching and the whole review list were
+   serialised into the client bundle purely to render markup that never changes
+   after paint.
+
+   The only interactive element on the page — the native share sheet — now lives
+   in <ShareButton>, a client island. Everything else is HTML.
+
+   The locale arrives as a PROP rather than from useLocale(), because a hook is
+   what forced the client boundary in the first place; app/[locale]/[slug]/page.tsx
+   already knows the locale from the URL segment. */
 import { Link } from "@/components/Link";
+import { ShareButton } from "./ShareButton";
+import { dict } from "@/lib/i18n";
+import type { AppLocale } from "@/lib/locale";
 import { Avatar, Verified } from "@/components/ui";
 import {
-  Share,
   Star,
   Clock,
   Users,
@@ -13,7 +27,6 @@ import {
   Check,
   Gift,
 } from "@/components/icons";
-import { useLocale } from "@/components/LocaleProvider";
 import { SiteShell } from "@/components/SiteShell";
 import type { Storefront, TutorReviews, ClassItem } from "@/lib/types";
 
@@ -169,11 +182,13 @@ function Stars({ filled, size = 13, label }: { filled: number; size?: number; la
 export function StorefrontView({
   data,
   reviews = EMPTY_REVIEWS,
+  locale,
 }: {
   data: Storefront;
   reviews?: TutorReviews;
+  locale: AppLocale;
 }) {
-  const { t, locale } = useLocale();
+  const t = dict[locale];
   const c = copy[locale === "ar" ? "ar" : "fr"];
   const { tutor, classes, packs } = data;
 
@@ -286,18 +301,8 @@ export function StorefrontView({
               </div>
             </div>
 
-            {/* Share button */}
-            <button
-              className="iconbtn on-blue sf-share"
-              aria-label={t.common.share}
-              onClick={() => {
-                if (typeof navigator !== "undefined" && navigator.share) {
-                  navigator.share({ title: tutor.full_name, url: window.location.href });
-                }
-              }}
-            >
-              <Share />
-            </button>
+            {/* The page's one interactive element — see ShareButton. */}
+            <ShareButton title={tutor.full_name} label={t.common.share} />
           </div>
 
           {/* The three facts that decide whether a visitor tries this prof. Each pill
@@ -600,7 +605,7 @@ export function StorefrontView({
            globals.css and kept severing Arabic joins in the tutor's own name. */
         .sf-name{color:#fff;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
         .sf-name-txt{min-width:0;overflow-wrap:anywhere}
-        .sf-subject{color:var(--on-blue-soft);font-size:15px;margin-top:5px;font-weight:500;overflow-wrap:anywhere}
+        .sf-subject{color:var(--on-blue-soft);font-size:15px;margin-top:5px;font-weight:600;overflow-wrap:anywhere}
         .sf-hero-meta{
           display:flex;align-items:center;gap:8px;margin-top:10px;
           font-size:13.5px;color:#EAF2FB;flex-wrap:wrap;

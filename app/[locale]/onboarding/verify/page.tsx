@@ -774,7 +774,7 @@ form .btn .spin{margin:0;width:18px;height:18px;border-width:2.5px;
 .dz[data-filled="true"] .dz-ic{background:var(--green-btn);color:#fff}
 .dz .dz-txt{display:flex;flex-direction:column;gap:2px;font-size:13.5px;min-width:0;flex:1}
 .dz .dz-txt b{font-weight:700;font-size:13.5px}
-.dz .dz-hint{font-size:13px;color:var(--muted);font-weight:500}
+.dz .dz-hint{font-size:13px;color:var(--muted);font-weight:600}
 .dz .dz-act{font-size:13px;font-weight:700;color:var(--blue);margin-inline-start:auto;white-space:nowrap}
 .dz-remove{margin-top:6px;background:0;border:0;cursor:pointer;color:var(--rose);
   font-family:var(--fb);font-size:13px;font-weight:700;padding:2px 0}

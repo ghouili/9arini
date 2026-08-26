@@ -7,9 +7,29 @@ import { JsonLd } from "@/components/JsonLd";
 import { LOCALES, DEFAULT_LOCALE, isLocale, dir, type AppLocale } from "@/lib/locale";
 import "../globals.css";
 
+/* ── FONTS ARE SPLIT BY LOCALE ────────────────────────────────────────────────
+   All three families used to ship to both locales. A French visitor downloaded
+   four weights of IBM Plex Sans Arabic they would never see; an Arabic visitor
+   downloaded five weights of Plus Jakarta Sans plus three of Space Grotesk that
+   globals.css then overrode anyway (html[dir="rtl"] remaps --fd AND --fb to
+   --fa). On the 3G Android this product is opened on, those are the bytes
+   sitting in front of first paint.
+
+   fr → Space Grotesk (display) + Plus Jakarta Sans (body) + ONE weight of the
+        Arabic face, which the brand mark needs: the logo glyph is ق and the
+        wordmark is "9arini قرّيني".
+   ar → IBM Plex Sans Arabic only. It carries Latin glyphs too, so mixed strings
+        ("15 TND", "9arini") still render correctly — which is exactly why the
+        RTL token remap is safe.
+
+   Weight 800 dropped (never used) and 500 dropped after moving this codebase's
+   only two font-weight:500 declarations to 600. Measured by
+   scripts/ui-audit/weight.mjs. */
 const displayFont = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--font-display" });
-const bodyFont = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800"], variable: "--font-body" });
-const arabicFont = IBM_Plex_Sans_Arabic({ subsets: ["arabic"], weight: ["400", "500", "600", "700"], variable: "--font-ar" });
+const bodyFont = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["400", "600", "700"], variable: "--font-body" });
+const arabicFont = IBM_Plex_Sans_Arabic({ subsets: ["arabic"], weight: ["400", "600", "700"], variable: "--font-ar" });
+/* Same family, one weight: all French pages need of it is the brand mark. */
+const arabicMark = IBM_Plex_Sans_Arabic({ subsets: ["arabic"], weight: ["400"], variable: "--font-ar" });
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://9arini.tn";
 const DESCRIPTION =
@@ -81,7 +101,11 @@ export default function LocaleLayout({
     <html
       lang={locale}
       dir={dir(locale)}
-      className={`${displayFont.variable} ${bodyFont.variable} ${arabicFont.variable}`}
+      className={
+        locale === "ar"
+          ? arabicFont.variable
+          : `${displayFont.variable} ${bodyFont.variable} ${arabicMark.variable}`
+      }
     >
       <body>
         {/* Site-wide structured data — truthful + static; identifies the 9arini entity

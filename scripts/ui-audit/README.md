@@ -8,7 +8,8 @@ not a report you can talk yourself out of.
 | `contrast.mjs` | every foreground/background pair the app renders clears WCAG 2.1 AA | no |
 | `nojs.mjs` | every public route shows h1 + sub-headline + primary CTA with **JavaScript disabled** | yes |
 | `a11y.mjs` | zero serious/critical axe violations, every route, **both locales** | yes |
-| `shots.mjs` | full-page screenshots at 320 / 380 / 768 / 1280 for eyeballing | yes |
+| `shots.mjs` | full-page screenshots at 320 / 380 / 768 / 1280, **plus** viewport-overflow and text-clipping detection | yes |
+| `weight.mjs` | what a first-time visitor downloads per route, split by resource type (informational) | yes |
 
 ```bash
 npm run dev -- -p 3111      # then, in another shell:
