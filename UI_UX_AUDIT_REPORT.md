@@ -1,4 +1,4 @@
-# 9arini — UI/UX audit report
+# Tnajem — UI/UX audit report
 
 Everything below is measured, not asserted. Every number comes from a runner in
 [`scripts/ui-audit/`](scripts/ui-audit/) that you can re-run; every one of them
@@ -170,7 +170,7 @@ Cold cache, 380px, production standalone build.
 
 All three families used to ship to both locales. Now `fr` gets Space Grotesk +
 Plus Jakarta + **one** weight of the Arabic face (the brand mark is genuinely
-Arabic: the logo glyph is ق and the wordmark is "9arini قرّيني"), and `ar` gets
+Arabic: the logo glyph is ق and the wordmark is "Tnajem تنجّم"), and `ar` gets
 IBM Plex Sans Arabic only — it carries Latin glyphs, so "15 TND" still renders.
 `globals.css` now remaps **`--fb` as well as `--fd`** under `dir="rtl"`; without
 that, every `font-family:var(--fb)` in Arabic still asked for a font no longer
@@ -192,7 +192,7 @@ first load JS                117 kB → 110 kB
 `<ShareButton>` is the island, and it now hides itself where `navigator.share`
 does not exist instead of rendering a button that does nothing.
 
-**The root is rewritten, not redirected.** "9arini.tn" is the URL people type and
+**The root is rewritten, not redirected.** "tnajem.tn" is the URL people type and
 read out loud; a 307 there cost a whole extra round trip (0.5–1s on 3G) before
 the first byte. `GET /` is **200 with 0 redirects**. Deeper paths still redirect
 on purpose — `/explore` and `/fr/explore` serving the same page at two URLs would
@@ -291,7 +291,7 @@ npm run build   green                                   ✓
    guessing.
 
 4. **`/fr` still downloads 32.7 kB of IBM Plex Sans Arabic** for the brand mark
-   alone (ق and قرّيني). Inlining the wordmark as SVG would remove it from the
+   alone (ق and تنجّم). Inlining the wordmark as SVG would remove it from the
    critical path of every French page. That is a brand-asset change and I did not
    make it unilaterally.
 

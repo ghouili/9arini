@@ -11,7 +11,7 @@ import type { DashboardData, DashboardBooking, NotificationItem } from "@/lib/ty
 
 /* Page-local copy (never edit lib/i18n.ts from here). FR + Derija, RTL-safe.
    NOTE: the shared t.dashboard.s1p/s2p/s3p strings still describe online payment
-   ("ils paient en TND — Flouci, carte ou D17") and a 12 % / 88 % split. 9arini
+   ("ils paient en TND — Flouci, carte ou D17") and a 12 % / 88 % split. Tnajem
    processes NO money during the pilot, so this page uses its own honest steps
    below instead of those keys. */
 const copy = {
@@ -76,7 +76,7 @@ const copy = {
     h2t: "L'élève réserve",
     h2b: "Son nom et son numéro arrivent ici, tout de suite.",
     h3t: "Il te paie directement",
-    h3b: "De la main à la main pendant le pilote. 9arini ne prend aucune commission. Le paiement en ligne arrivera plus tard.",
+    h3b: "De la main à la main pendant le pilote. Tnajem ne prend aucune commission. Le paiement en ligne arrivera plus tard.",
     shareLabel: "Ton lien de prof",
   },
   ar: {
@@ -138,7 +138,7 @@ const copy = {
     h2t: "التلميذ يحجز",
     h2b: "إسمو ونمرتو يوصلو لهوني في الحين.",
     h3t: "يخلّصك مباشرة",
-    h3b: "يد بيد في فترة التجربة. 9arini ما تاخذ حتى عمولة. الخلاص أونلاين يجي من بعد.",
+    h3b: "يد بيد في فترة التجربة. Tnajem ما تاخذ حتى عمولة. الخلاص أونلاين يجي من بعد.",
     shareLabel: "اللينك متاعك متاع أستاذ",
   },
 } as const;
@@ -449,7 +449,7 @@ function HowItWorks({ c }: { c: CopyDict }) {
 function StoreLinkBox({ slug }: { slug: string }) {
   const { t } = useLocale();
   const [copied, setCopied] = useState(false);
-  const url = `9arini.tn/${slug}`;
+  const url = `tnajem.tn/${slug}`;
   function handleCopy() {
     navigator.clipboard.writeText(`https://${url}`).catch(() => {});
     setCopied(true);

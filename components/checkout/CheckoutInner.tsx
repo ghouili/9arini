@@ -21,7 +21,7 @@ const monthAr: Record<string, string> = {
 
    The single most important job of this page is to make that unambiguous at the
    moment of commitment — a visitor who thinks a card is about to be charged
-   bounces. So the amount 9arini takes today (0 TND, always, free class or not) is
+   bounces. So the amount Tnajem takes today (0 TND, always, free class or not) is
    the headline, the "no card" line sits directly under it, and the price of the
    paid sessions is framed as something arranged with the tutor.
 
@@ -37,8 +37,8 @@ const copy = {
     seats: (n: number) =>
       n <= 0 ? "Complet" : n === 1 ? "1 place restante" : `${n} places restantes`,
 
-    // ── Money (true for the pilot: 9arini takes nothing, ever, today) ──
-    payTitle: "À payer sur 9arini",
+    // ── Money (true for the pilot: Tnajem takes nothing, ever, today) ──
+    payTitle: "À payer sur Tnajem",
     payAmount: "0 TND",
     noCard: "Aucune carte bancaire, aucun paiement en ligne.",
     freeSession: "Cette séance est offerte par ton prof.",
@@ -85,7 +85,7 @@ const copy = {
     seats: (n: number) =>
       n <= 0 ? "كامل" : n === 1 ? "بلاصة وحدة تبقات" : n === 2 ? "زوز بلايص تبقاو" : `${n} بلايص تبقاو`,
 
-    payTitle: "اللي تخلّصو في 9arini",
+    payTitle: "اللي تخلّصو في Tnajem",
     payAmount: "0 د.ت",
     noCard: "لا كارت بنكية، لا خلاص أونلاين.",
     freeSession: "هذه الحصة مقدّمة مجاناً من أستاذك.",
@@ -413,7 +413,7 @@ export default function CheckoutInner() {
         </div>
       </div>
 
-      {/* Money. 9arini charges nothing today — free class or paid — because there is
+      {/* Money. Tnajem charges nothing today — free class or paid — because there is
           no payment rail in the pilot. Saying that plainly, as the headline number,
           is the whole reassurance story of this screen. */}
       <div className="panel panel-pad ck-pay">

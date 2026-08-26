@@ -1,8 +1,8 @@
 {
-  "name": "9arini-app",
+  "name": "tnajem-app",
   "version": "0.1.0",
   "private": true,
-  "description": "9arini (قرّيني) — Shopify for Tunisian tutors. MVP. Local Postgres + Drizzle.",
+  "description": "Tnajem (تنجّم) — Shopify for Tunisian tutors. MVP. Local Postgres + Drizzle.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

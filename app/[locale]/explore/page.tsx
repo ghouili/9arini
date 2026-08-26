@@ -19,7 +19,7 @@ import { isLocale, DEFAULT_LOCALE, type AppLocale } from "@/lib/locale";
    (the canonical, indexable page is the full list). */
 export const revalidate = 60;
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://9arini.tn";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://tnajem.tn";
 
 export async function generateMetadata({ params }: { params: { locale: string } }): Promise<Metadata> {
   const locale: AppLocale = isLocale(params.locale) ? params.locale : DEFAULT_LOCALE;
@@ -27,8 +27,8 @@ export async function generateMetadata({ params }: { params: { locale: string } 
   const canonical = `/${locale}/explore`;
   const title = ar ? "استكشف الأساتذة المؤكّدين" : "Explorer les profs vérifiés";
   const description = ar
-    ? "تصفّح الأساتذة التوانسة المؤكّدين على 9arini — رياضيات، فيزياء، فرنسية، إنقليزية وأكثر، من الابتدائي للباك. الحصة الأولى مجانية، الخلاص بالدينار."
-    : "Parcours les profs particuliers tunisiens vérifiés sur 9arini — maths, physique, français, anglais et plus, du primaire au Bac. Première séance offerte, paiement en dinar.";
+    ? "تصفّح الأساتذة التوانسة المؤكّدين على Tnajem — رياضيات، فيزياء، فرنسية، إنقليزية وأكثر، من الابتدائي للباك. الحصة الأولى مجانية، الخلاص بالدينار."
+    : "Parcours les profs particuliers tunisiens vérifiés sur Tnajem — maths, physique, français, anglais et plus, du primaire au Bac. Première séance offerte, paiement en dinar.";
   return {
     title,
     description,
@@ -40,7 +40,7 @@ export async function generateMetadata({ params }: { params: { locale: string } 
       type: "website",
       url: `${SITE_URL}${canonical}`,
       locale: ar ? "ar_TN" : "fr_TN",
-      title: `${title} · 9arini`,
+      title: `${title} · Tnajem`,
       description,
     },
   };

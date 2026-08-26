@@ -1,7 +1,7 @@
 # Prompt for Claude Code — Integrate the new logo
 
 > Paste this as your prompt in Claude Code, from the repo root
-> (`D:\work\Startups\New idea claude\9arini-app`).
+> (`D:\work\Startups\New idea claude\tnajem-app`).
 
 ---
 
@@ -134,16 +134,16 @@ size, and anything you could not complete.
 
 ## ⚠️ One decision I need from you before you finish
 
-**The logo says "Tnajem". The app still says "9arini" everywhere.**
+**The logo says "Tnajem". The app still says "Tnajem" everywhere.**
 
 The brand is being renamed (there is a trademark conflict on the old name — see the research in
-the workspace). Shipping a Tnajem logo onto a 9arini site is incoherent.
+the workspace). Shipping a Tnajem logo onto a Tnajem site is incoherent.
 
 **Do NOT do the rename in this task.** It touches i18n, metadata, legal pages, the domain, email
 addresses, slugs and the database — it needs its own careful pass.
 
-Instead: **when you finish the logo work, tell me how big the rename is.** Grep for `9arini`,
-`قرّيني` and `9arini.tn` across the whole repo (including `.md` docs, `.env.example`, legal pages
+Instead: **when you finish the logo work, tell me how big the rename is.** Grep for `Tnajem`,
+`تنجّم` and `tnajem.tn` across the whole repo (including `.md` docs, `.env.example`, legal pages
 and `lib/i18n.ts`) and give me a count by file. Then I'll decide whether to do it now or next.
 
 ---

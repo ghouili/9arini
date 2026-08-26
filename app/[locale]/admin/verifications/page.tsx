@@ -255,7 +255,7 @@ export default function AdminVerificationsPage() {
                         <h3 className="av-name">{t.name}</h3>
                         <div className="av-sub">
                           <span className="chip chip-soft">{t.subject}</span>
-                          <span className="av-slug">9arini.tn/{t.slug}</span>
+                          <span className="av-slug">tnajem.tn/{t.slug}</span>
                         </div>
                       </div>
                       <div className="av-date">

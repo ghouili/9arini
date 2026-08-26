@@ -1,4 +1,4 @@
-// 9arini icon set (inline SVG, line style). Use: <Star className="..."/>. Agents may add more here if needed.
+// Tnajem icon set (inline SVG, line style). Use: <Star className="..."/>. Agents may add more here if needed.
 import type { ReactNode, CSSProperties } from "react";
 type P = { className?: string; style?: CSSProperties };
 const S = ({ children, className, style }: { children: ReactNode } & P) => (

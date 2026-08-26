@@ -1,6 +1,6 @@
-# 9arini — قرّيني
+# Tnajem — تنجّم
 
-*"Shopify for Tunisian tutors."* Every verified tutor gets a public storefront at `9arini.tn/<slug>` — their live classes, their packs, their **real** reviews — and a link they can paste on WhatsApp, TikTok or Insta. Students book a seat; the first session is free.
+*"Shopify for Tunisian tutors."* Every verified tutor gets a public storefront at `tnajem.tn/<slug>` — their live classes, their packs, their **real** reviews — and a link they can paste on WhatsApp, TikTok or Insta. Students book a seat; the first session is free.
 
 Mobile-first, bilingual **FR / العربية with full RTL**, on the cobalt/sand/ochre design system.
 
@@ -34,7 +34,7 @@ You need a **Postgres** running (local install, or a free Neon DB — no Docker;
 
 **Free first session.** `classes.is_free_first` — booking it takes a seat and creates a `booking`, no money involved.
 
-**Live classes — Jitsi, one room per class.** `lib/live.ts` derives the room from the class id (`https://meet.jit.si/9arini-<classId>`), so tutor and student always compute the same URL and the "Rejoindre" button is never blank. A tutor can override it with their own Zoom/Meet/Jitsi link via `classes.meet_url`.
+**Live classes — Jitsi, one room per class.** `lib/live.ts` derives the room from the class id (`https://meet.jit.si/tnajem-<classId>`), so tutor and student always compute the same URL and the "Rejoindre" button is never blank. A tutor can override it with their own Zoom/Meet/Jitsi link via `classes.meet_url`.
 
 **Payments — OFF.** Nothing in this app moves money. `lib/payments.ts` is a provider-agnostic scaffold (Konnect / Flouci adapters, both stubs) behind a master switch: `paymentsEnabled()` is true **only** when `PAYMENTS_ENABLED=1`. While off, every adapter method throws and the tutor balance is a real `0` — we never fabricate earnings. Do not flip it until counsel signs off **and** the provider contract + webhook signature verification exist.
 
@@ -91,7 +91,7 @@ If production ever serves the 500 page on every storefront, the cause is a missi
 - [ ] Real SMS credentials (`TWILIO_*`) — otherwise nobody outside dev can log in.
 - [ ] Leave `PAYMENTS_ENABLED` unset until legal sign-off. The payout UI is gated on it.
 - [ ] INPDP declaration; EU/Tunisia data residency confirmed with counsel.
-- [ ] Buy `9arini.tn`; deploy per DEPLOY.md.
+- [ ] Buy `tnajem.tn`; deploy per DEPLOY.md.
 
 ## Honest status
 

@@ -35,7 +35,7 @@ function adminPhones(): string[] {
 async function isAdmin(): Promise<boolean> {
   const allow = adminPhones();
   if (allow.length === 0) {
-    console.error("[9arini] ADMIN_PHONES is not configured — refusing doc access.");
+    console.error("[Tnajem] ADMIN_PHONES is not configured — refusing doc access.");
     return false; // fail closed
   }
   const session = await getSession();
@@ -84,7 +84,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   const base = process.env.STORAGE_DIR || join(process.cwd(), ".storage");
   const abs = resolveDocPath(base, doc.storagePath);
   if (!abs) {
-    console.error(`[9arini] refusing unsafe storage_path on doc ${doc.id}`);
+    console.error(`[Tnajem] refusing unsafe storage_path on doc ${doc.id}`);
     return new Response("Not found", { status: 404 });
   }
 

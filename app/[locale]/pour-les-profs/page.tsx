@@ -1,9 +1,9 @@
 "use client";
 /* ───────────────────────────────────────────────────────────────────────────
-   /pour-les-profs — 9arini TUTOR (teacher) landing page.
+   /pour-les-profs — Tnajem TUTOR (teacher) landing page.
    "Shopify for Tunisian tutors": branded page, live classes, you set your price.
 
-   FREE PILOT: 9arini processes no money. The student pays the tutor DIRECTLY,
+   FREE PILOT: Tnajem processes no money. The student pays the tutor DIRECTLY,
    off-platform; we take 0 % commission and issue no payouts. Online payment +
    the 12 % platform fee are "bientôt" only — never stated as current features.
    Zero lessons taught, zero tutors, zero reviews → no counts, no testimonials,
@@ -37,9 +37,9 @@ const copy = {
     h1a: "Ta page de prof.",
     h1b: "Tes cours en direct.",
     h1c: "Tu gardes 100 %.",
-    sub: "Crée ta page gratuitement en 2 minutes, fixe ton tarif, et donne tes cours en direct. L'élève te paie directement : 9arini ne prend rien.",
+    sub: "Crée ta page gratuitement en 2 minutes, fixe ton tarif, et donne tes cours en direct. L'élève te paie directement : Tnajem ne prend rien.",
     ctaPrimary: "Crée ta page de prof",
-    ctaGhost: "Voir les profs sur 9arini",
+    ctaGhost: "Voir les profs sur Tnajem",
     micro: "Gratuit. Sans carte. Zéro commission.",
     pilotChip: "Pilote — on lance",
 
@@ -52,10 +52,10 @@ const copy = {
     free1st: "1er cours offert",
     priceExample: "20 TND",
     shareLinkLabel: "Ton lien",
-    shareLinkExample: "9arini.tn/ta-page",
+    shareLinkExample: "tnajem.tn/ta-page",
     classFilling: "Classe en cours de remplissage",
     phoneBadges: ["0 % de commission", "Paiement direct"],
-    heroSceneLabel: "Illustration : une page de prof 9arini — nom, matière, un cours en direct et le lien à partager.",
+    heroSceneLabel: "Illustration : une page de prof Tnajem — nom, matière, un cours en direct et le lien à partager.",
 
     // ce que tu obtiens
     featEyebrow: "Ce que tu obtiens",
@@ -63,7 +63,7 @@ const copy = {
     f1t: "Ta page, ton lien",
     f1b: "Ton nom, ta matière, tes cours. Un seul lien à coller sur WhatsApp, Insta ou TikTok — c'est là que tes élèves réservent.",
     f2t: "Ton tarif — tu gardes 100 %",
-    f2b: "Tu fixes ton prix, cours par cours, sans plafond. L'élève te paie directement : 9arini ne prend aucune commission.",
+    f2b: "Tu fixes ton prix, cours par cours, sans plafond. L'élève te paie directement : Tnajem ne prend aucune commission.",
     f3t: "Vérifié à la main",
     f3b: "On regarde ta pièce d'identité nous-mêmes. Une fois validé, ta page passe en ligne et apparaît dans Explorer — souvent sous 24–48 h.",
     f4t: "Cours en direct",
@@ -90,19 +90,19 @@ const copy = {
     inKeepLbl: "Tu gardes, aujourd'hui",
     inKeep: "1 280 TND",
     inYou: "Toi · 100 %",
-    inFee: "9arini · 0 %",
+    inFee: "Tnajem · 0 %",
     inWithdraw:
-      "Pendant le pilote, l'élève te paie directement, de la main à la main. 9arini ne prend aucune commission et ne touche pas à ton argent. Paiement en ligne : bientôt.",
+      "Pendant le pilote, l'élève te paie directement, de la main à la main. Tnajem ne prend aucune commission et ne touche pas à ton argent. Paiement en ligne : bientôt.",
 
     // faq
     faqEyebrow: "Avant de te lancer",
     faqTitle: "Les questions qu'on nous pose",
-    q1: "Combien 9arini prend ?",
-    a1: "Rien, aujourd'hui. Pendant le pilote, tu gardes 100 % : l'élève te paie directement, 9arini ne touche pas à l'argent. Quand le paiement en ligne arrivera, une commission de 12 % s'appliquera — et on te préviendra avant.",
+    q1: "Combien Tnajem prend ?",
+    a1: "Rien, aujourd'hui. Pendant le pilote, tu gardes 100 % : l'élève te paie directement, Tnajem ne touche pas à l'argent. Quand le paiement en ligne arrivera, une commission de 12 % s'appliquera — et on te préviendra avant.",
     q2: "Faut-il un diplôme ?",
     a2: "Non. Maîtrise ta matière, une bonne connexion, et tu démarres aujourd'hui. On vérifie ton identité à la main avant que ta page soit publiée.",
     q3: "Si un élève ne vient pas ?",
-    a3: "Tu es prévenu et tu peux replanifier. Comme rien ne passe par 9arini, l'arrangement se fait directement entre toi et l'élève.",
+    a3: "Tu es prévenu et tu peux replanifier. Comme rien ne passe par Tnajem, l'arrangement se fait directement entre toi et l'élève.",
 
     // final
     finalTitle: "Ta page de prof t'attend.",
@@ -116,9 +116,9 @@ const copy = {
     h1a: "صفحتك متاع أستاذ.",
     h1b: "دروسك مباشرة.",
     h1c: "وتحتفظ بـ 100 %.",
-    sub: "اعمل صفحتك فابور في دقيقتين، حدّد تعريفتك، واعطي دروسك مباشرة. التلميذ يخلّصك مباشرة : 9arini ما تاخذ والو.",
+    sub: "اعمل صفحتك فابور في دقيقتين، حدّد تعريفتك، واعطي دروسك مباشرة. التلميذ يخلّصك مباشرة : Tnajem ما تاخذ والو.",
     ctaPrimary: "اعمل صفحتك متاع أستاذ",
-    ctaGhost: "شوف الأساتذة في 9arini",
+    ctaGhost: "شوف الأساتذة في Tnajem",
     micro: "فابور. بلا كارت. بلا عمولة.",
     pilotChip: "تجربة — توّا نبداو",
 
@@ -130,17 +130,17 @@ const copy = {
     free1st: "أول درس فابور",
     priceExample: "20 دينار",
     shareLinkLabel: "اللينك متاعك",
-    shareLinkExample: "9arini.tn/صفحتك",
+    shareLinkExample: "tnajem.tn/صفحتك",
     classFilling: "القسم في طور التعمير",
     phoneBadges: ["0 % عمولة", "خلاص مباشر"],
-    heroSceneLabel: "رسم توضيحي : صفحة أستاذ في 9arini — إسم، مادة، درس مباشر واللينك اللي تشاركو.",
+    heroSceneLabel: "رسم توضيحي : صفحة أستاذ في Tnajem — إسم، مادة، درس مباشر واللينك اللي تشاركو.",
 
     featEyebrow: "شنوّة باش تاخذ",
     featTitle: "بوتيك متاع أستاذ، حاضرة في دقيقتين",
     f1t: "صفحتك، ولينكك",
     f1b: "إسمك، مادتك، دروسك. لينك وحيد تلصقو في واتساب، إنستا ولا تيكتوك — ومن غادي تلامذتك يحجزو.",
     f2t: "ثمنك إنتي — وتحتفظ بـ 100 %",
-    f2b: "إنتي تحدّد ثمنك، درس بدرس، بلا سقف. التلميذ يخلّصك مباشرة : 9arini ما تاخذ حتى عمولة.",
+    f2b: "إنتي تحدّد ثمنك، درس بدرس، بلا سقف. التلميذ يخلّصك مباشرة : Tnajem ما تاخذ حتى عمولة.",
     f3t: "التثبّت يتعمل بيدينا",
     f3b: "نشوفو بطاقة تعريفك بيدينا. كي تتقبل، صفحتك تولّي أونلاين وتبان في «اكتشف» — عادةً في 24–48 ساعة.",
     f4t: "دروس مباشرة",
@@ -165,18 +165,18 @@ const copy = {
     inKeepLbl: "تحتفظ بيه، اليوم",
     inKeep: "1 280 دينار",
     inYou: "إنتي · 100 %",
-    inFee: "9arini · 0 %",
+    inFee: "Tnajem · 0 %",
     inWithdraw:
-      "في فترة التجربة، التلميذ يخلّصك مباشرة، يد بيد. 9arini ما تاخذ حتى عمولة وما تلمسش فلوسك. الخلاص أونلاين : قريب.",
+      "في فترة التجربة، التلميذ يخلّصك مباشرة، يد بيد. Tnajem ما تاخذ حتى عمولة وما تلمسش فلوسك. الخلاص أونلاين : قريب.",
 
     faqEyebrow: "قبل ما تبدا",
     faqTitle: "الأسئلة اللي يسقسيونا عليها",
-    q1: "قدّاش تاخذ 9arini ؟",
-    a1: "والو، اليوم. في فترة التجربة تحتفظ بـ 100 % : التلميذ يخلّصك مباشرة، و9arini ما تلمسش الفلوس. كي يجي الخلاص أونلاين، باش تولّي فما عمولة 12 % — ونعلموك قبل.",
+    q1: "قدّاش تاخذ Tnajem ؟",
+    a1: "والو، اليوم. في فترة التجربة تحتفظ بـ 100 % : التلميذ يخلّصك مباشرة، وTnajem ما تلمسش الفلوس. كي يجي الخلاص أونلاين، باش تولّي فما عمولة 12 % — ونعلموك قبل.",
     q2: "يلزم شهادة ؟",
     a2: "لا. اتقن مادتك، كنكسيون مليحة، وتبدا اليوم. نتثبّتو من هويتك بيدينا قبل ما تتنشر صفحتك.",
     q3: "كان التلميذ ما جاش ؟",
-    a3: "تتعلّم بيها وتنجّم تبدّل الوقت. وبما إلي حتى حاجة ما تعدّي من 9arini، الاتفاق يكون مباشرة بيناتكم.",
+    a3: "تتعلّم بيها وتنجّم تبدّل الوقت. وبما إلي حتى حاجة ما تعدّي من Tnajem، الاتفاق يكون مباشرة بيناتكم.",
 
     finalTitle: "صفحتك متاع أستاذ تستنّى فيك.",
     finalSub: "اعملها في دقيقتين.",
@@ -266,7 +266,7 @@ function Reveal({
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   HERO SCENE — the tutor's own 9arini page, floating.
+   HERO SCENE — the tutor's own Tnajem page, floating.
    It shows WHAT THEY GET (page, live class, price they set, shareable link),
    never an invented balance. role="img" describes the whole scene.
    ═══════════════════════════════════════════════════════════════════════════ */

@@ -35,7 +35,7 @@ export const demoFallbackActive: boolean = !dbReady && demoEnabled;
 export class DatabaseNotConfiguredError extends Error {
   constructor(op: string) {
     super(
-      `[9arini] DATABASE_URL is not set — refusing to serve demo data from ${op} in production. ` +
+      `[Tnajem] DATABASE_URL is not set — refusing to serve demo data from ${op} in production. ` +
         "Fix the deployment env; the demo fallback is development-only by design.",
     );
     this.name = "DatabaseNotConfiguredError";
@@ -45,7 +45,7 @@ export class DatabaseNotConfiguredError extends Error {
 /** Single choke point for every "no DB" branch below. */
 function assertNotProdWithoutDb(op: string): void {
   if (dbReady || demoEnabled) return;
-  console.error(`[9arini] FATAL: ${op} called in production with no DATABASE_URL.`);
+  console.error(`[Tnajem] FATAL: ${op} called in production with no DATABASE_URL.`);
   throw new DatabaseNotConfiguredError(op);
 }
 
@@ -128,7 +128,7 @@ export async function getPublicTutorRefs(): Promise<PublicTutorRef[]> {
         lastModified: r.reviewedAt ?? r.createdAt ?? new Date(),
       }));
   } catch (e) {
-    console.error("[9arini] sitemap: could not read verified tutors", e);
+    console.error("[Tnajem] sitemap: could not read verified tutors", e);
     return [];
   }
 }

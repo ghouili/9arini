@@ -24,7 +24,7 @@ adding an npm dependency was out of scope; Pillow is already on the machine and
 this runs by hand when the logo changes, not in CI.
 
 **`build-og.mjs`** (Playwright) builds only the social card, because it contains
-Arabic — `قرّيني`, `الحصة الأولى مجانية`. Pillow cannot shape Arabic here
+Arabic — `تنجّم`, `الحصة الأولى مجانية`. Pillow cannot shape Arabic here
 (libraqm is absent), so it would render the letters unjoined and in the wrong
 order. Chromium shapes it correctly, and Playwright is already a devDependency
 from the UI-audit harness. The card's palette is read out of `app/globals.css`,

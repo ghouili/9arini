@@ -14,7 +14,7 @@ import { DEFAULT_LOCALE, isLocale, localeFromPath, stripLocale, LOCALE_HEADER } 
       is absent on a protected route. Real validation happens server-side via
       getSession(); the edge only checks presence and never touches Postgres. */
 
-const SESSION_COOKIE = "9arini_session";
+const SESSION_COOKIE = "tnajem_session";
 
 /* Path prefixes (locale-stripped) that require a session. Mirrors the old matcher. */
 const PROTECTED = ["/dashboard", "/onboarding", "/account", "/student", "/checkout", "/live", "/admin"];
@@ -25,7 +25,7 @@ export function middleware(req: NextRequest) {
 
   /* 1. No locale in the URL → serve the preferred one.
 
-     THE ROOT IS REWRITTEN, NOT REDIRECTED. "9arini.tn" is the URL people type,
+     THE ROOT IS REWRITTEN, NOT REDIRECTED. "tnajem.tn" is the URL people type,
      read out loud and print; a 307 there costs a whole extra round trip before
      the first byte of HTML — 0.5-1s on Tunisian 3G — on the single most common
      entry point in the product. A rewrite serves /<locale> under the typed URL

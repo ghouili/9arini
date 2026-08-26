@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://9arini.tn";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://tnajem.tn";
 
 /* Everything behind auth (dashboard, account, checkout, live rooms), the admin
    review queue and the protected document viewer must stay out of the index. */

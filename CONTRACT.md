@@ -1,4 +1,4 @@
-# 9arini-app — build contract (read before adding code)
+# tnajem-app — build contract (read before adding code)
 
 The shared foundation is DONE. Build features against it; **do not edit** the shared files (`app/globals.css`, `app/layout.tsx`, `lib/i18n.ts`, `lib/types.ts`, `lib/demo.ts`, `components/{icons,ui,LocaleProvider,LocaleToggle}.tsx`).
 

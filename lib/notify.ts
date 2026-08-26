@@ -40,7 +40,7 @@ export async function notify(profileId: string, input: NotifyInput): Promise<{ o
     }
     return { ok: true };
   } catch (e) {
-    console.error("[9arini] notify failed:", input.kind, profileId, e);
+    console.error("[Tnajem] notify failed:", input.kind, profileId, e);
     return { ok: false };
   }
 }
@@ -65,7 +65,7 @@ export type ReminderPayload = {
 export async function sendClassReminder(payload: ReminderPayload): Promise<{ ok: boolean; stubbed: boolean }> {
   if (process.env.NODE_ENV !== "production") {
     // eslint-disable-next-line no-console
-    console.log("[9arini reminder — STUB]", payload.step, "→", payload.toPhone, payload.className);
+    console.log("[Tnajem reminder — STUB]", payload.step, "→", payload.toPhone, payload.className);
   }
   return { ok: true, stubbed: true };
 }

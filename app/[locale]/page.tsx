@@ -7,7 +7,7 @@ import { Verified } from "@/components/ui";
 import { Shield, Gift, Forward, Search, Video, Wallet, Users } from "@/components/icons";
 
 /* =====================================================================
-   STUDENT / PARENT LANDING — 9arini (قرّيني)
+   STUDENT / PARENT LANDING — Tnajem (تنجّم)
    Public home page at "/". Wrapped in <SiteShell> (header + footer come
    from there). All copy is self-contained below in `copy` (fr/ar) — we do
    NOT touch lib/i18n.ts. RTL is global (LocaleProvider sets dir), so the
@@ -75,11 +75,11 @@ const copy = {
       },
       {
         t: "Tu règles ton prof directement",
-        p: "Il fixe son tarif et l'affiche avant que tu réserves. Aucun abonnement, aucun frais 9arini. Le paiement en ligne viendra plus tard.",
+        p: "Il fixe son tarif et l'affiche avant que tu réserves. Aucun abonnement, aucun frais Tnajem. Le paiement en ligne viendra plus tard.",
       },
     ],
     honestNote:
-      "9arini vient d'ouvrir : aucune séance n'a encore eu lieu, donc aucun avis n'est affiché. Ceux qui viendront sortiront de vraies séances — on n'en inventera aucun.",
+      "Tnajem vient d'ouvrir : aucune séance n'a encore eu lieu, donc aucun avis n'est affiché. Ceux qui viendront sortiront de vraies séances — on n'en inventera aucun.",
 
     finalTitle: "Choisis ton prof. La 1ère séance est offerte.",
     finalCta: "Trouve ton prof",
@@ -129,11 +129,11 @@ const copy = {
       },
       {
         t: "تخلّص أستاذك مباشرة",
-        p: "هو اللي يحدّد ثمنو ويبيّنو قبل ما تحجز. بلا اشتراك، وبلا حتى فريسي لـ 9arini. الخلاص أونلاين باش يجي مبعد.",
+        p: "هو اللي يحدّد ثمنو ويبيّنو قبل ما تحجز. بلا اشتراك، وبلا حتى فريسي لـ Tnajem. الخلاص أونلاين باش يجي مبعد.",
       },
     ],
     honestNote:
-      "9arini كيف ما تحلّت: حتى حصة ما صارت لتوّا، وعلى هكّاكا ما فماش آراء. الآراء اللي باش تجي تكون من حصص حقيقية — ما نخترعو حتى وحدة.",
+      "Tnajem كيف ما تحلّت: حتى حصة ما صارت لتوّا، وعلى هكّاكا ما فماش آراء. الآراء اللي باش تجي تكون من حصص حقيقية — ما نخترعو حتى وحدة.",
 
     finalTitle: "اختار أستاذك. أول حصة بلاش.",
     finalCta: "لقّي أستاذك",

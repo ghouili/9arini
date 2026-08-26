@@ -111,7 +111,7 @@ export async function requestOtp(input: { phone: string }):
   if (!code) return { ok: false, error: "too-soon", retryAfter: 60 };
 
   if (smsEnabled()) {
-    const sent = await sendSms(phone, `9arini : ton code de connexion est ${code} (valable 5 min).`);
+    const sent = await sendSms(phone, `Tnajem : ton code de connexion est ${code} (valable 5 min).`);
     // Production posture: the code is NEVER returned to the client. If SMS
     // delivery fails, surface an error so the user can retry — don't leak it.
     return sent ? { ok: true } : { ok: false, error: "sms-failed" };
@@ -601,7 +601,7 @@ export async function reserveSeat(input: { classId: string }):
     title: "Place réservée ✅",
     body: `${cls.title} — ${whenLabel}${tut ? ` avec ${tut.fullName}` : ""}.`,
     href: `/class/${cls.id}`,
-    sms: `9arini : ta place pour « ${cls.title} » le ${whenLabel} est réservée. Lien de la séance dans ton espace élève.`,
+    sms: `Tnajem : ta place pour « ${cls.title} » le ${whenLabel} est réservée. Lien de la séance dans ton espace élève.`,
   });
   if (tut?.profileId) {
     await notify(tut.profileId, {
@@ -889,7 +889,7 @@ function adminPhones(): string[] {
 async function requireAdmin() {
   const allow = adminPhones();
   if (allow.length === 0) {
-    console.error("[9arini] ADMIN_PHONES is not configured — refusing all admin access.");
+    console.error("[Tnajem] ADMIN_PHONES is not configured — refusing all admin access.");
     return null; // fail closed, never open
   }
   const session = await getSession();
@@ -1141,7 +1141,7 @@ export async function approveTutor(input: { tutorId: string }): Promise<{ ok: bo
       title: "Profil vérifié ✅",
       body: "Ton profil est validé. Ta page est en ligne et visible dans Explorer.",
       href: "/dashboard",
-      sms: `9arini : ton profil est vérifié ✅ Ta page 9arini.tn/${t.slug} est en ligne.`,
+      sms: `Tnajem : ton profil est vérifié ✅ Ta page tnajem.tn/${t.slug} est en ligne.`,
     });
   }
   return { ok: true };
@@ -1179,7 +1179,7 @@ export async function rejectTutor(input: { tutorId: string; note?: string }): Pr
         ? `Ton dossier n'a pas été validé : ${note.value}. Tu peux corriger et renvoyer.`
         : "Ton dossier n'a pas été validé. Vérifie tes documents et renvoie ta demande.",
       href: "/dashboard/verification",
-      sms: "9arini : ton dossier de vérification doit être complété. Détails dans ton espace prof.",
+      sms: "Tnajem : ton dossier de vérification doit être complété. Détails dans ton espace prof.",
     });
   }
   return { ok: true };

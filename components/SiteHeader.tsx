@@ -14,7 +14,7 @@ import { LocaleToggle } from "./LocaleToggle";
    link that bounces to /auth (middleware) — every action re-checks the real session. */
 function readRoleHint(): string | null {
   if (typeof document === "undefined") return null;
-  const m = document.cookie.match(/(?:^|;\s*)9arini_role=([^;]+)/);
+  const m = document.cookie.match(/(?:^|;\s*)tnajem_role=([^;]+)/);
   return m ? decodeURIComponent(m[1]) : null;
 }
 
@@ -163,7 +163,7 @@ export function SiteHeader() {
     <header className="site-header">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="container">
-        <Link href="/" className="brand-mark qh-brand" aria-label="9arini">
+        <Link href="/" className="brand-mark qh-brand" aria-label="Tnajem">
           <Logo variant="full" height={38} priority />
         </Link>
 

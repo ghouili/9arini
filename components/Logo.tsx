@@ -85,7 +85,7 @@ export function Logo({
     <span className={`brand-mark ${className ?? ""}`.trim()}>
       {img}
       <span className="brand-word">
-        9arini <span className="ar">قرّيني</span>
+        Tnajem <span className="ar">تنجّم</span>
       </span>
     </span>
   );

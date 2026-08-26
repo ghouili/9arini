@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { getCachedPublicTutorRefs } from "@/lib/cache";
 import { LOCALES } from "@/lib/locale";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://9arini.tn";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://tnajem.tn";
 
 /* Regenerate at most once an hour. Without this, /sitemap.xml is a dynamic route
    (it reads the DB) and every crawler hit runs an unbounded `select ... from tutors

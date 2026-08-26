@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 9arini design system — now Tailwind-layered. Tokens live in :root and are
+/* Tnajem design system — now Tailwind-layered. Tokens live in :root and are
    mapped into the Tailwind theme (tailwind.config.ts). Base resets sit in
    @layer base and the component/layout classes in @layer components, so Tailwind
    utility classes reliably override them. Prefer utilities in new code; these
@@ -455,7 +455,7 @@
       means every `font-family:var(--fd)` in the codebase — however it is
       written, including inline styles, since custom properties inherit —
       resolves to the Arabic family. IBM Plex Sans Arabic carries Latin glyphs
-      too, so mixed strings ("15 TND", "9arini") still render correctly.
+      too, so mixed strings ("15 TND", "Tnajem") still render correctly.
    2. TRACKING — letter-spacing SEVERS Arabic cursive joins: كتاب renders as
       four disconnected letters. This is true of any non-zero tracking, negative
       (display classes) or positive (uppercase eyebrows), so the correct rule in

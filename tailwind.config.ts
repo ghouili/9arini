@@ -1,6 +1,6 @@
 import type { Config } from "tailwindcss";
 
-/* Tailwind maps onto the existing 9arini design tokens (globals.css :root) via
+/* Tailwind maps onto the existing Tnajem design tokens (globals.css :root) via
    CSS variables, so utilities like bg-cobalt / text-ink / border-line stay in
    sync with the design system. Preflight is OFF — globals.css already provides
    the reset, and preflight would clobber the custom-styled pages. */

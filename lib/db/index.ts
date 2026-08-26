@@ -101,7 +101,7 @@ function createClient(dbUrl: string) {
     ssl: sslOption(dbUrl),
     // NOTICE spam (e.g. "relation already exists") is noise in prod logs.
     onnotice: isProd ? () => {} : undefined,
-    connection: { application_name: "9arini" }, // shows up in pg_stat_activity
+    connection: { application_name: "Tnajem" }, // shows up in pg_stat_activity
   });
 
   /* Give in-flight queries a moment to finish on a pm2 reload / systemd restart
@@ -127,10 +127,10 @@ function createClient(dbUrl: string) {
    silently multiplies the connection budget above by however many times the
    module got instantiated. Caching on globalThis is the only place a value
    survives both. Cheap insurance; there is no downside to it in production. */
-const g = globalThis as unknown as { __qariniSql?: ReturnType<typeof postgres> };
+const g = globalThis as unknown as { __tnajemSql?: ReturnType<typeof postgres> };
 
-const sql = url ? (g.__qariniSql ?? createClient(url)) : null;
-if (sql) g.__qariniSql = sql;
+const sql = url ? (g.__tnajemSql ?? createClient(url)) : null;
+if (sql) g.__tnajemSql = sql;
 
 export const db = sql ? drizzle(sql, { schema }) : (null as unknown as ReturnType<typeof drizzle<typeof schema>>);
 export { sql };

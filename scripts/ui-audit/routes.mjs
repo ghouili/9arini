@@ -9,7 +9,7 @@ export const WIDTHS = [320, 380, 768, 1280];
 
 /* The dev-mode session sentinel. middleware.ts accepts it outside production, so
    the logged-in screens can be audited without standing up a real OTP flow. */
-export const SESSION_COOKIE = { name: "9arini_session", value: "demo", url: BASE };
+export const SESSION_COOKIE = { name: "tnajem_session", value: "demo", url: BASE };
 
 /* `nojs: true`  → must render h1 + sub + CTA with JavaScript disabled.
    `sub` / `cta`  → the selectors nojs.mjs asserts on. `null` means "not applicable"

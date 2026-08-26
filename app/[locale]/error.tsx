@@ -20,7 +20,7 @@ export default function Error({
 
   useEffect(() => {
     // Surfaces the stack in dev; hook a real reporter (Sentry…) here later.
-    console.error("[9arini] unhandled error", error);
+    console.error("[Tnajem] unhandled error", error);
   }, [error]);
 
   return (

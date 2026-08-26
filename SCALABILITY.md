@@ -2,7 +2,7 @@
 
 The scenario this document is written against: **one tutor pastes their storefront
 link into a WhatsApp group or a TikTok bio, and within ten minutes several
-thousand mid-range Androids on 3G open `9arini.tn/<slug>` at the same time.**
+thousand mid-range Androids on 3G open `tnajem.tn/<slug>` at the same time.**
 
 Everything below is either already done (indexes, pool, caching) or is the next
 thing to do, in the order it will start hurting.
@@ -86,8 +86,8 @@ Same reasoning applies to `tutors.profile_id` (one storefront per profile).
 ### What was wrong
 
 ```ts
-const sql = url ? (g.__qariniSql ?? postgres(url, { max: 5 })) : null;
-if (url && process.env.NODE_ENV !== "production" && sql) g.__qariniSql = sql;
+const sql = url ? (g.__tnajemSql ?? postgres(url, { max: 5 })) : null;
+if (url && process.env.NODE_ENV !== "production" && sql) g.__tnajemSql = sql;
 ```
 
 The singleton was cached **only in dev**. In production the `globalThis` write
@@ -202,7 +202,7 @@ performance one, and it is why the number is 60 seconds and not an hour:
 
 `getPublicTutorRefs()` is an **unbounded `select … from tutors where status =
 'verified'` with no LIMIT** — the one full-table scan in the codebase — and it
-was exposed at a public URL. `curl https://9arini.tn/sitemap.xml` in a loop was a
+was exposed at a public URL. `curl https://tnajem.tn/sitemap.xml` in a loop was a
 free denial-of-service against the same pool that serves logins. Now
 `revalidate = 3600` + `getCachedPublicTutorRefs()`: the scan runs **once an hour**
 no matter who asks.

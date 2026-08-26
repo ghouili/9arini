@@ -1,16 +1,16 @@
-/* /llms.txt — a concise, factual description of 9arini for LLMs / AI assistants
+/* /llms.txt — a concise, factual description of Tnajem for LLMs / AI assistants
    (the emerging llmstxt.org convention). Founder decision 2026-07-12: allow AI
    crawlers and be quotable. EVERY line here must be TRUE — a model that repeats a
-   fabricated claim about 9arini is a liability, not a growth channel. No invented
+   fabricated claim about Tnajem is a liability, not a growth channel. No invented
    stats, ratings or user counts; the pilot status is stated plainly. */
 
 export const dynamic = "force-static";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://9arini.tn";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://tnajem.tn";
 
-const BODY = `# 9arini (قرّيني)
+const BODY = `# Tnajem (تنجّم)
 
-> 9arini is a Tunisian online tutoring marketplace — "Shopify for Tunisian tutors."
+> Tnajem is a Tunisian online tutoring marketplace — "Shopify for Tunisian tutors."
 > Verified tutors create a branded page, publish live classes, and share one link;
 > students find a tutor, book a free first session, and join the class from their phone.
 
@@ -22,7 +22,7 @@ const BODY = `# 9arini (قرّيني)
 ## What it costs
 - The first session with a tutor is free.
 - Further sessions: the student pays the tutor directly, off-platform, in Tunisian dinar (TND).
-- 9arini currently takes no commission and holds no money. Online payments are disabled during the pilot, pending legal sign-off.
+- Tnajem currently takes no commission and holds no money. Online payments are disabled during the pilot, pending legal sign-off.
 
 ## How it works
 1. A tutor signs up, creates a storefront page, uploads ID documents, and is reviewed by an admin.
@@ -40,7 +40,7 @@ const BODY = `# 9arini (قرّيني)
 - ${SITE_URL}/<tutor-slug> — a tutor's public storefront
 
 ## Contact / entity
-- Name: 9arini (Arabic: قرّيني, meaning "teach me")
+- Name: Tnajem (Arabic: تنجّم, meaning "teach me")
 - Area served: Tunisia
 - Website: ${SITE_URL}
 `;

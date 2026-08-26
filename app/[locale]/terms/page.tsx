@@ -58,38 +58,38 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
     title: "Conditions d'utilisation",
     updated: "Version du 12 juillet 2026",
     lead:
-      "Ces conditions expliquent, en langage simple, ce que 9arini fait, ce que 9arini ne fait pas, et les règles que chacun accepte en utilisant la plateforme. En créant un compte ou en réservant une séance, tu les acceptes.",
+      "Ces conditions expliquent, en langage simple, ce que Tnajem fait, ce que Tnajem ne fait pas, et les règles que chacun accepte en utilisant la plateforme. En créant un compte ou en réservant une séance, tu les acceptes.",
     sections: [
       {
-        h: "1. Ce qu'est 9arini (et ce qu'il n'est pas)",
+        h: "1. Ce qu'est Tnajem (et ce qu'il n'est pas)",
         p: [
-          "9arini (قرّيني) est une plateforme de mise en relation. Elle permet à des élèves — et à leurs parents — de trouver des profs particuliers indépendants en Tunisie, de voir leurs séances et de réserver une place.",
-          "9arini n'est pas une école, ne délivre aucun diplôme, et n'est pas l'employeur des profs. Les profs sont indépendants : ils choisissent leurs matières, leurs horaires, leur méthode et leurs prix. Le cours lui-même est un accord entre l'élève (ou son parent) et le prof. 9arini fournit l'outil, pas l'enseignement.",
-          "9arini ne garantit aucun résultat scolaire, aucune note et aucun niveau.",
+          "Tnajem (تنجّم) est une plateforme de mise en relation. Elle permet à des élèves — et à leurs parents — de trouver des profs particuliers indépendants en Tunisie, de voir leurs séances et de réserver une place.",
+          "Tnajem n'est pas une école, ne délivre aucun diplôme, et n'est pas l'employeur des profs. Les profs sont indépendants : ils choisissent leurs matières, leurs horaires, leur méthode et leurs prix. Le cours lui-même est un accord entre l'élève (ou son parent) et le prof. Tnajem fournit l'outil, pas l'enseignement.",
+          "Tnajem ne garantit aucun résultat scolaire, aucune note et aucun niveau.",
         ],
       },
       {
-        h: "2. Qui peut utiliser 9arini",
+        h: "2. Qui peut utiliser Tnajem",
         p: [
           "Il faut être une personne physique et donner des informations exactes. Un compte est personnel : tu ne le partages pas et tu es responsable de ce qui en est fait.",
         ],
         list: [
           "Élève majeur : tu peux créer ton compte toi-même.",
           "Élève mineur (moins de 18 ans) : un parent ou tuteur doit donner son accord et renseigner son nom et son téléphone. Sans cet accord, le compte n'est pas activé.",
-          "Prof : tu dois pouvoir prouver ton identité (voir article 9) et être en règle avec tes propres obligations (statut, fiscalité, autorisations éventuelles). 9arini ne s'en charge pas à ta place.",
+          "Prof : tu dois pouvoir prouver ton identité (voir article 9) et être en règle avec tes propres obligations (statut, fiscalité, autorisations éventuelles). Tnajem ne s'en charge pas à ta place.",
         ],
       },
       {
         h: "3. Compte, téléphone et code SMS",
         p: [
-          "La connexion se fait avec ton numéro de téléphone et un code à usage unique envoyé par SMS. Ce code est personnel et temporaire : ne le communique jamais, à personne. 9arini ne te demandera jamais ton code par téléphone, par WhatsApp ou par message.",
+          "La connexion se fait avec ton numéro de téléphone et un code à usage unique envoyé par SMS. Ce code est personnel et temporaire : ne le communique jamais, à personne. Tnajem ne te demandera jamais ton code par téléphone, par WhatsApp ou par message.",
           "Si tu perds l'accès à ton numéro, écris-nous : nous pouvons devoir vérifier ton identité avant de rétablir l'accès.",
         ],
       },
       {
         h: "4. Les profs fixent leurs prix",
         p: [
-          "Chaque prof affiche librement le prix de ses séances, en dinar tunisien (TND), ainsi que la durée, le nombre de places et le contenu. 9arini n'impose aucun tarif et ne négocie pas à la place du prof.",
+          "Chaque prof affiche librement le prix de ses séances, en dinar tunisien (TND), ainsi que la durée, le nombre de places et le contenu. Tnajem n'impose aucun tarif et ne négocie pas à la place du prof.",
           "Les prix affichés sont ceux du prof. Le prof est seul responsable de ses obligations fiscales et déclaratives liées à ses revenus.",
         ],
       },
@@ -103,9 +103,9 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
       {
         h: "6. Paiements : pas encore actifs",
         p: [
-          "Aujourd'hui, 9arini n'encaisse aucun paiement. Aucune carte, aucun portefeuille et aucun compte bancaire n'est débité via la plateforme. Réserver une séance ne déclenche aucun prélèvement.",
+          "Aujourd'hui, Tnajem n'encaisse aucun paiement. Aucune carte, aucun portefeuille et aucun compte bancaire n'est débité via la plateforme. Réserver une séance ne déclenche aucun prélèvement.",
           "Les éléments liés au paiement que tu peux voir dans l'application (moyens de paiement, commission de la plateforme, retraits) décrivent une fonctionnalité en préparation. Ils ne s'appliquent pas tant que les paiements ne sont pas officiellement activés — ce qui suppose les accords, agréments et vérifications nécessaires.",
-          "Si un prof et un élève choisissent de s'arranger financièrement en dehors de 9arini, cela se fait entre eux, hors plateforme, sous leur seule responsabilité. 9arini n'est ni partie, ni intermédiaire, ni garant de cet arrangement.",
+          "Si un prof et un élève choisissent de s'arranger financièrement en dehors de Tnajem, cela se fait entre eux, hors plateforme, sous leur seule responsabilité. Tnajem n'est ni partie, ni intermédiaire, ni garant de cet arrangement.",
           "Quand les paiements seront activés, ces conditions seront mises à jour et tu en seras informé avant que la fonctionnalité ne s'applique à toi.",
         ],
       },
@@ -121,7 +121,7 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
       },
       {
         h: "8. Règles d'usage",
-        p: ["En utilisant 9arini, tu t'engages à ne pas :"],
+        p: ["En utilisant Tnajem, tu t'engages à ne pas :"],
         list: [
           "harceler, insulter, menacer ou discriminer qui que ce soit — élève, parent ou prof ;",
           "publier un contenu illégal, violent, haineux, sexuel, ou inadapté à des mineurs ;",
@@ -129,7 +129,7 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
           "enregistrer, filmer ou rediffuser une séance sans l'accord clair de toutes les personnes présentes ;",
           "revendre, copier ou redistribuer les cours, fiches et enregistrements d'un prof ;",
           "utiliser des robots ou du scraping pour extraire des données de la plateforme ;",
-          "envoyer du spam, de la publicité, ou détourner 9arini de son objet éducatif.",
+          "envoyer du spam, de la publicité, ou détourner Tnajem de son objet éducatif.",
         ],
         after: [
           "En cas de manquement, nous pouvons retirer un contenu, suspendre ou supprimer un compte — sans préavis lorsque la sécurité des utilisateurs, en particulier des mineurs, l'exige.",
@@ -139,35 +139,35 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
         h: "9. Vérification des profs",
         p: [
           "Avant d'apparaître publiquement, un prof doit soumettre une pièce d'identité (CIN ou passeport, recto/verso). Les diplômes et attestations sont facultatifs et servent à renforcer la confiance.",
-          "Ces documents sont examinés manuellement par un administrateur de 9arini. Ils ne sont jamais publiés. Leur traitement, leur durée de conservation et leur suppression sont décrits dans la politique de confidentialité.",
+          "Ces documents sont examinés manuellement par un administrateur de Tnajem. Ils ne sont jamais publiés. Leur traitement, leur durée de conservation et leur suppression sont décrits dans la politique de confidentialité.",
           "Le badge « Vérifié » signifie uniquement que des documents d'identité ont été présentés et contrôlés visuellement. Ce n'est ni une enquête judiciaire, ni un agrément de l'État, ni une garantie de compétence pédagogique ou de bonne conduite. Nous pouvons refuser ou retirer une vérification à tout moment.",
         ],
       },
       {
         h: "10. Contenus et propriété intellectuelle",
         p: [
-          "Le prof reste propriétaire de ses cours, fiches, enregistrements et supports. En les publiant sur 9arini, il accorde à 9arini une licence gratuite et non exclusive, limitée à l'hébergement, l'affichage et la promotion de son offre sur la plateforme et ses canaux de communication, pour la durée de la publication.",
+          "Le prof reste propriétaire de ses cours, fiches, enregistrements et supports. En les publiant sur Tnajem, il accorde à Tnajem une licence gratuite et non exclusive, limitée à l'hébergement, l'affichage et la promotion de son offre sur la plateforme et ses canaux de communication, pour la durée de la publication.",
           "L'élève reçoit un droit d'usage strictement personnel : il peut apprendre avec ces supports, pas les revendre ni les diffuser.",
-          "Le nom « 9arini », « قرّيني », le logo et l'identité visuelle appartiennent à 9arini et ne peuvent pas être utilisés sans autorisation écrite.",
+          "Le nom « Tnajem », « تنجّم », le logo et l'identité visuelle appartiennent à Tnajem et ne peuvent pas être utilisés sans autorisation écrite.",
         ],
       },
       {
         h: "11. Cours en direct et outils tiers",
         p: [
-          "Les séances en direct peuvent s'appuyer sur des outils tiers (visioconférence, tableau blanc, quiz). Ces outils ont leurs propres conditions et leur propre politique de confidentialité. 9arini ne les contrôle pas et n'est pas responsable de leur disponibilité.",
+          "Les séances en direct peuvent s'appuyer sur des outils tiers (visioconférence, tableau blanc, quiz). Ces outils ont leurs propres conditions et leur propre politique de confidentialité. Tnajem ne les contrôle pas et n'est pas responsable de leur disponibilité.",
         ],
       },
       {
         h: "12. Disponibilité du service",
         p: [
-          "9arini est fourni « en l'état ». Le service peut être interrompu pour maintenance, mise à jour ou incident technique. Nous faisons de notre mieux pour limiter ces interruptions, sans garantie de disponibilité continue.",
+          "Tnajem est fourni « en l'état ». Le service peut être interrompu pour maintenance, mise à jour ou incident technique. Nous faisons de notre mieux pour limiter ces interruptions, sans garantie de disponibilité continue.",
         ],
       },
       {
         h: "13. Responsabilité",
         p: [
-          "9arini met en relation ; elle ne dispense pas le cours. Dans les limites permises par le droit tunisien, 9arini n'est pas responsable du contenu pédagogique, de la qualité, du comportement ou des propos d'un prof, d'un élève ou d'un parent, ni des dommages indirects (perte de temps, perte d'une note, perte de chance).",
-          "Rien dans ces conditions n'exclut la responsabilité de 9arini en cas de dol, de faute lourde ou d'atteinte à l'intégrité physique, ni les droits que la loi tunisienne reconnaît impérativement aux consommateurs.",
+          "Tnajem met en relation ; elle ne dispense pas le cours. Dans les limites permises par le droit tunisien, Tnajem n'est pas responsable du contenu pédagogique, de la qualité, du comportement ou des propos d'un prof, d'un élève ou d'un parent, ni des dommages indirects (perte de temps, perte d'une note, perte de chance).",
+          "Rien dans ces conditions n'exclut la responsabilité de Tnajem en cas de dol, de faute lourde ou d'atteinte à l'intégrité physique, ni les droits que la loi tunisienne reconnaît impérativement aux consommateurs.",
         ],
       },
       {
@@ -192,7 +192,7 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
       },
       {
         h: "17. Nous contacter",
-        p: ["Une question sur ces conditions : contact@9arini.tn."],
+        p: ["Une question sur ces conditions : contact@tnajem.tn."],
       },
     ],
     seeAlso: "Voir aussi : politique de confidentialité",
@@ -206,38 +206,38 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
     title: "شروط الاستعمال",
     updated: "نسخة 12 جويلية 2026",
     lead:
-      "الشروط هاذي تشرح، بكلام بسيط، شنوّة تعمل قرّيني، شنوّة ما تعملهاش، والقواعد اللي كل واحد يقبلها كي يستعمل المنصّة. كي تعمل حساب ولا تحجز حصة، إنت تقبل بيهم.",
+      "الشروط هاذي تشرح، بكلام بسيط، شنوّة تعمل تنجّم، شنوّة ما تعملهاش، والقواعد اللي كل واحد يقبلها كي يستعمل المنصّة. كي تعمل حساب ولا تحجز حصة، إنت تقبل بيهم.",
     sections: [
       {
-        h: "1. شنوّة هي قرّيني (وشنوّة ما هيش)",
+        h: "1. شنوّة هي تنجّم (وشنوّة ما هيش)",
         p: [
-          "قرّيني (9arini) هي منصّة ربط. تعاون التلاميذ — وأولياءهم — باش يلقاو أساتذة خصوصيين مستقلّين في تونس، يشوفو حصصهم ويحجزو بلاصة.",
-          "قرّيني ماهيش مدرسة، ما تعطي حتى شهادة، وماهيش المشغّل متاع الأساتذة. الأساتذة مستقلّين: هوما اللي يختارو الموادّ، الأوقات، الطريقة والأسعار. الحصة روحها اتفاق بين التلميذ (ولا وليّه) والأستاذ. قرّيني توفّر الأداة، موش التدريس.",
-          "قرّيني ما تضمنش حتى نتيجة دراسية ولا عدد ولا مستوى.",
+          "تنجّم (Tnajem) هي منصّة ربط. تعاون التلاميذ — وأولياءهم — باش يلقاو أساتذة خصوصيين مستقلّين في تونس، يشوفو حصصهم ويحجزو بلاصة.",
+          "تنجّم ماهيش مدرسة، ما تعطي حتى شهادة، وماهيش المشغّل متاع الأساتذة. الأساتذة مستقلّين: هوما اللي يختارو الموادّ، الأوقات، الطريقة والأسعار. الحصة روحها اتفاق بين التلميذ (ولا وليّه) والأستاذ. تنجّم توفّر الأداة، موش التدريس.",
+          "تنجّم ما تضمنش حتى نتيجة دراسية ولا عدد ولا مستوى.",
         ],
       },
       {
-        h: "2. شكون ينجّم يستعمل قرّيني",
+        h: "2. شكون ينجّم يستعمل تنجّم",
         p: [
           "لازم تكون شخص طبيعي وتعطي معلومات صحيحة. الحساب شخصي: ما تشاركوش مع حتى واحد وإنت مسؤول على كل شيء يتعمل بيه.",
         ],
         list: [
           "تلميذ راشد: تنجّم تعمل حسابك وحدك.",
           "تلميذ قاصر (أقلّ من 18 سنة): لازم وليّ يوافق ويعمّر اسمه ورقم تليفونه. من غير الموافقة هاذي، الحساب ما يتفعّلش.",
-          "أستاذ: لازم تثبت هويتك (شوف الفصل 9) وتكون في القانون مع واجباتك (الوضعية، الجباية، الرخص إذا لزمو). قرّيني ما تعملهمش عوضك.",
+          "أستاذ: لازم تثبت هويتك (شوف الفصل 9) وتكون في القانون مع واجباتك (الوضعية، الجباية، الرخص إذا لزمو). تنجّم ما تعملهمش عوضك.",
         ],
       },
       {
         h: "3. الحساب، التليفون ورمز الـSMS",
         p: [
-          "الدخول يتمّ برقم تليفونك وبرمز وحيد يوصلك في SMS. الرمز هذا شخصي ووقتي: ما تعطيه لحتى واحد. قرّيني عمرها ما تطلب منّك الرمز بالتليفون ولا بواتساب ولا برسالة.",
+          "الدخول يتمّ برقم تليفونك وبرمز وحيد يوصلك في SMS. الرمز هذا شخصي ووقتي: ما تعطيه لحتى واحد. تنجّم عمرها ما تطلب منّك الرمز بالتليفون ولا بواتساب ولا برسالة.",
           "إذا ضيّعت رقمك، اكتبلنا: نجّمو نحتاجو نتثبّتو في هويتك قبل ما نرجّعولك الدخول.",
         ],
       },
       {
         h: "4. الأساتذة هوما اللي يحدّدو أسعارهم",
         p: [
-          "كل أستاذ يحطّ سعر حصصه بالدينار التونسي (TND) بكل حرّية، مع المدّة، عدد الأماكن والمحتوى. قرّيني ما تفرضش تعريفة وما تفاوضش عوض الأستاذ.",
+          "كل أستاذ يحطّ سعر حصصه بالدينار التونسي (TND) بكل حرّية، مع المدّة، عدد الأماكن والمحتوى. تنجّم ما تفرضش تعريفة وما تفاوضش عوض الأستاذ.",
           "الأسعار الظاهرة هي أسعار الأستاذ. الأستاذ وحدو مسؤول على واجباته الجبائية والتصريحية على مداخيله.",
         ],
       },
@@ -251,9 +251,9 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
       {
         h: "6. الخلاص: ما زال ما تفعّلش",
         p: [
-          "اليوم، قرّيني ما تقبض حتى مليم. حتى بطاقة، حتى محفظة وحتى حساب بنكي ما يتخصمش عبر المنصّة. الحجز ما يجرّ حتى خصم.",
+          "اليوم، تنجّم ما تقبض حتى مليم. حتى بطاقة، حتى محفظة وحتى حساب بنكي ما يتخصمش عبر المنصّة. الحجز ما يجرّ حتى خصم.",
           "كل حاجة تشوفها في التطبيق على الدفع (وسائل الخلاص، عمولة المنصّة، السحب) تخصّ ميزة ما زالت في التحضير. ما تنطبقش قبل ما الدفع يتفعّل رسميًا — وهذا يستوجب الاتفاقات والتراخيص والتثبّتات اللازمة.",
-          "إذا أستاذ وتلميذ قرّرو يتفاهمو على الخلاص برّة قرّيني، هذا يصير بيناتهم، برّة المنصّة، على مسؤوليتهم وحدهم. قرّيني ماهيش طرف، لا وسيط ولا ضامن في الاتفاق هذاكا.",
+          "إذا أستاذ وتلميذ قرّرو يتفاهمو على الخلاص برّة تنجّم، هذا يصير بيناتهم، برّة المنصّة، على مسؤوليتهم وحدهم. تنجّم ماهيش طرف، لا وسيط ولا ضامن في الاتفاق هذاكا.",
           "كي يتفعّل الخلاص، الشروط هاذي باش تتحيّن وباش نعلموك قبل ما تنطبق عليك.",
         ],
       },
@@ -269,7 +269,7 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
       },
       {
         h: "8. قواعد الاستعمال",
-        p: ["كي تستعمل قرّيني، إنت تلتزم ما تعملش:"],
+        p: ["كي تستعمل تنجّم، إنت تلتزم ما تعملش:"],
         list: [
           "مضايقة، شتيمة، تهديد ولا تمييز ضدّ أيّ واحد — تلميذ، وليّ ولا أستاذ؛",
           "نشر محتوى غير قانوني، عنيف، فيه كراهية، جنسي، ولا ما يصلحش للقاصرين؛",
@@ -277,7 +277,7 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
           "تسجيل ولا تصوير ولا إعادة بثّ حصة من غير موافقة واضحة من الكلّ؛",
           "بيع ولا نسخ ولا توزيع دروس وملخّصات وتسجيلات أستاذ؛",
           "استعمال روبوات ولا أدوات آلية باش تسحب البيانات من المنصّة؛",
-          "إرسال سبام ولا إشهار، ولا استعمال قرّيني في حاجة ما عندهاش علاقة بالتعليم.",
+          "إرسال سبام ولا إشهار، ولا استعمال تنجّم في حاجة ما عندهاش علاقة بالتعليم.",
         ],
         after: [
           "في صورة الإخلال، ننجّمو ننحّيو محتوى، نعلّقو ولا نحذفو حساب — وبلا إعلام مسبق كي تكون سلامة المستعملين، وبالخصوص القاصرين، في خطر.",
@@ -287,35 +287,35 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
         h: "9. توثيق الأساتذة",
         p: [
           "قبل ما يظهر للعموم، الأستاذ لازم يبعث وثيقة هوية (بطاقة تعريف وطنية ولا جواز سفر، وجه وظهر). الشهائد والوثائق الأخرى اختيارية وتزيد في الثقة.",
-          "الوثائق هاذي يشوفها إداري من قرّيني بصفة يدوية. ما تتنشرش عمرها. طريقة معالجتها، مدّة الاحتفاظ بيها وحذفها مشروحين في سياسة الخصوصية.",
+          "الوثائق هاذي يشوفها إداري من تنجّم بصفة يدوية. ما تتنشرش عمرها. طريقة معالجتها، مدّة الاحتفاظ بيها وحذفها مشروحين في سياسة الخصوصية.",
           "شارة « موثّق » تعني برك إلّي وثائق الهوية تقدّمت واتشافت بالعين. ماهيش تحرّي قضائي، لا ترخيص من الدولة، ولا ضمان للكفاءة البيداغوجية ولا لحسن السلوك. ننجّمو نرفضو ولا ننحّيو التوثيق وقت ما نحبّو.",
         ],
       },
       {
         h: "10. المحتوى والملكية الفكرية",
         p: [
-          "الأستاذ يبقى مالك دروسه، ملخّصاته، تسجيلاته وموادّه. كي ينشرهم في قرّيني، يعطي لقرّيني رخصة مجانية وغير حصرية، محدودة في الاستضافة والعرض والترويج لعرضه في المنصّة وقنواتها، طول مدّة النشر.",
+          "الأستاذ يبقى مالك دروسه، ملخّصاته، تسجيلاته وموادّه. كي ينشرهم في تنجّم، يعطي لتنجّم رخصة مجانية وغير حصرية، محدودة في الاستضافة والعرض والترويج لعرضه في المنصّة وقنواتها، طول مدّة النشر.",
           "التلميذ عندو حقّ استعمال شخصي برك: يقرا بيهم، ما ينجّمش يبيعهم ولا يوزّعهم.",
-          "الاسم « قرّيني »، « 9arini »، الشعار والهوية البصرية ملك لقرّيني وما يتستعملوش من غير إذن كتابي.",
+          "الاسم « تنجّم »، « Tnajem »، الشعار والهوية البصرية ملك لتنجّم وما يتستعملوش من غير إذن كتابي.",
         ],
       },
       {
         h: "11. الحصص المباشرة والأدوات الخارجية",
         p: [
-          "الحصص المباشرة تنجّم تتعمل بأدوات خارجية (فيديو، سبورة، كويز). الأدوات هاذي عندها شروطها وسياسة خصوصيتها. قرّيني ما تتحكّمش فيهم وماهيش مسؤولة على توفّرهم.",
+          "الحصص المباشرة تنجّم تتعمل بأدوات خارجية (فيديو، سبورة، كويز). الأدوات هاذي عندها شروطها وسياسة خصوصيتها. تنجّم ما تتحكّمش فيهم وماهيش مسؤولة على توفّرهم.",
         ],
       },
       {
         h: "12. توفّر الخدمة",
         p: [
-          "قرّيني تتقدّم « كيما هي ». الخدمة تنجّم تتقطع للصيانة، التحيين ولا مشكل تقني. نعملو جهدنا باش نقلّلو التقطّعات، أما بلا ضمان استمرارية.",
+          "تنجّم تتقدّم « كيما هي ». الخدمة تنجّم تتقطع للصيانة، التحيين ولا مشكل تقني. نعملو جهدنا باش نقلّلو التقطّعات، أما بلا ضمان استمرارية.",
         ],
       },
       {
         h: "13. المسؤولية",
         p: [
-          "قرّيني تربط برك؛ ماهيش اللي تعطي الدرس. في حدود ما يسمح بيه القانون التونسي، قرّيني ماهيش مسؤولة على المحتوى البيداغوجي، الجودة، السلوك ولا كلام أستاذ ولا تلميذ ولا وليّ، ولا على الأضرار غير المباشرة (ضياع وقت، عدد، ولا فرصة).",
-          "ما فمّا حتى حاجة في الشروط هاذي تنفي مسؤولية قرّيني في صورة التدليس، الخطأ الجسيم، ولا المساس بالسلامة الجسدية، ولا الحقوق اللي يضمنها القانون التونسي وجوبًا للمستهلك.",
+          "تنجّم تربط برك؛ ماهيش اللي تعطي الدرس. في حدود ما يسمح بيه القانون التونسي، تنجّم ماهيش مسؤولة على المحتوى البيداغوجي، الجودة، السلوك ولا كلام أستاذ ولا تلميذ ولا وليّ، ولا على الأضرار غير المباشرة (ضياع وقت، عدد، ولا فرصة).",
+          "ما فمّا حتى حاجة في الشروط هاذي تنفي مسؤولية تنجّم في صورة التدليس، الخطأ الجسيم، ولا المساس بالسلامة الجسدية، ولا الحقوق اللي يضمنها القانون التونسي وجوبًا للمستهلك.",
         ],
       },
       {
@@ -340,7 +340,7 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
       },
       {
         h: "17. اتصل بينا",
-        p: ["عندك سؤال على الشروط هاذي: contact@9arini.tn."],
+        p: ["عندك سؤال على الشروط هاذي: contact@tnajem.tn."],
       },
     ],
     seeAlso: "شوف زادة: سياسة الخصوصية",

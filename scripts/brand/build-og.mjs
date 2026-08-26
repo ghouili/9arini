@@ -4,7 +4,7 @@
  *     node scripts/brand/build-og.mjs
  *
  * WHY A BROWSER AND NOT AN IMAGE LIBRARY
- *   The card carries Arabic ("قرّيني", "الحصة الأولى مجانية"). Pillow cannot shape
+ *   The card carries Arabic ("تنجّم", "الحصة الأولى مجانية"). Pillow cannot shape
  *   Arabic on this machine (libraqm is absent), so it would render the letters
  *   unjoined and in the wrong order — visibly broken to every Arabic reader.
  *   Chromium shapes it correctly for free. Playwright is already a devDependency
@@ -71,7 +71,7 @@ const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8">
 </style></head><body>
   <div class="row">
     <img src="data:image/png;base64,${logo}" alt="">
-    <span class="word">9arini <span class="ar">قرّيني</span></span>
+    <span class="word">Tnajem <span class="ar">تنجّم</span></span>
   </div>
   <div>
     <h1>Ton prof, en direct.<br><em>Réserve, apprends, réussis.</em></h1>
@@ -80,7 +80,7 @@ const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8">
   <div class="chips">
     <span class="chip c-free">1ère séance gratuite</span>
     <span class="chip c-ar">الحصة الأولى مجانية</span>
-    <span class="chip c-url">9arini.tn</span>
+    <span class="chip c-url">tnajem.tn</span>
   </div>
   <div class="bar"></div>
 </body></html>`;

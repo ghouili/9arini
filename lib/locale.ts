@@ -16,7 +16,7 @@ export function dir(locale: AppLocale): "rtl" | "ltr" {
 
 /* Request header middleware.ts sets so a SERVER component that never receives
    `params` — app/[locale]/not-found.tsx — can still resolve the locale. */
-export const LOCALE_HEADER = "x-9arini-locale";
+export const LOCALE_HEADER = "x-tnajem-locale";
 
 export function isLocale(v: unknown): v is AppLocale {
   return v === "fr" || v === "ar";

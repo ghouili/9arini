@@ -1,7 +1,7 @@
-# 9arini — UI/UX Master Brief for Claude Code
+# Tnajem — UI/UX Master Brief for Claude Code
 
 > Paste this entire file as your opening prompt in Claude Code, run from the repo root
-> (`D:\work\Startups\New idea claude\9arini-app`). Work through it in order. Do not skip Phase 0.
+> (`D:\work\Startups\New idea claude\tnajem-app`). Work through it in order. Do not skip Phase 0.
 
 ---
 

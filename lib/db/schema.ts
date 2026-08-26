@@ -1,6 +1,6 @@
 import { pgTable, pgEnum, uuid, text, integer, numeric, boolean, timestamp, unique, index } from "drizzle-orm/pg-core";
 
-/* 9arini DB schema (local Postgres + Drizzle). Plain Postgres — no Supabase auth.users,
+/* Tnajem DB schema (local Postgres + Drizzle). Plain Postgres — no Supabase auth.users,
    no RLS. Authorization is enforced in the server data layer (lib/data.ts, app/actions.ts).
    Money tables (payments/payouts) exist but stay unused until legal sign-off. */
 

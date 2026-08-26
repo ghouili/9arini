@@ -43,8 +43,8 @@ import type { Storefront, ClassItem, Pack } from "./types";
 export const demoEnabled: boolean = process.env.NODE_ENV !== "production";
 
 const devClasses: ClassItem[] = [
-  { id: "c1", tutor_id: "yassine", tutor_name: "Yassine Khelifi", title: "Intégrales — révision express", description: "Méthodes + annales. On fait 3 exercices types ensemble.", day: "23", month: "JUIN", time: "18:00", duration_min: 90, price_tnd: 15, seats: 20, seats_left: 8, is_free_first: true, status: "scheduled", meet_url: "https://meet.jit.si/9arini-c1", whiteboard_url: "https://bitpaper.io/", quiz_url: "https://www.wooclap.com/" },
-  { id: "c2", tutor_id: "yassine", tutor_name: "Yassine Khelifi", title: "Annales Bac 2025 corrigées", description: "Correction guidée des sujets 2025.", day: "25", month: "JUIN", time: "17:00", duration_min: 120, price_tnd: 20, seats: 20, seats_left: 12, is_free_first: false, status: "scheduled", meet_url: "https://meet.jit.si/9arini-c2" },
+  { id: "c1", tutor_id: "yassine", tutor_name: "Yassine Khelifi", title: "Intégrales — révision express", description: "Méthodes + annales. On fait 3 exercices types ensemble.", day: "23", month: "JUIN", time: "18:00", duration_min: 90, price_tnd: 15, seats: 20, seats_left: 8, is_free_first: true, status: "scheduled", meet_url: "https://meet.jit.si/tnajem-c1", whiteboard_url: "https://bitpaper.io/", quiz_url: "https://www.wooclap.com/" },
+  { id: "c2", tutor_id: "yassine", tutor_name: "Yassine Khelifi", title: "Annales Bac 2025 corrigées", description: "Correction guidée des sujets 2025.", day: "25", month: "JUIN", time: "17:00", duration_min: 120, price_tnd: 20, seats: 20, seats_left: 12, is_free_first: false, status: "scheduled", meet_url: "https://meet.jit.si/tnajem-c2" },
 ];
 
 const devPacks: Pack[] = [

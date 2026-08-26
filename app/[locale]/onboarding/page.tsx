@@ -10,7 +10,7 @@ import { useToast } from "@/components/useToast";
 
 /* Page-local copy (FR + Tunisian Derija). lib/i18n.ts is shared/read-only, and
    two of its strings can't be used here:
-     • t.onboarding.fine promises "9arini prend 12 %" — during the pilot 9arini
+     • t.onboarding.fine promises "Tnajem prend 12 %" — during the pilot Tnajem
        takes 0 % and touches no money, so we say that instead.
      • the live preview needs its own placeholder + status labels. */
 const copy = {
@@ -178,7 +178,7 @@ export default function OnboardingPage() {
 
                 <Field label={t.onboarding.link}>
                   <div className="inp" dir="ltr" style={slug ? { borderColor: "var(--blue)" } : {}}>
-                    <span className="pre whitespace-nowrap shrink-0">9arini.tn/</span>
+                    <span className="pre whitespace-nowrap shrink-0">tnajem.tn/</span>
                     <span style={{ fontWeight: 600, color: slug ? "var(--ink)" : "var(--muted)", fontSize: 14, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {slug || "…"}
                     </span>

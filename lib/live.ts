@@ -11,7 +11,7 @@
    Uses a NEXT_PUBLIC_ env var only, so this module is safe on the client too
    (no `server-only` guard on purpose — the live page renders the join button). */
 
-const DEFAULT_BASE = "https://meet.jit.si/9arini-";
+const DEFAULT_BASE = "https://meet.jit.si/tnajem-";
 
 /** The fallback room for a class: same id → same room, forever. */
 export function liveRoomUrl(classId: string): string {

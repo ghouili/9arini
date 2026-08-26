@@ -66,13 +66,13 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
     title: "Politique de confidentialité",
     updated: "Version du 12 juillet 2026",
     lead:
-      "9arini collecte peu de données, mais certaines sont sensibles : pour être vérifiés, les profs nous envoient une pièce d'identité. Cette page explique exactement ce que nous collectons, pourquoi, qui peut le voir, combien de temps nous le gardons, et comment tu peux faire supprimer tes données.",
+      "Tnajem collecte peu de données, mais certaines sont sensibles : pour être vérifiés, les profs nous envoient une pièce d'identité. Cette page explique exactement ce que nous collectons, pourquoi, qui peut le voir, combien de temps nous le gardons, et comment tu peux faire supprimer tes données.",
     sections: [
       {
         h: "1. Qui est responsable de tes données",
         p: [
-          "9arini (قرّيني), plateforme tunisienne de mise en relation entre élèves et profs particuliers, est responsable du traitement des données décrites ici.",
-          "Contact données personnelles : privacy@9arini.tn — c'est l'adresse à utiliser pour toute demande d'accès, de rectification ou de suppression.",
+          "Tnajem (تنجّم), plateforme tunisienne de mise en relation entre élèves et profs particuliers, est responsable du traitement des données décrites ici.",
+          "Contact données personnelles : privacy@tnajem.tn — c'est l'adresse à utiliser pour toute demande d'accès, de rectification ou de suppression.",
           "[À compléter par l'avocat : dénomination sociale exacte, siège social, matricule fiscal, numéro de déclaration / d'autorisation auprès de l'INPDP conformément à la loi organique n° 2004-63 du 27 juillet 2004 relative à la protection des données à caractère personnel.]",
         ],
       },
@@ -88,7 +88,7 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
           "Technique : un cookie de session pour te garder connecté, les codes SMS (stockés uniquement sous forme hachée, jamais en clair) et des journaux techniques de base.",
         ],
         after: [
-          "Nous ne collectons aucune donnée bancaire : les paiements ne sont pas actifs sur 9arini. Nous ne collectons pas ta géolocalisation, ni tes contacts, ni de données de santé.",
+          "Nous ne collectons aucune donnée bancaire : les paiements ne sont pas actifs sur Tnajem. Nous ne collectons pas ta géolocalisation, ni tes contacts, ni de données de santé.",
         ],
       },
       {
@@ -159,14 +159,14 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
           "Réclamation : saisir l'Instance Nationale de Protection des Données Personnelles (INPDP) si tu estimes que tes droits ne sont pas respectés.",
         ],
         after: [
-          "Pour exercer un droit, écris à privacy@9arini.tn depuis l'adresse ou le numéro associé à ton compte. Nous pouvons devoir vérifier ton identité (sans te demander de nouveaux documents inutiles). Nous répondons au plus tard dans un délai d'un mois.",
+          "Pour exercer un droit, écris à privacy@tnajem.tn depuis l'adresse ou le numéro associé à ton compte. Nous pouvons devoir vérifier ton identité (sans te demander de nouveaux documents inutiles). Nous répondons au plus tard dans un délai d'un mois.",
           "Pour un élève mineur, ces droits sont exercés par le parent ou le tuteur qui a donné l'accord.",
         ],
       },
       {
         h: "8. Les mineurs",
         p: [
-          "9arini est utilisé par des collégiens et des lycéens. Un compte d'élève de moins de 18 ans n'est activé qu'après l'accord d'un parent ou tuteur, dont nous conservons le nom, le téléphone et la date de l'accord.",
+          "Tnajem est utilisé par des collégiens et des lycéens. Un compte d'élève de moins de 18 ans n'est activé qu'après l'accord d'un parent ou tuteur, dont nous conservons le nom, le téléphone et la date de l'accord.",
           "Nous limitons volontairement ce que nous demandons à un mineur : téléphone, prénom/nom, année de naissance. Un mineur ne nous envoie jamais de pièce d'identité — cette obligation ne concerne que les profs.",
         ],
       },
@@ -186,8 +186,8 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
       {
         h: "11. Nous contacter",
         p: [
-          "Questions sur tes données, demande d'accès ou de suppression : privacy@9arini.tn.",
-          "Autres questions : contact@9arini.tn.",
+          "Questions sur tes données, demande d'accès ou de suppression : privacy@tnajem.tn.",
+          "Autres questions : contact@tnajem.tn.",
         ],
       },
     ],
@@ -202,13 +202,13 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
     title: "سياسة الخصوصية",
     updated: "نسخة 12 جويلية 2026",
     lead:
-      "قرّيني تجمع معطيات قليلة، أما فمّا منها حسّاسة: باش يتوثّق الأستاذ، يبعثلنا وثيقة هوية. الصفحة هاذي تشرحلك بالضبط شنوّة نجمعو، علاش، شكون ينجّم يشوفو، قدّاش نحتافظو بيه، وكيفاش تنجّم تطلب حذفو.",
+      "تنجّم تجمع معطيات قليلة، أما فمّا منها حسّاسة: باش يتوثّق الأستاذ، يبعثلنا وثيقة هوية. الصفحة هاذي تشرحلك بالضبط شنوّة نجمعو، علاش، شكون ينجّم يشوفو، قدّاش نحتافظو بيه، وكيفاش تنجّم تطلب حذفو.",
     sections: [
       {
         h: "1. شكون مسؤول على معطياتك",
         p: [
-          "قرّيني (9arini)، منصّة تونسية تربط التلاميذ بالأساتذة الخصوصيين، هي المسؤولة على معالجة المعطيات الموصوفة هوني.",
-          "الاتصال بخصوص المعطيات الشخصية: privacy@9arini.tn — هذا هو العنوان لأيّ طلب نفاذ، تصحيح ولا حذف.",
+          "تنجّم (Tnajem)، منصّة تونسية تربط التلاميذ بالأساتذة الخصوصيين، هي المسؤولة على معالجة المعطيات الموصوفة هوني.",
+          "الاتصال بخصوص المعطيات الشخصية: privacy@tnajem.tn — هذا هو العنوان لأيّ طلب نفاذ، تصحيح ولا حذف.",
           "[يكمّلو المحامي: التسمية الاجتماعية الدقيقة، المقرّ، المعرّف الجبائي، ورقم التصريح/الترخيص لدى الهيئة الوطنية لحماية المعطيات الشخصية (INPDP) طبقًا للقانون الأساسي عدد 63 لسنة 2004 المؤرخ في 27 جويلية 2004 المتعلّق بحماية المعطيات الشخصية.]",
         ],
       },
@@ -224,7 +224,7 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
           "تقني: كوكي للجلسة باش تبقى داخل، رموز الـSMS (محفوظين مشفّرين بـhash برك، عمرهم ما يتحفظو واضحين)، وسجلاّت تقنية أساسية.",
         ],
         after: [
-          "ما نجمعو حتى معطيات بنكية: الخلاص موش مفعّل في قرّيني. ما نجمعوش موقعك الجغرافي، لا جهات الاتصال متاعك، لا معطيات صحّية.",
+          "ما نجمعو حتى معطيات بنكية: الخلاص موش مفعّل في تنجّم. ما نجمعوش موقعك الجغرافي، لا جهات الاتصال متاعك، لا معطيات صحّية.",
         ],
       },
       {
@@ -295,14 +295,14 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
           "الشكاية: ترفع شكاية للهيئة الوطنية لحماية المعطيات الشخصية (INPDP) إذا شفت إلّي حقوقك ما تحترمتش.",
         ],
         after: [
-          "باش تمارس حقّ، اكتب لـprivacy@9arini.tn من الرقم ولا العنوان المرتبط بحسابك. نجّمو نحتاجو نتثبّتو في هويتك (بلا ما نطلبو منّك وثائق جديدة بلا فايدة). نجاوبوك في أجل أقصاه شهر.",
+          "باش تمارس حقّ، اكتب لـprivacy@tnajem.tn من الرقم ولا العنوان المرتبط بحسابك. نجّمو نحتاجو نتثبّتو في هويتك (بلا ما نطلبو منّك وثائق جديدة بلا فايدة). نجاوبوك في أجل أقصاه شهر.",
           "للتلميذ القاصر، الحقوق هاذي يمارسها الوليّ اللي أعطى الموافقة.",
         ],
       },
       {
         h: "8. القاصرين",
         p: [
-          "قرّيني يستعملوها تلاميذ إعدادي وثانوي. حساب تلميذ أقلّ من 18 سنة ما يتفعّلش كان بعد موافقة وليّ، ونحتافظو باسمو، رقمو وتاريخ الموافقة.",
+          "تنجّم يستعملوها تلاميذ إعدادي وثانوي. حساب تلميذ أقلّ من 18 سنة ما يتفعّلش كان بعد موافقة وليّ، ونحتافظو باسمو، رقمو وتاريخ الموافقة.",
           "نقلّلو بإرادتنا في اللي نطلبوه من القاصر: تليفون، اسم ولقب، سنة ميلاد. القاصر عمرو ما يبعثلنا وثيقة هوية — الواجب هذا يخصّ الأساتذة برك.",
         ],
       },
@@ -322,8 +322,8 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
       {
         h: "11. اتصل بينا",
         p: [
-          "أسئلة على معطياتك، طلب نفاذ ولا حذف: privacy@9arini.tn.",
-          "أسئلة أخرى: contact@9arini.tn.",
+          "أسئلة على معطياتك، طلب نفاذ ولا حذف: privacy@tnajem.tn.",
+          "أسئلة أخرى: contact@tnajem.tn.",
         ],
       },
     ],

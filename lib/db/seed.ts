@@ -37,7 +37,7 @@ async function main() {
   const sql = postgres(url, { max: 1 });
   const db = drizzle(sql, { schema: { tutors, classes, packs } });
 
-  console.log(`Seeding 9arini demo data…${force ? " (--force)" : ""}`);
+  console.log(`Seeding Tnajem demo data…${force ? " (--force)" : ""}`);
   await db.delete(tutors).where(eq(tutors.slug, "yassine-math")); // cascades to classes/packs
 
   const [tutor] = await db.insert(tutors).values({
@@ -69,14 +69,14 @@ async function main() {
       tutorId: tutor.id, title: "Intégrales — révision express",
       description: "Méthodes + annales. On fait 3 exercices types ensemble.",
       scheduledAt: soon(2, 18, 0), durationMin: 90, priceTnd: "15", seats: 20, seatsTaken: 0,
-      isFreeFirst: true, meetUrl: "https://meet.jit.si/9arini-c1",
+      isFreeFirst: true, meetUrl: "https://meet.jit.si/tnajem-c1",
       whiteboardUrl: "https://bitpaper.io/", quizUrl: "https://www.wooclap.com/",
     },
     {
       tutorId: tutor.id, title: "Annales Bac 2025 corrigées",
       description: "Correction guidée des sujets 2025.",
       scheduledAt: soon(4, 17, 0), durationMin: 120, priceTnd: "20", seats: 20, seatsTaken: 0,
-      isFreeFirst: false, meetUrl: "https://meet.jit.si/9arini-c2",
+      isFreeFirst: false, meetUrl: "https://meet.jit.si/tnajem-c2",
     },
   ]);
 

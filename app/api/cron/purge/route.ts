@@ -13,7 +13,7 @@ import { purgeExpiredAuthRows, purgeExpiredVerificationDocs, RETENTION_DAYS } fr
  * /privacy promises identity documents are deleted at most 90 days after the
  * verification decision. Point a scheduler at this route once a day:
  *
- *   curl -X POST https://9arini.tn/api/cron/purge \
+ *   curl -X POST https://tnajem.tn/api/cron/purge \
  *        -H "Authorization: Bearer $CRON_SECRET"
  *
  * Vercel Cron / most schedulers send a GET with that same header, so both verbs

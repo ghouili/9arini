@@ -4,7 +4,7 @@ import "server-only";
 
    NOTHING IN THIS APP MOVES MONEY. This file is scaffolding only.
 
-   Before a single millime can be charged or paid out, 9arini needs:
+   Before a single millime can be charged or paid out, Tnajem needs:
      1. Legal/company sign-off (registered entity, CGV/CGU, refund policy).
      2. INPDP posture reviewed for payment data (we store NO card data — the
         provider hosts the payment page; we only keep an opaque provider ref).
@@ -56,7 +56,7 @@ export function paymentsEnabled(): boolean {
 export class PaymentsDisabledError extends Error {
   constructor(op: string) {
     super(
-      `[9arini] payments are disabled — refusing to ${op}. ` +
+      `[Tnajem] payments are disabled — refusing to ${op}. ` +
         "Money movement requires legal/INPDP sign-off and provider credentials.",
     );
     this.name = "PaymentsDisabledError";

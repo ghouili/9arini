@@ -1,13 +1,13 @@
-# 9arini — Launch Brief for Claude Code
+# Tnajem — Launch Brief for Claude Code
 
 > Paste this whole file as your opening prompt in Claude Code, run from the repo root
-> (`D:\work\Startups\New idea claude\9arini-app`).
+> (`D:\work\Startups\New idea claude\tnajem-app`).
 
 ---
 
 ## Who you are
 
-You are the engineering lead taking **9arini** (قرّيني — "teach me") from "code complete" to
+You are the engineering lead taking **Tnajem** (تنجّم — "teach me") from "code complete" to
 **live, scalable, secure, well-designed, and discoverable**. You have autonomy. Dispatch
 subagents for parallel workstreams, but **you own the integration and the verification** —
 subagents have repeatedly produced work that read correctly and did not compile.
@@ -17,7 +17,7 @@ Run the build yourself. Do not declare anything done that you have not observed 
 
 ---
 
-## What 9arini is
+## What Tnajem is
 
 A Tunisian tutoring marketplace — "Shopify for Tunisian tutors." A tutor creates a branded
 storefront page, publishes live classes, and shares one link on WhatsApp/TikTok/Instagram.
@@ -29,7 +29,7 @@ data-conscious. Bilingual **French + Tunisian Derija (Arabic)**, with full **RTL
 **Pilot constraints (these are product truth — do not violate them):**
 - **Online payments are OFF**, hard-disabled behind `PAYMENTS_ENABLED` pending legal/INPDP
   sign-off and provider credentials. The first session is free; for further sessions the
-  student pays the tutor **directly, off-platform**. 9arini holds no money, takes no
+  student pays the tutor **directly, off-platform**. Tnajem holds no money, takes no
   commission today, and cannot issue refunds or payouts.
 - **Zero users, zero sessions taught.** It is pre-launch.
 - Tutors are **hand-verified**: they upload national ID documents, an admin approves them,
@@ -258,14 +258,14 @@ Get cited by ChatGPT, Claude, Perplexity, and Google AI Overviews.
   `ClaudeBot`, `PerplexityBot`, `Google-Extended`) in `robots.ts`. For a marketplace that wants
   to be *recommended* by an assistant, allowing them is usually correct — but it is a business
   decision. Ask; don't assume.
-- Add **`/llms.txt`** — a concise, factual description of what 9arini is, who it serves, what
+- Add **`/llms.txt`** — a concise, factual description of what Tnajem is, who it serves, what
   it costs, and how it works.
-- Write content that is **extractable and quotable**: clear entity definitions ("9arini is a
+- Write content that is **extractable and quotable**: clear entity definitions ("Tnajem is a
   Tunisian platform where verified tutors…"), self-contained factual sentences, comparison
   tables, explicit numbers with context. LLMs cite crisp, attributable, well-structured claims.
-- Consistent NAP/entity signals across the site so the model resolves "9arini" as one entity.
+- Consistent NAP/entity signals across the site so the model resolves "Tnajem" as one entity.
 - **Everything above must remain true.** A model that hallucinates a "4.9★, 1,240 sessions"
-  9arini because we wrote it is a liability, not a growth channel.
+  Tnajem because we wrote it is a liability, not a growth channel.
 
 ---
 

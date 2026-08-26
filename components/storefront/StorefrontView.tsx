@@ -52,7 +52,7 @@ const copy = {
   fr: {
     students: "élèves",
     isNew: "Nouveau prof",
-    verifiedLabel: "Prof vérifié par 9arini",
+    verifiedLabel: "Prof vérifié par Tnajem",
     reviewsTitle: "Avis des élèves",
     reviewsCount: (n: number) => (n === 1 ? "1 avis" : `${n} avis`),
     noReviewsTitle: "Pas encore d'avis",
@@ -79,7 +79,7 @@ const copy = {
     noCard: "Sans carte bancaire",
     cancel24: "Annulation gratuite 24h avant",
     payDirect:
-      "9arini ne prend aucun paiement. La 1ère séance est offerte ; les suivantes, tu les règles directement avec ton prof.",
+      "Tnajem ne prend aucun paiement. La 1ère séance est offerte ; les suivantes, tu les règles directement avec ton prof.",
 
     // ── How it works ──
     howTitle: "Comment ça se passe",
@@ -97,7 +97,7 @@ const copy = {
   ar: {
     students: "تلميذ",
     isNew: "أستاذ جديد",
-    verifiedLabel: "أستاذ مؤكّد من 9arini",
+    verifiedLabel: "أستاذ مؤكّد من Tnajem",
     reviewsTitle: "آراء التلامذة",
     reviewsCount: (n: number) => (n === 1 ? "تقييم واحد" : `${n} تقييم`),
     noReviewsTitle: "ما فماش تقييمات توّا",
@@ -120,7 +120,7 @@ const copy = {
     noCard: "بلا كارت بنكية",
     cancel24: "إلغاء مجاني 24 ساعة قبل",
     payDirect:
-      "9arini ما تاخذ حتى خلاص. الحصة الأولى مجانية ؛ الحصص الموالية تخلّصهم مباشرة مع أستاذك.",
+      "Tnajem ما تاخذ حتى خلاص. الحصة الأولى مجانية ؛ الحصص الموالية تخلّصهم مباشرة مع أستاذك.",
 
     howTitle: "كيفاش تمشي الحكاية",
     how1: "تحجز بلاصتك — من غير كارت بنكية.",

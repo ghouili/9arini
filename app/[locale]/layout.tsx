@@ -17,9 +17,9 @@ import "../globals.css";
 
    fr → Space Grotesk (display) + Plus Jakarta Sans (body) + ONE weight of the
         Arabic face, which the brand mark needs: the logo glyph is ق and the
-        wordmark is "9arini قرّيني".
+        wordmark is "Tnajem تنجّم".
    ar → IBM Plex Sans Arabic only. It carries Latin glyphs too, so mixed strings
-        ("15 TND", "9arini") still render correctly — which is exactly why the
+        ("15 TND", "Tnajem") still render correctly — which is exactly why the
         RTL token remap is safe.
 
    Weight 800 dropped (never used) and 500 dropped after moving this codebase's
@@ -31,7 +31,7 @@ const arabicFont = IBM_Plex_Sans_Arabic({ subsets: ["arabic"], weight: ["400", "
 /* Same family, one weight: all French pages need of it is the brand mark. */
 const arabicMark = IBM_Plex_Sans_Arabic({ subsets: ["arabic"], weight: ["400"], variable: "--font-ar" });
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://9arini.tn";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://tnajem.tn";
 const DESCRIPTION =
   "Trouve un prof en direct, du primaire au Bac — toutes les matières, avec des profs tunisiens vérifiés. Première séance offerte. Paie en dinar.";
 const DESCRIPTION_AR =
@@ -53,15 +53,15 @@ export async function generateMetadata({ params }: { params: { locale: string } 
   const locale: AppLocale = isLocale(params.locale) ? params.locale : DEFAULT_LOCALE;
   const ar = locale === "ar";
   const description = ar ? DESCRIPTION_AR : DESCRIPTION;
-  const title = ar ? "9arini — تعلّم مع أستاذك" : "9arini — apprends avec ton prof";
+  const title = ar ? "Tnajem — تعلّم مع أستاذك" : "Tnajem — apprends avec ton prof";
 
   return {
     metadataBase: new URL(SITE_URL),
-    title: { default: title, template: "%s · 9arini" },
+    title: { default: title, template: "%s · Tnajem" },
     description,
-    applicationName: "9arini",
-    keywords: ["cours particuliers", "prof", "Tunisie", "Bac", "soutien scolaire", "9arini", "قرّيني", "دروس خصوصية"],
-    authors: [{ name: "9arini" }],
+    applicationName: "Tnajem",
+    keywords: ["cours particuliers", "prof", "Tunisie", "Bac", "soutien scolaire", "Tnajem", "تنجّم", "دروس خصوصية"],
+    authors: [{ name: "Tnajem" }],
     /* Generated from brand/logo-source.png by scripts/brand/build-raster.py.
        No SVG entry: there is no vector master of the mark, and an SVG wrapping a
        base64 PNG is a bigger file that buys nothing.
@@ -77,7 +77,7 @@ export async function generateMetadata({ params }: { params: { locale: string } 
     },
     openGraph: {
       type: "website",
-      siteName: "9arini",
+      siteName: "Tnajem",
       locale: ar ? "ar_TN" : "fr_TN",
       alternateLocale: ar ? ["fr_TN"] : ["ar_TN"],
       url: `${SITE_URL}/${locale}`,
@@ -87,9 +87,9 @@ export async function generateMetadata({ params }: { params: { locale: string } 
          preview cache on the URL, so without it a tutor's link keeps showing the
          previous card long after this one shipped — and WhatsApp is how this
          product is actually distributed. Bump it whenever og.png is rebuilt. */
-      images: [{ url: "/og.png?v=2", width: 1200, height: 630, alt: "9arini — ton prof, en direct." }],
+      images: [{ url: "/og.png?v=3", width: 1200, height: 630, alt: "Tnajem — ton prof, en direct." }],
     },
-    twitter: { card: "summary_large_image", title, description, images: ["/og.png?v=2"] },
+    twitter: { card: "summary_large_image", title, description, images: ["/og.png?v=3"] },
     robots: { index: true, follow: true },
   };
 }
@@ -118,7 +118,7 @@ export default function LocaleLayout({
       }
     >
       <body>
-        {/* Site-wide structured data — truthful + static; identifies the 9arini entity
+        {/* Site-wide structured data — truthful + static; identifies the Tnajem entity
             and site to search engines and AI assistants. No SearchAction (search is
             client-side; a search endpoint would be a claim we can't back yet). */}
         <JsonLd
@@ -126,8 +126,8 @@ export default function LocaleLayout({
             {
               "@context": "https://schema.org",
               "@type": "Organization",
-              name: "9arini",
-              alternateName: "قرّيني",
+              name: "Tnajem",
+              alternateName: "تنجّم",
               url: SITE_URL,
               logo: `${SITE_URL}/apple-touch-icon.png`,
               description: DESCRIPTION,
@@ -137,8 +137,8 @@ export default function LocaleLayout({
             {
               "@context": "https://schema.org",
               "@type": "WebSite",
-              name: "9arini",
-              alternateName: "قرّيني",
+              name: "Tnajem",
+              alternateName: "تنجّم",
               url: SITE_URL,
               inLanguage: ["fr", "ar"],
             },

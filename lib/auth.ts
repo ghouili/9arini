@@ -10,7 +10,7 @@ import { profiles, sessions, otpCodes, rateLimits } from "./db/schema";
    returns the code so the flow is completable in dev. Sessions are opaque
    tokens in an HTTP-only cookie, backed by the `sessions` table. */
 
-export const SESSION_COOKIE = "9arini_session";
+export const SESSION_COOKIE = "tnajem_session";
 /* NON-SENSITIVE UI hint, readable by the client. It lets the global <SiteHeader>
    show the right nav link WITHOUT a getMe() server-action POST on every page load —
    the POST that made every perfectly-cached page drag an uncacheable request behind
@@ -19,7 +19,7 @@ export const SESSION_COOKIE = "9arini_session";
    header renders. Every server action still re-derives identity from the httpOnly
    SESSION_COOKIE above, so forging this buys nothing but a nav link that bounces you
    to /auth. */
-export const ROLE_HINT_COOKIE = "9arini_role";
+export const ROLE_HINT_COOKIE = "tnajem_role";
 const SESSION_DAYS = 30;
 const OTP_TTL_MIN = 5;
 const MAX_ATTEMPTS = 5;
@@ -61,7 +61,7 @@ const DEV_SECRET = "dev-insecure-secret-change-me";
 
 function missingSecretError(): Error {
   return new Error(
-    "[9arini] AUTH_SECRET is not set (or is empty). It is REQUIRED in production: every " +
+    "[Tnajem] AUTH_SECRET is not set (or is empty). It is REQUIRED in production: every " +
       "OTP hash depends on it and the dev default is public. Generate one with " +
       "`openssl rand -hex 32` and put it in the environment. Refusing to hash an OTP.",
   );
@@ -87,7 +87,7 @@ function authSecret(): string {
    the first login attempt (authSecret() above). `next build` is unaffected. */
 if (process.env.NODE_ENV === "production" && !process.env.AUTH_SECRET?.trim()) {
   console.error(
-    "[9arini] FATAL CONFIG: AUTH_SECRET is not set. Every login WILL fail until it is. " +
+    "[Tnajem] FATAL CONFIG: AUTH_SECRET is not set. Every login WILL fail until it is. " +
       "Generate one with `openssl rand -hex 32`.",
   );
 }
@@ -173,7 +173,7 @@ async function rateLimitDb(key: string, limit: number, windowMs: number): Promis
        per-instance limiting here loses nothing — whereas failing closed would turn a
        transient limiter-write glitch into a total login/booking outage. The
        in-process counter still blocks the one-client-hammering-one-endpoint case. */
-    console.error("[9arini] rate_limits upsert failed — falling back to in-process limiter", e);
+    console.error("[Tnajem] rate_limits upsert failed — falling back to in-process limiter", e);
     return rateLimit(key, limit, windowMs);
   }
 }
@@ -312,7 +312,7 @@ export async function createSession(profileId: string, role?: string): Promise<v
   try {
     await db.delete(sessions).where(and(eq(sessions.profileId, profileId), lt(sessions.expiresAt, new Date())));
   } catch (e) {
-    console.error("[9arini] session cleanup failed", e);
+    console.error("[Tnajem] session cleanup failed", e);
   }
 
   cookies().set(SESSION_COOKIE, token, {
@@ -367,7 +367,7 @@ export async function destroySession(): Promise<void> {
    This is NOT a session and cannot be turned into one: getSession() short-circuits
    on `!dbReady`, and with a DB configured the literal string "demo" is not a valid
    session token (tokens are 64 hex chars from a random 32-byte draw), so it matches
-   no row. Forging `9arini_session=demo` therefore buys an attacker exactly what
+   no row. Forging `tnajem_session=demo` therefore buys an attacker exactly what
    forging any other junk value buys: passage through middleware's presence check
    and nothing else. middleware.ts additionally rejects the literal value in prod. */
 export function setDemoCookie(role?: string): void {

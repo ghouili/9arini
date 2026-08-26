@@ -8,7 +8,7 @@ export default {
   schema: "./lib/db/schema.ts",
   out: "./drizzle",
   dialect: "postgresql",
-  dbCredentials: { url: process.env.DATABASE_URL ?? "postgresql://postgres:postgres@localhost:5432/qarini" },
+  dbCredentials: { url: process.env.DATABASE_URL ?? "postgresql://postgres:postgres@localhost:5432/tnajem" },
 
   /* Print the SQL before it runs. The index work in schema.ts is additive
      (CREATE INDEX only), and this is how you confirm that — if a `db:push` ever

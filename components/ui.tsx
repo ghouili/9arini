@@ -1,4 +1,4 @@
-// 9arini UI primitives. Presentational (no hooks) so they work in server or client components.
+// Tnajem UI primitives. Presentational (no hooks) so they work in server or client components.
 import type { ReactNode, CSSProperties } from "react";
 
 type BtnProps = {

@@ -100,12 +100,16 @@ export function vOptionalUrl(raw: unknown, opts: { field: string; max?: number }
 }
 
 /* ---------- Slugs ----------
-   `/[slug]` is a ROOT catch-all: 9arini.tn/<slug> is a tutor storefront. A tutor
+   `/[slug]` is a ROOT catch-all: tnajem.tn/<slug> is a tutor storefront. A tutor
    who grabbed the slug "explore" (or "admin", "api"…) would shadow a real route,
    so every app-level path segment is reserved and can never be claimed. */
 export const RESERVED_SLUGS: readonly string[] = [
   "explore", "auth", "admin", "checkout", "dashboard", "onboarding", "student",
   "live", "class", "account", "messages", "api", "terms", "privacy", "_next",
+  /* Brand names, not routes. "tnajem" would let a tutor impersonate the
+     platform at tnajem.tn/tnajem; "9arini" is the name we renamed away from and
+     is reserved so nobody squats it. */
+  "tnajem", "9arini",
 ];
 
 const SLUG_RE = /^[a-z0-9-]{3,40}$/;

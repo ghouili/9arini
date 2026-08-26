@@ -9,7 +9,7 @@ import { isLocale, DEFAULT_LOCALE, type AppLocale } from "@/lib/locale";
 
 type Props = { params: { locale: string; slug: string } };
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://9arini.tn";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://tnajem.tn";
 
 /** hreflang alternates for a locale-agnostic subpath (relative → resolved by metadataBase). */
 function altLanguages(subpath: string): Record<string, string> {
@@ -19,7 +19,7 @@ function altLanguages(subpath: string): Record<string, string> {
 /* ══════════════════════════════════════════════════════════════════════════════
    RENDERING STRATEGY — this is the page that goes viral.
 
-   A tutor drops 9arini.tn/<slug> in a WhatsApp group; thousands of mid-range
+   A tutor drops tnajem.tn/<slug> in a WhatsApp group; thousands of mid-range
    Androids on 3G open it inside a few minutes. Before this change, EVERY one of
    those hits ran four sequential Postgres queries (tutor, classes, packs,
    reviews) and re-rendered the whole React tree — the database was the first
@@ -77,7 +77,7 @@ function clamp(s: string, max: number) {
 
 /* This is the single most-shared page in the product: tutors paste their link on
    WhatsApp, TikTok and Insta. The preview card has to say WHO the tutor is and
-   WHAT they teach — not "9arini — apprends avec ton prof". */
+   WHAT they teach — not "Tnajem — apprends avec ton prof". */
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // Same cached read as the page body → the OG-card crawler (WhatsApp fetches the
   // link preview once per share) does not add a second round of queries.
@@ -94,15 +94,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const locale: AppLocale = isLocale(params.locale) ? params.locale : DEFAULT_LOCALE;
   const subpath = `/${params.slug}`;
   const canonical = `/${locale}${subpath}`; // this locale's canonical URL
-  // layout.tsx applies the "%s · 9arini" template on top of this.
+  // layout.tsx applies the "%s · Tnajem" template on top of this.
   const title = `${tutor.full_name} — ${tutor.subject}`;
   /* "paiement en dinar" promised a checkout that does not exist: payments are OFF
      for the pilot (lib/payments.ts), the storefront takes no card, and the link
      preview is the first thing a WhatsApp reader sees. Promise what we deliver. */
   const pitch = "Réserve un cours en direct — 1ère séance offerte, sans carte bancaire.";
   const description = tutor.bio ? `${clamp(tutor.bio, 120)} · ${pitch}` : `${tutor.subject}. ${pitch}`;
-  const ogTitle = `${title} · 9arini`;
-  const alt = `${tutor.full_name} sur 9arini — ${tutor.subject}`;
+  const ogTitle = `${title} · Tnajem`;
+  const alt = `${tutor.full_name} sur Tnajem — ${tutor.subject}`;
   const [firstName, ...rest] = tutor.full_name.trim().split(/\s+/);
 
   return {
@@ -115,7 +115,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       "cours particuliers",
       "cours en direct",
       "Tunisie",
-      "9arini",
+      "Tnajem",
     ].filter(Boolean),
     // Per-locale canonical + fr-TN ⇄ ar-TN hreflang for this exact storefront.
     alternates: { canonical, languages: altLanguages(subpath) },
@@ -125,7 +125,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       lastName: rest.join(" ") || undefined,
       username: tutor.slug,
       url: canonical,
-      siteName: "9arini",
+      siteName: "Tnajem",
       locale: locale === "ar" ? "ar_TN" : "fr_TN",
       alternateLocale: locale === "ar" ? ["fr_TN"] : ["ar_TN"],
       title: ogTitle,
@@ -141,7 +141,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-// Public tutor storefront (9arini.tn/<slug>). Server component: fetches from Postgres
+// Public tutor storefront (tnajem.tn/<slug>). Server component: fetches from Postgres
 // via the cached data layer (falls back to demo data when no DATABASE_URL is set).
 // Reviews are fetched here (server-side) so the storefront ships them in the first
 // paint — no client round-trip on a 3G phone.
@@ -185,7 +185,7 @@ export default async function StorefrontPage({ params }: Props) {
       url,
       jobTitle: tutor.subject,
       ...(tutor.bio ? { description: tutor.bio } : {}),
-      worksFor: { "@type": "Organization", name: "9arini", url: SITE_URL },
+      worksFor: { "@type": "Organization", name: "Tnajem", url: SITE_URL },
       knowsLanguage: ["fr", "ar"],
       areaServed: { "@type": "Country", name: "Tunisia" },
       ...(reviews.count > 0

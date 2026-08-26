@@ -1,4 +1,4 @@
-# Deploying 9arini to a VPS — no Docker
+# Deploying Tnajem to a VPS — no Docker
 
 Plain Node deploy: `next build` → run with **pm2** (or systemd) behind an **nginx**
 reverse proxy, using the **Postgres already on your VPS**. Steps marked **(you)**
@@ -12,30 +12,30 @@ need your server/accounts.
 
 ## 0. Local sanity check (you)
 ```
-cd 9arini-app
+cd tnajem-app
 npm run build      # dev is lenient; the prod build is strict — fix/paste any errors
 ```
 Commit `package-lock.json` too (run `npm install` once) for reproducible installs.
 
 ## 1. VPS prerequisites (you)
 - Ubuntu/Debian VPS with **Node 20** (`nvm install 20` or NodeSource) and **Postgres running**.
-- Get the code on the box: `git clone …` (or `scp` the folder), then `cd 9arini-app && npm ci`.
+- Get the code on the box: `git clone …` (or `scp` the folder), then `cd tnajem-app && npm ci`.
 
 ## 2. Database (you)
 ```
-sudo -u postgres psql -c "CREATE DATABASE qarini;"
+sudo -u postgres psql -c "CREATE DATABASE tnajem;"
 # (optional dedicated role instead of the superuser:)
-# sudo -u postgres psql -c "CREATE ROLE qarini LOGIN PASSWORD 'strongpass'; ALTER DATABASE qarini OWNER TO qarini;"
+# sudo -u postgres psql -c "CREATE ROLE tnajem LOGIN PASSWORD 'strongpass'; ALTER DATABASE tnajem OWNER TO tnajem;"
 ```
 
 ## 3. Environment — create `.env.local` on the VPS
 ```
 # --- Required ---
-DATABASE_URL=postgresql://admin:admin@127.0.0.1:5432/qarini   # NO ?schema=public
+DATABASE_URL=postgresql://admin:admin@127.0.0.1:5432/tnajem   # NO ?schema=public
 AUTH_SECRET=<run: openssl rand -hex 32>
 ADMIN_PHONES=+216XXXXXXXX                  # who may approve tutors at /admin/verifications
-NEXT_PUBLIC_SITE_URL=https://9arini.tn     # canonical origin
-STORAGE_DIR=/var/lib/9arini/storage        # PERSISTENT volume — see below
+NEXT_PUBLIC_SITE_URL=https://tnajem.tn     # canonical origin
+STORAGE_DIR=/var/lib/tnajem/storage        # PERSISTENT volume — see below
 CRON_SECRET=<run: openssl rand -hex 32>    # protects /api/cron/purge — see §7
 
 # --- SMS (without this, nobody outside dev can log in) ---
@@ -114,8 +114,8 @@ no longer exist. Mount a real disk, keep it off the public web root, back it up 
 Postgres.
 
 ```
-sudo mkdir -p /var/lib/9arini/storage && sudo chown $USER /var/lib/9arini/storage
-sudo chmod 700 /var/lib/9arini/storage
+sudo mkdir -p /var/lib/tnajem/storage && sudo chown $USER /var/lib/tnajem/storage
+sudo chmod 700 /var/lib/tnajem/storage
 ```
 
 ## 4. Migrate + build
@@ -141,17 +141,17 @@ verified task after upgrading drizzle-kit to a PG17-aware release.)
 **pm2 (simplest):**
 ```
 sudo npm i -g pm2
-pm2 start npm --name 9arini -- start      # runs `next start` on :3000
+pm2 start npm --name Tnajem -- start      # runs `next start` on :3000
 pm2 save && pm2 startup                    # restart on reboot
 ```
 
-**systemd (alternative)** — `/etc/systemd/system/9arini.service`:
+**systemd (alternative)** — `/etc/systemd/system/tnajem.service`:
 ```
 [Unit]
-Description=9arini
+Description=Tnajem
 After=network.target postgresql.service
 [Service]
-WorkingDirectory=/home/USER/9arini-app
+WorkingDirectory=/home/USER/tnajem-app
 ExecStart=/usr/bin/npm run start
 Environment=PORT=3000
 Restart=always
@@ -159,7 +159,7 @@ User=USER
 [Install]
 WantedBy=multi-user.target
 ```
-`sudo systemctl enable --now 9arini`
+`sudo systemctl enable --now Tnajem`
 
 ## 6. nginx reverse proxy + HTTPS (you) — **do not `proxy_pass` everything** ⚠️
 
@@ -175,10 +175,10 @@ Postgres does.
 Three changes, all cheap, all before the pilot: **nginx serves the static assets**,
 **nginx compresses**, **Cloudflare fronts the origin**.
 
-`/etc/nginx/sites-available/9arini`:
+`/etc/nginx/sites-available/tnajem`:
 ```nginx
 server {
-  server_name 9arini.tn www.9arini.tn;
+  server_name tnajem.tn www.tnajem.tn;
   client_max_body_size 15M;                # allow the 12MB verification uploads
 
   # ── gzip (Node is NOT compressing for you) ─────────────────────────────────
@@ -202,7 +202,7 @@ server {
   # This path must point at the DEPLOYED build; re-running `next build` replaces
   # the contents, and the hashed names mean old and new never collide.
   location /_next/static/ {
-    alias /home/USER/9arini-app/.next/static/;
+    alias /home/USER/tnajem-app/.next/static/;
     access_log off;
     expires 1y;
     add_header Cache-Control "public, max-age=31536000, immutable";
@@ -228,13 +228,13 @@ server {
 }
 ```
 `sudo ln -s … /etc/nginx/sites-enabled/ && sudo nginx -t && sudo systemctl reload nginx`
-Then HTTPS: `sudo certbot --nginx -d 9arini.tn -d www.9arini.tn`.
+Then HTTPS: `sudo certbot --nginx -d tnajem.tn -d www.tnajem.tn`.
 
 **Check it actually works** — the header must come from nginx, not Node:
 ```
-curl -sI https://9arini.tn/_next/static/… | grep -i cache-control
+curl -sI https://tnajem.tn/_next/static/… | grep -i cache-control
 # → cache-control: public, max-age=31536000, immutable
-curl -sH 'Accept-Encoding: gzip' -o /dev/null -w '%{size_download}\n' https://9arini.tn/
+curl -sH 'Accept-Encoding: gzip' -o /dev/null -w '%{size_download}\n' https://tnajem.tn/
 ```
 If `nginx -t` passes but assets 404, the `alias` path is wrong — it must end in a
 `/` and point at the real `.next/static` of the build you are running.
@@ -303,8 +303,8 @@ preview without deleting.
 
 Crontab (`crontab -e`) — daily at 03:15:
 ```
-15 3 * * * curl -fsS -X POST https://9arini.tn/api/cron/purge \
-  -H "Authorization: Bearer $CRON_SECRET" >> /var/log/9arini-purge.log 2>&1
+15 3 * * * curl -fsS -X POST https://tnajem.tn/api/cron/purge \
+  -H "Authorization: Bearer $CRON_SECRET" >> /var/log/tnajem-purge.log 2>&1
 ```
 (`CRON_SECRET` is not in cron's environment by default — either inline the value or
 add `CRON_SECRET=…` as a line at the top of the crontab.)
@@ -317,18 +317,18 @@ and set `CRON_SECRET` in the project env — Vercel sends it as the bearer token
 
 ### Option B — systemd timer (running the CLI on the box)
 
-`/etc/systemd/system/9arini-purge.service`:
+`/etc/systemd/system/tnajem-purge.service`:
 ```
 [Unit]
-Description=9arini — purge expired ID documents (INPDP, 90 days)
+Description=Tnajem — purge expired ID documents (INPDP, 90 days)
 After=network.target postgresql.service
 [Service]
 Type=oneshot
-WorkingDirectory=/home/USER/9arini-app
+WorkingDirectory=/home/USER/tnajem-app
 ExecStart=/usr/bin/npm run db:purge
 User=USER
 ```
-`/etc/systemd/system/9arini-purge.timer`:
+`/etc/systemd/system/tnajem-purge.timer`:
 ```
 [Unit]
 Description=Daily ID-document retention purge
@@ -340,11 +340,11 @@ WantedBy=timers.target
 ```
 ```
 sudo systemctl daemon-reload
-sudo systemctl enable --now 9arini-purge.timer
-systemctl list-timers 9arini-purge.timer     # confirm the next run
+sudo systemctl enable --now tnajem-purge.timer
+systemctl list-timers tnajem-purge.timer     # confirm the next run
 npm run db:purge -- --dry-run                # confirm it finds what you expect
 ```
-(Plain crontab equivalent: `15 3 * * * cd /home/USER/9arini-app && /usr/bin/npm run db:purge >> /var/log/9arini-purge.log 2>&1`.)
+(Plain crontab equivalent: `15 3 * * * cd /home/USER/tnajem-app && /usr/bin/npm run db:purge >> /var/log/tnajem-purge.log 2>&1`.)
 
 **Verify it actually ran** — check the log/journal after the first night. A purge cron
 that silently fails is indistinguishable from one you never wrote.
