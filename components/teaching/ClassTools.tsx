@@ -45,7 +45,7 @@ export function ClassTools({ cls, dark }: { cls: ClassItem; dark?: boolean }) {
             >
               <Icon />
             </span>
-            <span style={{ fontSize: 13, fontWeight: 700, textAlign: "center", lineHeight: 1.2, overflowWrap: "anywhere" }}>
+            <span className="text-[13px] font-bold text-center leading-[1.2] [overflow-wrap:anywhere]">
               {label}
             </span>
           </button>

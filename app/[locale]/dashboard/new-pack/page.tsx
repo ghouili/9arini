@@ -75,59 +75,30 @@ export default function NewPackPage() {
             <DashboardSidebar />
 
             {/* Main content column */}
-            <div style={{ minWidth: 0 }}>
+            <div className="min-w-0">
               {/* Page header */}
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                marginBottom: "clamp(18px,3vw,28px)",
-              }}>
-                <Link href="/dashboard" className="iconbtn" aria-label={t.common.back} style={{ flex: "none" }}>
+              <div className="flex items-center gap-3 mb-[clamp(18px,3vw,28px)]">
+                <Link href="/dashboard" className="iconbtn flex-none" aria-label={t.common.back}>
                   <Back />
                 </Link>
-                <h1 style={{
-                  fontFamily: "var(--fd)",
-                  fontSize: "clamp(20px,2.6vw,28px)",
-                  letterSpacing: "-0.6px",
-                  color: "var(--ink)",
-                  minWidth: 0,
-                }}>
+                <h1 className="font-display text-[clamp(20px,2.6vw,28px)] tracking-[-0.6px] text-ink min-w-0">
                   {t.createPack.title}
                 </h1>
               </div>
 
               {/* Form card */}
-              <div className="panel panel-pad" style={{ maxWidth: 620, width: "100%" }}>
+              <div className="panel panel-pad max-w-[620px] w-full">
 
                 {/* Illustration / hint card */}
-                <div style={{
-                  display: "flex",
-                  gap: 13,
-                  alignItems: "center",
-                  padding: "14px 16px",
-                  marginBottom: 22,
-                  background: "var(--blue50)",
-                  borderRadius: "var(--r)",
-                }}>
-                  <div aria-hidden="true" style={{
-                    width: 46,
-                    height: 46,
-                    minWidth: 46,
-                    borderRadius: 13,
-                    background: "var(--blue)",
-                    color: "#fff",
-                    display: "grid",
-                    placeItems: "center",
-                    flex: "none",
-                  }}>
-                    <Box style={{ width: 24, height: 24 }} />
+                <div className="flex gap-[13px] items-center py-3.5 px-4 mb-[22px] bg-blue50 rounded-brand">
+                  <div aria-hidden="true" className="w-[46px] h-[46px] min-w-[46px] rounded-[13px] bg-blue text-white grid place-items-center flex-none">
+                    <Box className="w-6 h-6" />
                   </div>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--blue)" }}>
+                  <div className="min-w-0">
+                    <div className="text-[13.5px] font-bold text-blue">
                       {c.hintTitle}
                     </div>
-                    <div style={{ fontSize: 13, color: "var(--blue700)", marginTop: 3, lineHeight: 1.5 }}>
+                    <div className="text-[13px] text-blue700 mt-[3px] leading-[1.5]">
                       {c.hintBody}
                     </div>
                   </div>
@@ -192,14 +163,14 @@ export default function NewPackPage() {
                     border: "1px solid var(--line)",
                     marginBottom: 20,
                   }}>
-                    <span style={{ color: "var(--ochre)", display: "inline-flex", flexShrink: 0, marginTop: 1 }}>
-                      <Bulb style={{ width: 18, height: 18 }} />
+                    <span className="text-ochre inline-flex shrink-0 mt-[1px]">
+                      <Bulb className="w-[18px] h-[18px]" />
                     </span>
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 3 }}>
+                      <div className="text-[13px] font-bold mb-[3px]">
                         {c.deliveryTitle}
                       </div>
-                      <div style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.6 }}>
+                      <div className="text-[13px] text-muted leading-[1.6]">
                         {c.deliveryBody}
                       </div>
                     </div>
@@ -212,26 +183,17 @@ export default function NewPackPage() {
 
                   {/* Publishing needs a verified profile (server-side rule) — say it
                       BEFORE they submit instead of only failing afterwards. */}
-                  <p style={{
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                    flexWrap: "wrap", fontSize: 13, color: "var(--muted)", marginTop: 12, lineHeight: 1.5,
-                  }}>
-                    <Shield style={{ width: 14, height: 14, flex: "none" }} />
+                  <p className="flex items-center justify-center gap-1.5 flex-wrap text-[13px] text-muted mt-3 leading-[1.5]">
+                    <Shield className="w-3.5 h-3.5 flex-none" />
                     {c.verifNote}
-                    <Link href="/onboarding/verify" className="linklike" style={{ fontSize: 13 }}>
+                    <Link href="/onboarding/verify" className="linklike text-[13px]">
                       {c.verifCta}
                     </Link>
                   </p>
 
                   {/* Shown ONLY when the server action reports demo mode (no DB connected). */}
                   {demo && (
-                    <p style={{
-                      textAlign: "center",
-                      fontSize: 13,
-                      color: "var(--muted)",
-                      marginTop: 12,
-                      lineHeight: 1.5,
-                    }}>
+                    <p className="text-center text-[13px] text-muted mt-3 leading-[1.5]">
                       {t.common.demoMode}
                     </p>
                   )}

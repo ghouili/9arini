@@ -31,7 +31,11 @@ import { resolve } from "node:path";
 import { expand, assertServer, SESSION_COOKIE, WIDTHS } from "./routes.mjs";
 import { ROOT } from "./lib-color.mjs";
 
-const OUT = resolve(ROOT, "scripts/ui-audit/shots");
+/* --out=<dir> writes somewhere other than shots/, so a BASELINE can be captured
+   before a refactor and compared against afterwards with diff.mjs. That is what
+   makes "this change is visually neutral" a measurement instead of a claim. */
+const outArg = process.argv.find((a) => a.startsWith("--out="))?.slice(6);
+const OUT = resolve(ROOT, "scripts/ui-audit", outArg || "shots");
 const only = process.argv.find((a) => a.startsWith("--only="))?.slice(7);
 const keep = process.argv.includes("--keep");
 

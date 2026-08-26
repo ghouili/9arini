@@ -59,8 +59,11 @@ const SNAP = () => {
     ring: hasOutline || (fv && shadow),
     focusVisible: fv,
     offscreen: r.width === 0 && r.height === 0,
-    // stable identity for cycle detection
-    key: `${el.tagName}#${el.id}.${String(el.className || "")}|${(el.textContent || "").trim().slice(0, 20)}`,
+    /* Identity for cycle detection = the element's POSITION in the document, not
+       its tag+class+text. Two rows of a settings list can legitimately be
+       identical strings, and a name-based key made the walker think it had
+       looped after 5 stops and report a phantom trap. */
+    key: [...document.querySelectorAll("*")].indexOf(el),
   };
 };
 

@@ -258,6 +258,14 @@
   .trust{display:flex;gap:11px;align-items:flex-start;padding:13px 14px;background:var(--green50);border-radius:14px;min-width:0}
   .trust .ic{color:var(--green);width:22px;height:22px;flex:none;margin-top:1px}
   .trust p{font-size:13px;color:var(--green-ink);line-height:1.55;min-width:0;overflow-wrap:anywhere}
+  /* .trust on a DARK surface (the tutor-landing income panel). It used to be
+     spelled out as three inline styles overriding .trust's green-on-green — the
+     only way to win, since a Tailwind utility (0,1,0) loses to `.trust .ic`
+     (0,2,0). A modifier with the same specificity, declared after, is the fix
+     the design system was missing. */
+  .trust-dark{background:rgba(255,255,255,.12)}
+  .trust-dark .ic{color:var(--mint)}
+  .trust-dark p{color:var(--on-blue)}
 
   /* ---- toast ---- */
   /* Centred via inset-inline+auto margins instead of left:50%/translateX(-50%):
@@ -337,11 +345,18 @@
      1fr and push the whole grid past the container → horizontal page scroll.
      `align-items:stretch` (the default) + .u-card's height:100% is what keeps
      cards in one row EQUAL HEIGHT; .u-card-foot pins their footers. */
-  /* NOTE: `.grid` collides by name with Tailwind's `grid` display utility, so any
-     className="grid" also inherits this gap. Left as-is (call sites rely on it),
-     but the >* rule below is deliberately NOT applied to it — only to the three
-     design-system grids — so arbitrary Tailwind grids keep their own sizing. */
-  .grid,.grid-auto,.grid-2,.grid-3{display:grid;gap:clamp(14px,2vw,22px);align-items:stretch}
+  /* `.grid` DELETED from this selector list. It collided by name with Tailwind's
+     `grid` display utility, so every className="grid" in the codebase — 10 of
+     them, all plain `display:grid` icon tiles and card grids — silently
+     inherited a 14-22px gap it never asked for. It only looked harmless because
+     Tailwind's utilities layer sits after @layer components and its explicit
+     gap-4 / gap-5 happened to win at the sites that had one; the ones without a
+     gap utility were quietly running on this value.
+
+     Nothing relied on it: the design-system grids are .grid-auto / .grid-2 /
+     .grid-3, and every bare `grid` class name in app/ and components/ is
+     Tailwind's. Verified pixel-identical across 144 screenshots (diff.mjs). */
+  .grid-auto,.grid-2,.grid-3{display:grid;gap:clamp(14px,2vw,22px);align-items:stretch}
   .grid-auto>*,.grid-2>*,.grid-3>*{min-width:0}
   /* min(260px,100%) so the track can never be wider than its container — plain
      minmax(260px,…) overflows any column narrower than 260px (nested grids,

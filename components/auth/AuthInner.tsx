@@ -165,43 +165,25 @@ export function AuthInner({ next }: { next: string | null }) {
   return (
     <SiteShell>
       <section className="web-section">
-        <div className="container container-narrow" style={{ display: "flex", justifyContent: "center" }}>
+        <div className="container container-narrow flex justify-center">
           <div
-            className="panel panel-pad rise"
-            style={{
-              width: "100%",
-              maxWidth: 460,
-              minWidth: 0,
-            }}
+            className="panel panel-pad rise w-full max-w-[460px] min-w-0"
           >
             {/* Title */}
             <h1
-              style={{
-                fontFamily: "var(--fd)",
-                fontSize: "clamp(22px, 4vw, 28px)",
-                letterSpacing: "-0.6px",
-                marginBottom: 6,
-                color: "var(--ink)",
-              }}
+              className="font-display text-[clamp(22px,_4vw,_28px)] tracking-[-0.6px] mb-1.5 text-ink"
             >
               {t.auth.title}
             </h1>
-            <p style={{ fontSize: 13.5, color: "var(--muted)", marginBottom: 24, lineHeight: 1.55 }}>
+            <p className="text-[13.5px] text-muted mb-6 leading-[1.55]">
               {a.lead}
             </p>
 
             {/* Role selection */}
-            <div style={{ marginBottom: 20 }}>
+            <div className="mb-5">
               <p
                 id="auth-role-label"
-                style={{
-                  fontSize: 13,
-                  fontWeight: 700,
-                  marginBottom: 10,
-                  color: "var(--muted)",
-                  textTransform: "uppercase",
-                  letterSpacing: 0.4,
-                }}
+                className="text-[13px] font-bold mb-2.5 text-muted uppercase tracking-[0.4px]"
               >
                 {t.account.role}
               </p>
@@ -252,12 +234,12 @@ export function AuthInner({ next }: { next: string | null }) {
                         }}
                       >
                         {id === "tutor" ? (
-                          <Book style={{ width: 24, height: 24 }} />
+                          <Book className="w-6 h-6" />
                         ) : (
-                          <User style={{ width: 24, height: 24 }} />
+                          <User className="w-6 h-6" />
                         )}
                       </span>
-                      <span style={{ display: "block", lineHeight: 1.2, minWidth: 0 }}>{label}</span>
+                      <span className="block leading-[1.2] min-w-0">{label}</span>
                       <span
                         style={{
                           display: "block", lineHeight: 1.3, fontSize: 13, fontWeight: 600,
@@ -285,7 +267,7 @@ export function AuthInner({ next }: { next: string | null }) {
                   inputMode="tel"
                   autoComplete="tel"
                   disabled={codeSent}
-                  style={{ minWidth: 0 }}
+                  className="min-w-0"
                 />
               </div>
             </Field>
@@ -315,11 +297,11 @@ export function AuthInner({ next }: { next: string | null }) {
                   >
                     <option value="" disabled>{by.ph}</option>
                     {years.map((y) => (
-                      <option key={y} value={y} style={{ color: "var(--ink)" }}>{y}</option>
+                      <option key={y} value={y} className="text-ink">{y}</option>
                     ))}
                   </select>
                 </div>
-                <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 6, lineHeight: 1.5 }}>{by.note}</p>
+                <p className="text-[13px] text-muted mt-1.5 leading-[1.5]">{by.note}</p>
               </Field>
             )}
 
@@ -352,12 +334,9 @@ export function AuthInner({ next }: { next: string | null }) {
               <div className="rise">
                 {/* Where the code went + an escape hatch if the number is wrong. */}
                 <div
-                  style={{
-                    display: "flex", alignItems: "center", justifyContent: "space-between",
-                    gap: 10, flexWrap: "wrap", marginBottom: 14,
-                  }}
+                  className="flex items-center justify-between gap-2.5 flex-wrap mb-3.5"
                 >
-                  <span style={{ fontSize: 13, color: "var(--ink2)", minWidth: 0 }}>
+                  <span className="text-[13px] text-ink2 min-w-0">
                     {a.sentTo(phone.trim())}
                   </span>
                   <button
@@ -414,7 +393,7 @@ export function AuthInner({ next }: { next: string | null }) {
                       inputMode="numeric"
                       autoComplete="one-time-code"
                       maxLength={6}
-                      style={{ minWidth: 0, letterSpacing: 3, fontFamily: "var(--fd)" }}
+                      className="min-w-0 tracking-[3px] font-display"
                     />
                   </div>
                 </Field>

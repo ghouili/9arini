@@ -1,6 +1,6 @@
 # scripts/ui-audit — the UI measurement harness
 
-Seven runners. Each exits non-zero on failure, so `npm run ui:audit` is a gate,
+Seven runners, plus two verification helpers. Each exits non-zero on failure, so `npm run ui:audit` is a gate,
 not a report you can talk yourself out of.
 
 | script | what it proves | needs a server |
@@ -43,3 +43,39 @@ Not part of the gate. Given a brand hue and a set of surfaces it must sit on, it
 finds the **lightest** shade that still clears the contrast floor — so an accent
 passes AA without being darkened into mud. Used to derive the `--ochre-btn` /
 `--green-ink` family in `globals.css`.
+
+## Verifying that a refactor changed nothing
+
+`to-tailwind.mjs` (the inline-style → Tailwind codemod) and any other mechanical
+change are verified two ways, because pixels and geometry catch different things:
+
+```bash
+node scripts/ui-audit/shots.mjs --out=shots-baseline   # before
+node scripts/ui-audit/geom.mjs  before.json            # before
+# ...make the change...
+node scripts/ui-audit/shots.mjs && node scripts/ui-audit/diff.mjs   # pixel-identical?
+node scripts/ui-audit/geom.mjs "" before.json                       # geometry-identical?
+```
+
+`diff.mjs` compares SHA-256 of each PNG — Playwright's encoding is deterministic,
+so equal hashes mean pixel-identical. `geom.mjs` dumps the box **and computed
+style** of every element on every route and diffs those, which is what actually
+localises a regression: a pixel diff says "storefront-fr-380.png changed", while
+geom says "this `<p>` lost 12px of bottom margin".
+
+Both were needed. The Tailwind conversion looked clean in review but geom.mjs
+caught four real regressions a pixel diff alone would only have flagged, not
+explained:
+
+* `tracking-[0.6]` — `letterSpacing` is not a unitless property, so the utility
+  was invalid CSS and silently dropped, narrowing a heading by 10px;
+* `text-mint` / `text-on-blue` losing to `.trust .ic` / `.trust p` — Tailwind's
+  `@layer` here is build-time ordering, not native cascade layers, so a utility
+  (0,1,0) does **not** beat a component rule (0,2,0) the way an inline style did;
+* `mb-0` losing to `.sf-empty-body`, which is injected unlayered via
+  `dangerouslySetInnerHTML` and therefore outranks every Tailwind layer;
+* `pb-0` losing to `.web-section.tight`, same specificity story.
+
+That is the general hazard of this codemod: an inline style always wins, a
+utility class does not. Anything it converts on an element that also carries a
+component class has to be re-measured, not eyeballed.

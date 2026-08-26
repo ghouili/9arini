@@ -62,8 +62,8 @@ function LiveCountdown({ ts }: { ts: number }) {
         { val: pad(s), label: t.student.secs },
       ].map(({ val, label }) => (
         <div key={label} style={{ background: "rgba(255,255,255,.10)", border: "1px solid rgba(255,255,255,.12)", borderRadius: 16, width: 66, padding: "12px 0", textAlign: "center" }}>
-          <b style={{ fontFamily: "var(--fd)", fontSize: 26, display: "block", lineHeight: 1 }}>{val}</b>
-          <span style={{ fontSize: 13, color: "var(--on-dark-soft)" }}>{label}</span>
+          <b className="font-display text-[26px] block leading-[1]">{val}</b>
+          <span className="text-[13px] text-on-dark-soft">{label}</span>
         </div>
       ))}
     </div>
@@ -128,7 +128,7 @@ export default function LiveLobbyPage({ params }: Props) {
     return (
       <SiteShell footer={false}>
         <section className="web-section">
-          <div className="container" style={{ display: "grid", placeItems: "center", minHeight: 280 }}>
+          <div className="container grid place-items-center min-h-[280px]">
             <Spinner />
           </div>
         </section>
@@ -141,14 +141,14 @@ export default function LiveLobbyPage({ params }: Props) {
     return (
       <SiteShell footer={false}>
         <section className="web-section">
-          <div className="container" style={{ maxWidth: 520, marginInline: "auto" }}>
+          <div className="container max-w-[520px] mx-auto">
             <div className="panel panel-pad" style={{ textAlign: "center", padding: "clamp(24px,5vw,40px)" }}>
-              <h1 className="web-h2" style={{ fontSize: "clamp(17px,2.4vw,22px)", marginBottom: 10 }}>{c.lockedTitle}</h1>
-              <p className="muted" style={{ fontSize: 13.5, lineHeight: 1.6, marginBottom: 20 }}>{c.lockedBody}</p>
-              <Link href={`/class/${params.id}`} className="btn btn-primary" style={{ maxWidth: 280, marginInline: "auto" }}>
+              <h1 className="web-h2 text-[clamp(17px,2.4vw,22px)] mb-2.5">{c.lockedTitle}</h1>
+              <p className="muted text-[13.5px] leading-[1.6] mb-5">{c.lockedBody}</p>
+              <Link href={`/class/${params.id}`} className="btn btn-primary max-w-[280px] mx-auto">
                 {c.lockedCta}
               </Link>
-              <Link href="/student" style={{ display: "inline-block", marginTop: 14, color: "var(--blue)", fontSize: 13, fontWeight: 700 }}>
+              <Link href="/student" className="inline-block mt-3.5 text-blue text-[13px] font-bold">
                 {c.myClasses}
               </Link>
             </div>
@@ -164,8 +164,8 @@ export default function LiveLobbyPage({ params }: Props) {
       <SiteShell footer={false}>
         <section className="web-section">
           <div className="container" style={{ textAlign: "center", padding: "clamp(28px,6vw,60px)" }}>
-            <h1 className="web-h2" style={{ marginBottom: 12 }}>{t.extra.noResults}</h1>
-            <Link href="/student" className="btn btn-primary" style={{ maxWidth: 240, marginInline: "auto" }}>{t.nav.classes}</Link>
+            <h1 className="web-h2 mb-3">{t.extra.noResults}</h1>
+            <Link href="/student" className="btn btn-primary max-w-[240px] mx-auto">{t.nav.classes}</Link>
           </div>
         </section>
       </SiteShell>
@@ -189,7 +189,7 @@ export default function LiveLobbyPage({ params }: Props) {
   return (
     <SiteShell footer={false}>
       <section className="web-section">
-        <div className="container" style={{ display: "flex", justifyContent: "center" }}>
+        <div className="container flex justify-center">
           <div
             style={{
               width: "100%",
@@ -205,7 +205,7 @@ export default function LiveLobbyPage({ params }: Props) {
             }}
           >
             {/* Top row: back + status tag */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+            <div className="flex justify-between items-center gap-2.5">
               <Link href="/student" className="iconbtn" aria-label={t.common.back} style={{ background: "rgba(255,255,255,.12)", color: "#fff" }}>
                 <Back />
               </Link>
@@ -218,9 +218,9 @@ export default function LiveLobbyPage({ params }: Props) {
             {/* Stage */}
             <div style={{ textAlign: "center", margin: "clamp(20px,4vw,32px) 0 8px" }}>
               {initials && <Avatar initials={initials} size={92} />}
-              <h1 style={{ fontFamily: "var(--fd)", fontSize: "clamp(18px,4vw,22px)", marginTop: 16 }}>{cls.title}</h1>
+              <h1 className="font-display text-[clamp(18px,4vw,22px)] mt-4">{cls.title}</h1>
               {cls.tutor_name && (
-                <div style={{ color: "var(--on-dark-soft)", fontSize: 13, marginTop: 5 }}>
+                <div className="text-on-dark-soft text-[13px] mt-[5px]">
                   {t.live.with} {cls.tutor_name}
                 </div>
               )}
@@ -234,7 +234,7 @@ export default function LiveLobbyPage({ params }: Props) {
               )}
 
               {gate.role === "tutor" && (
-                <div style={{ color: "var(--on-dark-soft)", fontSize: 13, marginBottom: 10 }}>{c.tutorNote}</div>
+                <div className="text-on-dark-soft text-[13px] mb-2.5">{c.tutorNote}</div>
               )}
             </div>
 
@@ -242,7 +242,7 @@ export default function LiveLobbyPage({ params }: Props) {
             <div style={{ display: "flex", gap: 9, alignItems: "flex-start", background: "rgba(255,255,255,.07)", borderRadius: 13, padding: "12px 13px", fontSize: 13, color: "var(--on-dark)", lineHeight: 1.5, marginBottom: 14 }}>
               <Bulb style={{ color: "var(--amber)", flexShrink: 0, marginTop: 1, width: 17, height: 17 } as CSSProperties} />
               <div>
-                <div style={{ fontWeight: 600, marginBottom: 3 }}>{c.tipTitle}</div>
+                <div className="font-semibold mb-[3px]">{c.tipTitle}</div>
                 <div>{c.tip}</div>
               </div>
             </div>
@@ -250,7 +250,7 @@ export default function LiveLobbyPage({ params }: Props) {
             {/* Teaching tools — one-tap launchers (whiteboard / quiz) */}
             <ClassTools cls={cls} dark />
 
-            <div style={{ marginTop: 16 }}>
+            <div className="mt-4">
               <Button variant="primary" onClick={handleJoin} disabled={!meetUrl}>
                 <Video /> {t.live.join}
               </Button>

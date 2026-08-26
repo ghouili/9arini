@@ -30,12 +30,12 @@ export default function AccountPage() {
   return (
     <SiteShell>
       <section className="web-section">
-        <div className="container container-narrow" style={{ maxWidth: 760 }}>
+        <div className="container container-narrow max-w-[760px]">
 
           {/* Page heading — the eyebrow used to repeat the h1 verbatim */}
-          <div style={{ marginBottom: "clamp(20px, 3vw, 36px)" }}>
+          <div className="mb-[clamp(20px,_3vw,_36px)]">
             <h1 className="web-h2">{t.account.title}</h1>
-            <p className="muted" style={{ fontSize: 13.5, marginTop: 6 }}>{c.sub}</p>
+            <p className="muted text-[13.5px] mt-1.5">{c.sub}</p>
           </div>
 
           {/* Settings panel */}
@@ -71,12 +71,12 @@ export default function AccountPage() {
               >
                 <User style={{ width: 32, height: 32, stroke: "#fff" }} />
               </div>
-              <div style={{ flex: "1 1 160px", minWidth: 0 }}>
+              <div className="flex-[1_1_160px] min-w-0">
                 <div style={{ fontFamily: "var(--fd)", fontSize: "clamp(16px, 2vw, 20px)", fontWeight: 700, marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {me?.name || "—"}
                 </div>
                 {me?.phone && (
-                  <div dir="ltr" style={{ fontSize: 14, color: "var(--muted)", textAlign: "start" }}>{me.phone}</div>
+                  <div dir="ltr" className="text-[14px] text-muted text-start">{me.phone}</div>
                 )}
               </div>
             </div>
@@ -93,7 +93,7 @@ export default function AccountPage() {
                 flexWrap: "wrap",
               }}
             >
-              <span style={{ fontSize: 15, fontWeight: 600 }}>{t.account.language}</span>
+              <span className="text-[15px] font-semibold">{t.account.language}</span>
               <LocaleToggle />
             </div>
 
@@ -109,20 +109,9 @@ export default function AccountPage() {
                 flexWrap: "wrap",
               }}
             >
-              <span style={{ fontSize: 15, fontWeight: 600 }}>{t.account.role}</span>
+              <span className="text-[15px] font-semibold">{t.account.role}</span>
               <span
-                style={{
-                  fontSize: 13,
-                  fontWeight: 700,
-                  padding: "6px 14px",
-                  borderRadius: 999,
-                  background: "var(--blue50)",
-                  color: "var(--blue)",
-                  flexShrink: 0,
-                  minHeight: 32,
-                  display: "inline-flex",
-                  alignItems: "center",
-                }}
+                className="text-[13px] font-bold py-1.5 px-3.5 rounded-[999px] bg-blue50 text-blue shrink-0 min-h-8 inline-flex items-center"
               >
                 {me?.role === "tutor" ? t.auth.asTutor : t.auth.asStudent}
               </span>
@@ -145,31 +134,22 @@ export default function AccountPage() {
               }}
               aria-label={t.account.help}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+              <div className="flex items-center gap-3 min-w-0">
                 <div
-                  style={{
-                    width: 40,
-                    height: 40,
-                    minWidth: 40,
-                    borderRadius: 11,
-                    background: "var(--green50)",
-                    display: "grid",
-                    placeItems: "center",
-                    flexShrink: 0,
-                  }}
+                  className="w-10 h-10 min-w-10 rounded-[11px] bg-green50 grid place-items-center shrink-0"
                   aria-hidden="true"
                 >
                   <Phone style={{ width: 18, height: 18, stroke: "var(--green)" }} />
                 </div>
-                <span style={{ fontSize: 15, fontWeight: 600, minWidth: 0 }}>{t.account.help}</span>
+                <span className="text-[15px] font-semibold min-w-0">{t.account.help}</span>
               </div>
-              <Forward style={{ color: "var(--muted)", width: 18, height: 18, flexShrink: 0 }} aria-hidden="true" />
+              <Forward className="text-muted w-[18px] h-[18px] shrink-0" aria-hidden="true" />
             </a>
 
           </div>
 
           {/* Logout button */}
-          <div style={{ marginTop: "clamp(14px, 2vw, 22px)", maxWidth: 320 }}>
+          <div className="mt-[clamp(14px,_2vw,_22px)] max-w-[320px]">
             <Button variant="ghost" onClick={handleLogout}>
               {t.account.logout}
             </Button>

@@ -250,7 +250,7 @@ export function StorefrontView({
         <span className="sf-empty-ic" aria-hidden="true">
           {full ? <Users /> : <Clock />}
         </span>
-        <div style={{ minWidth: 0 }}>
+        <div className="min-w-0">
           <h3 className="sf-empty-title">{full ? c.allFullTitle : c.noClassesTitle}</h3>
           <p className="sf-empty-body">{full ? c.allFullBody : c.noClassesBody}</p>
           <Link href="/explore" className="btn btn-ghost btn-sm sf-empty-cta">
@@ -264,13 +264,13 @@ export function StorefrontView({
   return (
     <SiteShell>
       {/* ── Full-bleed zellige hero band ── */}
-      <div className="zellige hero-blue" style={{ flexShrink: 0 }}>
+      <div className="zellige hero-blue shrink-0">
         <div className="container">
           <div className="sf-hero">
             {/* Tutor identity */}
             <div className="sf-hero-id">
               <Avatar initials={tutor.avatar_initials} size={88} />
-              <div style={{ minWidth: 0 }}>
+              <div className="min-w-0">
                 <h1 className="web-h2 sf-name">
                   <span className="sf-name-txt">{tutor.full_name}</span>
                   {tutor.verified && <Verified label={c.verifiedLabel} />}
@@ -282,7 +282,7 @@ export function StorefrontView({
                     <>
                       <Stars filled={Math.round(average)} />
                       <b className="sf-num">{average.toFixed(1)}</b>
-                      <span style={{ opacity: 0.85 }}>({c.reviewsCount(reviews.count)})</span>
+                      <span className="opacity-[0.85]">({c.reviewsCount(reviews.count)})</span>
                     </>
                   ) : (
                     /* No reviews yet → say so. Never a fake star score. */
@@ -291,7 +291,7 @@ export function StorefrontView({
 
                   {tutor.students_count > 0 && (
                     <>
-                      <span aria-hidden="true" style={{ opacity: 0.6 }}>·</span>
+                      <span aria-hidden="true" className="opacity-[0.6]">·</span>
                       <span>
                         {tutor.students_count.toLocaleString()} {c.students}
                       </span>
@@ -331,7 +331,7 @@ export function StorefrontView({
           */}
           <div className="sf-grid" data-sf-grid="true">
             {/* ── MAIN column ── */}
-            <div style={{ minWidth: 0 }}>
+            <div className="min-w-0">
               {/* No "réservé 23 fois cette semaine" banner: that number was a
                   hardcoded string in lib/i18n.ts (t.storefront.bookedThisWeek),
                   rendered on EVERY storefront including a brand-new tutor with
@@ -410,7 +410,7 @@ export function StorefrontView({
                    checkout), so a card that looks buyable is a dead end. ── */}
               {packs.length > 0 && (
                 <>
-                  <div className="sf-sechead" style={{ marginTop: 34 }}>
+                  <div className="sf-sechead mt-[34px]">
                     <h2 className="sf-h2">{t.storefront.packs}</h2>
                   </div>
                   <ul className="sf-packs" role="list">
@@ -429,7 +429,7 @@ export function StorefrontView({
               )}
 
               {/* ── Reviews section — real rows from getTutorReviews(slug) ── */}
-              <div className="sf-sechead" style={{ marginTop: 34 }}>
+              <div className="sf-sechead mt-[34px]">
                 <h2 className="sf-h2">{c.reviewsTitle}</h2>
                 {hasReviews && <span className="sf-count">{c.reviewsCount(reviews.count)}</span>}
               </div>
@@ -440,9 +440,9 @@ export function StorefrontView({
                   <span className="sf-empty-ic sf-empty-ic-blue" aria-hidden="true">
                     <Star />
                   </span>
-                  <div style={{ minWidth: 0 }}>
+                  <div className="min-w-0">
                     <h3 className="sf-empty-title">{c.noReviewsTitle}</h3>
-                    <p className="sf-empty-body" style={{ marginBottom: 0 }}>{c.noReviewsBody}</p>
+                    <p className="sf-empty-body is-flush">{c.noReviewsBody}</p>
                   </div>
                 </div>
               ) : (
@@ -450,7 +450,7 @@ export function StorefrontView({
                   {/* Average summary */}
                   <div className="u-card u-card-pad sf-avg">
                     <div className="sf-avg-n">{average.toFixed(1)}</div>
-                    <div style={{ minWidth: 0 }}>
+                    <div className="min-w-0">
                       <Stars filled={Math.round(average)} size={15} />
                       <div className="sf-avg-c">{c.reviewsCount(reviews.count)}</div>
                     </div>
@@ -463,7 +463,7 @@ export function StorefrontView({
                         <div className="sf-rev-head">
                           <div className="sf-rev-who">
                             <Avatar initials={initialsOf(r.studentName) || "?"} size={34} square />
-                            <div style={{ minWidth: 0 }}>
+                            <div className="min-w-0">
                               <div className="sf-rev-name">{r.studentName ?? c.anon}</div>
                               <Stars filled={r.rating} size={12} label={`${r.rating}/5`} />
                             </div>
@@ -475,7 +475,7 @@ export function StorefrontView({
 
                         {r.text && <p className="sf-rev-text">{r.text}</p>}
                         {r.classTitle && (
-                          <div className="metaline" style={{ marginTop: 8 }}>
+                          <div className="metaline mt-2">
                             <span>{r.classTitle}</span>
                           </div>
                         )}
@@ -710,6 +710,10 @@ export function StorefrontView({
         .sf-empty-ic-blue{background:var(--blue50);color:var(--blue)}
         .sf-empty-title{font-size:14.5px;margin-bottom:5px}
         .sf-empty-body{font-size:13px;color:var(--muted);line-height:1.6;margin:0 0 12px}
+        /* This block is injected unlayered, so it outranks every Tailwind layer
+           whatever the specificity — an mb-0 utility on the element is simply
+           inert. The flush variant has to live here too. */
+        .sf-empty-body.is-flush{margin-bottom:0}
         .sf-empty-cta{display:inline-flex;width:auto}
         .sf-empty-center .sf-empty-cta{width:100%}
 

@@ -24,7 +24,15 @@ export default {
            for a solid fill that carries a white label. See globals.css :root. */
         "ochre-ink": v("ochre-ink"), "green-ink": v("green-ink"),
         "ochre-btn": v("ochre-btn"), "green-btn": v("green-btn"),
-        "ochre-tint": v("ochre-tint"), "on-blue-soft": v("on-blue-soft"),
+        "ochre-tint": v("ochre-tint"),
+        /* Dark-surface palette — the colours that only exist ON the cobalt/ink
+           panels, plus the rose steps used by the alert blocks. See globals.css. */
+        blue300: v("blue300"), blue100: v("blue100"), blue900: v("blue900"),
+        ink800: v("ink800"), ink900: v("ink900"), ochre300: v("ochre300"),
+        mint: v("mint"), mint200: v("mint200"),
+        "on-blue": v("on-blue"), "on-blue-soft": v("on-blue-soft"),
+        "on-dark": v("on-dark"), "on-dark-soft": v("on-dark-soft"),
+        rose700: v("rose700"), rose600: v("rose600"), rose300: v("rose300"), rose200: v("rose200"),
       },
       fontFamily: {
         display: [v("fd")],

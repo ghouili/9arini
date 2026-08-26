@@ -105,7 +105,7 @@ export default function OnboardingPage() {
         <div className="container">
           <div className="web-hero">
             {/* ── Form column ── */}
-            <div style={{ minWidth: 0 }}>
+            <div className="min-w-0">
               {/* Progress — named steps, so "étape 2/3" means something */}
               <div
                 role="progressbar"
@@ -114,9 +114,9 @@ export default function OnboardingPage() {
                 aria-valuemax={3}
                 aria-valuenow={step}
                 aria-valuetext={`${c.stepOf(step, 3)} — ${c.steps[step - 1]}`}
-                style={{ marginBottom: 22, maxWidth: 420 }}
+                className="mb-[22px] max-w-[420px]"
               >
-                <div style={{ display: "flex", gap: 6 }}>
+                <div className="flex gap-1.5">
                   {[1, 2, 3].map((i) => (
                     <div
                       key={i}
@@ -128,7 +128,7 @@ export default function OnboardingPage() {
                     />
                   ))}
                 </div>
-                <div style={{ display: "flex", gap: 6, marginTop: 7 }}>
+                <div className="flex gap-1.5 mt-[7px]">
                   {c.steps.map((label, i) => (
                     <div
                       key={label}
@@ -144,29 +144,29 @@ export default function OnboardingPage() {
                 </div>
               </div>
 
-              <h1 className="web-h2" style={{ marginBottom: 8 }}>{t.onboarding.title}</h1>
-              <p className="web-lead" style={{ marginBottom: 18, maxWidth: 520 }}>{t.onboarding.lead}</p>
+              <h1 className="web-h2 mb-2">{t.onboarding.title}</h1>
+              <p className="web-lead mb-[18px] max-w-[520px]">{t.onboarding.lead}</p>
 
               {/* What they actually get — three facts, no promises we can't keep */}
-              <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 8, marginBottom: 26, maxWidth: 520 }}>
+              <ul className="list-none flex flex-col gap-2 mb-[26px] max-w-[520px]">
                 {c.perks.map((p) => (
-                  <li key={p} style={{ display: "flex", alignItems: "flex-start", gap: 9, fontSize: 13.5, color: "var(--ink2)", lineHeight: 1.5 }}>
-                    <Check style={{ width: 16, height: 16, color: "var(--green)", flex: "none", marginTop: 2 }} />
-                    <span style={{ minWidth: 0 }}>{p}</span>
+                  <li key={p} className="flex items-start gap-[9px] text-[13.5px] text-ink2 leading-[1.5]">
+                    <Check className="w-4 h-4 text-green flex-none mt-0.5" />
+                    <span className="min-w-0">{p}</span>
                   </li>
                 ))}
               </ul>
 
-              <div style={{ maxWidth: 520 }}>
+              <div className="max-w-[520px]">
                 <Field label={t.onboarding.name}>
                   <div className="inp" style={name ? { borderColor: "var(--blue)" } : {}}>
-                    <input type="text" placeholder={t.onboarding.namePh} value={name} onChange={(e) => setName(e.target.value)} style={{ minWidth: 0 }} />
+                    <input type="text" placeholder={t.onboarding.namePh} value={name} onChange={(e) => setName(e.target.value)} className="min-w-0" />
                   </div>
                 </Field>
 
                 <Field label={t.onboarding.subject}>
                   <div className="inp" style={subject ? { borderColor: "var(--blue)" } : {}}>
-                    <input type="text" placeholder={t.onboarding.subjectPh} value={subject} onChange={(e) => setSubject(e.target.value)} style={{ minWidth: 0 }} />
+                    <input type="text" placeholder={t.onboarding.subjectPh} value={subject} onChange={(e) => setSubject(e.target.value)} className="min-w-0" />
                   </div>
                 </Field>
 
@@ -178,7 +178,7 @@ export default function OnboardingPage() {
 
                 <Field label={t.onboarding.link}>
                   <div className="inp" dir="ltr" style={slug ? { borderColor: "var(--blue)" } : {}}>
-                    <span className="pre" style={{ whiteSpace: "nowrap", flexShrink: 0 }}>9arini.tn/</span>
+                    <span className="pre whitespace-nowrap shrink-0">9arini.tn/</span>
                     <span style={{ fontWeight: 600, color: slug ? "var(--ink)" : "var(--muted)", fontSize: 14, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {slug || "…"}
                     </span>
@@ -191,30 +191,30 @@ export default function OnboardingPage() {
                     className="panel panel-pad"
                     style={{ marginTop: 8, background: "var(--green50)", border: "1px solid var(--green)" }}
                   >
-                    <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                      <span style={{ color: "var(--green)", display: "inline-flex", flex: "none", marginTop: 1 }} aria-hidden="true">
+                    <div className="flex gap-2.5 items-start">
+                      <span className="text-green inline-flex flex-none mt-[1px]" aria-hidden="true">
                         <Check />
                       </span>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontFamily: "var(--fd)", fontWeight: 700, fontSize: 15, marginBottom: 4 }}>
+                      <div className="min-w-0">
+                        <div className="font-display font-bold text-[15px] mb-1">
                           {c.publishedTitle}
                         </div>
-                        <p style={{ fontSize: 13, color: "var(--ink2)", lineHeight: 1.6 }}>{c.publishedBody}</p>
+                        <p className="text-[13px] text-ink2 leading-[1.6]">{c.publishedBody}</p>
                       </div>
                     </div>
-                    <div style={{ marginTop: 14, maxWidth: 360 }}>
+                    <div className="mt-3.5 max-w-[360px]">
                       <Link href="/onboarding/verify" className="btn btn-primary">
-                        <Shield style={{ width: 18, height: 18 }} />
+                        <Shield className="w-[18px] h-[18px]" />
                         {t.verif.draftCta}
                       </Link>
                     </div>
                   </div>
                 ) : (
-                  <div style={{ maxWidth: 360, marginTop: 6 }}>
+                  <div className="max-w-[360px] mt-1.5">
                     <Button variant="primary" onClick={handlePublish} disabled={!name || !subject || publishing}>
                       {publishing ? t.common.loading : t.onboarding.cta}
                     </Button>
-                    <p style={{ textAlign: "center", fontSize: 13, color: "var(--muted)", marginTop: 11, lineHeight: 1.5 }}>
+                    <p className="text-center text-[13px] text-muted mt-[11px] leading-[1.5]">
                       {c.fine}
                     </p>
                   </div>
@@ -223,21 +223,21 @@ export default function OnboardingPage() {
             </div>
 
             {/* ── Live preview column (sticky on desktop) ── */}
-            <div style={{ minWidth: 0 }}>
+            <div className="min-w-0">
               <div className="panel panel-pad" style={{ position: "sticky", top: 84, background: "var(--sand)", border: "1px solid var(--line)" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6, color: "var(--muted)", display: "inline-flex", alignItems: "center", gap: 7 }}>
-                    <Eye style={{ width: 14, height: 14 }} /> {t.onboarding.preview}
+                <div className="flex items-center gap-2 flex-wrap mb-3">
+                  <span className="text-[13px] font-bold uppercase tracking-[0.6px] text-muted inline-flex items-center gap-[7px]">
+                    <Eye className="w-3.5 h-3.5" /> {t.onboarding.preview}
                   </span>
                   {/* No fake "Vérifié" badge here: the account is not verified yet. */}
-                  <span className="chip chip-sand" style={{ marginInlineStart: "auto", flex: "none" }}>{c.notPublic}</span>
+                  <span className="chip chip-sand ms-auto flex-none">{c.notPublic}</span>
                 </div>
 
-                <div style={{ display: "flex", gap: 12, alignItems: "center", background: "var(--paper)", borderRadius: 13, padding: 14 }}>
+                <div className="flex gap-3 items-center bg-paper rounded-[13px] p-3.5">
                   <Avatar initials={name ? inits : "??"} size={52} square />
-                  <div style={{ minWidth: 0 }}>
+                  <div className="min-w-0">
                     <div style={{ fontFamily: "var(--fd)", fontSize: 16, marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {name || <span style={{ color: "var(--muted)" }}>{c.yourName}</span>}
+                      {name || <span className="text-muted">{c.yourName}</span>}
                     </div>
                     <div style={{ fontSize: 13, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {subject || t.onboarding.subjectPh}
@@ -246,9 +246,9 @@ export default function OnboardingPage() {
                 </div>
 
                 {bio && (
-                  <p style={{ fontSize: 13, color: "var(--ink2)", lineHeight: 1.6, marginTop: 14 }}>{bio}</p>
+                  <p className="text-[13px] text-ink2 leading-[1.6] mt-3.5">{bio}</p>
                 )}
-                <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 14, lineHeight: 1.5 }}>{c.previewNote}</p>
+                <p className="text-[13px] text-muted mt-3.5 leading-[1.5]">{c.previewNote}</p>
               </div>
             </div>
           </div>

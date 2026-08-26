@@ -175,10 +175,10 @@ export default function ClassDetailPage({ params }: { params: { id: string } }) 
       <SiteShell>
         {styles}
         <section className="web-section tight">
-          <div className="container" style={{ display: "grid", placeItems: "center", minHeight: 240, textAlign: "center" }}>
+          <div className="container grid place-items-center min-h-[240px] text-center">
             <div>
               <Spinner />
-              <p style={{ color: "var(--muted)", fontSize: 13.5 }}>{c.loading}</p>
+              <p className="text-muted text-[13.5px]">{c.loading}</p>
             </div>
           </div>
         </section>
@@ -190,12 +190,12 @@ export default function ClassDetailPage({ params }: { params: { id: string } }) 
       <SiteShell>
         {styles}
         <section className="web-section tight">
-          <div className="container" style={{ textAlign: "center", padding: "clamp(28px,6vw,60px) 0" }}>
-            <h1 className="web-h2" style={{ marginBottom: 10 }}>{c.notFound}</h1>
-            <p style={{ color: "var(--muted)", fontSize: 14, lineHeight: 1.6, marginBottom: 20 }}>
+          <div className="container text-center py-[clamp(28px,6vw,60px)] px-0">
+            <h1 className="web-h2 mb-2.5">{c.notFound}</h1>
+            <p className="text-muted text-[14px] leading-[1.6] mb-5">
               {c.notFoundBody}
             </p>
-            <Link href="/explore" className="btn btn-primary" style={{ maxWidth: 240, marginInline: "auto" }}>
+            <Link href="/explore" className="btn btn-primary max-w-[240px] mx-auto">
               {t.nav.explore}
             </Link>
           </div>
@@ -239,7 +239,7 @@ export default function ClassDetailPage({ params }: { params: { id: string } }) 
 
   const soldOutBox = (
     <div className="cd-soldout-box">
-      <h2 style={{ fontSize: 15.5, marginBottom: 2 }}>{c.soldOutTitle}</h2>
+      <h2 className="text-[15.5px] mb-0.5">{c.soldOutTitle}</h2>
       <p>{c.soldOutBody}</p>
       <Link href="/explore" className="btn btn-ghost">{c.otherClasses}</Link>
     </div>
@@ -252,7 +252,7 @@ export default function ClassDetailPage({ params }: { params: { id: string } }) 
         <div className="container">
 
           {/* Back breadcrumb */}
-          <div style={{ marginBottom: 14 }}>
+          <div className="mb-3.5">
             <Link href={backHref} className="cd-back">
               <Back />
               {t.common.back}
@@ -263,7 +263,7 @@ export default function ClassDetailPage({ params }: { params: { id: string } }) 
           <div className="cd-head">
             {/* A category kicker, not t.classDetail.book ("Réserver cette séance") —
                 static text that reads like a CTA is a trap next to the real one. */}
-            <p className="web-eyebrow" style={{ marginBottom: 8 }}>{t.storefront.live}</p>
+            <p className="web-eyebrow mb-2">{t.storefront.live}</p>
             <h1 className="web-h2 cd-title">{cls.title}</h1>
             <p className="cd-with">
               {t.classDetail.with} {tutorName}
@@ -274,12 +274,12 @@ export default function ClassDetailPage({ params }: { params: { id: string } }) 
           <div className="cd-grid">
 
             {/* LEFT col — class meta */}
-            <div style={{ minWidth: 0 }}>
+            <div className="min-w-0">
 
               {/* When / duration / seats */}
-              <div className="u-card u-card-pad" style={{ marginBottom: 16 }}>
+              <div className="u-card u-card-pad mb-4">
                 <div className="cd-when">
-                  <div className="thumb" style={{ background: "var(--blue)", color: "#fff" }}>
+                  <div className="thumb bg-blue text-white">
                     <b>{cls.day}</b>
                     <span>{month}</span>
                   </div>
@@ -305,16 +305,16 @@ export default function ClassDetailPage({ params }: { params: { id: string } }) 
                 {/* Description */}
                 {cls.description && (
                   <>
-                    <div className="cd-label" style={{ marginTop: 16, marginBottom: 8 }}>
+                    <div className="cd-label mt-4 mb-2">
                       {t.classDetail.about}
                     </div>
                     <p className="cd-desc">{cls.description}</p>
-                    <div className="divider" style={{ marginTop: 16 }} />
+                    <div className="divider mt-4" />
                   </>
                 )}
 
                 {/* Price row */}
-                <div className="cd-pricerow" style={{ marginTop: 16 }}>
+                <div className="cd-pricerow mt-4">
                   <span className="cd-pricelabel">{t.classDetail.price}</span>
                   {priceValue}
                 </div>
@@ -331,7 +331,7 @@ export default function ClassDetailPage({ params }: { params: { id: string } }) 
               {/* Tutor card */}
               <div className="u-card u-card-pad cd-tutor">
                 <span className="cd-tutor-av" aria-hidden="true">{tutorInits}</span>
-                <div style={{ minWidth: 0 }}>
+                <div className="min-w-0">
                   <div className="cd-tutor-name">
                     {tutor?.slug ? (
                       <Link href={`/${tutor.slug}`} style={{ color: "inherit" }}>{tutorName}</Link>
@@ -347,7 +347,7 @@ export default function ClassDetailPage({ params }: { params: { id: string } }) 
                   desktop-only, and the sticky bar is suppressed — without this the
                   small screen would just lose the CTA with no explanation. */}
               {soldOut && (
-                <div className="u-card u-card-pad cd-soldout-mobile" style={{ marginTop: 16 }}>
+                <div className="u-card u-card-pad cd-soldout-mobile mt-4">
                   {soldOutBox}
                 </div>
               )}
@@ -361,7 +361,7 @@ export default function ClassDetailPage({ params }: { params: { id: string } }) 
                 ) : (
                   <>
                     {/* Mini summary — which session this button books. */}
-                    <div style={{ marginBottom: 16 }}>
+                    <div className="mb-4">
                       <div className="cd-panel-title">{cls.title}</div>
                       <div className="metaline">
                         <span>
@@ -379,10 +379,10 @@ export default function ClassDetailPage({ params }: { params: { id: string } }) 
                       </div>
                     </div>
 
-                    <div className="divider" style={{ marginBottom: 16 }} />
+                    <div className="divider mb-4" />
 
                     {/* Price */}
-                    <div className="cd-pricerow" style={{ marginBottom: 18 }}>
+                    <div className="cd-pricerow mb-[18px]">
                       <span className="cd-pricelabel">{t.classDetail.price}</span>
                       <div className="cd-priceval">
                         {cls.is_free_first ? (

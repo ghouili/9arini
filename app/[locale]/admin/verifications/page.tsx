@@ -182,13 +182,13 @@ export default function AdminVerificationsPage() {
           {/* Header */}
           <div className="av-head">
             <span className="web-eyebrow av-eyebrow">
-              <Shield style={{ width: 16, height: 16 }} />
+              <Shield className="w-4 h-4" />
               {c.eyebrow}
             </span>
             <h1 className="web-h2">{c.title}</h1>
             {!loading && admin && (
               <div className="av-count">
-                <Users style={{ width: 15, height: 15 }} />
+                <Users className="w-[15px] h-[15px]" />
                 {c.count(items.length)}
               </div>
             )}
@@ -198,7 +198,7 @@ export default function AdminVerificationsPage() {
           {loading && (
             <div className="panel panel-pad av-center">
               <Spinner />
-              <p className="muted" style={{ marginTop: 4 }}>{c.loading}</p>
+              <p className="muted mt-1">{c.loading}</p>
             </div>
           )}
 
@@ -206,15 +206,15 @@ export default function AdminVerificationsPage() {
           {!loading && !admin && (
             <div className="panel panel-pad av-center rise">
               <div className="av-deny-icon">
-                <Shield style={{ width: 30, height: 30 }} />
+                <Shield className="w-[30px] h-[30px]" />
               </div>
-              <h2 style={{ fontFamily: "var(--fd)", fontSize: 22, letterSpacing: "-0.5px" }}>
+              <h2 className="font-display text-[22px] tracking-[-0.5px]">
                 {c.deniedTitle}
               </h2>
-              <p className="muted" style={{ maxWidth: 420, lineHeight: 1.6 }}>
+              <p className="muted max-w-[420px] leading-[1.6]">
                 {c.deniedNote}
               </p>
-              <Link href="/auth" style={{ width: "auto" }}>
+              <Link href="/auth" className="w-auto">
                 <Button variant="ink" sm>{c.signIn}</Button>
               </Link>
             </div>
@@ -224,9 +224,9 @@ export default function AdminVerificationsPage() {
           {!loading && admin && items.length === 0 && (
             <div className="panel panel-pad av-center rise">
               <div className="av-empty-icon">
-                <Check style={{ width: 30, height: 30 }} />
+                <Check className="w-[30px] h-[30px]" />
               </div>
-              <h2 style={{ fontFamily: "var(--fd)", fontSize: 20, letterSpacing: "-0.5px" }}>
+              <h2 className="font-display text-[20px] tracking-[-0.5px]">
                 {c.empty}
               </h2>
               <p className="muted">{c.emptyNote}</p>
@@ -251,7 +251,7 @@ export default function AdminVerificationsPage() {
                     {/* Card header */}
                     <header className="av-card-head">
                       <Avatar initials={initials(t.name)} size={56} square />
-                      <div style={{ minWidth: 0 }}>
+                      <div className="min-w-0">
                         <h3 className="av-name">{t.name}</h3>
                         <div className="av-sub">
                           <span className="chip chip-soft">{t.subject}</span>
@@ -311,15 +311,15 @@ export default function AdminVerificationsPage() {
                                 title={d.fileName}
                                 className={`av-doc${required ? " av-doc-req" : ""}`}
                               >
-                                <Eye style={{ width: 15, height: 15 }} />
+                                <Eye className="w-[15px] h-[15px]" />
                                 {label}
-                                <Forward style={{ width: 13, height: 13, opacity: 0.6 }} />
+                                <Forward className="w-[13px] h-[13px] opacity-[0.6]" />
                               </a>
                             );
                           })}
                         </div>
                       ) : (
-                        <p className="muted" style={{ fontSize: 13 }}>{c.notProvided}</p>
+                        <p className="muted text-[13px]">{c.notProvided}</p>
                       )}
                     </div>
 
@@ -337,7 +337,7 @@ export default function AdminVerificationsPage() {
                               className="av-link"
                             >
                               {linkLabels[key] ?? key}
-                              <Forward style={{ width: 12, height: 12, opacity: 0.6 }} />
+                              <Forward className="w-3 h-3 opacity-[0.6]" />
                             </a>
                           ))}
                         </div>
@@ -355,7 +355,7 @@ export default function AdminVerificationsPage() {
                           {state === "approve" ? (
                             <span className="av-btn-spin" aria-hidden="true" />
                           ) : (
-                            <Check style={{ width: 18, height: 18 }} />
+                            <Check className="w-[18px] h-[18px]" />
                           )}
                           {c.approve}
                         </Button>

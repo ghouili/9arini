@@ -20,16 +20,11 @@ export default function CheckoutPage() {
               <div
                 role="status"
                 aria-live="polite"
-                style={{
-                  display: "grid",
-                  placeItems: "center",
-                  minHeight: 240,
-                  textAlign: "center",
-                }}
+                className="grid place-items-center min-h-[240px] text-center"
               >
                 <div>
                   <Spinner />
-                  <p style={{ color: "var(--muted)", fontSize: 13.5 }}>{t.common.loading}</p>
+                  <p className="text-muted text-[13.5px]">{t.common.loading}</p>
                 </div>
               </div>
             }

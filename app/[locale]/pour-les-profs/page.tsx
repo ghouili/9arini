@@ -317,7 +317,7 @@ function HeroScene({ c }: { c: Copy }) {
             <div className="lpp-notch" />
 
             {/* header: avatar + name + LIVE */}
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div className="flex items-center gap-3">
               <div
                 className="avatar sq"
                 style={{
@@ -328,7 +328,7 @@ function HeroScene({ c }: { c: Copy }) {
               >
                 ي
               </div>
-              <div style={{ minWidth: 0, flex: 1 }}>
+              <div className="min-w-0 flex-1">
                 <div className="lpp-phone-name">{c.phoneName}</div>
                 <div className="lpp-phone-sub">{c.phoneSubject}</div>
               </div>
@@ -336,26 +336,26 @@ function HeroScene({ c }: { c: Copy }) {
 
             {/* the class the tutor published: their title, their price */}
             <div className="lpp-card">
-              <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+              <div className="flex items-center gap-[11px]">
                 <div className="lpp-card-ic">
                   <Video />
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="flex-1 min-w-0">
                   <div className="lpp-card-t">{c.sessionTitle}</div>
                   <div className="lpp-card-m">{c.sessionMeta}</div>
                 </div>
                 <div className="lpp-card-price">{c.priceExample}</div>
               </div>
-              <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
-                <span className="chip lpp-live" style={{ background: "var(--green-btn)", color: "#fff", gap: 5 }}>
+              <div className="flex gap-1.5 mt-2.5 flex-wrap">
+                <span className="chip lpp-live bg-green-btn text-white gap-[5px]">
                   <span className="lpp-live-dot" />
                   {c.live}
                 </span>
-                <span className="chip" style={{ background: "var(--ochre-btn)", color: "#fff" }}>
+                <span className="chip bg-ochre-btn text-white">
                   {c.free1st}
                 </span>
                 <span className="lpp-mini">
-                  <Users style={{ width: 12, height: 12 }} /> {c.classFilling}
+                  <Users className="w-3 h-3" /> {c.classFilling}
                 </span>
               </div>
             </div>
@@ -363,14 +363,14 @@ function HeroScene({ c }: { c: Copy }) {
             {/* the shareable link */}
             <div className="lpp-card">
               <div className="lpp-card-lbl">
-                <Share style={{ width: 13, height: 13 }} />
+                <Share className="w-[13px] h-[13px]" />
                 {c.shareLinkLabel}
               </div>
               <div className="lpp-link" dir="ltr">{c.shareLinkExample}</div>
             </div>
 
             {/* pilot truths — no payment rails */}
-            <div style={{ marginTop: "auto", display: "flex", gap: 7, justifyContent: "center", flexWrap: "wrap" }}>
+            <div className="mt-auto flex gap-[7px] justify-center flex-wrap">
               {c.phoneBadges.map((p) => (
                 <span key={p} className="lpp-badge">{p}</span>
               ))}
@@ -393,13 +393,13 @@ function FeatureCard({
   body: string;
 }) {
   return (
-    <div className="panel panel-pad lpp-feature" style={{ display: "flex", flexDirection: "column", gap: 14, height: "100%" }}>
+    <div className="panel panel-pad lpp-feature flex flex-col gap-3.5 h-full">
       <div aria-hidden="true" className="lpp-feature-ic" style={{ width: 52, height: 52, flex: "none", borderRadius: 15, background: bg, color: fg, display: "grid", placeItems: "center" }}>
         {icon}
       </div>
-      <div style={{ minWidth: 0 }}>
+      <div className="min-w-0">
         <h3 className="lpp-feature-t">{title}</h3>
-        <p style={{ fontSize: 14, color: "var(--ink2)", lineHeight: 1.6 }}>{body}</p>
+        <p className="text-[14px] text-ink2 leading-[1.6]">{body}</p>
       </div>
     </div>
   );
@@ -439,7 +439,7 @@ function SectionHead({ eyebrow, title, center = false }: { eyebrow: string; titl
         marginInline: center ? "auto" : undefined,
       }}
     >
-      <div className="web-eyebrow" style={{ marginBottom: 10 }}>{eyebrow}</div>
+      <div className="web-eyebrow mb-2.5">{eyebrow}</div>
       <h2 className="web-h2">{title}</h2>
     </Reveal>
   );
@@ -460,7 +460,7 @@ function Cta({ label, size = "md" }: { label: string; size?: "md" | "lg" }) {
       }}
     >
       {label}
-      <Forward style={{ width: 18, height: 18, flex: "none" }} />
+      <Forward className="w-[18px] h-[18px] flex-none" />
     </Link>
   );
 }
@@ -470,7 +470,7 @@ function CrossLink({ label, align = "start" }: { label: string; align?: "start" 
     <div style={{ textAlign: align }}>
       <Link href="/" className="lpp-cross">
         {label}
-        <Forward className="lpp-cross-arrow" style={{ width: 15, height: 15, flex: "none" }} />
+        <Forward className="lpp-cross-arrow w-[15px] h-[15px] flex-none" />
       </Link>
     </div>
   );
@@ -486,33 +486,33 @@ function IncomePanel({ c }: { c: Copy }) {
       className={`panel panel-pad zellige hero-blue lpp-reveal lpp-dark ${armed ? "lpp-armed" : ""}`}
       style={{ position: "relative", overflow: "hidden", minWidth: 0 }}
     >
-      <div style={{ position: "relative", zIndex: 1 }}>
-        <div style={{ fontSize: 13, color: "var(--on-blue-soft)", fontWeight: 600, marginBottom: 8, lineHeight: 1.5 }}>
+      <div className="relative z-[1]">
+        <div className="text-[13px] text-on-blue-soft font-semibold mb-2 leading-[1.5]">
           {c.inGross}
         </div>
-        <div style={{ fontFamily: "var(--fd)", fontSize: 13, color: "var(--on-blue)", fontWeight: 600, marginBottom: 4, display: "flex", alignItems: "center", gap: 7 }}>
-          <Wallet style={{ width: 16, height: 16, flex: "none" }} />
+        <div className="font-display text-[13px] text-on-blue font-semibold mb-1 flex items-center gap-[7px]">
+          <Wallet className="w-4 h-4 flex-none" />
           {c.inKeepLbl}
         </div>
         <div className="lpp-amount">{c.inKeep}</div>
 
         {/* 100 / 0 split bar — no commission during the pilot */}
-        <div style={{ marginTop: 18 }}>
+        <div className="mt-[18px]">
           <div className={`lpp-split ${armed ? "lpp-armed" : ""}`}>
             <span className="lpp-split-you" />
           </div>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginTop: 8, fontFamily: "var(--fd)", fontWeight: 700, fontSize: 13 }}>
-            <span style={{ color: "var(--on-blue-soft)", display: "inline-flex", alignItems: "center", gap: 5 }}>
-              <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: 999, background: "var(--mint)", flex: "none" }} />
+          <div className="flex justify-between gap-2.5 flex-wrap mt-2 font-display font-bold text-[13px]">
+            <span className="text-on-blue-soft inline-flex items-center gap-[5px]">
+              <span aria-hidden="true" className="w-2 h-2 rounded-[999px] bg-mint flex-none" />
               {c.inYou}
             </span>
-            <span style={{ color: "var(--on-blue-soft)" }}>{c.inFee}</span>
+            <span className="text-on-blue-soft">{c.inFee}</span>
           </div>
         </div>
 
-        <div className="trust" style={{ marginTop: 18, background: "rgba(255,255,255,.12)", position: "relative", zIndex: 2 }}>
-          <Shield style={{ color: "var(--mint)" }} />
-          <p style={{ color: "var(--on-blue)" }}>{c.inWithdraw}</p>
+        <div className="trust trust-dark relative z-[2] mt-[18px]">
+          <Shield />
+          <p>{c.inWithdraw}</p>
         </div>
       </div>
     </div>
@@ -749,19 +749,19 @@ export default function PourLesProfsPage() {
       />
 
       {/* ═══ 1. HERO ═══ */}
-      <section className="web-section" style={{ paddingTop: "clamp(20px,4vw,52px)", paddingBottom: "clamp(40px,6vw,84px)" }}>
+      <section className="web-section pt-[clamp(20px,4vw,52px)] pb-[clamp(40px,6vw,84px)]">
         <div className="container">
-          <div style={{ marginBottom: "clamp(18px,3vw,28px)" }}>
+          <div className="mb-[clamp(18px,3vw,28px)]">
             <CrossLink label={c.crossTop} />
           </div>
 
           <div className="web-hero">
             {/* LEFT — copy + CTAs */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 22, minWidth: 0 }}>
-              <Reveal style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <div className="flex flex-col gap-[22px] min-w-0">
+              <Reveal className="flex items-center gap-2.5 flex-wrap">
                 <span className="web-eyebrow">{c.eyebrow}</span>
                 {/* Pre-launch, not "live activity" — we claim newness, not traffic. */}
-                <span className="chip lpp-live" style={{ background: "var(--green-btn)", color: "#fff", gap: 6 }}>
+                <span className="chip lpp-live bg-green-btn text-white gap-1.5">
                   <span className="lpp-live-dot" aria-hidden="true" />
                   {c.pilotChip}
                 </span>
@@ -770,28 +770,27 @@ export default function PourLesProfsPage() {
               <Reveal delay={70} as="h1" className="web-h1">
                 {c.h1a}
                 <br />
-                <span style={{ color: "var(--blue)" }}>{c.h1b}</span>
+                <span className="text-blue">{c.h1b}</span>
                 <br />
-                <span style={{ color: "var(--green-ink)" }}>{c.h1c}</span>
+                <span className="text-green-ink">{c.h1c}</span>
               </Reveal>
 
-              <Reveal delay={140} as="p" className="web-lead" style={{ maxWidth: 540 }}>
+              <Reveal delay={140} as="p" className="web-lead max-w-[540px]">
                 {c.sub}
               </Reveal>
 
-              <Reveal delay={210} className="cluster" style={{ gap: 14 }}>
+              <Reveal delay={210} className="cluster gap-3.5">
                 <Cta label={c.ctaPrimary} />
                 <Link
                   href="/explore"
-                  className="btn btn-ghost lpp-cta-ghost"
-                  style={{ width: "auto", paddingInline: 24, paddingBlock: 15, fontSize: 15, maxWidth: "100%" }}
+                  className="btn btn-ghost lpp-cta-ghost w-auto px-6 py-[15px] text-[15px] max-w-full"
                 >
                   {c.ctaGhost}
                 </Link>
               </Reveal>
 
-              <Reveal delay={280} as="p" style={{ fontSize: 13, color: "var(--muted)", display: "flex", alignItems: "center", gap: 7 }}>
-                <Check style={{ width: 15, height: 15, color: "var(--green)", flex: "none" }} />
+              <Reveal delay={280} as="p" className="text-[13px] text-muted flex items-center gap-[7px]">
+                <Check className="w-[15px] h-[15px] text-green flex-none" />
                 {c.micro}
               </Reveal>
             </div>
@@ -828,7 +827,7 @@ export default function PourLesProfsPage() {
       <section className="web-section">
         <div className="container">
           <SectionHead eyebrow={c.howEyebrow} title={c.howTitle} center />
-          <div className="grid-3" style={{ marginBottom: "clamp(28px,4vw,44px)", position: "relative" }}>
+          <div className="grid-3 mb-[clamp(28px,4vw,44px)] relative">
             <div className="lpp-connector" aria-hidden="true" />
             {[
               { n: 1, t: c.s1t, b: c.s1b },
@@ -836,15 +835,15 @@ export default function PourLesProfsPage() {
               { n: 3, t: c.s3t, b: c.s3b },
             ].map((s, i) => (
               <Reveal key={s.n} delay={i * 110}>
-                <div className="panel panel-pad lpp-step" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div className="panel panel-pad lpp-step flex flex-col gap-3">
                   <div className="lpp-node" aria-hidden="true">{s.n}</div>
                   <h3 className="lpp-step-t">{s.t}</h3>
-                  <p style={{ fontSize: 14, color: "var(--ink2)", lineHeight: 1.6 }}>{s.b}</p>
+                  <p className="text-[14px] text-ink2 leading-[1.6]">{s.b}</p>
                 </div>
               </Reveal>
             ))}
           </div>
-          <Reveal style={{ display: "flex", justifyContent: "center" }}>
+          <Reveal className="flex justify-center">
             <Cta label={c.ctaPrimary} />
           </Reveal>
         </div>
@@ -860,16 +859,16 @@ export default function PourLesProfsPage() {
             style={{ display: "grid", gap: "clamp(20px,3vw,40px)", gridTemplateColumns: "1fr", alignItems: "center" }}
             data-lpp-income="true"
           >
-            <Reveal style={{ minWidth: 0 }}>
-              <div className="web-eyebrow" style={{ marginBottom: 10 }}>{c.incomeEyebrow}</div>
-              <h2 className="web-h2" style={{ marginBottom: 12 }}>{c.incomeTitle}</h2>
-              <p className="web-lead" style={{ marginBottom: 18 }}>{c.incomeLead}</p>
+            <Reveal className="min-w-0">
+              <div className="web-eyebrow mb-2.5">{c.incomeEyebrow}</div>
+              <h2 className="web-h2 mb-3">{c.incomeTitle}</h2>
+              <p className="web-lead mb-[18px]">{c.incomeLead}</p>
 
-              <div className="cluster" style={{ gap: 10 }}>
+              <div className="cluster gap-2.5">
                 {[
-                  { ic: <Users style={{ width: 16, height: 16 }} />, txt: c.inStudents },
-                  { ic: <Video style={{ width: 16, height: 16 }} />, txt: c.inSessions },
-                  { ic: <Wallet style={{ width: 16, height: 16 }} />, txt: c.inPrice },
+                  { ic: <Users className="w-4 h-4" />, txt: c.inStudents },
+                  { ic: <Video className="w-4 h-4" />, txt: c.inSessions },
+                  { ic: <Wallet className="w-4 h-4" />, txt: c.inPrice },
                 ].map((x, i) => (
                   <React.Fragment key={i}>
                     <span
@@ -881,11 +880,11 @@ export default function PourLesProfsPage() {
                         boxShadow: "var(--sh-s)", minWidth: 0,
                       }}
                     >
-                      <span style={{ color: "var(--blue)", display: "inline-flex", flex: "none" }} aria-hidden="true">{x.ic}</span>
+                      <span className="text-blue inline-flex flex-none" aria-hidden="true">{x.ic}</span>
                       {x.txt}
                     </span>
                     {i < 2 && (
-                      <span aria-hidden="true" style={{ fontFamily: "var(--fd)", fontWeight: 700, color: "var(--muted)", fontSize: 18 }}>·</span>
+                      <span aria-hidden="true" className="font-display font-bold text-muted text-[18px]">·</span>
                     )}
                   </React.Fragment>
                 ))}
@@ -901,7 +900,7 @@ export default function PourLesProfsPage() {
       <section className="web-section">
         <div className="container container-narrow">
           <SectionHead eyebrow={c.faqEyebrow} title={c.faqTitle} center />
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div className="flex flex-col gap-3.5">
             {[
               { q: c.q1, a: c.a1, open: true },
               { q: c.q2, a: c.a2, open: false },
@@ -916,10 +915,10 @@ export default function PourLesProfsPage() {
       </section>
 
       {/* ═══ FINAL CTA ═══ */}
-      <section className="web-section" style={{ paddingTop: 0 }}>
+      <section className="web-section pt-0">
         <div className="container">
           <Reveal className="panel panel-pad zellige lpp-dark lpp-final">
-            <div style={{ display: "inline-flex", marginBottom: 18 }}>
+            <div className="inline-flex mb-[18px]">
               <span
                 className="lpp-bolt"
                 style={{
@@ -931,20 +930,20 @@ export default function PourLesProfsPage() {
                 <Bolt />
               </span>
             </div>
-            <h2 className="web-h2" style={{ color: "#fff", marginBottom: 8 }}>{c.finalTitle}</h2>
-            <p className="web-lead" style={{ color: "var(--on-blue-soft)", marginBottom: 26, maxWidth: 520, marginInline: "auto" }}>
+            <h2 className="web-h2 text-white mb-2">{c.finalTitle}</h2>
+            <p className="web-lead text-on-blue-soft mb-[26px] max-w-[520px] mx-auto">
               {c.finalSub}
             </p>
-            <div style={{ display: "flex", justifyContent: "center" }}>
+            <div className="flex justify-center">
               <Cta label={c.ctaPrimary} size="lg" />
             </div>
-            <p style={{ fontSize: 13, color: "var(--on-blue-soft)", marginTop: 18, display: "flex", alignItems: "center", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
-              <Shield style={{ width: 15, height: 15, color: "var(--mint)", flex: "none" }} />
+            <p className="text-[13px] text-on-blue-soft mt-[18px] flex items-center gap-2 justify-center flex-wrap">
+              <Shield className="w-[15px] h-[15px] text-mint flex-none" />
               {c.finalReassure}
             </p>
           </Reveal>
 
-          <div style={{ marginTop: "clamp(24px,4vw,40px)", display: "flex", justifyContent: "center" }}>
+          <div className="mt-[clamp(24px,4vw,40px)] flex justify-center">
             <CrossLink label={c.crossBottom} align="center" />
           </div>
         </div>

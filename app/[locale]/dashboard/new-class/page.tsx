@@ -79,31 +79,20 @@ export default function NewClassPage() {
             <DashboardSidebar />
 
             {/* Main content column */}
-            <div style={{ minWidth: 0 }}>
+            <div className="min-w-0">
               {/* Page header */}
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                marginBottom: "clamp(18px,3vw,28px)",
-              }}>
-                <Link href="/dashboard" className="iconbtn" aria-label={t.common.back} style={{ flex: "none" }}>
+              <div className="flex items-center gap-3 mb-[clamp(18px,3vw,28px)]">
+                <Link href="/dashboard" className="iconbtn flex-none" aria-label={t.common.back}>
                   <Back />
                 </Link>
-                <h1 style={{
-                  fontFamily: "var(--fd)",
-                  fontSize: "clamp(20px,2.6vw,28px)",
-                  letterSpacing: "-0.6px",
-                  color: "var(--ink)",
-                  minWidth: 0,
-                }}>
+                <h1 className="font-display text-[clamp(20px,2.6vw,28px)] tracking-[-0.6px] text-ink min-w-0">
                   {t.createClass.title}
                 </h1>
               </div>
 
               {/* Form card — max-width centers comfortably at 1280px */}
-              <div className="panel panel-pad" style={{ maxWidth: 620, width: "100%" }}>
-                <p style={{ fontSize: 13.5, color: "var(--ink2)", lineHeight: 1.6, marginBottom: 16 }}>
+              <div className="panel panel-pad max-w-[620px] w-full">
+                <p className="text-[13.5px] text-ink2 leading-[1.6] mb-4">
                   {c.lead}
                 </p>
                 <form onSubmit={handleSubmit}>
@@ -124,7 +113,7 @@ export default function NewClassPage() {
 
                   {/* Description */}
                   <Field label={t.createClass.desc}>
-                    <div className="inp" style={{ alignItems: "flex-start" }}>
+                    <div className="inp items-start">
                       <textarea
                         rows={3}
                         placeholder={c.descPh}
@@ -149,12 +138,8 @@ export default function NewClassPage() {
                   </Field>
 
                   {/* Duration + Price — stack on mobile, side-by-side ≥480px */}
-                  <div style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    gap: 10,
-                  }}>
-                    <div style={{ flex: "1 1 140px", minWidth: 0 }}>
+                  <div className="flex flex-wrap gap-2.5">
+                    <div className="flex-[1_1_140px] min-w-0">
                       <Field label={t.createClass.duration}>
                         <div className="inp">
                           <input
@@ -170,7 +155,7 @@ export default function NewClassPage() {
                         </div>
                       </Field>
                     </div>
-                    <div style={{ flex: "1 1 140px", minWidth: 0 }}>
+                    <div className="flex-[1_1_140px] min-w-0">
                       <Field label={t.createClass.price} help={c.priceHelp}>
                         <div className="inp">
                           <input
@@ -209,24 +194,14 @@ export default function NewClassPage() {
                     marginBottom: 18,
                     paddingTop: 18,
                   }}>
-                    <div style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      marginBottom: 14,
-                      color: "var(--ink2)",
-                      fontWeight: 700,
-                      fontSize: 13,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.5px",
-                    }}>
-                      <Video style={{ width: 16, height: 16, color: "var(--blue)" }} />
+                    <div className="flex items-center gap-2 mb-3.5 text-ink2 font-bold text-[13px] uppercase tracking-[0.5px]">
+                      <Video className="w-4 h-4 text-blue" />
                       {t.tools.setLinks}
                     </div>
 
                     <Field label={t.tools.videoUrl}>
                       <div className="inp">
-                        <Video style={{ width: 16, height: 16, color: "var(--muted)", flexShrink: 0 }} />
+                        <Video className="w-4 h-4 text-muted shrink-0" />
                         <input
                           type="url"
                           inputMode="url"
@@ -239,7 +214,7 @@ export default function NewClassPage() {
 
                     <Field label={t.tools.whiteboardUrl}>
                       <div className="inp">
-                        <Board style={{ width: 16, height: 16, color: "var(--muted)", flexShrink: 0 }} />
+                        <Board className="w-4 h-4 text-muted shrink-0" />
                         <input
                           type="url"
                           inputMode="url"
@@ -252,7 +227,7 @@ export default function NewClassPage() {
 
                     <Field label={t.tools.quizUrl} help={t.tools.hint}>
                       <div className="inp">
-                        <Quiz style={{ width: 16, height: 16, color: "var(--muted)", flexShrink: 0 }} />
+                        <Quiz className="w-4 h-4 text-muted shrink-0" />
                         <input
                           type="url"
                           inputMode="url"
@@ -312,8 +287,8 @@ export default function NewClassPage() {
                       )}
                     </div>
                     <div>
-                      <div style={{ fontSize: 14, fontWeight: 600 }}>{t.createClass.freeFirst}</div>
-                      <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 2 }}>
+                      <div className="text-[14px] font-semibold">{t.createClass.freeFirst}</div>
+                      <div className="text-[13px] text-muted mt-0.5">
                         {t.common.free1st}
                       </div>
                     </div>
@@ -326,26 +301,17 @@ export default function NewClassPage() {
 
                   {/* Publishing needs a verified profile (server-side rule) — say it
                       BEFORE they submit instead of only failing afterwards. */}
-                  <p style={{
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                    flexWrap: "wrap", fontSize: 13, color: "var(--muted)", marginTop: 12, lineHeight: 1.5,
-                  }}>
-                    <Shield style={{ width: 14, height: 14, flex: "none" }} />
+                  <p className="flex items-center justify-center gap-1.5 flex-wrap text-[13px] text-muted mt-3 leading-[1.5]">
+                    <Shield className="w-3.5 h-3.5 flex-none" />
                     {c.verifNote}
-                    <Link href="/onboarding/verify" className="linklike" style={{ fontSize: 13 }}>
+                    <Link href="/onboarding/verify" className="linklike text-[13px]">
                       {c.verifCta}
                     </Link>
                   </p>
 
                   {/* Shown ONLY when the server action reports demo mode (no DB connected). */}
                   {demo && (
-                    <p style={{
-                      textAlign: "center",
-                      fontSize: 13,
-                      color: "var(--muted)",
-                      marginTop: 12,
-                      lineHeight: 1.5,
-                    }}>
+                    <p className="text-center text-[13px] text-muted mt-3 leading-[1.5]">
                       {t.common.demoMode}
                     </p>
                   )}

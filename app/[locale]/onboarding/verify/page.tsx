@@ -284,7 +284,7 @@ export default function VerifyPage() {
       <Shell>
         <StatusPanel
           tone="blue"
-          icon={<Shield style={{ width: 30, height: 30 }} />}
+          icon={<Shield className="w-[30px] h-[30px]" />}
           title={c.pendingTitle}
           body={c.pendingBody}
           note={c.pendingNote}
@@ -300,7 +300,7 @@ export default function VerifyPage() {
       <Shell>
         <StatusPanel
           tone="green"
-          icon={<Check style={{ width: 30, height: 30 }} />}
+          icon={<Check className="w-[30px] h-[30px]" />}
           title={`${c.verifiedTitle} ✓`}
           body={c.verifiedBody}
           backLabel={c.backDash}
@@ -315,7 +315,7 @@ export default function VerifyPage() {
       <Shell>
         <StatusPanel
           tone="blue"
-          icon={<Shield style={{ width: 30, height: 30 }} />}
+          icon={<Shield className="w-[30px] h-[30px]" />}
           title={c.pendingTitle}
           body={c.pendingBody}
           note={demo ? c.demoNote : c.pendingNote}
@@ -331,14 +331,14 @@ export default function VerifyPage() {
   return (
     <Shell>
       {/* heading */}
-      <div className="rise" style={{ marginBottom: "clamp(20px,3vw,30px)" }}>
-        <div className="web-eyebrow" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <Shield style={{ width: 16, height: 16 }} />
+      <div className="rise mb-[clamp(20px,3vw,30px)]">
+        <div className="web-eyebrow flex items-center gap-2 flex-wrap">
+          <Shield className="w-4 h-4" />
           {c.eyebrow}
         </div>
-        <h1 className="web-h2" style={{ marginTop: 8 }}>{c.h2}</h1>
-        <p style={{ marginTop: 8, fontSize: 13, fontWeight: 700, color: "var(--ochre-ink)" }}>{c.stepLine}</p>
-        <p className="web-lead" style={{ marginTop: 12, maxWidth: 620 }}>{c.lead}</p>
+        <h1 className="web-h2 mt-2">{c.h2}</h1>
+        <p className="mt-2 text-[13px] font-bold text-ochre-ink">{c.stepLine}</p>
+        <p className="web-lead mt-3 max-w-[620px]">{c.lead}</p>
       </div>
 
       {/* What is actually required — one file. Everything else is a bonus. */}
@@ -355,13 +355,13 @@ export default function VerifyPage() {
           aria-hidden="true"
           style={{ display: "inline-flex", flex: "none", marginTop: 1, color: files.idFront ? "var(--green)" : "var(--blue)" }}
         >
-          {files.idFront ? <Check style={{ width: 20, height: 20 }} /> : <User style={{ width: 20, height: 20 }} />}
+          {files.idFront ? <Check className="w-5 h-5" /> : <User className="w-5 h-5" />}
         </span>
-        <div style={{ flex: "1 1 220px", minWidth: 0 }}>
+        <div className="flex-[1_1_220px] min-w-0">
           <div style={{ fontSize: 13.5, fontWeight: 700, color: files.idFront ? "var(--green-ink)" : "var(--blue)" }}>
             {c.reqTitle}
           </div>
-          <p style={{ fontSize: 13, color: "var(--ink2)", marginTop: 3, lineHeight: 1.55 }}>
+          <p className="text-[13px] text-ink2 mt-[3px] leading-[1.55]">
             {files.idFront ? c.reqDone : c.reqBody}
           </p>
         </div>
@@ -370,24 +370,19 @@ export default function VerifyPage() {
       {/* rejected note */}
       {rejected && (
         <div
-          className="rise"
-          style={{
-            display: "flex", gap: 12, alignItems: "flex-start",
-            padding: "14px 16px", marginBottom: 20,
-            background: "var(--rose50)", borderRadius: "var(--r)",
-          }}
+          className="rise flex gap-3 items-start py-3.5 px-4 mb-5 bg-rose50 rounded-brand"
         >
-          <Bulb style={{ width: 22, height: 22, color: "var(--rose)", flex: "none", marginTop: 1 }} />
+          <Bulb className="w-[22px] h-[22px] text-rose flex-none mt-[1px]" />
           <div>
-            <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--rose)" }}>
+            <div className="text-[13.5px] font-bold text-rose">
               {c.rejectedTitle}
             </div>
             {verif?.reviewNote && (
-              <p style={{ fontSize: 13, color: "var(--ink2)", marginTop: 4, lineHeight: 1.55 }}>
+              <p className="text-[13px] text-ink2 mt-1 leading-[1.55]">
                 <b>{c.rejectedNote} </b>{verif.reviewNote}
               </p>
             )}
-            <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 6, lineHeight: 1.55 }}>
+            <p className="text-[13px] text-muted mt-1.5 leading-[1.55]">
               {c.resubmitIntro}
             </p>
           </div>
@@ -397,7 +392,7 @@ export default function VerifyPage() {
       <form onSubmit={handleSubmit} noValidate>
         {/* ============ SECTION 1 — IDENTITY ============ */}
         <SectionPanel
-          icon={<User style={{ width: 20, height: 20 }} />}
+          icon={<User className="w-5 h-5" />}
           title={c.s1Title}
           chip={c.s1Req}
           chipKind="rose"
@@ -419,7 +414,7 @@ export default function VerifyPage() {
           ))}
 
           {/* INPDP reassurance */}
-          <div className="trust" style={{ marginTop: 4 }}>
+          <div className="trust mt-1">
             <Lock />
             <p>{c.inpdp}</p>
           </div>
@@ -431,7 +426,7 @@ export default function VerifyPage() {
 
         {/* ============ SECTION 2 — DIPLOMAS & EXPERIENCE ============ */}
         <SectionPanel
-          icon={<Bulb style={{ width: 20, height: 20 }} />}
+          icon={<Bulb className="w-5 h-5" />}
           title={c.s2Title}
           chip={c.s2Opt}
           chipKind="soft"
@@ -495,7 +490,7 @@ export default function VerifyPage() {
 
         {/* ============ SECTION 3 — LINKS & SOCIALS ============ */}
         <SectionPanel
-          icon={<Eye style={{ width: 20, height: 20 }} />}
+          icon={<Eye className="w-5 h-5" />}
           title={c.s3Title}
           chip={c.s2Opt}
           chipKind="soft"
@@ -514,11 +509,7 @@ export default function VerifyPage() {
 
         {/* ============ ERRORS (non-id) ============ */}
         {error && error !== "id" && (
-          <div role="alert" className="rise" style={{
-            padding: "13px 16px", marginBottom: 16,
-            background: "var(--rose50)", borderRadius: "var(--r)",
-            color: "var(--rose)", fontSize: 13.5, fontWeight: 600, lineHeight: 1.55,
-          }}>
+          <div role="alert" className="rise py-[13px] px-4 mb-4 bg-rose50 rounded-brand text-rose text-[13.5px] font-semibold leading-[1.55]">
             {error === "size" && c.errFileSize}
             {error === "type" && c.errFileType}
             {error === "generic" && c.errGeneric}
@@ -538,14 +529,14 @@ export default function VerifyPage() {
         )}
 
         {/* ============ SUBMIT ============ */}
-        <div style={{ maxWidth: 360 }}>
+        <div className="max-w-[360px]">
           <Button type="submit" variant="primary" disabled={submitting}>
             {submitting
               ? <><Spinner />{c.submitting}</>
-              : <><Shield style={{ width: 18, height: 18 }} />{c.submit}</>}
+              : <><Shield className="w-[18px] h-[18px]" />{c.submit}</>}
           </Button>
-          <div style={{ marginTop: 12, textAlign: "center" }}>
-            <Link href="/dashboard" className="linklike" style={{ fontSize: 13 }}>{c.backDash}</Link>
+          <div className="mt-3 text-center">
+            <Link href="/dashboard" className="linklike text-[13px]">{c.backDash}</Link>
           </div>
         </div>
       </form>
@@ -581,23 +572,19 @@ function SectionPanel({
   children: React.ReactNode;
 }) {
   return (
-    <div className="panel panel-pad rise" style={{ marginBottom: 18 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 4 }}>
-        <div style={{
-          width: 40, height: 40, minWidth: 40, borderRadius: 12,
-          background: "var(--blue50)", color: "var(--blue)",
-          display: "grid", placeItems: "center",
-        }}>
+    <div className="panel panel-pad rise mb-[18px]">
+      <div className="flex items-center gap-[11px] mb-1">
+        <div className="w-10 h-10 min-w-10 rounded-[12px] bg-blue50 text-blue grid place-items-center">
           {icon}
         </div>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <h2 style={{ fontFamily: "var(--fd)", fontSize: "clamp(17px,2vw,20px)", letterSpacing: "-0.4px" }}>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className="font-display text-[clamp(17px,2vw,20px)] tracking-[-0.4px]">
               {title}
             </h2>
             <span className={`chip chip-${chipKind}`}>{chip}</span>
           </div>
-          <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 2 }}>{sub}</p>
+          <p className="text-[13px] text-muted mt-0.5">{sub}</p>
         </div>
       </div>
       <div className="divider" style={{ margin: "12px 0 16px" }} />
@@ -621,9 +608,9 @@ function FileDrop({
 }) {
   const inputId = `file-${fieldKey}`;
   return (
-    <div style={{ marginBottom: 14 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7, flexWrap: "wrap" }}>
-        <label htmlFor={inputId} style={{ fontSize: 13, fontWeight: 700 }}>{label}</label>
+    <div className="mb-3.5">
+      <div className="flex items-center gap-2 mb-[7px] flex-wrap">
+        <label htmlFor={inputId} className="text-[13px] font-bold">{label}</label>
         <span className={`chip ${required ? "chip-rose" : "chip-sand"}`}>
           {required ? c.s1Req : c.s2Opt}
         </span>
@@ -650,11 +637,11 @@ function FileDrop({
           }}
         />
         <span className="dz-ic">
-          {file ? <Check style={{ width: 20, height: 20 }} /> : <Upload style={{ width: 20, height: 20 }} />}
+          {file ? <Check className="w-5 h-5" /> : <Upload className="w-5 h-5" />}
         </span>
         <span className="dz-txt">
           {file ? (
-            <b style={{ wordBreak: "break-word" }}>{file.name}</b>
+            <b className="break-words">{file.name}</b>
           ) : (
             <>
               <b>{c.dzPick}</b>
@@ -696,7 +683,7 @@ function TextField({ id, label, children }: { id: string; label: string; childre
 
 function UrlField({ id, label, ph, def }: { id: string; label: string; ph: string; def?: string | null }) {
   return (
-    <div className="field" style={{ marginBottom: 0 }}>
+    <div className="field mb-0">
       <label className="field-label" htmlFor={id}>{label}</label>
       <div className="inp">
         <input id={id} name={id} type="url" inputMode="url" placeholder={ph} defaultValue={def ?? undefined} />
@@ -717,7 +704,7 @@ function StatusPanel({
 }) {
   const bg = tone === "green" ? "var(--green)" : "var(--blue)";
   return (
-    <div className="panel panel-pad rise" style={{ textAlign: "center", maxWidth: 520, marginInline: "auto" }}>
+    <div className="panel panel-pad rise text-center max-w-[520px] mx-auto">
       <div style={{
         width: 64, height: 64, borderRadius: 20, marginInline: "auto", marginBottom: 16,
         background: bg, color: "#fff", display: "grid", placeItems: "center",
@@ -725,16 +712,16 @@ function StatusPanel({
       }}>
         {icon}
       </div>
-      <h1 style={{ fontFamily: "var(--fd)", fontSize: "clamp(22px,3vw,30px)", letterSpacing: "-0.8px" }}>
+      <h1 className="font-display text-[clamp(22px,3vw,30px)] tracking-[-0.8px]">
         {title}
       </h1>
-      <p className="web-lead" style={{ marginTop: 12 }}>{body}</p>
+      <p className="web-lead mt-3">{body}</p>
       {note && (
-        <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 10, lineHeight: 1.55 }}>{note}</p>
+        <p className="text-[13px] text-muted mt-2.5 leading-[1.55]">{note}</p>
       )}
-      <div style={{ marginTop: 22, display: "flex", justifyContent: "center" }}>
+      <div className="mt-[22px] flex justify-center">
         <Link href="/dashboard">
-          <span className="btn btn-ink" style={{ width: "auto", padding: "13px 22px" }}>{backLabel}</span>
+          <span className="btn btn-ink w-auto py-[13px] px-[22px]">{backLabel}</span>
         </Link>
       </div>
     </div>

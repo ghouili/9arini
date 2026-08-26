@@ -112,8 +112,8 @@ function StartsIn({ ts }: { ts: number }) {
         { val: pad(s), label: t.student.secs },
       ].map(({ val, label }) => (
         <div key={label} style={{ background: "rgba(255,255,255,.12)", borderRadius: 12, padding: "9px 0", textAlign: "center", flex: 1, maxWidth: 90 }}>
-          <b style={{ fontFamily: "var(--fd)", fontSize: 21, display: "block" }}>{val}</b>
-          <span style={{ fontSize: 13, color: "var(--on-dark-soft)", letterSpacing: ".3px" }}>{label}</span>
+          <b className="font-display text-[21px] block">{val}</b>
+          <span className="text-[13px] text-on-dark-soft tracking-[.3px]">{label}</span>
         </div>
       ))}
     </div>
@@ -153,12 +153,12 @@ function RateBox({ item, onDone }: { item: StudentClass; onDone: () => void }) {
   }
 
   if (msg?.kind === "ok") {
-    return <div style={{ fontSize: 13, color: "var(--green)", fontWeight: 700, marginTop: 8 }}>{msg.text}</div>;
+    return <div className="text-[13px] text-green font-bold mt-2">{msg.text}</div>;
   }
 
   if (!open) {
     return (
-      <div style={{ marginTop: 8 }}>
+      <div className="mt-2">
         <button
           onClick={() => { setOpen(true); setMsg(null); }}
           style={{
@@ -169,15 +169,15 @@ function RateBox({ item, onDone }: { item: StudentClass; onDone: () => void }) {
         >
           <Star /> {c.rate}
         </button>
-        {msg && <div style={{ fontSize: 13, color: "var(--rose)", marginTop: 6 }}>{msg.text}</div>}
+        {msg && <div className="text-[13px] text-rose mt-1.5">{msg.text}</div>}
       </div>
     );
   }
 
   return (
     <div style={{ marginTop: 10, padding: 12, borderRadius: 14, background: "var(--paper)", border: "1px solid var(--line)" }}>
-      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>{c.rateWith(item.tutorName)}</div>
-      <div style={{ display: "flex", gap: 4, marginBottom: 10 }}>
+      <div className="text-[13px] font-bold mb-2">{c.rateWith(item.tutorName)}</div>
+      <div className="flex gap-1 mb-2.5">
         {[1, 2, 3, 4, 5].map((n) => (
           <button
             key={n}
@@ -209,12 +209,12 @@ function RateBox({ item, onDone }: { item: StudentClass; onDone: () => void }) {
           fontSize: 13, fontFamily: "inherit", resize: "vertical", background: "var(--cream, #fff)", color: "var(--ink)",
         }}
       />
-      {msg?.kind === "err" && <div style={{ fontSize: 13, color: "var(--rose)", marginTop: 6 }}>{msg.text}</div>}
-      <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-        <Button variant="primary" sm onClick={submit} disabled={busy} style={{ width: "auto", padding: "10px 16px", minHeight: 44 }}>
+      {msg?.kind === "err" && <div className="text-[13px] text-rose mt-1.5">{msg.text}</div>}
+      <div className="flex gap-2 mt-2.5 flex-wrap">
+        <Button variant="primary" sm onClick={submit} disabled={busy} className="w-auto py-2.5 px-4 min-h-11">
           {busy ? c.sending : c.send}
         </Button>
-        <Button variant="ghost" sm onClick={() => setOpen(false)} style={{ width: "auto", padding: "10px 16px", minHeight: 44 }}>
+        <Button variant="ghost" sm onClick={() => setOpen(false)} className="w-auto py-2.5 px-4 min-h-11">
           {c.cancelNo}
         </Button>
       </div>
@@ -264,7 +264,7 @@ function UpcomingCard({ item, hero, onChanged }: { item: StudentClass; hero: boo
         marginBottom: 14,
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
+      <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
         <span style={{ display: "inline-flex", alignItems: "center", gap: 7, background: live ? "var(--rose)" : "rgba(255,255,255,.14)", color: "#fff", fontWeight: 700, fontSize: 13, padding: "5px 11px", borderRadius: 999, flexShrink: 0 }}>
           {live && <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#fff", animation: "blink 1.1s infinite", flexShrink: 0 }} />}
           {live ? c.liveNow : t.student.soon}
@@ -279,8 +279,8 @@ function UpcomingCard({ item, hero, onChanged }: { item: StudentClass; hero: boo
         {item.title}
       </h3>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", color: "var(--on-dark)", fontSize: 13, fontWeight: 600 }}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+      <div className="flex items-center gap-2.5 flex-wrap text-on-dark text-[13px] font-semibold">
+        <span className="inline-flex items-center gap-1.5">
           <Clock /> {item.day} {item.month} · {item.time}
         </span>
         {item.isFree && <Chip kind="free">{c.free}</Chip>}
@@ -288,8 +288,8 @@ function UpcomingCard({ item, hero, onChanged }: { item: StudentClass; hero: boo
 
       {!live && withinDay && <StartsIn ts={item.ts} />}
 
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14, alignItems: "center" }}>
-        <Link href={`/live/${item.classId}`} style={{ display: "block", flex: "1 1 200px", maxWidth: 320 }}>
+      <div className="flex gap-2.5 flex-wrap mt-3.5 items-center">
+        <Link href={`/live/${item.classId}`} className="block flex-[1_1_200px] max-w-[320px]">
           <Button variant="primary">
             <Video /> {t.student.join}
           </Button>
@@ -310,13 +310,13 @@ function UpcomingCard({ item, hero, onChanged }: { item: StudentClass; hero: boo
 
       {confirming && (
         <div style={{ marginTop: 12, padding: 12, borderRadius: 14, background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.14)" }}>
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>{c.cancelSure}</div>
-          <div style={{ fontSize: 13, color: "var(--on-dark)", marginBottom: 10, lineHeight: 1.5 }}>{c.cancelRule}</div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <div className="text-[13px] font-bold mb-1">{c.cancelSure}</div>
+          <div className="text-[13px] text-on-dark mb-2.5 leading-[1.5]">{c.cancelRule}</div>
+          <div className="flex gap-2 flex-wrap">
             <button
               onClick={doCancel}
               disabled={busy}
-              style={{ border: 0, background: "var(--rose)", color: "#fff", fontWeight: 700, fontSize: 13, padding: "12px 16px", borderRadius: 999, cursor: "pointer", minHeight: 44 }}
+              className="border-0 bg-rose text-white font-bold text-[13px] py-3 px-4 rounded-[999px] cursor-pointer min-h-11"
             >
               {busy ? "…" : c.cancelYes}
             </button>
@@ -331,7 +331,7 @@ function UpcomingCard({ item, hero, onChanged }: { item: StudentClass; hero: boo
       )}
 
       {!cancellable && !live && (
-        <div style={{ marginTop: 12, fontSize: 13, color: "var(--on-dark-soft)", lineHeight: 1.5 }}>{c.cancelLocked}</div>
+        <div className="mt-3 text-[13px] text-on-dark-soft leading-[1.5]">{c.cancelLocked}</div>
       )}
 
       {err && (
@@ -372,11 +372,11 @@ export default function StudentPage() {
       <style dangerouslySetInnerHTML={{ __html: `@keyframes blink { 50% { opacity: .25; } }` }} />
 
       {/* Page header */}
-      <section className="web-section tight" style={{ paddingBottom: 0 }}>
+      <section className="web-section tight !pb-0">
         <div className="container">
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: "clamp(18px, 3vw, 32px)" }}>
+          <div className="flex items-center justify-between gap-3 mb-[clamp(18px,_3vw,_32px)]">
             <div>
-              <p className="web-eyebrow" style={{ marginBottom: 6 }}>{t.nav.classes}</p>
+              <p className="web-eyebrow mb-1.5">{t.nav.classes}</p>
               <h1 className="web-h2">{t.student.title}</h1>
             </div>
             {initials && <Avatar initials={initials} size={46} square />}
@@ -386,7 +386,7 @@ export default function StudentPage() {
 
       {loading ? (
         <section className="web-section tight">
-          <div className="container" style={{ display: "grid", placeItems: "center", minHeight: 200 }}>
+          <div className="container grid place-items-center min-h-[200px]">
             <Spinner />
           </div>
         </section>
@@ -395,9 +395,9 @@ export default function StudentPage() {
         <section className="web-section tight">
           <div className="container">
             <div className="panel panel-pad" style={{ textAlign: "center", padding: "clamp(28px,5vw,52px)" }}>
-              <h2 className="web-h2" style={{ fontSize: "clamp(17px,2.2vw,22px)", marginBottom: 8 }}>{c.outTitle}</h2>
-              <p className="muted" style={{ fontSize: 13.5, marginBottom: 18 }}>{c.outBody}</p>
-              <Link href="/auth?next=/student" className="btn btn-primary" style={{ maxWidth: 260, marginInline: "auto" }}>
+              <h2 className="web-h2 text-[clamp(17px,2.2vw,22px)] mb-2">{c.outTitle}</h2>
+              <p className="muted text-[13.5px] mb-[18px]">{c.outBody}</p>
+              <Link href="/auth?next=/student" className="btn btn-primary max-w-[260px] mx-auto">
                 {c.signIn}
               </Link>
             </div>
@@ -408,9 +408,9 @@ export default function StudentPage() {
         <section className="web-section tight">
           <div className="container">
             <div className="panel panel-pad" style={{ textAlign: "center", padding: "clamp(28px,5vw,52px)" }}>
-              <h2 className="web-h2" style={{ fontSize: "clamp(17px,2.2vw,22px)", marginBottom: 8 }}>{c.emptyTitle}</h2>
-              <p className="muted" style={{ fontSize: 13.5, marginBottom: 18 }}>{c.emptyBody}</p>
-              <Link href="/explore" className="btn btn-primary" style={{ maxWidth: 260, marginInline: "auto" }}>
+              <h2 className="web-h2 text-[clamp(17px,2.2vw,22px)] mb-2">{c.emptyTitle}</h2>
+              <p className="muted text-[13.5px] mb-[18px]">{c.emptyBody}</p>
+              <Link href="/explore" className="btn btn-primary max-w-[260px] mx-auto">
                 {c.emptyCta}
               </Link>
             </div>
@@ -419,7 +419,7 @@ export default function StudentPage() {
       ) : (
         <>
           {flash && (
-            <section className="web-section tight" style={{ paddingBlock: 0 }}>
+            <section className="web-section tight !py-0">
               <div className="container">
                 <div role="status" style={{ background: "var(--green50)", border: "1px solid rgba(27,156,111,.3)", color: "var(--green-ink)", borderRadius: 12, padding: "11px 13px", fontSize: 13, marginBottom: 14 }}>
                   {flash}
@@ -432,7 +432,7 @@ export default function StudentPage() {
           {upcoming.length > 0 && (
             <section className="web-section tight">
               <div className="container">
-                <h2 className="web-h2" style={{ fontSize: "clamp(16px, 2vw, 20px)", marginBottom: "clamp(14px, 2vw, 20px)" }}>
+                <h2 className="web-h2 text-[clamp(16px,_2vw,_20px)] mb-[clamp(14px,_2vw,_20px)]">
                   {c.upcoming}
                 </h2>
                 {upcoming.map((item, i) => (
@@ -451,7 +451,7 @@ export default function StudentPage() {
           {past.length > 0 && (
             <section className="web-section tight">
               <div className="container">
-                <h2 className="web-h2" style={{ fontSize: "clamp(16px, 2vw, 20px)", marginBottom: "clamp(14px, 2vw, 20px)" }}>
+                <h2 className="web-h2 text-[clamp(16px,_2vw,_20px)] mb-[clamp(14px,_2vw,_20px)]">
                   {t.student.past}
                 </h2>
                 <div className="panel">
@@ -463,30 +463,26 @@ export default function StudentPage() {
                         borderBottom: i < past.length - 1 ? "1px solid var(--line)" : "none",
                       }}
                     >
-                      <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                        <div style={{ width: 44, height: 44, minWidth: 44, borderRadius: 12, background: "var(--blue)", color: "#fff", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                      <div className="flex gap-3 items-center">
+                        <div className="w-11 h-11 min-w-11 rounded-[12px] bg-blue text-white grid place-items-center shrink-0">
                           <Play />
                         </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="flex-1 min-w-0">
                           <div style={{ fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</div>
-                          <div className="muted" style={{ fontSize: 13, marginTop: 2 }}>
+                          <div className="muted text-[13px] mt-0.5">
                             {item.day} {item.month} · {item.time} · {t.student.with} {item.tutorName}
                           </div>
                         </div>
                         {item.replayUrl ? (
                           <button
                             onClick={() => window.open(item.replayUrl, "_blank", "noopener,noreferrer")}
-                            style={{
-                              flexShrink: 0, border: 0, background: "var(--blue50)", color: "var(--blue)",
-                              fontWeight: 700, fontSize: 13, padding: "8px 13px", borderRadius: 999,
-                              cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6, minHeight: 44,
-                            }}
+                            className="shrink-0 border-0 bg-blue50 text-blue font-bold text-[13px] py-2 px-[13px] rounded-[999px] cursor-pointer inline-flex items-center gap-1.5 min-h-11"
                             aria-label={`${t.student.replay} — ${item.title}`}
                           >
                             <Play /> {t.student.replay}
                           </button>
                         ) : (
-                          <span className="muted" style={{ fontSize: 13, flexShrink: 0, maxWidth: 120, textAlign: "end", lineHeight: 1.35 }}>
+                          <span className="muted text-[13px] shrink-0 max-w-[120px] text-end leading-[1.35]">
                             {c.noReplay}
                           </span>
                         )}

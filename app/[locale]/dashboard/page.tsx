@@ -238,15 +238,14 @@ function NotifBell() {
   const list = items ?? [];
 
   return (
-    <div ref={wrapRef} style={{ position: "relative" }}>
+    <div ref={wrapRef} className="relative">
       <button
-        className="iconbtn"
+        className="iconbtn relative"
         type="button"
         aria-label={t.extra.notifications}
         aria-expanded={open}
         aria-haspopup="menu"
         onClick={toggle}
-        style={{ position: "relative" }}
       >
         <Bell />
         {unread > 0 && (
@@ -273,18 +272,7 @@ function NotifBell() {
       {open && (
         <div
           aria-label={c.notifTitle}
-          className="panel"
-          style={{
-            position: "absolute",
-            top: "calc(100% + 8px)",
-            insetInlineEnd: 0,
-            width: "min(330px, calc(100vw - 32px))",
-            maxHeight: 420,
-            overflowY: "auto",
-            zIndex: 60,
-            padding: 6,
-            textAlign: "start",
-          }}
+          className="panel absolute top-[calc(100%_+_8px)] end-0 w-[min(330px,_calc(100vw_-_32px))] max-h-[420px] overflow-y-auto z-[60] p-1.5 text-start"
         >
           <div
             style={{
@@ -301,7 +289,7 @@ function NotifBell() {
           </div>
 
           {items === null ? (
-            <div style={{ display: "grid", placeItems: "center", padding: 24 }}>
+            <div className="grid place-items-center p-6">
               <Spinner />
             </div>
           ) : list.length === 0 ? (
@@ -323,14 +311,14 @@ function NotifBell() {
                       marginTop: 7,
                     }}
                   />
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--ink)" }}>
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-[13.5px] font-bold text-ink">
                       {n.title}
                     </span>
-                    <span style={{ display: "block", fontSize: 13, color: "var(--ink2)", lineHeight: 1.5, marginTop: 2 }}>
+                    <span className="block text-[13px] text-ink2 leading-[1.5] mt-0.5">
                       {n.body}
                     </span>
-                    <span style={{ display: "block", fontSize: 13, color: "var(--muted)", marginTop: 4 }}>
+                    <span className="block text-[13px] text-muted mt-1">
                       {timeAgo(n.createdAt, c)}
                     </span>
                   </span>
@@ -384,31 +372,31 @@ function StepMark({ state, n }: { state: StepState; n: number }) {
       : { background: "var(--sand)", color: "var(--muted)" };
   return (
     <span className="qd-mark" style={style} aria-hidden="true">
-      {state === "done" ? <Check style={{ width: 15, height: 15 }} /> : state === "waiting" ? <Clock style={{ width: 15, height: 15 }} /> : n}
+      {state === "done" ? <Check className="w-[15px] h-[15px]" /> : state === "waiting" ? <Clock className="w-[15px] h-[15px]" /> : n}
     </span>
   );
 }
 
 function NextSteps({ steps, c }: { steps: Step[]; c: CopyDict }) {
   return (
-    <div className="panel panel-pad" style={{ marginBottom: "clamp(14px,2vw,22px)" }}>
-      <div style={{ marginBottom: 6 }}>
-        <h2 style={{ fontFamily: "var(--fd)", fontSize: 16, fontWeight: 700 }}>{c.nextTitle}</h2>
-        <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 3 }}>{c.nextSub}</div>
+    <div className="panel panel-pad mb-[clamp(14px,2vw,22px)]">
+      <div className="mb-1.5">
+        <h2 className="font-display text-[16px] font-bold">{c.nextTitle}</h2>
+        <div className="text-[13px] text-muted mt-[3px]">{c.nextSub}</div>
       </div>
 
       {steps.map((s, i) => (
         <div key={s.key} className="qd-step">
           <StepMark state={s.state} n={i + 1} />
           <div className="qd-step-txt">
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <div className="flex items-center gap-2 flex-wrap">
               <span style={{ fontSize: 14.5, fontWeight: 700, color: s.state === "todo" ? "var(--ink2)" : "var(--ink)" }}>
                 {s.title}
               </span>
-              {s.state === "done" && <span className="chip chip-soft" style={{ background: "var(--green50)", color: "var(--green-ink)" }}>{c.done}</span>}
+              {s.state === "done" && <span className="chip chip-soft bg-green50 text-green-ink">{c.done}</span>}
               {s.state === "waiting" && <span className="chip chip-soft">{c.inProgress}</span>}
             </div>
-            <div style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.6, marginTop: 3 }}>{s.body}</div>
+            <div className="text-[13px] text-muted leading-[1.6] mt-[3px]">{s.body}</div>
           </div>
           {s.cta && (
             <Link href={s.cta.href} className="btn btn-primary btn-sm qd-cta">
@@ -430,7 +418,7 @@ function HowItWorks({ c }: { c: CopyDict }) {
   ];
   return (
     <div className="panel panel-pad">
-      <div style={{ fontFamily: "var(--fd)", fontSize: 16, fontWeight: 700, marginBottom: 10 }}>{c.howTitle}</div>
+      <div className="font-display text-[16px] font-bold mb-2.5">{c.howTitle}</div>
       {steps.map((s) => (
         <div
           key={s.n}
@@ -443,16 +431,13 @@ function HowItWorks({ c }: { c: CopyDict }) {
           }}
         >
           <div
-            style={{
-              width: 27, height: 27, borderRadius: 9, background: "var(--ink)", color: "#fff",
-              display: "grid", placeItems: "center", fontFamily: "var(--fd)", fontSize: 13, flexShrink: 0,
-            }}
+            className="w-[27px] h-[27px] rounded-[9px] bg-ink text-white grid place-items-center font-display text-[13px] shrink-0"
           >
             {s.n}
           </div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>{s.title}</div>
-            <div style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.55 }}>{s.body}</div>
+          <div className="min-w-0">
+            <div className="text-[14px] font-semibold mb-0.5">{s.title}</div>
+            <div className="text-[13px] text-muted leading-[1.55]">{s.body}</div>
           </div>
         </div>
       ))}
@@ -477,7 +462,7 @@ function StoreLinkBox({ slug }: { slug: string }) {
         border: "1.4px dashed var(--blue)", borderRadius: 13, padding: "11px 13px",
       }}
     >
-      <span style={{ color: "var(--blue)", flexShrink: 0, display: "flex" }} aria-hidden="true">
+      <span className="text-blue shrink-0 flex" aria-hidden="true">
         <Share />
       </span>
       <span
@@ -510,15 +495,15 @@ function SharePanel({ slug, c }: { slug: string; c: CopyDict }) {
   const { t } = useLocale();
   return (
     <div id="share" className="panel panel-pad" style={{ marginBottom: "clamp(14px,2vw,22px)", scrollMarginTop: 84 }}>
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: 4 }}>
-        <h2 style={{ fontFamily: "var(--fd)", fontSize: 16, fontWeight: 700 }}>{t.dashboard.shareTitle}</h2>
-        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".5px" }}>
+      <div className="flex items-baseline justify-between gap-2.5 flex-wrap mb-1">
+        <h2 className="font-display text-[16px] font-bold">{t.dashboard.shareTitle}</h2>
+        <span className="text-[13px] font-bold text-muted uppercase tracking-[.5px]">
           {c.shareLabel}
         </span>
       </div>
-      <p style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.6, marginBottom: 12 }}>{t.dashboard.shareBody}</p>
+      <p className="text-[13px] text-muted leading-[1.6] mb-3">{t.dashboard.shareBody}</p>
       <StoreLinkBox slug={slug} />
-      <div style={{ marginTop: 12 }}>
+      <div className="mt-3">
         <Link href={`/${slug}`} className="btn btn-ink btn-sm">
           <Eye />
           {t.dashboard.viewStore}
@@ -554,10 +539,10 @@ function BalanceCard({ d }: { d: DashboardData }) {
           lineHeight: 1.55,
         }}
       >
-        <span style={{ display: "inline-flex", color: "var(--amber)", flexShrink: 0, marginTop: 1 }} aria-hidden="true">
-          <Bulb style={{ width: 16, height: 16 }} />
+        <span className="inline-flex text-amber shrink-0 mt-[1px]" aria-hidden="true">
+          <Bulb className="w-4 h-4" />
         </span>
-        <span style={{ minWidth: 0 }}>{d.paymentsEnabled ? t.dashboard.emptyNote : c.paymentsSoonBody}</span>
+        <span className="min-w-0">{d.paymentsEnabled ? t.dashboard.emptyNote : c.paymentsSoonBody}</span>
       </div>
     </div>
   );
@@ -588,10 +573,10 @@ function BookingsPanel({ d }: { d: DashboardData }) {
   }, [d.bookings]);
 
   return (
-    <div className="panel panel-pad" style={{ marginBottom: "clamp(14px,2vw,22px)" }}>
-      <div style={{ marginBottom: 14 }}>
-        <h2 style={{ fontFamily: "var(--fd)", fontSize: 16, fontWeight: 700 }}>{c.bookings}</h2>
-        <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 2 }}>{c.bookingsSub}</div>
+    <div className="panel panel-pad mb-[clamp(14px,2vw,22px)]">
+      <div className="mb-3.5">
+        <h2 className="font-display text-[16px] font-bold">{c.bookings}</h2>
+        <div className="text-[13px] text-muted mt-0.5">{c.bookingsSub}</div>
       </div>
 
       {groups.length === 0 ? (
@@ -601,25 +586,25 @@ function BookingsPanel({ d }: { d: DashboardData }) {
             background: "var(--cream)", border: "1px dashed var(--line)", borderRadius: 14,
           }}
         >
-          <span style={{ color: "var(--blue)", display: "inline-flex", flexShrink: 0, marginTop: 2 }} aria-hidden="true">
+          <span className="text-blue inline-flex shrink-0 mt-0.5" aria-hidden="true">
             <Users />
           </span>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 3 }}>{c.bookingsEmpty}</div>
-            <div style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.6 }}>{c.bookingsEmptyBody}</div>
+          <div className="min-w-0">
+            <div className="text-[14px] font-bold mb-[3px]">{c.bookingsEmpty}</div>
+            <div className="text-[13px] text-muted leading-[1.6]">{c.bookingsEmptyBody}</div>
           </div>
         </div>
       ) : (
         groups.map((g) => (
-          <div key={g.classId} style={{ marginBottom: 16 }}>
+          <div key={g.classId} className="mb-4">
             <div
               style={{
                 display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
                 paddingBottom: 8, borderBottom: "1px solid var(--line)", marginBottom: 6,
               }}
             >
-              <span style={{ color: "var(--blue)", display: "inline-flex", flexShrink: 0 }} aria-hidden="true">
-                <Video style={{ width: 16, height: 16 }} />
+              <span className="text-blue inline-flex shrink-0" aria-hidden="true">
+                <Video className="w-4 h-4" />
               </span>
               <Link
                 href={`/class/${g.classId}`}
@@ -631,10 +616,7 @@ function BookingsPanel({ d }: { d: DashboardData }) {
                 {g.classTitle}
               </Link>
               <span
-                style={{
-                  marginInlineStart: "auto", fontSize: 13, fontWeight: 700, color: "var(--blue)",
-                  background: "var(--blue50)", padding: "3px 9px", borderRadius: 999, flexShrink: 0,
-                }}
+                className="ms-auto text-[13px] font-bold text-blue bg-blue50 py-[3px] px-[9px] rounded-[999px] shrink-0"
               >
                 {c.signedUp(g.items.length)}
               </span>
@@ -650,15 +632,12 @@ function BookingsPanel({ d }: { d: DashboardData }) {
               >
                 <div
                   aria-hidden="true"
-                  style={{
-                    width: 38, height: 38, borderRadius: 12, flex: "none", display: "grid", placeItems: "center",
-                    background: "var(--sand)", color: "var(--ink2)", fontFamily: "var(--fd)", fontSize: 14, fontWeight: 700,
-                  }}
+                  className="w-[38px] h-[38px] rounded-[12px] flex-none grid place-items-center bg-sand text-ink2 font-display text-[14px] font-bold"
                 >
                   {(b.studentName ?? "?").trim().charAt(0).toUpperCase() || "?"}
                 </div>
 
-                <div style={{ flex: "1 1 150px", minWidth: 0 }}>
+                <div className="flex-[1_1_150px] min-w-0">
                   <div
                     style={{
                       fontSize: 13.5, fontWeight: 600, overflow: "hidden",
@@ -668,12 +647,9 @@ function BookingsPanel({ d }: { d: DashboardData }) {
                     {b.studentName?.trim() || c.anon}
                   </div>
                   <div
-                    style={{
-                      fontSize: 13, color: "var(--muted)", marginTop: 2,
-                      display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap",
-                    }}
+                    className="text-[13px] text-muted mt-0.5 flex items-center gap-[5px] flex-wrap"
                   >
-                    <Clock style={{ width: 12, height: 12 }} />
+                    <Clock className="w-3 h-3" />
                     {c.bookedAgo} {timeAgo(b.bookedAt, c)}
                     <span aria-hidden="true">·</span>
                     <span style={{ color: b.isFree ? "var(--green)" : "var(--ink2)", fontWeight: 700 }}>
@@ -685,11 +661,10 @@ function BookingsPanel({ d }: { d: DashboardData }) {
                 {b.studentPhone ? (
                   <a
                     href={`tel:${b.studentPhone}`}
-                    className="btn btn-ghost btn-sm qd-tel"
+                    className="btn btn-ghost btn-sm qd-tel flex-none ms-auto w-auto max-w-full"
                     aria-label={`${c.call} ${b.studentName?.trim() || c.anon}`}
-                    style={{ flex: "none", marginInlineStart: "auto", width: "auto", maxWidth: "100%" }}
                   >
-                    <Phone style={{ width: 15, height: 15 }} />
+                    <Phone className="w-[15px] h-[15px]" />
                     {b.studentPhone}
                   </a>
                 ) : (
@@ -737,25 +712,25 @@ function RealDashboard({ d, steps }: { d: DashboardData; steps: Step[] }) {
 
       {/* My classes */}
       {d.classes.length > 0 && (
-        <div className="panel panel-pad" style={{ marginBottom: "clamp(14px,2vw,22px)" }}>
-          <h2 style={{ fontFamily: "var(--fd)", fontSize: 16, fontWeight: 700, marginBottom: 14 }}>{t.dashboard.myClasses}</h2>
+        <div className="panel panel-pad mb-[clamp(14px,2vw,22px)]">
+          <h2 className="font-display text-[16px] font-bold mb-3.5">{t.dashboard.myClasses}</h2>
           {d.classes.map((cl) => (
             <Link
               key={cl.id}
               href={`/class/${cl.id}`}
               style={{ display: "flex", gap: 12, alignItems: "center", padding: "13px 0", borderBottom: "1px solid var(--line)", color: "inherit" }}
             >
-              <div aria-hidden="true" style={{ width: 40, height: 40, borderRadius: 12, display: "grid", placeItems: "center", flex: "none", background: "var(--blue50)", color: "var(--blue)" }}>
+              <div aria-hidden="true" className="w-10 h-10 rounded-[12px] grid place-items-center flex-none bg-blue50 text-blue">
                 <Video />
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="flex-1 min-w-0">
                 <div style={{ fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{cl.title}</div>
-                <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 2 }}>{cl.day} {cl.month} · {cl.time}</div>
+                <div className="text-[13px] text-muted mt-0.5">{cl.day} {cl.month} · {cl.time}</div>
               </div>
-              <div style={{ textAlign: "end", flex: "none", marginInlineStart: "auto" }}>
-                <div className="qd-num" style={{ fontFamily: "var(--fd)", fontWeight: 700, color: "var(--ink)" }}>{cl.price_tnd} TND</div>
-                <div className="qd-num" style={{ fontSize: 13, color: "var(--muted)", display: "flex", alignItems: "center", gap: 4, justifyContent: "flex-end", marginTop: 2 }}>
-                  <Users style={{ width: 12, height: 12 }} />{cl.seats_left}/{cl.seats}
+              <div className="text-end flex-none ms-auto">
+                <div className="qd-num font-display font-bold text-ink">{cl.price_tnd} TND</div>
+                <div className="qd-num text-[13px] text-muted flex items-center gap-1 justify-end mt-0.5">
+                  <Users className="w-3 h-3" />{cl.seats_left}/{cl.seats}
                 </div>
               </div>
             </Link>
@@ -765,32 +740,32 @@ function RealDashboard({ d, steps }: { d: DashboardData; steps: Step[] }) {
 
       {/* My packs */}
       {d.packs.length > 0 && (
-        <div className="panel panel-pad" style={{ marginBottom: "clamp(14px,2vw,22px)" }}>
-          <h2 style={{ fontFamily: "var(--fd)", fontSize: 16, fontWeight: 700, marginBottom: 14 }}>{t.dashboard.myPacks}</h2>
+        <div className="panel panel-pad mb-[clamp(14px,2vw,22px)]">
+          <h2 className="font-display text-[16px] font-bold mb-3.5">{t.dashboard.myPacks}</h2>
           {d.packs.map((p) => (
             <div
               key={p.id}
               style={{ display: "flex", gap: 12, alignItems: "center", padding: "13px 0", borderBottom: "1px solid var(--line)" }}
             >
-              <div aria-hidden="true" style={{ width: 40, height: 40, borderRadius: 12, display: "grid", placeItems: "center", flex: "none", background: "var(--green50)", color: "var(--green)" }}>
+              <div aria-hidden="true" className="w-10 h-10 rounded-[12px] grid place-items-center flex-none bg-green50 text-green">
                 <Book />
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="flex-1 min-w-0">
                 <div style={{ fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.title}</div>
-                {p.meta && <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 2 }}>{p.meta}</div>}
+                {p.meta && <div className="text-[13px] text-muted mt-0.5">{p.meta}</div>}
               </div>
-              <div className="qd-num" style={{ fontFamily: "var(--fd)", fontWeight: 700, color: "var(--ink)", flex: "none", marginInlineStart: "auto" }}>{p.price_tnd} TND</div>
+              <div className="qd-num font-display font-bold text-ink flex-none ms-auto">{p.price_tnd} TND</div>
             </div>
           ))}
         </div>
       )}
 
       {/* Money + numbers, below the work. Balance is the REAL 0 while payments are off. */}
-      <div className="grid-2" style={{ marginBottom: "clamp(14px,2vw,22px)" }}>
+      <div className="grid-2 mb-[clamp(14px,2vw,22px)]">
         <BalanceCard d={d} />
 
-        <div className="panel panel-pad" style={{ display: "flex", flexDirection: "column", gap: "clamp(10px,1.5vw,18px)", minWidth: 0 }}>
-          <div style={{ fontFamily: "var(--fd)", fontSize: 13, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".5px" }}>
+        <div className="panel panel-pad flex flex-col gap-[clamp(10px,1.5vw,18px)] min-w-0">
+          <div className="font-display text-[13px] font-bold text-muted uppercase tracking-[.5px]">
             {t.dashboard.recent}
           </div>
           {stats.map((s) => (
@@ -802,13 +777,13 @@ function RealDashboard({ d, steps }: { d: DashboardData; steps: Step[] }) {
         </div>
       </div>
 
-      <div style={{ marginBottom: "clamp(14px,2vw,22px)" }}>
+      <div className="mb-[clamp(14px,2vw,22px)]">
         <HowItWorks c={c} />
       </div>
 
       {/* Cash-out CTA — only when payouts can actually happen. No promise otherwise. */}
       {d.paymentsEnabled && (
-        <div style={{ marginBottom: "clamp(14px,2vw,22px)" }}>
+        <div className="mb-[clamp(14px,2vw,22px)]">
           <Link href="/dashboard/payout">
             <Button variant="green">
               <Wallet />
@@ -819,14 +794,14 @@ function RealDashboard({ d, steps }: { d: DashboardData; steps: Step[] }) {
       )}
 
       {/* Create CTAs — wrap instead of squashing on a 320px screen */}
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <Link href="/dashboard/new-class" style={{ flex: "1 1 180px", minWidth: 0 }}>
+      <div className="flex gap-2.5 flex-wrap">
+        <Link href="/dashboard/new-class" className="flex-[1_1_180px] min-w-0">
           <Button variant={d.classes.length === 0 ? "primary" : "ghost"}>
             <Plus />
             {t.dashboard.newClass}
           </Button>
         </Link>
-        <Link href="/dashboard/new-pack" style={{ flex: "1 1 180px", minWidth: 0 }}>
+        <Link href="/dashboard/new-pack" className="flex-[1_1_180px] min-w-0">
           <Button variant="ghost">
             <Plus />
             {t.dashboard.newPack}
@@ -843,15 +818,15 @@ function RealNoStore({ steps }: { steps: Step[] }) {
   const c = copy[locale];
   return (
     <>
-      <div className="panel panel-pad" style={{ textAlign: "center", marginBottom: "clamp(14px,2vw,22px)" }}>
+      <div className="panel panel-pad text-center mb-[clamp(14px,2vw,22px)]">
         <div aria-hidden="true" style={{ width: 60, height: 60, borderRadius: 18, background: "var(--blue50)", color: "var(--blue)", display: "grid", placeItems: "center", margin: "0 auto 13px" }}>
           <Share />
         </div>
-        <h2 style={{ fontFamily: "var(--fd)", fontSize: 18, marginBottom: 7 }}>{t.dashboard.createStore}</h2>
-        <p style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.6, marginBottom: 18, maxWidth: 440, marginInline: "auto" }}>
+        <h2 className="font-display text-[18px] mb-[7px]">{t.dashboard.createStore}</h2>
+        <p className="text-[13px] text-muted leading-[1.6] mb-[18px] max-w-[440px] mx-auto">
           {t.dashboard.createStoreBody}
         </p>
-        <Link href="/onboarding" className="btn btn-primary" style={{ maxWidth: 300, marginInline: "auto" }}>
+        <Link href="/onboarding" className="btn btn-primary max-w-[300px] mx-auto">
           <Plus />
           {c.st1cta}
         </Link>
@@ -867,13 +842,13 @@ function SignedOut() {
   const { locale } = useLocale();
   const c = copy[locale];
   return (
-    <div className="panel panel-pad" style={{ textAlign: "center", maxWidth: 560, marginInline: "auto" }}>
+    <div className="panel panel-pad text-center max-w-[560px] mx-auto">
       <div aria-hidden="true" style={{ width: 60, height: 60, borderRadius: 18, background: "var(--blue50)", color: "var(--blue)", display: "grid", placeItems: "center", margin: "0 auto 13px" }}>
         <Shield />
       </div>
-      <h2 style={{ fontFamily: "var(--fd)", fontSize: 18, marginBottom: 7 }}>{c.signedOutTitle}</h2>
-      <p style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.6, marginBottom: 18 }}>{c.signedOutBody}</p>
-      <Link href="/auth" className="btn btn-primary" style={{ maxWidth: 260, marginInline: "auto" }}>
+      <h2 className="font-display text-[18px] mb-[7px]">{c.signedOutTitle}</h2>
+      <p className="text-[13px] text-muted leading-[1.6] mb-[18px]">{c.signedOutBody}</p>
+      <Link href="/auth" className="btn btn-primary max-w-[260px] mx-auto">
         {c.signIn}
       </Link>
     </div>
@@ -897,18 +872,15 @@ function DashHeader({
   const { t } = useLocale();
   return (
     <div
-      style={{
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        gap: 14, marginBottom: "clamp(18px,2.5vw,28px)", flexWrap: "wrap",
-      }}
+      className="flex items-center justify-between gap-3.5 mb-[clamp(18px,2.5vw,28px)] flex-wrap"
     >
-      <div style={{ flex: "1 1 220px", minWidth: 0 }}>
-        <h1 style={{ fontFamily: "var(--fd)", fontSize: "clamp(20px,2.4vw,28px)", letterSpacing: "-.5px", lineHeight: 1.15 }}>
+      <div className="flex-[1_1_220px] min-w-0">
+        <h1 className="font-display text-[clamp(20px,2.4vw,28px)] tracking-[-.5px] leading-[1.15]">
           {title}
         </h1>
-        {subtitle ? <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 3 }}>{subtitle}</div> : null}
+        {subtitle ? <div className="text-[13px] text-muted mt-[3px]">{subtitle}</div> : null}
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", flex: "none" }}>
+      <div className="flex items-center gap-2 flex-wrap flex-none">
         {actions}
         {showTools && (
           <>
@@ -1004,7 +976,7 @@ export default function DashboardPage() {
 
   if (data === undefined) {
     body = (
-      <div className="panel panel-pad" style={{ display: "grid", placeItems: "center", minHeight: 200 }}>
+      <div className="panel panel-pad grid place-items-center min-h-[200px]">
         <Spinner />
       </div>
     );
@@ -1044,7 +1016,7 @@ export default function DashboardPage() {
         <div className="container">
           <div className="app-layout">
             <DashboardSidebar />
-            <div style={{ minWidth: 0 }}>
+            <div className="min-w-0">
               {header}
               {body}
             </div>

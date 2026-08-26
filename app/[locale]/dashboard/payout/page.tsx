@@ -91,10 +91,10 @@ export default function PayoutPage() {
         opacity: 0.75,
       }}
     >
-      <span style={{ color: "var(--blue)", display: "inline-flex", flexShrink: 0 }} aria-hidden="true">
+      <span className="text-blue inline-flex shrink-0" aria-hidden="true">
         <Icon />
       </span>
-      <span style={{ fontSize: 14, fontWeight: 600, minWidth: 0 }}>{label}</span>
+      <span className="text-[14px] font-semibold min-w-0">{label}</span>
     </div>
   );
 
@@ -102,13 +102,13 @@ export default function PayoutPage() {
 
   if (data === undefined) {
     body = (
-      <div className="panel panel-pad" style={{ display: "grid", placeItems: "center", minHeight: 200 }}>
+      <div className="panel panel-pad grid place-items-center min-h-[200px]">
         <Spinner />
       </div>
     );
   } else if (data === null) {
     body = (
-      <div className="panel panel-pad" style={{ textAlign: "center" }}>
+      <div className="panel panel-pad text-center">
         <div
           style={{
             width: 60, height: 60, borderRadius: 18, background: "var(--blue50)", color: "var(--blue)",
@@ -119,9 +119,9 @@ export default function PayoutPage() {
         </div>
         {/* h2, not h3: this panel replaces the page body when signed out, so it
             is the first heading under the page h1 — an h3 here skips a level. */}
-        <h2 style={{ fontFamily: "var(--fd)", fontSize: 18, marginBottom: 7 }}>{c.signedOutTitle}</h2>
-        <p style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.6, marginBottom: 18 }}>{c.signedOutBody}</p>
-        <Link href="/auth" className="btn btn-primary" style={{ maxWidth: 260, marginInline: "auto" }}>
+        <h2 className="font-display text-[18px] mb-[7px]">{c.signedOutTitle}</h2>
+        <p className="text-[13px] text-muted leading-[1.6] mb-[18px]">{c.signedOutBody}</p>
+        <Link href="/auth" className="btn btn-primary max-w-[260px] mx-auto">
           {c.signIn}
         </Link>
       </div>
@@ -130,7 +130,7 @@ export default function PayoutPage() {
     body = (
       <>
         {/* Available balance — the REAL number from getDashboard (0 while payments are off) */}
-        <div className="balance qp-balance zellige hero-blue" style={{ borderRadius: "var(--r-l)", marginBottom: 20, minWidth: 0 }}>
+        <div className="balance qp-balance zellige hero-blue rounded-brand-lg mb-5 min-w-0">
           <div className="lbl">
             <Wallet />
             {t.payout.available}
@@ -156,27 +156,27 @@ export default function PayoutPage() {
               marginBottom: 20,
             }}
           >
-            <span style={{ color: "var(--blue)", display: "inline-flex", flexShrink: 0, marginTop: 2 }}>
+            <span className="text-blue inline-flex shrink-0 mt-0.5">
               <Bulb />
             </span>
             <div>
-              <div style={{ fontFamily: "var(--fd)", fontSize: 15, fontWeight: 700, color: "var(--blue)", marginBottom: 5 }}>
+              <div className="font-display text-[15px] font-bold text-blue mb-[5px]">
                 {paymentsEnabled ? c.zeroTitle : c.soonTitle}
               </div>
-              <p style={{ fontSize: 13, color: "var(--blue700)", lineHeight: 1.65 }}>
+              <p className="text-[13px] text-blue700 leading-[1.65]">
                 {paymentsEnabled ? c.zeroBody : c.soonBody}
               </p>
             </div>
           </div>
 
           {/* What the payout rails will be — shown as inert preview, not a live form. */}
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, color: "var(--ink2)" }}>
+          <div className="text-[13px] font-bold mb-2.5 text-ink2">
             {c.comingRails}
           </div>
           {railRow(t.payout.wallet, Wallet)}
           {railRow(t.payout.bank, Bank)}
 
-          <div className="trust" style={{ marginTop: 18, marginBottom: 18 }}>
+          <div className="trust mt-[18px] mb-[18px]">
             <Shield />
             <p>{c.soonNote}</p>
           </div>
@@ -187,8 +187,8 @@ export default function PayoutPage() {
             {c.disabledBtn}
           </Button>
 
-          <div style={{ marginTop: 12, textAlign: "center" }}>
-            <Link href="/dashboard" className="linklike" style={{ fontSize: 13 }}>
+          <div className="mt-3 text-center">
+            <Link href="/dashboard" className="linklike text-[13px]">
               {c.backDash}
             </Link>
           </div>
@@ -206,33 +206,22 @@ export default function PayoutPage() {
             <DashboardSidebar />
 
             {/* Main content column */}
-            <div style={{ minWidth: 0 }}>
+            <div className="min-w-0">
               {/* Page header */}
               <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  marginBottom: "clamp(18px,3vw,28px)",
-                }}
+                className="flex items-center gap-3 mb-[clamp(18px,3vw,28px)]"
               >
-                <Link href="/dashboard" className="iconbtn" aria-label={t.common.back} style={{ flex: "none" }}>
+                <Link href="/dashboard" className="iconbtn flex-none" aria-label={t.common.back}>
                   <Back />
                 </Link>
                 <h1
-                  style={{
-                    fontFamily: "var(--fd)",
-                    fontSize: "clamp(20px,2.6vw,28px)",
-                    letterSpacing: "-0.6px",
-                    color: "var(--ink)",
-                    minWidth: 0,
-                  }}
+                  className="font-display text-[clamp(20px,2.6vw,28px)] tracking-[-0.6px] text-ink min-w-0"
                 >
                   {t.payout.title}
                 </h1>
               </div>
 
-              <div style={{ maxWidth: 620, width: "100%" }}>{body}</div>
+              <div className="max-w-[620px] w-full">{body}</div>
             </div>
             {/* end main column */}
           </div>
