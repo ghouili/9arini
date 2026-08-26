@@ -241,7 +241,7 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
                 on the row the field looked 44px tall but the input's own hit box
                 was 17px, so a tap anywhere in the padding landed on the div and
                 focused nothing. Same fix as .inp in globals.css. */}
-            <div className="flex min-h-[44px] items-stretch gap-2.5 rounded-[var(--r)] border border-solid border-line bg-paper px-3.5 shadow-[var(--sh-s)] transition-colors focus-within:border-blue">
+            <div className="flex min-h-[44px] items-stretch gap-2.5 rounded-[var(--r)] border border-solid border-line bg-paper px-3.5 shadow-[var(--sh-s)] transition-colors focus-within:border-blue focus-within:outline focus-within:outline-[3px] focus-within:outline-offset-2 focus-within:outline-blue">
               <Search className="size-[18px] shrink-0 self-center text-muted" />
               <input
                 type="search"

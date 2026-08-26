@@ -192,7 +192,14 @@
      input's own hit box was 17px, and a tap in the padding landed on the div and
      did not focus anything. Same box, real target. */
   .inp{width:100%;background:var(--paper);border:1.6px solid var(--line);border-radius:13px;padding:0 14px;font-size:14px;font-family:var(--fb);display:flex;align-items:stretch;gap:6px;min-height:46px}
-  .inp:focus-within{border-color:var(--blue)}
+  /* The WRAPPER carries the focus ring, not the control. `.inp input` sets
+     outline:0 (it is a borderless control inside a styled box), so keyboard
+     focus used to be signalled only by a 1.6px border going --line -> --blue —
+     a hue change of a hairline, which is not a visible focus indicator under
+     WCAG 2.4.7 and is invisible in daylight on a cheap LCD. Ringing the wrapper
+     matches what the user perceives as "the field", and matches the 3px ring
+     every button already gets. Verified by scripts/ui-audit/keyboard.mjs. */
+  .inp:focus-within{border-color:var(--blue);outline:3px solid var(--blue);outline-offset:2px}
   .inp input,.inp textarea,.inp select{border:0;outline:0;font-size:14px;font-family:inherit;width:100%;min-width:0;background:transparent;color:var(--ink);padding-block:13px;min-height:44px}
   /* textarea has to keep its own rows-based height and must not inherit the
      flex stretch, or it collapses to one line. */

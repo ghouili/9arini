@@ -1,6 +1,6 @@
 # scripts/ui-audit — the UI measurement harness
 
-Six runners. Each exits non-zero on failure, so `npm run ui:audit` is a gate,
+Seven runners. Each exits non-zero on failure, so `npm run ui:audit` is a gate,
 not a report you can talk yourself out of.
 
 | script | what it proves | needs a server |
@@ -8,7 +8,9 @@ not a report you can talk yourself out of.
 | `contrast.mjs` | every foreground/background pair the app renders clears WCAG 2.1 AA | no |
 | `guardrails.mjs` | RTL uses logical properties only · FR/AR key sets identical · no hardcoded French · no untokenised colour | no |
 | `nojs.mjs` | every public route shows h1 + sub-headline + primary CTA with **JavaScript disabled** | yes |
-| `a11y.mjs` | zero serious/critical axe violations, every route, **both locales** | yes |
+| `a11y.mjs` | zero serious/critical axe violations + skip link + 44px targets + 13px text floor, every route, **both locales** | yes |
+| `keyboard.mjs` | Tab through every route: skip link first, every stop visibly ringed, no traps, no positive tabindex | yes |
+| `lighthouse.mjs` | Performance >= 80 and Accessibility = 100, mobile, simulated 3G (**production build only**) | yes |
 | `shots.mjs` | full-page screenshots at 320 / 380 / 768 / 1280, **plus** viewport-overflow and text-clipping detection | yes |
 | `weight.mjs` | what a first-time visitor downloads per route, split by resource type (informational) | yes |
 
