@@ -132,9 +132,14 @@ let scanned = 0;
 
 console.log("\naxe-core accessibility audit — WCAG 2.0/2.1 A + AA, both locales, 380px\n");
 
+/* One retry per route. A dev-server compile can push a first navigation past the
+   timeout, and a harness that reports a flake as an accessibility violation is
+   worse than no harness — it teaches you to ignore red. A route that fails twice
+   is reported as an error and does fail the run. */
 for (const r of targets) {
   const label = `/${r.locale}${r.path === "/" ? "" : r.path}`;
-  const page = await ctx.newPage();
+  let page = await ctx.newPage();
+  for (let attempt = 0; attempt < 2; attempt++) {
   try {
     await page.goto(r.url, { waitUntil: "domcontentloaded", timeout: 30000 });
     // Let hydration + entrance animations settle: axe reads computed styles, and
@@ -180,8 +185,15 @@ for (const r of targets) {
       (parts.length ? parts.join(", ") : "clean")
     );
   } catch (e) {
+    if (attempt === 0) {
+      await page.close();
+      page = await ctx.newPage();
+      continue;
+    }
     blocking++;
     console.log(`  ERR   ${label.padEnd(28)} ${e.message.split("\n")[0]}`);
+  }
+  break;
   }
   await page.close();
 }

@@ -36,6 +36,11 @@ export const ROUTES = [
   { path: "/account", name: "account", auth: true },
   { path: "/checkout", name: "checkout", auth: true },
   { path: "/class/c1", name: "class", auth: true },
+  /* The live room and the admin verification queue are low-traffic but they are
+     real screens, and both were touched by the Tailwind conversion — leaving
+     them out of the harness would mean converting code nothing measures. */
+  { path: "/live/c1", name: "live", auth: true },
+  { path: "/admin/verifications", name: "admin-verifications", auth: true },
 ];
 
 /** Expand the bare routes across both locales. */
