@@ -19,7 +19,8 @@
     "ui:audit": "node scripts/ui-audit/contrast.mjs && node scripts/ui-audit/guardrails.mjs && node scripts/ui-audit/nojs.mjs && node scripts/ui-audit/a11y.mjs && node scripts/ui-audit/keyboard.mjs",
     "ui:shots": "node scripts/ui-audit/shots.mjs",
     "ui:weight": "node scripts/ui-audit/weight.mjs",
-    "ui:lighthouse": "node scripts/ui-audit/lighthouse.mjs"
+    "ui:lighthouse": "node scripts/ui-audit/lighthouse.mjs",
+    "brand:build": "python scripts/brand/build-raster.py && node scripts/brand/build-og.mjs"
   },
   "dependencies": {
     "drizzle-orm": "^0.36.4",

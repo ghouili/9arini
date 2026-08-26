@@ -1,5 +1,6 @@
 "use client";
 import { Link } from "@/components/Link";
+import { Logo } from "@/components/Logo";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useLocale } from "./LocaleProvider";
@@ -72,7 +73,10 @@ const CSS = `
 .qh-brand{min-width:0;flex:none;min-height:44px}
 @media (max-width:419px){
   .site-header .qh-brand{font-size:17px;gap:8px}
-  .site-header .qh-brand .logo{width:34px;height:34px;font-size:18px}
+  /* Scale by height and let width follow the intrinsic ratio from the img's
+     width/height attributes — that keeps the box reserved, so shrinking the
+     mark on small screens costs no layout shift. */
+  .site-header .qh-brand img{height:32px;width:auto}
   .site-header .qh-brand .ar{display:none}
 }
 .qh-nav{display:none;align-items:center;gap:22px;font-weight:600;font-size:14.5px;min-width:0}
@@ -160,8 +164,7 @@ export function SiteHeader() {
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="container">
         <Link href="/" className="brand-mark qh-brand" aria-label="9arini">
-          <span className="logo" aria-hidden="true">ق</span>
-          <span>9arini <span className="ar">قرّيني</span></span>
+          <Logo variant="full" height={38} priority />
         </Link>
 
         <nav className="qh-nav" aria-label={c.nav}>

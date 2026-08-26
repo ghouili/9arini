@@ -1,5 +1,6 @@
 "use client";
 import { Link } from "@/components/Link";
+import { Logo } from "@/components/Logo";
 import { useLocale } from "./LocaleProvider";
 
 /* Site footer — brand, then the same two-audience split as the header
@@ -76,10 +77,7 @@ export function SiteFooter() {
 
       <div className="container qf-grid">
         <div className="qf-brand">
-          <div className="brand-mark" style={{ fontSize: 17 }}>
-            <span className="logo" style={{ width: 32, height: 32, fontSize: 17 }} aria-hidden="true">ق</span>
-            <span>9arini <span className="ar">قرّيني</span></span>
-          </div>
+          <Logo variant="full" height={32} className="text-[17px]" />
           <p>{t.footer.tagline}</p>
         </div>
 

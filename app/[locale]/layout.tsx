@@ -62,10 +62,16 @@ export async function generateMetadata({ params }: { params: { locale: string } 
     applicationName: "9arini",
     keywords: ["cours particuliers", "prof", "Tunisie", "Bac", "soutien scolaire", "9arini", "قرّيني", "دروس خصوصية"],
     authors: [{ name: "9arini" }],
+    /* Generated from brand/logo-source.png by scripts/brand/build-raster.py.
+       No SVG entry: there is no vector master of the mark, and an SVG wrapping a
+       base64 PNG is a bigger file that buys nothing.
+       The mark is fine line art, so at 16px it dissolves into grey mush on its
+       own — every icon here is therefore the mark knocked out in white on a
+       solid cobalt tile, which still reads as this brand in a strip of tabs. */
     icons: {
       icon: [
-        { url: "/favicon.svg", type: "image/svg+xml" },
-        { url: "/favicon.ico", sizes: "any" },
+        { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+        { url: "/favicon.ico", sizes: "16x16 32x32 48x48" },
       ],
       apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
     },
@@ -77,9 +83,13 @@ export async function generateMetadata({ params }: { params: { locale: string } 
       url: `${SITE_URL}/${locale}`,
       title,
       description,
-      images: [{ url: "/og.png", width: 1200, height: 630, alt: "9arini — ton prof, en direct." }],
+      /* ?v=2 is a cache-bust, not decoration: WhatsApp and Facebook key their
+         preview cache on the URL, so without it a tutor's link keeps showing the
+         previous card long after this one shipped — and WhatsApp is how this
+         product is actually distributed. Bump it whenever og.png is rebuilt. */
+      images: [{ url: "/og.png?v=2", width: 1200, height: 630, alt: "9arini — ton prof, en direct." }],
     },
-    twitter: { card: "summary_large_image", title, description, images: ["/og.png"] },
+    twitter: { card: "summary_large_image", title, description, images: ["/og.png?v=2"] },
     robots: { index: true, follow: true },
   };
 }
