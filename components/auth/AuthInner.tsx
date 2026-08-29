@@ -56,6 +56,11 @@ const COPY = {
     changeEmail: "Changer d'email",
     devCodeNote: "Code de test — aucun message n'est envoyé pour l'instant",
     codeHelp: "6 chiffres.",
+    /* t.auth.code is hardcoded to "Code reçu par SMS", which contradicted the
+       line directly above it asking for an email. The channel is an env flag, so
+       the label has to follow it. */
+    codeLabelEmail: "Code reçu par email",
+    codeLabelSms: "Code reçu par SMS",
     resend: "Renvoyer le code",
     resendReady: "Tu peux redemander un code.",
     expiresIn: (t: string) => `Ce code expire dans ${t}.`,
@@ -88,6 +93,8 @@ const COPY = {
     changeEmail: "بدّل الإيميل",
     devCodeNote: "كود للتجربة — توّا ما تتبعث حتى رسالة",
     codeHelp: "6 أرقام.",
+    codeLabelEmail: "الكود اللي وصلك في الإيميل",
+    codeLabelSms: "الكود اللي وصلك بالـ SMS",
     resend: "عاود ابعث الكود",
     resendReady: "تنجم تطلب كود جديد.",
     expiresIn: (t: string) => `هذا الكود يسالي في ${t}.`,
@@ -419,7 +426,7 @@ export function AuthInner({ next, channel }: { next: string | null; channel: Otp
                   <p className="text-[13px] text-muted leading-[1.5] mb-3.5">{c.spam}</p>
                 )}
 
-                <Field label={t.auth.code} help={c.codeHelp}>
+                <Field label={isEmail ? c.codeLabelEmail : c.codeLabelSms} help={c.codeHelp}>
                   <div className="inp">
                     <input
                       type="text"

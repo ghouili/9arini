@@ -6,7 +6,8 @@ import { useLocale } from "@/components/LocaleProvider";
 import { Shield, Check, Upload, User, Eye, Bulb } from "@/components/icons";
 import { SiteShell } from "@/components/SiteShell";
 import { getMyVerification, submitVerification } from "@/app/actions";
-import type { TutorVerification, Locale } from "@/lib/types";
+import { OnboardingProgress } from "@/components/OnboardingProgress";
+import type { TutorVerification, Locale, OnboardingState } from "@/lib/types";
 
 /* ------------------------------------------------------------------ */
 /* Self-contained bilingual copy (FR + Tunisian Derija). Do NOT edit   */
@@ -17,7 +18,7 @@ const copy = {
     eyebrow: "VÉRIFICATION",
     h2: "Vérifie ton compte de prof",
     lead:
-      "La pièce d'identité est obligatoire. Tes diplômes, ton expérience et tes liens sont optionnels — mais ils renforcent la confiance et débloquent des badges. Une fois approuvé, ta page devient publique et listée dans l'Explorer (en général sous 24–48h).",
+      "La pièce d'identité est obligatoire. Tes diplômes, ton expérience et tes liens sont optionnels — mais ils renforcent la confiance et débloquent des badges. Une fois approuvé, ta page devient publique et listée dans l'Explorer.",
     // sections
     s1Title: "Identité",
     s1Req: "obligatoire",
@@ -37,7 +38,10 @@ const copy = {
     roleProof: "Carte d'étudiant ou attestation d'emploi",
     // dropzone
     dzPick: "Choisir un fichier",
-    dzHint: "Image ou PDF — max 8 Mo",
+    dzHint: (mb: number) => `Image ou PDF — max ${mb} Mo`,
+    errPickTooLarge: (size: string) =>
+      `Ce fichier fait ${size} — la limite est de ${MAX_DOC_MB} Mo. Reprends la photo, ou choisis-en une autre.`,
+    errPickBadType: "Format non accepté. Choisis une image (JPG, PNG, WEBP, HEIC) ou un PDF.",
     dzChange: "Changer",
     dzRemove: "Retirer",
     // text fields
@@ -59,11 +63,24 @@ const copy = {
     introVideo: "Vidéo d'intro",
     urlPh: "https://…",
     // reassurance
+    /* Everything a stranger needs to decide whether to hand over their national
+       ID, stated BEFORE the upload rather than in a privacy page they will not
+       open. The 90 days is not a nicety we invented: it is the retention period
+       already documented in /privacy, and it is the single fact most likely to
+       change the decision. */
+    whyTitle: "Pourquoi on demande ça",
+    whyBody:
+      "Pour vérifier que tu es bien la personne que tu dis être — c'est ce qui permet aux parents de faire confiance aux profs de Tnajem.",
+    whoSees: "Une seule personne de notre équipe la regarde.",
+    neverPublic: "Ton document n'apparaît jamais sur ta page et n'est jamais partagé.",
+    deleted90: "Il est supprimé de nos serveurs au bout de 90 jours.",
     inpdp:
       "Tes documents servent uniquement à la vérification — stockés en sécurité, jamais publiés.",
     // actions
     submit: "Envoyer pour vérification",
     submitting: "Envoi…",
+    loadingStatus: "Chargement de ton dossier…",
+    uploadingLive: "Envoi de tes documents en cours. Ne ferme pas cette page.",
     needId: "La pièce d'identité (recto) est obligatoire pour continuer.",
     demoNote: "Mode démo — rien n'est enregistré.",
     // errors
@@ -77,7 +94,7 @@ const copy = {
     // pending state
     pendingTitle: "Vérification envoyée",
     pendingBody:
-      "Merci ! Ton dossier est en cours d'examen. Tu recevras une réponse en général sous 24–48h. Une fois approuvé, ta page sera publiée et listée dans l'Explorer.",
+      "Merci ! Ton dossier est en cours d'examen. On regarde chaque demande à la main, une par une — on te répond dès que la tienne est passée. Une fois approuvé, ta page sera publiée et listée dans l'Explorer.",
     pendingNote: "Tu peux fermer cette page — on te tiendra au courant.",
     // verified state
     verifiedTitle: "Déjà vérifié",
@@ -90,7 +107,7 @@ const copy = {
     // links back
     backDash: "Retour au tableau de bord",
     // progress + required-summary
-    stepLine: "Étape 2 sur 3 — après ça, tu publies ta 1ʳᵉ classe",
+    afterThis: "Après ça, tu publies ta 1ʳᵉ classe.",
     reqTitle: "Ce qu'il faut, au minimum",
     reqBody: "Une photo de ta pièce d'identité (recto). Tout le reste est optionnel.",
     reqDone: "Pièce d'identité ajoutée — tu peux envoyer.",
@@ -99,7 +116,7 @@ const copy = {
     eyebrow: "تأكيد الحساب",
     h2: "أكّد حسابك كمعلّم",
     lead:
-      "بطاقة التعريف ضرورية. الشهائد، الخبرة و الروابط متاع وسائل التواصل اختيارية — أما يزيدوك ثقة و يفتحولك شارات. كي يتقبل ملفك، صفحتك تولّي ظاهرة و موجودة في Explorer (عادةً في 24–48 ساعة).",
+      "بطاقة التعريف ضرورية. الشهائد، الخبرة و الروابط متاع وسائل التواصل اختيارية — أما يزيدوك ثقة و يفتحولك شارات. كي يتقبل ملفك، صفحتك تولّي ظاهرة و موجودة في Explorer.",
     s1Title: "الهوية",
     s1Req: "ضروري",
     s1Sub: "نتأكدو بلّي راك إنت.",
@@ -116,7 +133,10 @@ const copy = {
     certificate: "شهادة / إفادة تدريس",
     roleProof: "بطاقة طالب ولا إفادة شغل",
     dzPick: "اختار ملف",
-    dzHint: "صورة ولا PDF — أقصى حد 8 ميغا",
+    dzHint: (mb: number) => `صورة ولا PDF — أقصى حد ${mb} ميغا`,
+    errPickTooLarge: (size: string) =>
+      `هذا الملف ${size} — الحد ${MAX_DOC_MB} ميغا. عاود التصويرة، ولا اختار وحدة أخرى.`,
+    errPickBadType: "الصيغة موش مقبولة. اختار صورة (JPG, PNG, WEBP, HEIC) ولا PDF.",
     dzChange: "بدّل",
     dzRemove: "نحّي",
     experienceYears: "سنوات الخبرة",
@@ -135,10 +155,18 @@ const copy = {
     website: "موقع / portfolio",
     introVideo: "فيديو تعريفي",
     urlPh: "https://…",
+    whyTitle: "علاش نطلبو هذا",
+    whyBody:
+      "باش نتثبّتو بلّي إنتي فعلاً اللي تقول — هذا اللي يخلّي الأولياء يوثقو في أساتذة تنجّم.",
+    whoSees: "وحيد من الفريق متاعنا هو اللي يشوفها.",
+    neverPublic: "وثيقتك عمرها ما تبان في صفحتك وعمرها ما تتشارك.",
+    deleted90: "تتمسح من السرفرات متاعنا بعد 90 يوم.",
     inpdp:
       "وثائقك يخدمو كان للتأكيد — محفوظين في الأمان، عمرهم ما يتنشرو.",
     submit: "ابعث للتأكيد",
     submitting: "قاعد يتبعث…",
+    loadingStatus: "ملفك قاعد يتحمّل…",
+    uploadingLive: "وثائقك قاعدة تتبعث. ما تسكّرش الصفحة هاذي.",
     needId: "بطاقة التعريف (الوجه) ضرورية باش تكمّل.",
     demoNote: "وضع التجربة — ما يتسجّل حتى شيء.",
     errFileSize: "الملف ثقيل برشة — أقصى حد 8 ميغا للملف.",
@@ -150,7 +178,7 @@ const copy = {
     errStoreLink: "أعمل صفحتي",
     pendingTitle: "التأكيد اتبعث",
     pendingBody:
-      "يعيشك! ملفك تحت الدراسة. باش توصلك إجابة عادةً في 24–48 ساعة. كي يتقبل، صفحتك باش تتنشر و تولّي في Explorer.",
+      "يعيشك! ملفك تحت الدراسة. نشوفو كل طلب بيدينا، واحد واحد — نجاوبوك كي يجي دورك. كي يتقبل، صفحتك باش تتنشر و تولّي في Explorer.",
     pendingNote: "تنجم تسكّر الصفحة هاذي — باش نعلموك.",
     verifiedTitle: "متأكّد من قبل",
     verifiedBody: "حسابك متأكّد. صفحتك ظاهرة و موجودة في Explorer.",
@@ -159,7 +187,7 @@ const copy = {
     rejectedBody: "صلّح النقاط اللي فوق و عاود ابعث ملفك.",
     resubmitIntro: "تنجم تبدّل و تعاود تبعث ملفك تحت.",
     backDash: "ارجع للوحة",
-    stepLine: "مرحلة 2 من 3 — من بعدها تنشر أول حصة متاعك",
+    afterThis: "من بعدها تنشر أول حصة متاعك.",
     reqTitle: "شنوّة يلزم، على الأقل",
     reqBody: "تصويرة متاع بطاقة تعريفك (الوجه). الباقي الكل اختياري.",
     reqDone: "بطاقة التعريف تزادت — تنجم تبعث.",
@@ -180,9 +208,34 @@ const FILE_FIELDS = [
 
 const ACCEPT = "image/*,application/pdf";
 
+/* Mirrors MAX_DOC_BYTES in app/actions.ts. Duplicated deliberately — actions.ts is
+   "use server" and importing it here would pull the server module into the client
+   bundle — but the number now lives in ONE place on this side, instead of being
+   retyped inside two prose strings that could drift from the real limit. */
+const MAX_DOC_BYTES = 8 * 1024 * 1024;
+const MAX_DOC_MB = 8;
+
+/* Same allow-list the server sniffs for. Checked on PICK, not on submit: the old
+   flow let someone choose a 40 MB video, fill in eleven text fields, upload the
+   whole body over 3G and only then be told the file was wrong. */
+const OK_MIME = /^(image\/(jpeg|png|webp|heic|heif)|application\/pdf)$/i;
+
+/* Which camera the OS should open. Without `capture` the picker lands in the file
+   manager, and "photograph your ID" becomes "go find a photo of your ID" — the
+   single biggest source of friction on the hardest screen in the product. */
+const CAPTURE: Record<string, "environment" | "user" | undefined> = {
+  idFront: "environment",
+  idBack: "environment",
+  selfie: "user",
+};
+
 /* ------------------------------------------------------------------ */
 
-export default function VerifyPage() {
+/* Rendered by the SERVER shell at app/[locale]/onboarding/verify/page.tsx, which
+   owns the role guard and reads `state` (see getOnboardingState). `state` is null
+   in demo mode / the UI audit harness, where the bar falls back to the honest
+   first-step-only position. */
+export function VerifyInner({ state }: { state: OnboardingState | null }) {
   const { locale } = useLocale();
   const c: CopyT = copy[locale];
 
@@ -208,7 +261,50 @@ export default function VerifyPage() {
     return () => { alive = false; };
   }, []);
 
+  /* Per-field rejection message, so a bad file is reported next to the field that
+     caused it rather than as one global error at the bottom of a long form. */
+  const [fileErrors, setFileErrors] = useState<Record<string, string | null>>({});
+
+  /* Object URLs for the thumbnails. Held in state (not derived during render) so we
+     can revoke them: each createObjectURL pins the whole file in memory until it is
+     released, and this form can hold six 8 MB photos. */
+  const [previews, setPreviews] = useState<Record<string, string | null>>({});
+
+  /** Heading of the success panel; focused after submit so focus follows the view. */
+  const doneRef = useRef<HTMLHeadingElement | null>(null);
+
+  useEffect(() => {
+    // Release every outstanding object URL when the form unmounts.
+    return () => {
+      for (const url of Object.values(previewsRef.current)) if (url) URL.revokeObjectURL(url);
+    };
+  }, []);
+  const previewsRef = useRef<Record<string, string | null>>({});
+  previewsRef.current = previews;
+
   function pickFile(key: string, f: File | null) {
+    /* Validate on PICK. The limits are the server's, checked here only so the
+       failure arrives in the moment the file is chosen — the server still enforces
+       them, including a magic-byte sniff this cannot do. */
+    if (f) {
+      if (f.size > MAX_DOC_BYTES) {
+        setFileErrors((p) => ({ ...p, [key]: c.errPickTooLarge(fmtMb(f.size)) }));
+        return;
+      }
+      // An empty type is possible on some Android pickers; let the server sniff decide.
+      if (f.type && !OK_MIME.test(f.type)) {
+        setFileErrors((p) => ({ ...p, [key]: c.errPickBadType }));
+        return;
+      }
+    }
+    setFileErrors((p) => ({ ...p, [key]: null }));
+
+    setPreviews((prev) => {
+      if (prev[key]) URL.revokeObjectURL(prev[key] as string);
+      // PDFs get no thumbnail: there is no bitmap for an image tag to render.
+      const url = f && f.type.startsWith("image/") ? URL.createObjectURL(f) : null;
+      return { ...prev, [key]: url };
+    });
     setFiles((prev) => ({ ...prev, [key]: f }));
     if (error === "id" && key === "idFront" && f) setError(null);
   }
@@ -252,6 +348,10 @@ export default function VerifyPage() {
         if (res.demo) setDemo(true);
         setDone(true);
         window.scrollTo({ top: 0, behavior: "smooth" });
+        /* Scrolling moves the viewport but not the focus, so a keyboard or screen
+           reader user was left on a submit button inside a form that no longer
+           exists. Move focus to the new panel's heading instead. */
+        requestAnimationFrame(() => doneRef.current?.focus());
       } else {
         switch (res.error) {
           case "id-required": setError("id"); break;
@@ -273,7 +373,9 @@ export default function VerifyPage() {
   if (loading) {
     return (
       <Shell>
-        <Spinner />
+        {/* Labelled: an unlabelled role="status" announces an empty string, so a
+            screen-reader user got silence during the whole status fetch. */}
+        <Spinner label={c.loadingStatus} />
       </Shell>
     );
   }
@@ -320,6 +422,7 @@ export default function VerifyPage() {
           body={c.pendingBody}
           note={demo ? c.demoNote : c.pendingNote}
           backLabel={c.backDash}
+          titleRef={doneRef}
         />
       </Shell>
     );
@@ -337,7 +440,20 @@ export default function VerifyPage() {
           {c.eyebrow}
         </div>
         <h1 className="web-h2 mt-2">{c.h2}</h1>
-        <p className="mt-2 text-[13px] font-bold text-ochre-ink">{c.stepLine}</p>
+        {/* Was the hardcoded string "Étape 2 sur 3". The funnel has four steps and
+            the dashboard already said so — this bar is the same one the dashboard
+            and /onboarding render (lib/onboarding-steps.ts). */}
+        <div className="mt-3">
+          <OnboardingProgress
+            progress={{
+              hasStorefront: state?.hasStorefront ?? true,
+              status: state?.status ?? "draft",
+              hasClass: state?.hasClass ?? false,
+              hasSlug: state?.hasSlug ?? true,
+            }}
+          />
+        </div>
+        <p className="text-[13px] font-bold text-ochre-ink">{c.afterThis}</p>
         <p className="web-lead mt-3 max-w-[620px]">{c.lead}</p>
       </div>
 
@@ -398,6 +514,32 @@ export default function VerifyPage() {
           chipKind="rose"
           sub={c.s1Sub}
         >
+          {/* Explain BEFORE asking. This is the moment a stranger decides whether
+              to photograph their national ID for a brand they met 90 seconds ago;
+              the reassurance used to sit only UNDER the upload, where it argues
+              with a decision already made. */}
+          <div className="trust mb-4">
+            <Shield />
+            <div className="min-w-0">
+              <b className="block text-[13px] font-bold mb-1">{c.whyTitle}</b>
+              <p className="mb-1.5">{c.whyBody}</p>
+              <ul className="flex flex-col gap-1 list-none">
+                <li className="flex gap-2 items-start">
+                  <Check className="w-4 h-4 flex-none mt-0.5" />
+                  <span className="min-w-0">{c.whoSees}</span>
+                </li>
+                <li className="flex gap-2 items-start">
+                  <Check className="w-4 h-4 flex-none mt-0.5" />
+                  <span className="min-w-0">{c.neverPublic}</span>
+                </li>
+                <li className="flex gap-2 items-start">
+                  <Check className="w-4 h-4 flex-none mt-0.5" />
+                  <span className="min-w-0">{c.deleted90}</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
           {FILE_FIELDS.slice(0, 3).map((f) => (
             <FileDrop
               key={f.key}
@@ -407,6 +549,8 @@ export default function VerifyPage() {
               required={f.required}
               help={"helpKey" in f && f.helpKey ? (c[f.helpKey as keyof CopyT] as string) : undefined}
               file={files[f.key] ?? null}
+              preview={previews[f.key] ?? null}
+              fileError={fileErrors[f.key] ?? null}
               onPick={(file) => pickFile(f.key, file)}
               inputRef={(el) => { fileInputs.current[f.key] = el; }}
               invalid={error === "id" && f.key === "idFront"}
@@ -440,6 +584,8 @@ export default function VerifyPage() {
               label={c[f.labelKey as keyof CopyT] as string}
               required={false}
               file={files[f.key] ?? null}
+              preview={previews[f.key] ?? null}
+              fileError={fileErrors[f.key] ?? null}
               onPick={(file) => pickFile(f.key, file)}
               inputRef={(el) => { fileInputs.current[f.key] = el; }}
             />
@@ -532,9 +678,19 @@ export default function VerifyPage() {
         <div className="max-w-[360px]">
           <Button type="submit" variant="primary" disabled={submitting}>
             {submitting
-              ? <><Spinner />{c.submitting}</>
+              ? <><Spinner label={c.submitting} />{c.submitting}</>
               : <><Shield className="w-[18px] h-[18px]" />{c.submit}</>}
           </Button>
+
+          {/* Six photos over Tunisian 3G is a multi-minute wait, and the only
+              previous feedback was a disabled button — which reads as "broken", so
+              people reload and lose everything. A server action gives no progress
+              events, so this is deliberately indeterminate rather than a fake
+              percentage: it says the one thing that matters, which is don't leave.
+              Always in the DOM so the live region can announce the change. */}
+          <p role="status" aria-live="polite" className="text-[13px] text-ink2 leading-[1.5] mt-2 text-center">
+            {submitting ? c.uploadingLive : ""}
+          </p>
           <div className="mt-3 text-center">
             <Link href="/dashboard" className="linklike text-[13px]">{c.backDash}</Link>
           </div>
@@ -594,7 +750,7 @@ function SectionPanel({
 }
 
 function FileDrop({
-  c, fieldKey, label, required, help, file, onPick, inputRef, invalid,
+  c, fieldKey, label, required, help, file, preview, fileError, onPick, inputRef, invalid,
 }: {
   c: CopyT;
   fieldKey: string;
@@ -602,11 +758,18 @@ function FileDrop({
   required: boolean;
   help?: string;
   file: File | null;
+  /** Object URL for an image pick; null for a PDF or an empty field. */
+  preview: string | null;
+  /** Rejected on pick (too large / wrong type) — shown against this field. */
+  fileError: string | null;
   onPick: (f: File | null) => void;
   inputRef: (el: HTMLInputElement | null) => void;
   invalid?: boolean;
 }) {
   const inputId = `file-${fieldKey}`;
+  const errId = `${inputId}-err`;
+  const helpId = help ? `${inputId}-help` : undefined;
+  const describedBy = [fileError ? errId : null, helpId].filter(Boolean).join(" ") || undefined;
   return (
     <div className="mb-3.5">
       <div className="flex items-center gap-2 mb-[7px] flex-wrap">
@@ -620,42 +783,63 @@ function FileDrop({
         htmlFor={inputId}
         className="dz"
         data-filled={file ? "true" : "false"}
-        style={invalid ? { borderColor: "var(--rose)" } : undefined}
+        style={invalid || fileError ? { borderColor: "var(--rose)" } : undefined}
       >
         <input
           id={inputId}
           name={fieldKey}
           type="file"
           accept={ACCEPT}
+          /* Opens the camera directly on a phone instead of the file manager.
+             Rear camera for the ID card, front for the selfie. Desktop browsers
+             ignore the attribute, so this costs nothing there. */
+          capture={CAPTURE[fieldKey]}
           ref={inputRef}
           aria-required={required || undefined}
-          aria-invalid={invalid || undefined}
+          aria-invalid={invalid || Boolean(fileError) || undefined}
+          aria-describedby={describedBy}
           onChange={(e) => onPick(e.target.files?.[0] ?? null)}
-          style={{
-            position: "absolute", width: 1, height: 1, padding: 0, margin: -1,
-            overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap", border: 0,
-          }}
+          className="sr-only"
         />
-        <span className="dz-ic">
-          {file ? <Check className="w-5 h-5" /> : <Upload className="w-5 h-5" />}
-        </span>
+        {/* Thumbnail once an image is chosen: the filename alone never told a tutor
+            whether they had picked the sharp photo or the blurry one — and a blurry
+            scan is the most common reason a review comes back rejected. */}
+        {preview ? (
+          <img src={preview} alt="" className="dz-thumb" />
+        ) : (
+          <span className="dz-ic">
+            {file ? <Check className="w-5 h-5" /> : <Upload className="w-5 h-5" />}
+          </span>
+        )}
         <span className="dz-txt">
           {file ? (
-            <b className="break-words">{file.name}</b>
+            <>
+              <b className="break-words">{file.name}</b>
+              <span className="dz-hint">{fmtMb(file.size)}</span>
+            </>
           ) : (
             <>
               <b>{c.dzPick}</b>
-              <span className="dz-hint">{c.dzHint}</span>
+              <span className="dz-hint">{c.dzHint(MAX_DOC_MB)}</span>
             </>
           )}
         </span>
         <span className="dz-act">{file ? c.dzChange : ""}</span>
       </label>
 
+      {fileError && (
+        <p id={errId} role="alert" className="text-rose text-[13px] font-semibold leading-[1.5] mt-1.5">
+          {fileError}
+        </p>
+      )}
+
       {file && (
         <button
           type="button"
-          className="dz-remove"
+          /* .linklike carries the 44px floor. This was `.dz-remove`, a 13px label
+             with 2px of padding — a ~21px target, and the only way to undo a wrong
+             file on the screen where picking the wrong file is most likely. */
+          className="linklike bg-transparent border-0 text-[13px] text-rose min-h-[44px] min-w-[44px] font-[inherit]"
           onClick={(ev) => {
             ev.preventDefault();
             onPick(null);
@@ -667,9 +851,15 @@ function FileDrop({
         </button>
       )}
 
-      {help && <div className="help">{help}</div>}
+      {help && <div id={helpId} className="help">{help}</div>}
     </div>
   );
+}
+
+/** Human file size, for both the picked-file line and the too-large message. */
+function fmtMb(bytes: number): string {
+  const mb = bytes / (1024 * 1024);
+  return mb >= 1 ? `${mb.toFixed(1)} Mo` : `${Math.max(1, Math.round(bytes / 1024))} Ko`;
 }
 
 function TextField({ id, label, children }: { id: string; label: string; children: React.ReactNode }) {
@@ -693,7 +883,7 @@ function UrlField({ id, label, ph, def }: { id: string; label: string; ph: strin
 }
 
 function StatusPanel({
-  tone, icon, title, body, note, backLabel,
+  tone, icon, title, body, note, backLabel, titleRef,
 }: {
   tone: "blue" | "green";
   icon: React.ReactNode;
@@ -701,6 +891,8 @@ function StatusPanel({
   body: string;
   note?: string;
   backLabel: string;
+  /** Focus target after a submit swaps this panel in — see handleSubmit. */
+  titleRef?: React.Ref<HTMLHeadingElement>;
 }) {
   const bg = tone === "green" ? "var(--green)" : "var(--blue)";
   return (
@@ -712,7 +904,8 @@ function StatusPanel({
       }}>
         {icon}
       </div>
-      <h1 className="font-display text-[clamp(22px,3vw,30px)] tracking-[-0.8px]">
+      {/* tabIndex={-1}: programmatically focusable, but not a tab stop. */}
+      <h1 ref={titleRef} tabIndex={-1} className="font-display text-[clamp(22px,3vw,30px)] tracking-[-0.8px]">
         {title}
       </h1>
       <p className="web-lead mt-3">{body}</p>
@@ -763,9 +956,9 @@ form .btn .spin{margin:0;width:18px;height:18px;border-width:2.5px;
 .dz .dz-txt b{font-weight:700;font-size:13.5px}
 .dz .dz-hint{font-size:13px;color:var(--muted);font-weight:600}
 .dz .dz-act{font-size:13px;font-weight:700;color:var(--blue);margin-inline-start:auto;white-space:nowrap}
-.dz-remove{margin-top:6px;background:0;border:0;cursor:pointer;color:var(--rose);
-  font-family:var(--fb);font-size:13px;font-weight:700;padding:2px 0}
-html[dir="rtl"] .dz-remove{font-family:var(--fa)}
+/* Thumbnail of the picked image, in the slot the icon tile used to occupy. */
+.dz .dz-thumb{width:38px;height:38px;min-width:38px;border-radius:11px;object-fit:cover;
+  border:1px solid var(--green)}
 .vlinks{display:grid;gap:14px;grid-template-columns:1fr}
 @media (min-width:620px){.vlinks{grid-template-columns:1fr 1fr}}
 `;

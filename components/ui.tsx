@@ -1,5 +1,11 @@
-// Tnajem UI primitives. Presentational (no hooks) so they work in server or client components.
-import type { ReactNode, CSSProperties } from "react";
+/* Tnajem UI primitives. Presentational, and server-renderable EXCEPT for Field:
+   it calls useId() to wire aria-describedby, which makes it client-only. Every
+   Field call site is already a "use client" component (auth, signup, onboarding,
+   consent, new-class, new-pack, upgrade, student welcome), so nothing regressed —
+   but keep new Fields on the client side, and keep the rest of this file hook-free
+   so Button/Card/Chip/Avatar/Spinner/Verified stay usable from server components. */
+import { Children, cloneElement, isValidElement, useId } from "react";
+import type { ReactNode, ReactElement, CSSProperties } from "react";
 
 type BtnProps = {
   children: ReactNode;
@@ -74,14 +80,57 @@ export function Avatar({ initials, size = 78, square }: { initials: string; size
   );
 }
 
-export function Field({ label, children, help }: { label: string; children: ReactNode; help?: string }) {
+/* The wrapping <label> associates the control implicitly, so no htmlFor/id pair is
+   needed for the NAME. The description is a different problem: `help` and the error
+   were rendered next to the input but never referenced by it, so a screen-reader
+   user got the label and nothing else — no format rule, no reason the field was
+   red. (aria-describedby had zero occurrences anywhere in the app.)
+
+   useId gives stable ids across SSR and hydration, and the ids are pushed onto the
+   child input via cloneElement only when there is something to describe — a
+   dangling aria-describedby pointing at no element is worse than none.
+
+   `error` is announced with role="alert" and takes precedence in the description
+   order, so the problem is read before the general help text. */
+export function Field({
+  label, children, help, error,
+}: { label: string; children: ReactNode; help?: string; error?: string }) {
+  const uid = useId();
+  const helpId = help ? `${uid}-help` : undefined;
+  const errorId = error ? `${uid}-error` : undefined;
+  const describedBy = [errorId, helpId].filter(Boolean).join(" ") || undefined;
+
+  /* The control is usually wrapped (e.g. <div className="inp"><input/></div>), so
+     walk one level to find it rather than assuming children IS the input. */
+  const described = describedBy ? describe(children, describedBy) : children;
+
   return (
     <label className="field">
       <span className="field-label">{label}</span>
-      {children}
-      {help && <div className="help">{help}</div>}
+      {described}
+      {error && (
+        <div id={errorId} role="alert" className="help text-rose font-semibold">
+          {error}
+        </div>
+      )}
+      {help && <div id={helpId} className="help">{help}</div>}
     </label>
   );
+}
+
+/** Attach aria-describedby to the first form control found in `node`. */
+function describe(node: ReactNode, ids: string): ReactNode {
+  if (!isValidElement(node)) return node;
+  const el = node as ReactElement<{ children?: ReactNode; "aria-describedby"?: string }>;
+  const type = el.type;
+  if (type === "input" || type === "textarea" || type === "select") {
+    // Never clobber an aria-describedby a caller set deliberately.
+    return el.props["aria-describedby"] ? el : cloneElement(el, { "aria-describedby": ids });
+  }
+  if (el.props?.children == null) return el;
+  return cloneElement(el, {
+    children: Children.map(el.props.children, (child) => describe(child, ids)),
+  });
 }
 
 /* role="status" + aria-live: a spinner is a STATUS MESSAGE (WCAG 4.1.3). Without
