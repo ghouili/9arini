@@ -9,23 +9,32 @@ import { join } from "node:path";
 import {
   normalizePhone, isValidPhone, createOtp, verifyOtpCode, otpCooldownRemaining,
   createSession, destroySession, getSession, setDemoCookie, checkRateLimit, clientIp,
+  setRoleHint, otpChannel, normalizeEmail, isValidEmail,
+  OTP_RESEND_COOLDOWN_SEC, OTP_TTL_SEC,
 } from "@/lib/auth";
 import { demoClasses, demoEnabled } from "@/lib/demo";
 import { revalidateTutor, revalidatePublicTutors } from "@/lib/cache";
 import { smsEnabled, sendSms } from "@/lib/sms";
+import { mailEnabled, sendMail } from "@/lib/mail";
 import { notify } from "@/lib/notify";
 import { paymentsEnabled, tutorBalanceTnd } from "@/lib/payments";
 import { liveRoomUrl, resolveMeetUrl } from "@/lib/live";
 import {
   vText, vOptionalText, vInt, vPrice, vFutureDate, vOptionalUrl, vSlug, vRating, vPhone,
-  vUuid, isUuid, safeFileName, vBirthYear, isMinorBirthYear,
+  vUuid, isUuid, safeFileName, vBirthYear, isMinorBirthYear, vOptionalPhone,
 } from "@/lib/validation";
 import type {
   DashboardData, DashboardBooking, StudentDashboard, ClassItem, TutorVerification, PendingTutor,
-  ExploreTutor, TutorReviews, NotificationItem, NotificationKind,
+  ExploreTutor, TutorReviews, NotificationItem, NotificationKind, DashboardResult,
+  StudentLevel, Role, OnboardingState,
 } from "@/lib/types";
+import { STUDENT_LEVELS } from "@/lib/types";
 
 type DocKind = "id_front" | "id_back" | "selfie" | "diploma" | "certificate" | "role_proof" | "other";
+
+/* Read once. Every "may we leak this to the client?" decision in this file keys off
+   it, and a single named constant is easier to audit than scattered string compares. */
+const IS_PROD = process.env.NODE_ENV === "production";
 
 const DASH_MONTHS = ["JANV", "FÉVR", "MARS", "AVR", "MAI", "JUIN", "JUIL", "AOÛT", "SEPT", "OCT", "NOV", "DÉC"];
 const CANCEL_WINDOW_MS = 24 * 60 * 60 * 1000; // the UI promises free cancellation up to 24h before
@@ -85,52 +94,154 @@ async function recomputeTutorStats(tutorId: string, tx: Updater = db): Promise<v
     .where(eq(tutors.id, tutorId));
 }
 
-/* ---------- Auth (phone OTP) ---------- */
-export async function requestOtp(input: { phone: string }):
-  Promise<{ ok: boolean; devCode?: string; demo?: boolean; error?: string; retryAfter?: number }> {
-  if (!dbReady) return { ok: true, demo: true, devCode: "000000" };
-  const phone = normalizePhone(input.phone);
-  if (!isValidPhone(phone)) return { ok: false, error: "invalid-phone" };
+/* ---------- Auth (OTP) ----------
+
+   THE CODE GOES TO AN EMAIL ADDRESS. It used to be an SMS, and the SMS path is
+   still right here, live and compiling, behind otpChannel() — set OTP_CHANNEL=sms
+   and phone login is back with no code change. It is not commented out on purpose:
+   commented code is invisible to tsc and to the audit gates, so it silently rots.
+
+   WHY WE MOVED: every SMS costs money, and reliable delivery to Tunisian numbers
+   needs a registered alphanumeric sender ID. Until that exists smsEnabled() is
+   false and this action only ever returns the code on-screen in dev — meaning a
+   real deploy had no working login at all. */
+
+/* The email itself. Kept next to the SMS wording it replaces, and localised:
+   sending a French email to someone using the Arabic site is a small betrayal of
+   the only bilingual promise the product makes. Plain text — a six-digit code
+   needs no layout, and text-only bodies are the least likely to be held back by a
+   spam filter, which for an OTP is the whole product. */
+const OTP_MAIL = {
+  fr: {
+    subject: (code: string) => `Tnajem — ton code : ${code}`,
+    body: (code: string) =>
+      `Ton code de connexion Tnajem est :
+
+    ${code}
+
+` +
+      `Il est valable 5 minutes.
+
+` +
+      `Si tu n'as pas demandé ce code, ignore cet email — personne ne peut se connecter sans lui.`,
+    sms: (code: string) => `Tnajem : ton code de connexion est ${code} (valable 5 min).`,
+  },
+  ar: {
+    subject: (code: string) => `تنجّم — الكود متاعك : ${code}`,
+    body: (code: string) =>
+      `كود الدخول متاعك في تنجّم :
+
+    ${code}
+
+` +
+      `صالح 5 دقايق.
+
+` +
+      `إذا ما طلبتش هذا الكود، ما تعبّرش لهذا الإيميل — حتّى حد ما ينجم يدخل بلاه.`,
+    sms: (code: string) => `تنجّم : كود الدخول متاعك هو ${code} (صالح 5 دقايق).`,
+  },
+} as const;
+
+/* `resendAfter` / `expiresIn` (seconds) travel with every successful send so the
+   login screens can count down the cooldown and the code's life WITHOUT keeping
+   their own copy of either constant — see the note on them in lib/auth.ts. */
+export async function requestOtp(input: { identifier: string; locale?: string }):
+  Promise<{
+    ok: boolean; devCode?: string; demo?: boolean; error?: string; retryAfter?: number;
+    resendAfter?: number; expiresIn?: number;
+  }> {
+  const timing = { resendAfter: OTP_RESEND_COOLDOWN_SEC, expiresIn: OTP_TTL_SEC };
+  if (!dbReady) {
+    /* Demo mode (no DATABASE_URL) — the UI audit harness and local preview. The
+       sentinel code is still withheld in production: a prod deploy that lost its
+       DATABASE_URL must degrade to "can't sign in", never to "sign in as anyone". */
+    return IS_PROD
+      ? { ok: false, error: "send-failed" }
+      : { ok: true, demo: true, devCode: "000000", ...timing };
+  }
+
+  /* Normalise, then validate, then use the NORMALISED value — never the raw input.
+     normalizeEmail lower-cases, which is what stops "Sam@x.com" and "sam@x.com"
+     becoming two accounts against a case-sensitive unique index. */
+  const channel = otpChannel();
+  const id = channel === "email" ? normalizeEmail(input.identifier) : normalizePhone(input.identifier);
+  const idOk = channel === "email" ? isValidEmail(id) : isValidPhone(id);
+  if (!idOk) return { ok: false, error: channel === "email" ? "invalid-email" : "invalid-phone" };
 
   /* Anti-abuse, two layers:
-       1. per-IP — the per-phone cooldown below is keyed on a value the ATTACKER
-          supplies, so on its own it stops nothing: rotate the phone number and you
-          can send unlimited SMS. Every message costs real money, so an unthrottled
-          requestOtp is a direct billing-drain (and an SMS-bombing service pointed
-          at arbitrary Tunisians, from our sender id).
-       2. per-phone cooldown — protects one victim from repeat texts. */
+       1. per-IP — the per-identity cooldown below is keyed on a value the ATTACKER
+          supplies, so on its own it stops nothing: rotate the address and you can
+          send unlimited messages. On SMS that was a direct billing drain and an
+          SMS-bombing service pointed at arbitrary Tunisians from our sender id.
+          Email is cheaper but not free of consequence: the equivalent abuse is
+          mail-bombing a stranger's inbox from our domain, which is how a sending
+          domain earns a spam reputation and stops delivering for everyone.
+       2. per-identity cooldown — protects one victim from repeat messages. */
   const ip = await checkRateLimit(`otp:req:ip:${clientIp()}`, 10, 10 * 60_000); // 10 sends / 10 min / IP
   if (!ip.ok) return { ok: false, error: "too-soon", retryAfter: ip.retryAfter };
 
-  const wait = await otpCooldownRemaining(phone);
+  const wait = await otpCooldownRemaining(id);
   if (wait > 0) return { ok: false, error: "too-soon", retryAfter: wait };
 
   // createOtp re-checks the cooldown under an advisory lock and returns null if a
-  // concurrent call already minted a code for this phone (see lib/auth.ts).
-  const code = await createOtp(phone);
+  // concurrent call already minted a code for this identity (see lib/auth.ts).
+  const code = await createOtp(id);
   if (!code) return { ok: false, error: "too-soon", retryAfter: 60 };
 
-  if (smsEnabled()) {
-    const sent = await sendSms(phone, `Tnajem : ton code de connexion est ${code} (valable 5 min).`);
-    // Production posture: the code is NEVER returned to the client. If SMS
-    // delivery fails, surface an error so the user can retry — don't leak it.
-    return sent ? { ok: true } : { ok: false, error: "sms-failed" };
-  }
-  // No SMS provider configured → dev mode only: surface the code on-screen.
-  return { ok: true, devCode: code };
-}
+  const m = OTP_MAIL[input.locale === "ar" ? "ar" : "fr"];
 
-export async function verifyOtp(input: { phone: string; code: string; role: "tutor" | "student"; locale?: string; birthYear?: number }):
-  Promise<{ ok: boolean; role?: string; needsConsent?: boolean; error?: string }> {
+  /* Production posture: the code is NEVER returned to the client when a provider
+     is configured. If delivery fails, surface a retryable error — do not fall
+     through and leak it. */
+  if (channel === "email") {
+    if (mailEnabled()) {
+      const sent = await sendMail(id, m.subject(code), m.body(code));
+      return sent ? { ok: true, ...timing } : { ok: false, error: "send-failed" };
+    }
+  } else if (smsEnabled()) {
+    const sent = await sendSms(id, m.sms(code));
+    return sent ? { ok: true, ...timing } : { ok: false, error: "send-failed" };
+  }
+
+  /* No provider configured. Two very different situations, and conflating them was
+     an account-takeover hole: the old code returned the OTP here unconditionally,
+     gated only on mailEnabled()/smsEnabled(). Those are env-presence checks, so a
+     PRODUCTION deploy shipped without MAIL_* became an oracle — type any stranger's
+     address, read their login code off the screen, own the account.
+     Fail closed in production; keep the on-screen code for local development only. */
+  if (IS_PROD) {
+    console.error(
+      "[Tnajem] requestOtp: no OTP provider configured in production — refusing to " +
+        "return the code. Set MAIL_HOST/MAIL_USER/MAIL_PASS/MAIL_FROM_ADDRESS (or " +
+        "TWILIO_* with OTP_CHANNEL=sms). Nobody can sign in until this is fixed.",
+    );
+    return { ok: false, error: "send-failed" };
+  }
+  return { ok: true, devCode: code, ...timing };
+}
+export async function verifyOtp(input: { identifier: string; code: string; role?: "tutor" | "student"; locale?: string; birthYear?: number }):
+  Promise<{ ok: boolean; role?: string; needsConsent?: boolean; created?: boolean; roleMismatch?: boolean; needsProfile?: boolean; hasStorefront?: boolean; error?: string; retryAfter?: number }> {
   if (!dbReady) {
     setDemoCookie(input.role === "tutor" ? "tutor" : "student");
+    const demoRole = input.role ?? "student";
     // Demo mode mirrors the real gate: a student is a minor unless they gave an
     // adult birth year, in which case consent is skipped.
     const demoMinor = input.role === "student" && isMinorBirthYear(vBirthYear(input.birthYear));
-    return { ok: true, role: input.role, needsConsent: demoMinor };
+    // Demo has no stored profile, so every run looks like a fresh signup that still
+    // needs the welcome screen — which is exactly what we want to be able to audit.
+    return {
+      ok: true, role: demoRole, needsConsent: demoMinor,
+      created: true, roleMismatch: false, needsProfile: demoRole === "student",
+    };
   }
-  const phone = normalizePhone(input.phone);
-  if (!isValidPhone(phone)) return { ok: false, error: "invalid-code" };
+  /* Same normalise-then-validate order as requestOtp, and the same channel. An
+     invalid identity is reported as "invalid-code", not "invalid-email": this
+     endpoint must not become an oracle that distinguishes a malformed address from
+     a wrong code. */
+  const channel = otpChannel();
+  const id = channel === "email" ? normalizeEmail(input.identifier) : normalizePhone(input.identifier);
+  const idOk = channel === "email" ? isValidEmail(id) : isValidPhone(id);
+  if (!idOk) return { ok: false, error: "invalid-code" };
 
   /* Brute-force budget. otp_codes.attempts caps guesses at 5 PER CODE, but that
      counter is reset by every new code — and requesting one only costs a 60s
@@ -140,27 +251,61 @@ export async function verifyOtp(input: { phone: string; code: string; role: "tut
        • per-phone: 10 guesses / 15 min — with the 5-per-code cap this leaves an
          attacker ~960 guesses/day against 1,000,000 codes (≈0.1%/day).
        • per-IP: stops one host from farming many phones in parallel.
-     Both are in-process (see lib/auth.ts) — good enough for a single instance. */
-  const perPhone = await checkRateLimit(`otp:vfy:phone:${phone}`, 10, 15 * 60_000);
-  if (!perPhone.ok) return { ok: false, error: "invalid-code" }; // opaque on purpose
-  const perIp = await checkRateLimit(`otp:vfy:ip:${clientIp()}`, 30, 15 * 60_000);
-  if (!perIp.ok) return { ok: false, error: "invalid-code" };
+     Both are in-process (see lib/auth.ts) — good enough for a single instance.
 
-  const valid = await verifyOtpCode(phone, (input.code || "").trim());
+     Being THROTTLED is reported distinctly as "too-many-attempts". That is a fact
+     about the caller, not about the account: it is returned for any identity once
+     the budget is spent, so it reveals nothing about whether an account exists.
+     Expiry, by contrast, stays folded into "invalid-code" — telling a caller their
+     code "expired" would confirm one had been issued, which is exactly the
+     enumeration oracle the opacity above exists to prevent. */
+  const perId = await checkRateLimit(`otp:vfy:id:${id}`, 10, 15 * 60_000);
+  if (!perId.ok) return { ok: false, error: "too-many-attempts", retryAfter: perId.retryAfter };
+  const perIp = await checkRateLimit(`otp:vfy:ip:${clientIp()}`, 30, 15 * 60_000);
+  if (!perIp.ok) return { ok: false, error: "too-many-attempts", retryAfter: perIp.retryAfter };
+
+  const valid = await verifyOtpCode(id, (input.code || "").trim());
   if (!valid) return { ok: false, error: "invalid-code" };
 
-  // `role` and `locale` are pgEnum/text columns and this is a public surface: an
-  // arbitrary string would reach Postgres and blow up as "invalid input value for
-  // enum user_role" (a 500 by input). Pin both to the allowed set.
-  const role = input.role === "tutor" ? "tutor" : "student";
+  /* `role` and `locale` are pgEnum/text columns and this is a public surface: an
+     arbitrary string would reach Postgres and blow up as "invalid input value for
+     enum user_role" (a 500 by input). Pin both to the allowed set.
+
+     role is now OPTIONAL, and its absence is meaningful: /auth is SIGN IN and sends
+     none, /signup/{prof,eleve} send a fixed one. A caller with no role can never
+     create an account — see the `no-account` branch below. That is what keeps the
+     signup screens the only place a profile is born, so a role is always something
+     the user was actually shown and chose. */
+  const requestedRole = input.role === "tutor" ? "tutor" : input.role === "student" ? "student" : null;
   const locale = input.locale === "ar" ? "ar" : "fr";
   // Self-reported at student signup; used ONLY for the minor-consent gate. Tutors
   // are verified adults (ID check), so we never record an age for them.
-  const birthYear = role === "student" ? vBirthYear(input.birthYear) : null;
+  const birthYear = requestedRole === "student" ? vBirthYear(input.birthYear) : null;
 
-  let [profile] = await db.select().from(profiles).where(eq(profiles.phone, phone)).limit(1);
+  /* Look the account up by the identity column the ACTIVE channel owns. Under
+     OTP_CHANNEL=sms this is profiles.phone, exactly as before; under email it is
+     profiles.email. Both columns are nullable-and-unique, so the two channels can
+     coexist in one table without either forcing a value on the other. */
+  const idColumn = channel === "email" ? profiles.email : profiles.phone;
+  let [profile] = await db.select().from(profiles).where(eq(idColumn, id)).limit(1);
+  let created = false;
   if (!profile) {
-    [profile] = await db.insert(profiles).values({ phone, role, locale, birthYear }).returning();
+    /* No account, and the caller did not say which kind to create — i.e. someone
+       typed a number into SIGN IN that has never signed up. We refuse rather than
+       quietly minting a student profile they never asked for.
+
+       The code has already been consumed at this point (verifyOtpCode deletes on
+       success), so they will need a fresh one to sign up. That is deliberate: the
+       alternative is checking whether the phone has an account BEFORE proving they
+       own it, which is a user-enumeration oracle. One extra SMS on a rare path
+       beats letting anyone probe which Tunisian numbers are on the platform. */
+    if (!requestedRole) return { ok: false, error: "no-account" };
+    // Only the active channel's column is written. The other stays null until the
+    // user supplies it — the phone is now an optional CONTACT collected during
+    // onboarding (/student/welcome, /onboarding), not a login credential.
+    const identity = channel === "email" ? { email: id } : { phone: id };
+    [profile] = await db.insert(profiles).values({ ...identity, role: requestedRole, locale, birthYear }).returning();
+    created = true;
   } else if (profile.role === "student" && profile.birthYear == null && birthYear != null) {
     // One-time fill of an UNKNOWN age: lets a student who predates this field set it.
     // Never overwrites a known value, so a minor can't re-auth claiming to be an adult
@@ -179,7 +324,31 @@ export async function verifyOtp(input: { phone: string; code: string; role: "tut
     const [c] = await db.select().from(consents).where(eq(consents.minorId, profile.id)).limit(1);
     needsConsent = !c;
   }
-  return { ok: true, role: profile.role, needsConsent };
+  /* The requested role differed from the one on file. We still sign them in — they
+     proved they own the number — but the caller must SAY so rather than redirect
+     them somewhere that silently contradicts what they just tapped. */
+  const roleMismatch = !created && requestedRole != null && profile.role !== requestedRole;
+
+  /* A student with no name yet still owes us the welcome screen. Checked on every
+     login, not just the first, so a student who skipped it (the skip link exists so
+     onboarding can never cost a booking) is asked again next time. */
+  const needsProfile = profile.role === "student" && !profile.fullName;
+
+  /* Does this tutor already have a storefront? Without it postAuthDestination could
+     only ever send tutors to /onboarding, so a tutor who has been publishing for
+     months landed on "create your page" at every single login. One indexed lookup,
+     and only for tutors — students never reach that branch. */
+  let hasStorefront = false;
+  if (profile.role === "tutor") {
+    const [mine] = await db
+      .select({ id: tutors.id })
+      .from(tutors)
+      .where(eq(tutors.profileId, profile.id))
+      .limit(1);
+    hasStorefront = Boolean(mine);
+  }
+
+  return { ok: true, role: profile.role, needsConsent, created, roleMismatch, needsProfile, hasStorefront };
 }
 
 export async function logout(): Promise<{ ok: boolean }> {
@@ -221,16 +390,140 @@ export async function saveConsent(input: { guardianName: string; guardianPhone: 
   return { ok: true };
 }
 
+/* ---------- Role: the one and only student → tutor upgrade ----------
+
+   This is the ONLY place in the codebase that writes `profiles.role = 'tutor'`
+   after signup. createTutor() used to do it as a side effect of saving a name; see
+   the ROLE GATE comment there for why that was the whole problem.
+
+   Three things it insists on, in order:
+
+     1. AN EXPLICIT CONFIRMATION. `confirm` is not ceremony — it is the difference
+        between a role change the user asked for and one that happened to them. The
+        /onboarding/upgrade screen is what sets it.
+
+     2. THE CURRENT ROLE IS `student`. A tutor calling this is a no-op success
+        (idempotent, so a double-submit or a stale tab cannot fail); anything else
+        is refused rather than coerced.
+
+     3. THE USER IS AN ADULT. A tutor is ID-verified and then teaches children, so a
+        minor must never hold the role. Age is only ever known for students (we
+        collect a birth year at student signup and nowhere else), and it fails safe:
+        an unknown age is NOT waved through — the caller is asked for it and it is
+        persisted here. isMinorBirthYear treats null as minor, so the refusal below
+        catches both "too young" and "still unknown after we asked".
+
+   Role changes must also refresh ROLE_HINT_COOKIE or <SiteHeader> renders the old
+   role for the rest of the session's 30 days — hence setRoleHint(). */
+export async function becomeTutor(input: { confirm: boolean; birthYear?: number }): Promise<ActionResult> {
+  if (!input?.confirm) return { ok: false, error: "not-confirmed" };
+
+  if (!dbReady) {
+    setDemoCookie("tutor"); // demo has no profile row; the cookie IS the state
+    return { ok: true, demo: true };
+  }
+
+  const session = await getSession();
+  if (!session) return { ok: false, error: "not-authenticated" };
+  if (session.profile.role === "tutor") return { ok: true }; // already there — idempotent
+  if (session.profile.role !== "student") return { ok: false, error: "not-eligible" };
+
+  // A role change is a privileged write on a public surface. Cheap ceiling.
+  const rl = await checkRateLimit(`role:upgrade:${session.profile.id}`, 5, 60 * 60_000);
+  if (!rl.ok) return { ok: false, error: "too-many-requests" };
+
+  /* Age. Prefer what is already on file — a student cannot re-declare themselves
+     older to get the role, exactly as verifyOtp only ever fills an UNKNOWN age. */
+  let birthYear = session.profile.birthYear;
+  if (birthYear == null) {
+    birthYear = vBirthYear(input.birthYear);
+    if (birthYear == null) return { ok: false, error: "age-required" };
+    await db.update(profiles).set({ birthYear }).where(eq(profiles.id, session.profile.id));
+  }
+  if (isMinorBirthYear(birthYear)) return { ok: false, error: "minor-cannot-teach" };
+
+  await db.update(profiles).set({ role: "tutor" }).where(eq(profiles.id, session.profile.id));
+  setRoleHint("tutor");
+  return { ok: true };
+}
+
+/* ---------- Student profile (/student/welcome) ----------
+   The student half of onboarding, which did not exist: a student gave a phone
+   number and a birth year and nothing else, so `profiles.full_name` was null for
+   every student forever. Three surfaces were lying as a direct result — the tutor's
+   booking list showed "Élève" + a raw phone as the only handle on a child, the
+   new_booking notification said "Un élève a réservé", and public reviews shipped
+   with no author. Writing a name here fixes all three with no change to them.
+
+   Everything except the name is optional, and the screen itself is skippable: this
+   sits between logging in and using the product, and it must never cost a booking. */
+export async function saveStudentProfile(
+  input: { fullName: string; level?: string | null; subjects?: string[]; phone?: string | null },
+): Promise<ActionResult> {
+  const name = vText(input.fullName, { field: "name", max: 80, min: 2 });
+  if (!name.ok) return { ok: false, error: name.error };
+
+  /* Optional CONTACT phone — not a credential. Since email became the login
+     identity this is where a student's number is collected, and it is what keeps
+     the tutor's call button and notify()'s SMS side-channel meaningful. Absent is
+     fine; half-typed is not. */
+  const phone = vOptionalPhone(input.phone);
+  if (!phone.ok) return { ok: false, error: phone.error };
+  const normalizedPhone = phone.value ? normalizePhone(phone.value) : null;
+  if (normalizedPhone && !isValidPhone(normalizedPhone)) return { ok: false, error: "invalid-phone" };
+
+  // Closed set — it is written from a public action and read back into UI copy.
+  // Absent is fine; present-but-unrecognised is a tampered payload, so it fails.
+  let level: StudentLevel | null = null;
+  if (input.level != null && input.level !== "") {
+    if (!(STUDENT_LEVELS as readonly string[]).includes(input.level)) return { ok: false, error: "invalid-level" };
+    level = input.level as StudentLevel;
+  }
+
+  /* Free text from the client, stored comma-joined (the tutors.languages
+     convention). Bound the count AND each entry, dedupe, and strip commas so one
+     entry can never smuggle in extra ones when the string is split on read. */
+  const subjects = Array.isArray(input.subjects)
+    ? Array.from(
+        new Set(
+          input.subjects
+            .map((x) => (typeof x === "string" ? x.replace(/,/g, " ").trim().slice(0, 40) : ""))
+            .filter(Boolean),
+        ),
+      ).slice(0, 8)
+    : [];
+
+  if (!dbReady) return { ok: true, demo: true };
+  const session = await getSession();
+  if (!session) return { ok: false, error: "not-authenticated" };
+  // Symmetric with createTutor's gate: the student screen writes a student profile.
+  if (session.profile.role !== "student") return { ok: false, error: "not-a-student" };
+
+  await db
+    .update(profiles)
+    .set({
+      fullName: name.value,
+      level,
+      subjects: subjects.length ? subjects.join(",") : null,
+      // Never null out a number already on file just because this submit omitted it.
+      ...(normalizedPhone ? { phone: normalizedPhone } : {}),
+    })
+    .where(eq(profiles.id, session.profile.id));
+  return { ok: true };
+}
+
 export async function getMe():
-  Promise<{ id: string; name: string | null; role: string; phone: string | null } | null> {
+  Promise<{ id: string; name: string | null; role: string; email: string | null; phone: string | null } | null> {
   const session = await getSession();
   if (!session) return null;
   const p = session.profile;
-  return { id: p.id, name: p.fullName, role: p.role, phone: p.phone };
+  // Both identities: the account screen shows whichever one you signed up with,
+  // and the phone is now an optional contact that may simply not be set.
+  return { id: p.id, name: p.fullName, role: p.role, email: p.email, phone: p.phone };
 }
 
 /* ---------- Tutor storefront (bound to the signed-in user) ---------- */
-export async function createTutor(input: { name: string; subject: string; bio: string; slug: string }): Promise<ActionResult> {
+export async function createTutor(input: { name: string; subject: string; bio: string; slug: string; phone?: string | null }): Promise<ActionResult> {
   // `/[slug]` is a root catch-all → a reserved slug would shadow a real route. Validate first.
   const slug = vSlug(input.slug);
   if (!slug.ok) return { ok: false, error: slug.error };
@@ -241,36 +534,128 @@ export async function createTutor(input: { name: string; subject: string; bio: s
   const bio = vOptionalText(input.bio, { field: "bio", max: 1000 });
   if (!bio.ok) return { ok: false, error: bio.error };
 
+  /* Optional CONTACT phone, same role as on the student welcome screen: email is
+     the login identity, so this is where a tutor's number is collected. It is what
+     lets notify() text them about a new booking. */
+  const phone = vOptionalPhone(input.phone);
+  if (!phone.ok) return { ok: false, error: phone.error };
+  const normalizedPhone = phone.value ? normalizePhone(phone.value) : null;
+  if (normalizedPhone && !isValidPhone(normalizedPhone)) return { ok: false, error: "invalid-phone" };
+
   if (!dbReady) return { ok: true, demo: true, slug: slug.value };
   const session = await getSession();
   if (!session) return { ok: false, error: "not-authenticated" };
+
+  /* ---- ROLE GATE ----
+     This action used to write `role: "tutor"` alongside the name, which made it the
+     de-facto role switch for the whole product: ANY signed-in profile that reached
+     /onboarding became a tutor. It was one tap away from a student's own navigation
+     (the header offered them "Créer ma page"), and nothing anywhere asked them to
+     confirm it. Meanwhile verifyOtp deliberately refuses to change an existing
+     profile's role — so the screen that ASKED for a role could not set one, and the
+     action that SET one never asked.
+
+     Now there is exactly one writer of `role = 'tutor'`: becomeTutor() below, behind
+     an explicit confirmation screen and an adult-age check. This action only ever
+     writes the tutor's display name. */
+  if (session.profile.role !== "tutor") return { ok: false, error: "not-a-tutor" };
   const uid = session.profile.id;
 
-  const [bySlug] = await db.select().from(tutors).where(eq(tutors.slug, slug.value)).limit(1);
-  if (bySlug && bySlug.profileId !== uid) return { ok: false, error: "slug-taken" };
-
-  await db.update(profiles).set({ role: "tutor", fullName: name.value }).where(eq(profiles.id, uid));
-
   const [mine] = await db.select().from(tutors).where(eq(tutors.profileId, uid)).limit(1);
-  const oldSlug = mine?.slug ?? null;
+
+  /* ---- THE SLUG IS WRITE-ONCE ----
+     This used to `.set({ slug: slug.value, ... })` unconditionally, so any submit
+     could rename a live storefront. That silently 404s every link the tutor has
+     already shared — the WhatsApp message to their class, the bio link on their
+     Instagram — and frees the old slug for someone else to claim. It is the single
+     most destructive thing this action could do, and it needed nothing more than a
+     stale tab or a replayed request to happen.
+
+     So: once a storefront exists, its slug is fixed here. The client mirrors this
+     by locking the field (see OnboardingInner), but the rule lives HERE, because a
+     client that forgets is exactly the case this is defending against. Renaming, if
+     it is ever wanted, belongs in its own action with an explicit confirmation and
+     a redirect from the old slug. */
+  const effectiveSlug = mine ? mine.slug : slug.value;
+
+  if (!mine) {
+    // Only a first publish can collide: an existing tutor keeps the slug they hold.
+    const [bySlug] = await db.select().from(tutors).where(eq(tutors.slug, effectiveSlug)).limit(1);
+    if (bySlug && bySlug.profileId !== uid) return { ok: false, error: "slug-taken" };
+  }
+
+  await db
+    .update(profiles)
+    // Never null out a number already on file just because this submit omitted it.
+    .set({ fullName: name.value, ...(normalizedPhone ? { phone: normalizedPhone } : {}) })
+    .where(eq(profiles.id, uid));
+
   if (mine) {
     await db.update(tutors)
-      .set({ slug: slug.value, fullName: name.value, subject: subject.value, bio: bio.value })
+      .set({ fullName: name.value, subject: subject.value, bio: bio.value })
       .where(eq(tutors.id, mine.id));
   } else {
     await db.insert(tutors)
-      .values({ profileId: uid, slug: slug.value, fullName: name.value, subject: subject.value, bio: bio.value });
+      .values({ profileId: uid, slug: effectiveSlug, fullName: name.value, subject: subject.value, bio: bio.value });
   }
 
-  /* The storefront is ISR-cached per slug for 60s (lib/cache.ts). Bust BOTH slugs:
-     the new one so the tutor sees their edit immediately, and the old one so a
-     renamed tutor doesn't leave a stale page serving their previous content under
-     a slug someone else can now claim. Non-throwing — a cache miss must never fail
-     a write that already committed. (Not revalidatePublicTutors(): a tutor here is
-     still `draft`, so nothing about the public set changed.) */
-  if (oldSlug && oldSlug !== slug.value) revalidateTutor(oldSlug);
-  revalidateTutor(slug.value);
-  return { ok: true, slug: slug.value };
+  /* The storefront is ISR-cached per slug for 60s (lib/cache.ts). Only one slug can
+     ever need busting now that renames are impossible. Non-throwing — a cache miss
+     must never fail a write that already committed. (Not revalidatePublicTutors():
+     a tutor here is still `draft`, so nothing about the public set changed.) */
+  revalidateTutor(effectiveSlug);
+  return { ok: true, slug: effectiveSlug };
+}
+
+/* Where the signed-in tutor stands in the onboarding ladder, plus their current
+   storefront values. Read by the SERVER shells of /onboarding and
+   /onboarding/verify so the shared progress bar (components/OnboardingProgress)
+   shows the same position on both screens and on the dashboard — the three used to
+   disagree, one of them by way of a hardcoded string.
+
+   Returns null when there is nothing to report (no DB, no session, not a tutor);
+   the shells fall back to a first-step-only bar, which is the honest default. */
+export async function getOnboardingState(): Promise<OnboardingState | null> {
+  if (!dbReady) return null;
+  const session = await getSession();
+  if (!session || session.profile.role !== "tutor") return null;
+
+  const [mine] = await db
+    .select({ id: tutors.id, slug: tutors.slug, fullName: tutors.fullName, subject: tutors.subject, bio: tutors.bio, status: tutors.status })
+    .from(tutors)
+    .where(eq(tutors.profileId, session.profile.id))
+    .limit(1);
+
+  // The contact phone lives on the PROFILE, not the storefront, so it pre-fills
+  // even before a tutor has created their page.
+  const contactPhone = session.profile.phone ?? "";
+
+  if (!mine) {
+    return {
+      hasStorefront: false, status: "draft", hasClass: false, hasSlug: false,
+      draft: contactPhone ? { fullName: "", subject: "", bio: "", slug: "", phone: contactPhone } : null,
+    };
+  }
+
+  // count(*) rather than fetching rows: the ladder only asks "any classes yet?".
+  const [cnt] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(classes)
+    .where(eq(classes.tutorId, mine.id));
+
+  return {
+    hasStorefront: true,
+    status: mine.status,
+    hasClass: (cnt?.n ?? 0) > 0,
+    hasSlug: Boolean(mine.slug),
+    draft: {
+      fullName: mine.fullName ?? "",
+      subject: mine.subject ?? "",
+      bio: mine.bio ?? "",
+      slug: mine.slug ?? "",
+      phone: contactPhone,
+    },
+  };
 }
 
 export async function createClass(input: {
@@ -357,10 +742,22 @@ export async function createPack(input: { title: string; meta?: string; priceTnd
 /* ---------- Dashboard (real data for the signed-in tutor) ----------
    Returns null in demo mode or when signed out → the dashboard then shows
    its demo preview. Otherwise returns the tutor's real storefront + classes. */
-export async function getDashboard(): Promise<DashboardData | null> {
+export async function getDashboard(): Promise<DashboardResult> {
   if (!dbReady) return null;
   const session = await getSession();
   if (!session) return null;
+
+  /* ---- ROLE GATE ----
+     A signed-in STUDENT used to get the full tutor shell here, complete with a
+     "create your storefront" prompt — i.e. the dashboard actively walked students
+     into the silent role conversion that createTutor performed. Say which account
+     they are actually signed in as instead.
+
+     Deliberately NOT symmetric: getStudentDashboard stays open to everyone, because
+     a tutor CAN legitimately book another tutor's class (reserveSeat only blocks
+     self-booking) and /student is the only place those bookings are visible. */
+  if (session.profile.role !== "tutor") return { wrongRole: session.profile.role as Role };
+
   const uid = session.profile.id;
 
   const [mine] = await db.select().from(tutors).where(eq(tutors.profileId, uid)).limit(1);
@@ -413,6 +810,12 @@ export async function getDashboard(): Promise<DashboardData | null> {
       bookedAt: bookings.createdAt,
       studentName: profiles.fullName,
       studentPhone: profiles.phone,
+      /* The phone is now OPTIONAL (collected during onboarding, not at signup), so
+         it is null for anyone who skipped it. Without the address beside it this
+         column would be empty for most students on day one — the same failure as
+         the nameless-student bug: a promise in the dashboard copy ("tu vois son nom
+         et son numéro") that the data cannot keep. */
+      studentEmail: profiles.email,
     })
     .from(bookings)
     // Single join — NOT a query per class. (Checked: getDashboard and
@@ -430,6 +833,7 @@ export async function getDashboard(): Promise<DashboardData | null> {
     classTitle: b.classTitle,
     studentName: b.studentName,
     studentPhone: b.studentPhone,
+    studentEmail: b.studentEmail,
     bookedAt: new Date(b.bookedAt).toISOString(),
     classTs: new Date(b.scheduledAt).getTime(),
     isFree: Boolean(b.isFree),
@@ -861,7 +1265,7 @@ function sniffMime(buf: Buffer): string | null {
   return null;
 }
 
-/* ADMIN GATE.
+/* ADMIN GATE. Channel-aware — see adminAllowlist() below.
 
    BUG (fixed): this used to be
        (process.env.ADMIN_PHONES ?? "").split(",").map(s => normalizePhone(s.trim())).filter(Boolean)
@@ -877,29 +1281,44 @@ function sniffMime(buf: Buffer): string | null {
 
    Fix: drop empty entries BEFORE normalizing, require a non-empty admin list, and
    require the session to carry a real phone. Fails closed on a misconfigured env. */
-function adminPhones(): string[] {
-  return (process.env.ADMIN_PHONES ?? "")
+/* Follows the login channel: ADMIN_EMAILS under OTP_CHANNEL=email, ADMIN_PHONES
+   under =sms. It HAS to. Once accounts sign up by email, nobody has a phone on file
+   at signup any more, so a phone-only allowlist would lock every admin out of the
+   verification queue — and the queue is where the national ID scans live.
+
+   All three fail-closed properties of the phone version are preserved verbatim:
+   empty entries are dropped BEFORE normalising (normalizePhone("") returns "+216",
+   which is how this once granted admin to everyone), an empty allowlist refuses
+   everyone, and an entry that does not survive validation is discarded. */
+function adminAllowlist(): string[] {
+  const email = otpChannel() === "email";
+  const raw = email ? process.env.ADMIN_EMAILS : process.env.ADMIN_PHONES;
+  return (raw ?? "")
     .split(",")
     .map((s) => s.trim())
-    .filter((s) => s.length > 0)      // ← the fix: never normalize an empty string
-    .map((s) => normalizePhone(s))
-    .filter((p) => isValidPhone(p));  // and never trust a junk entry
+    .filter((s) => s.length > 0)      // ← never normalize an empty string
+    .map((s) => (email ? normalizeEmail(s) : normalizePhone(s)))
+    .filter((v) => (email ? isValidEmail(v) : isValidPhone(v)));  // never trust a junk entry
 }
 
 async function requireAdmin() {
-  const allow = adminPhones();
+  const email = otpChannel() === "email";
+  const allow = adminAllowlist();
   if (allow.length === 0) {
-    console.error("[Tnajem] ADMIN_PHONES is not configured — refusing all admin access.");
+    console.error(
+      `[Tnajem] ${email ? "ADMIN_EMAILS" : "ADMIN_PHONES"} is not configured — refusing all admin access.`,
+    );
     return null; // fail closed, never open
   }
   const session = await getSession();
   if (!session) return null;
 
-  const phone = (session.profile.phone ?? "").trim();
-  if (!phone) return null; // a profile with no phone can never be an admin
+  // A profile with no identity of the ACTIVE kind can never be an admin.
+  const raw = ((email ? session.profile.email : session.profile.phone) ?? "").trim();
+  if (!raw) return null;
 
-  const normalized = normalizePhone(phone);
-  if (!isValidPhone(normalized)) return null;
+  const normalized = email ? normalizeEmail(raw) : normalizePhone(raw);
+  if (!(email ? isValidEmail(normalized) : isValidPhone(normalized))) return null;
   return allow.includes(normalized) ? session : null;
 }
 
@@ -1028,7 +1447,56 @@ export async function submitVerification(formData: FormData):
     introVideoUrl: introVideo.value,
   }).where(eq(tutors.id, mine.id));
 
+  /* Tell a human. Without this the queue was write-only: a tutor uploaded their
+     national ID, several screens told them someone would look at it, and no signal
+     of any kind left the database. Email rather than notify(): admins are an env
+     allowlist (ADMIN_EMAILS) and may have no profile row to notify, and a review
+     promise needs to reach them off-site rather than waiting for them to open a
+     page they have no link to.
+
+     Deliberately after the commit and deliberately not awaited into the result: the
+     tutor's submission has already succeeded, and a misconfigured mailbox must
+     never turn that into an error they cannot act on. Failures are logged loudly
+     instead — a silent alerting gap is how the 48h promise quietly stops holding. */
+  void notifyAdminsOfSubmission(mine.id, mine.slug, mine.fullName).catch(() => {});
+
   return { ok: true };
+}
+
+/** Admin allowlist, shared with the /admin gate. Empty = nobody, fails closed. */
+function adminEmails(): string[] {
+  return (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+async function notifyAdminsOfSubmission(tutorId: string, slug: string, displayName: string): Promise<void> {
+  const to = adminEmails();
+  if (!to.length) {
+    console.warn(
+      "[Tnajem] verification submitted (tutor %s) but ADMIN_EMAILS is empty — nobody was alerted. " +
+        "The review queue is at /admin/verifications.",
+      tutorId,
+    );
+    return;
+  }
+  if (!mailEnabled()) {
+    console.warn(
+      "[Tnajem] verification submitted (tutor %s) but MAIL_* is not configured — no admin alert sent.",
+      tutorId,
+    );
+    return;
+  }
+  const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://tnajem.tn";
+  const subject = `Tnajem — nouvelle demande de vérification : ${displayName}`;
+  const body =
+    `${displayName} (/${slug}) vient d'envoyer ses documents de vérification.\n\n` +
+    `File d'attente : ${site}/fr/admin/verifications\n`;
+  for (const address of to) {
+    const sent = await sendMail(address, subject, body);
+    if (!sent) console.error("[Tnajem] admin alert failed for %s (tutor %s)", address, tutorId);
+  }
 }
 
 export async function getMyVerification(): Promise<TutorVerification | null> {
@@ -1178,7 +1646,7 @@ export async function rejectTutor(input: { tutorId: string; note?: string }): Pr
       body: note.value
         ? `Ton dossier n'a pas été validé : ${note.value}. Tu peux corriger et renvoyer.`
         : "Ton dossier n'a pas été validé. Vérifie tes documents et renvoie ta demande.",
-      href: "/dashboard/verification",
+      href: "/onboarding/verify",
       sms: "Tnajem : ton dossier de vérification doit être complété. Détails dans ton espace prof.",
     });
   }

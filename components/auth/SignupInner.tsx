@@ -1,26 +1,31 @@
 "use client";
-/* The SIGN-IN screen's interactive body. Rendered by app/[locale]/auth/page.tsx,
-   which is a SERVER component (see the long note there about why ?next= is read on
-   the server: the client search-params hook forced this form into a <Suspense>
-   boundary, which Next bails to client-only rendering, which shipped a login page
-   with no h1, no phone field and no submit button).
+/* The interactive body of BOTH signup screens: /signup/prof and /signup/eleve.
 
-   THIS SCREEN NO LONGER PICKS A ROLE. It used to carry a tutor/student toggle that
-   did nothing for anyone who already had an account — verifyOtp deliberately never
-   overwrites an existing profile's role, so a returning student who tapped "Je suis
-   prof" was signed in as a student and pushed to /student with no explanation. The
-   toggle looked like a decision and was ignored.
+   WHY THE FUNNEL IS SPLIT. There used to be one /auth screen carrying a
+   tutor/student toggle, and that toggle was a lie for anyone who already had an
+   account: verifyOtp deliberately never overwrites an existing profile's role (it
+   must not — otherwise re-authenticating as the other role would be a one-tap
+   self-promotion), so a returning student who tapped "Je suis prof" was signed in
+   as a student and pushed to /student with no explanation. Meanwhile the role
+   actually got set somewhere else entirely, as a silent side effect of saving a
+   name in createTutor().
 
-   Signing in needs no role: the account already has one. Choosing a role is a
-   SIGNUP act, and it now happens by choosing a page — /signup/prof or
-   /signup/eleve. This screen sends no role at all, which is also what stops it
-   from silently minting an account for a number that has never signed up (see the
-   `no-account` branch in verifyOtp). */
+   So: role is chosen by WHICH PAGE YOU ARE ON, and it is only ever applied to a
+   brand-new account. /auth is sign-in and has no role picker at all, because there
+   is nothing for it to pick — the account already knows. A number that already
+   belongs to the other kind of account gets told so (roleMismatch), instead of
+   being silently redirected somewhere that contradicts what it just tapped.
+
+   Rendered by a SERVER page that reads ?next= and hands it down as a prop — the
+   same arrangement app/[locale]/auth/page.tsx documents at length: reading the
+   query string with the client hook forces the form into a Suspense boundary,
+   which Next bails to client-only rendering, which ships a login page with no
+   fields in the HTML. */
 import { useState } from "react";
 import { Link, useLocalizedRouter } from "@/components/Link";
 import { Button, Field } from "@/components/ui";
 import { useLocale } from "@/components/LocaleProvider";
-import { Phone, Mail } from "@/components/icons";
+import { Phone, Calendar, Check, Mail } from "@/components/icons";
 import { requestOtp, verifyOtp } from "@/app/actions";
 import { SiteShell } from "@/components/SiteShell";
 import { postAuthDestination } from "@/lib/auth-destination";
@@ -30,51 +35,85 @@ import { useCountdown, formatCountdown } from "@/components/useCountdown";
 import { isValidEmail } from "@/lib/validation";
 import type { OtpChannel } from "@/lib/auth";
 
-/* Page-local copy. The shared t.auth.pending string explains our SMS provider
-   status ("une fois le fournisseur SMS branché… mode dev") — that is release
-   plumbing, not something to greet a visitor with. Plain language instead. */
+export type SignupRole = "tutor" | "student";
+
+/* Page-local copy. lib/i18n.ts is shared and read-only for these screens, and
+   several of its strings are wrong here anyway — t.auth.title says "Connexion"
+   (this is signup) and t.auth.pending describes our SMS-provider status. */
 const COPY = {
   fr: {
-    lead: "Entre ton email : on t'envoie un code. Pas de mot de passe.",
-    leadSms: "Entre ton numéro : on t'envoie un code par SMS. Pas de mot de passe.",
+    tutorTitle: "Crée ton compte prof",
+    tutorLead: "Ta page publique, tes classes, tes élèves. Entre ton email : on t'envoie un code. Pas de mot de passe.",
+    tutorLeadSms: "Ta page publique, tes classes, tes élèves. Entre ton numéro : on t'envoie un code par SMS. Pas de mot de passe.",
+    tutorPerks: [
+      "Ta page prête en 2 minutes",
+      "Tu fixes ton prix — 100 % pour toi pendant le pilote",
+      "Vérification à la main par notre équipe",
+    ],
+    studentTitle: "Crée ton compte élève",
+    studentLead: "Trouve un prof, réserve ta séance. Entre ton email : on t'envoie un code. Pas de mot de passe.",
+    studentLeadSms: "Trouve un prof, réserve ta séance. Entre ton numéro : on t'envoie un code par SMS. Pas de mot de passe.",
     email: "Ton email",
     emailPh: "prenom@exemple.com",
     spam: "Le code arrive en moins d'une minute. Pense à regarder dans les spams.",
+    changeEmail: "Changer d'email",
     errNeedEmail: "Entre ton adresse email.",
     errBadEmail: "Cette adresse email n'est pas valide.",
     errSend: "Envoi du code impossible. Réessaie.",
-    /* Wrong and expired are deliberately one message: verifyOtp will not tell us
-       which, because saying "expired" would confirm the account exists. So name
-       both and give the two actions that resolve either. */
     errBadCode: "Code incorrect ou expiré. Vérifie les 6 chiffres, ou demande un nouveau code.",
     errTooManyAttempts: (secs: number) =>
       `Trop d'essais. Réessaie dans ${Math.max(1, Math.ceil(secs / 60))} minutes.`,
     alreadySent: "Un code t'a déjà été envoyé et il est encore valable — saisis-le ci-dessous.",
     haveCode: "J'ai déjà un code",
+    studentPerks: [
+      "La 1ʳᵉ séance est offerte",
+      "Uniquement des profs vérifiés à la main",
+      "Annulation gratuite jusqu'à 24h avant",
+    ],
+
+    byLabel: "Année de naissance de l'élève",
+    byPh: "Choisir…",
+    byNote: "Pour un élève de moins de 18 ans, l'accord d'un parent ou tuteur est demandé avant la 1ʳᵉ séance.",
+
     sentTo: (p: string) => `Code envoyé au ${p}`,
     changeNumber: "Changer de numéro",
-    changeEmail: "Changer d'email",
     devCodeNote: "Code de test — aucun message n'est envoyé pour l'instant",
     codeHelp: "6 chiffres.",
     resend: "Renvoyer le code",
     resendReady: "Tu peux redemander un code.",
     expiresIn: (t: string) => `Ce code expire dans ${t}.`,
     expired: "Ce code a expiré — demande-en un nouveau.",
-    noAccountTitleEmail: "Aucun compte avec cet email",
-    noAccountTitleSms: "Aucun compte avec ce numéro",
-    noAccountBodyEmail: "Cette adresse n'est pas encore inscrite. Choisis le compte qu'il te faut — il faudra un nouveau code, on ne réutilise jamais le précédent.",
-    noAccountBodySms: "Ce numéro n'est pas encore inscrit. Choisis le compte qu'il te faut — il faudra un nouveau code, on ne réutilise jamais le précédent.",
-    newTutor: "Je suis prof",
-    newStudent: "Je suis élève / parent",
-    noAccountHint: "Pas encore de compte ?",
+
     errNeedPhone: "Entre ton numéro de téléphone.",
+    errNeedBirthYear: "Choisis l'année de naissance de l'élève.",
+    haveAccount: "Tu as déjà un compte ?",
+    signIn: "Se connecter",
+    otherTutor: "Tu es prof ? Crée un compte prof",
+    otherStudent: "Tu cherches un prof ? Crée un compte élève",
+
+    mismatchTitle: "Ce compte existe déjà",
+    mismatchTutor: "C'est déjà un compte prof. Tu es connecté — voici ton tableau de bord.",
+    mismatchStudent: "C'est déjà un compte élève. Tu es connecté — voici tes cours.",
+    mismatchNote: "Un compte par personne. Pour enseigner avec un compte élève, passe par « Devenir prof » depuis ton espace.",
+    goDashboard: "Aller à mon tableau de bord",
+    goStudent: "Voir mes cours",
   },
   ar: {
-    lead: "حطّ الإيميل متاعك : نبعثولك كود. بلا كلمة سرّ.",
-    leadSms: "حطّ نمرتك : نبعثولك كود بالـSMS. بلا كلمة سرّ.",
+    tutorTitle: "اعمل حسابك متاع أستاذ",
+    tutorLead: "صفحتك، حصصك، تلامذتك. حطّ الإيميل متاعك : نبعثولك كود. بلا كلمة سرّ.",
+    tutorLeadSms: "صفحتك، حصصك، تلامذتك. حطّ نمرتك : نبعثولك كود بالـSMS. بلا كلمة سرّ.",
+    tutorPerks: [
+      "صفحتك حاضرة في دقيقتين",
+      "إنتي تحدّد ثمنك — 100 % متاعك في فترة التجربة",
+      "التثبّت يتعمل بيدينا",
+    ],
+    studentTitle: "اعمل حسابك متاع تلميذ",
+    studentLead: "لقّي أستاذ واحجز حصتك. حطّ الإيميل متاعك : نبعثولك كود. بلا كلمة سرّ.",
+    studentLeadSms: "لقّي أستاذ واحجز حصتك. حطّ نمرتك : نبعثولك كود بالـSMS. بلا كلمة سرّ.",
     email: "الإيميل متاعك",
     emailPh: "esm@exemple.com",
     spam: "الكود يوصل في أقل من دقيقة. شوف زادة في الـspam.",
+    changeEmail: "بدّل الإيميل",
     errNeedEmail: "حطّ الإيميل متاعك.",
     errBadEmail: "هذا الإيميل موش صحيح.",
     errSend: "تعذّر إرسال الكود. عاود المحاولة.",
@@ -83,45 +122,67 @@ const COPY = {
       `برشا محاولات. عاود بعد ${Math.max(1, Math.ceil(secs / 60))} دقايق.`,
     alreadySent: "فما كود تبعثلك وما زال صالح — حطّو تحت.",
     haveCode: "عندي كود",
+    studentPerks: [
+      "الحصة الأولى فابور",
+      "كان أساتذة متثبّت منهم بيدينا",
+      "الإلغاء مجاني حتى 24 ساعة قبل",
+    ],
+
+    byLabel: "سنة ولادة التلميذ",
+    byPh: "اختر…",
+    byNote: "للتلميذ اللي عمرو أقلّ من 18 سنة، تتطلب موافقة الولي قبل الحصة الأولى.",
+
     sentTo: (p: string) => `الكود تبعث لـ ${p}`,
     changeNumber: "بدّل النمرة",
-    changeEmail: "بدّل الإيميل",
     devCodeNote: "كود للتجربة — توّا ما تتبعث حتى رسالة",
     codeHelp: "6 أرقام.",
     resend: "عاود ابعث الكود",
     resendReady: "تنجم تطلب كود جديد.",
     expiresIn: (t: string) => `هذا الكود يسالي في ${t}.`,
     expired: "هذا الكود سالا — اطلب واحد جديد.",
-    noAccountTitleEmail: "ما فماش حساب بهذا الإيميل",
-    noAccountTitleSms: "ما فماش حساب بهذي النمرة",
-    noAccountBodyEmail: "هذا الإيميل ما زال ما تسجّلش. اختار الحساب اللي يلزمك — باش تحتاج كود جديد، ما نعاودوش نستعملو القديم.",
-    noAccountBodySms: "هذي النمرة ما زالت ما تسجّلتش. اختار الحساب اللي يلزمك — باش تحتاج كود جديد، ما نعاودوش نستعملو القديم.",
-    newTutor: "أنا أستاذ",
-    newStudent: "أنا تلميذ / ولي",
-    noAccountHint: "ما عندكش حساب ؟",
+
     errNeedPhone: "حطّ نمرة تليفونك.",
+    errNeedBirthYear: "اختار سنة ولادة التلميذ.",
+    haveAccount: "عندك حساب قبل ؟",
+    signIn: "دخول",
+    otherTutor: "إنتي أستاذ ؟ اعمل حساب أستاذ",
+    otherStudent: "تلوّج على أستاذ ؟ اعمل حساب تلميذ",
+
+    mismatchTitle: "هذا الحساب موجود",
+    mismatchTutor: "هذا حساب أستاذ. إنتي داخل — هاذي لوحتك.",
+    mismatchStudent: "هذا حساب تلميذ. إنتي داخل — هاذي حصصك.",
+    mismatchNote: "حساب واحد للشخص. باش تقرّي بحساب تلميذ، عدّي من «ولّي أستاذ» من فضاءك.",
+    goDashboard: "امشي للوحتي",
+    goStudent: "شوف حصصي",
   },
 } as const;
 
 /* `channel` comes from the SERVER shell (otpChannel()), so flipping OTP_CHANNEL
-   back to sms swaps this form to a phone field on the next restart — no rebuild,
-   no code change. Everything below is written against a neutral "identifier" for
-   the same reason. */
-export function AuthInner({ next, channel }: { next: string | null; channel: OtpChannel }) {
+   back to sms swaps this form to a phone field on the next restart — no rebuild, no
+   code change. Everything below is written against a neutral "identifier". */
+export function SignupInner({
+  role,
+  next,
+  channel,
+}: {
+  role: SignupRole;
+  next: string | null;
+  channel: OtpChannel;
+}) {
   const { t, locale } = useLocale();
   const c = COPY[locale];
   const router = useLocalizedRouter();
+  const isStudent = role === "student";
   const isEmail = channel === "email";
 
   const [identifier, setIdentifier] = useState("");
+  const [birthYear, setBirthYear] = useState("");
   const [codeSent, setCodeSent] = useState(false);
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [devCode, setDevCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  /* Neutral information, not a failure — e.g. "a code is already on its way".
-     Kept separate from `error` so it can be styled and announced as guidance
-     rather than painted red. */
+  /* Neutral guidance, not a failure — styled and announced as information. */
   const [notice, setNotice] = useState<string | null>(null);
   // Only true once a send actually reported a TTL — without it the "expired" state
   // would fire immediately, before any code has been requested.
@@ -138,14 +199,12 @@ export function AuthInner({ next, channel }: { next: string | null; channel: Otp
      has expired, because the 5-minute life always outlasts the 60s gap, so being
      blocked at that point could only ever be the UI lagging the server. */
   const canResend = cooldown.done || expired;
-  // The number proved out but has no account. We say so and point at signup
-  // rather than quietly creating a profile the visitor never asked for.
-  const [noAccount, setNoAccount] = useState(false);
+  /* Set when the phone already belongs to an account of the OTHER role. We stay on
+     this page and explain, rather than redirecting somewhere that contradicts the
+     page they deliberately opened. */
+  const [existingRole, setExistingRole] = useState<string | null>(null);
 
   const ar = locale === "ar";
-  // Carry ?next= into signup so someone bounced off /checkout who turns out to be
-  // new still lands back on the class they wanted.
-  const signupHref = (path: string) => (next ? `${path}?next=${encodeURIComponent(next)}` : path);
 
   /* One send path for the first code and every resend. `resend` only changes how
      the result is presented: a resend keeps the user on the code step, and a
@@ -164,8 +223,7 @@ export function AuthInner({ next, channel }: { next: string | null; channel: Otp
     setNotice(null);
     let res: Awaited<ReturnType<typeof requestOtp>>;
     try {
-      // `id`, not `identifier`: the raw value carries the leading/trailing space a
-      // phone keyboard adds, and only the display copy was being trimmed before.
+      // `id`, not `identifier`: only the display copy was trimmed before.
       res = await requestOtp({ identifier: id, locale });
     } catch {
       // Network hiccup on 3G — never leave the button stuck on "Chargement…".
@@ -185,13 +243,10 @@ export function AuthInner({ next, channel }: { next: string | null; channel: Otp
       // Arm from the server's own answer rather than scolding the user.
       if (res.retryAfter) cooldown.start(res.retryAfter);
       if (!resend) {
-        /* A cooldown on a FIRST send means a code was already sent to this address
-           moments ago and is still alive — almost always because the user reloaded
-           mid-flow and lost the client's timers. Advancing to the code step is the
-           whole fix for that dead end: previously we left them on the address step
-           with a red error, so the valid code sitting in their inbox was unusable
-           and they had to wait out a cooldown to reach a field they could already
-           have typed into. */
+        /* A cooldown on a FIRST send means a live code was already sent to this
+           address — almost always a mid-flow reload. Advance to the code step so
+           the code sitting in their inbox is usable, instead of stranding them on
+           the address step behind a red error. */
         setCodeSent(true);
         setError(null);
         setNotice(c.alreadySent);
@@ -216,25 +271,25 @@ export function AuthInner({ next, channel }: { next: string | null; channel: Otp
     setHadExpiry(Boolean(expiresIn));
   }
 
+  /* Carry ?next= across every exit from this screen. Without it, a visitor bounced
+     off /checkout who turns out to already have an account — or who taps through to
+     the other audience — loses the booking they came for even though they end up
+     signed in. Same helper AuthInner uses. */
+  const withNext = (path: string) => (next ? `${path}?next=${encodeURIComponent(next)}` : path);
+
   const handleSendCode = () => send(false);
   const handleResend = () => send(true);
 
-  /* Strip everything that isn't a digit, then submit the moment six of them are
-     present. The field accepted letters before, which the server could only ever
-     reject — and it required a separate tap on a button that is below the fold on
-     a 320px phone. Android's SMS/email autofill delivers all six at once, so in
-     the common case the user now types nothing and taps nothing. */
+  /* Digits only, then submit on the sixth. See the twin in AuthInner: the code is
+     passed explicitly because setCode has not landed yet when this fires. */
   function onCodeChange(raw: string) {
     const digits = raw.replace(/\D/g, "").slice(0, 6);
     setCode(digits);
     if (digits.length === 6 && !loading) void verifyWith(digits);
   }
+
   const handleVerify = () => verifyWith(code);
 
-  /* Takes the code as an argument rather than reading state: the auto-submit above
-     fires from inside the same change handler that calls setCode, so `code` is
-     still the previous value at that point. Passing it explicitly is what makes
-     autofill work on the first try instead of submitting five digits. */
   async function verifyWith(submitted: string) {
     if (loading) return;
     if (!submitted.trim()) { setError(c.codeHelp); return; }
@@ -243,8 +298,13 @@ export function AuthInner({ next, channel }: { next: string | null; channel: Otp
     setNotice(null);
     let res: Awaited<ReturnType<typeof verifyOtp>>;
     try {
-      // No `role`: this is sign in. See the header comment.
-      res = await verifyOtp({ identifier, code: submitted, locale });
+      res = await verifyOtp({
+        identifier: identifier.trim(),
+        code: submitted,
+        role,
+        locale,
+        birthYear: birthYear ? Number(birthYear) : undefined,
+      });
     } catch {
       setLoading(false);
       setError(t.extra.error);
@@ -252,13 +312,10 @@ export function AuthInner({ next, channel }: { next: string | null; channel: Otp
     }
     setLoading(false);
     if (!res.ok) {
-      if (res.error === "no-account") { setNoAccount(true); return; }
-      /* Throttling is reported separately because it is a fact about the caller,
-         not about the account — see verifyOtp. Wrong and expired stay merged on
-         purpose (distinguishing them would confirm a code had been issued, i.e.
-         that the account exists), so the message has to name BOTH possibilities
-         and say what to do about either. "Une erreur s'est produite." told a user
-         with a mistyped digit nothing at all. */
+      /* This screen had NO branching at all: every failure, including a single
+         mistyped digit, rendered "Une erreur s'est produite." Same split as
+         AuthInner — throttling is distinct, wrong and expired stay merged because
+         separating them would leak whether the account exists. */
       if (res.error === "too-many-attempts") {
         setError(c.errTooManyAttempts(res.retryAfter ?? 900));
         return;
@@ -267,32 +324,42 @@ export function AuthInner({ next, channel }: { next: string | null; channel: Otp
       setError(t.extra.error);
       return;
     }
-    // Destination priority (consent → welcome → ?next= → role home) lives in
-    // lib/auth-destination.ts, shared with both signup screens.
+    if (res.roleMismatch) {
+      setExistingRole(res.role ?? null);
+      return;
+    }
     router.push(postAuthDestination(res, next));
   }
 
-  /* ── Verified, but there is no account for this number ── */
-  if (noAccount) {
+  // A ~5-year-old pupil down to a ~85-year-old learner. Inside vBirthYear's
+  // accepted range; the server re-validates and fails safe either way.
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 81 }, (_, i) => currentYear - 5 - i);
+
+  const title = isStudent ? c.studentTitle : c.tutorTitle;
+  const lead = isStudent
+    ? (isEmail ? c.studentLead : c.studentLeadSms)
+    : (isEmail ? c.tutorLead : c.tutorLeadSms);
+  const perks = isStudent ? c.studentPerks : c.tutorPerks;
+
+  /* ── The number already has an account of the other kind ── */
+  if (existingRole) {
+    const asTutor = existingRole === "tutor";
     return (
       <SiteShell>
         <section className="web-section">
           <div className="container container-narrow flex justify-center">
             <div className="panel panel-pad rise w-full max-w-[460px] min-w-0">
               <h1 className="font-display text-[clamp(22px,_4vw,_28px)] tracking-[-0.6px] mb-1.5 text-ink">
-                {isEmail ? c.noAccountTitleEmail : c.noAccountTitleSms}
+                {c.mismatchTitle}
               </h1>
-              <p className="text-[13.5px] text-muted mb-6 leading-[1.55]">
-                {isEmail ? c.noAccountBodyEmail : c.noAccountBodySms}
+              <p className="text-[13.5px] text-ink2 mb-4 leading-[1.55]">
+                {asTutor ? c.mismatchTutor : c.mismatchStudent}
               </p>
-              <div className="flex flex-col gap-2.5">
-                <Link href={signupHref("/signup/prof")} className="btn btn-primary">
-                  {c.newTutor}
-                </Link>
-                <Link href={signupHref("/signup/eleve")} className="btn btn-ghost">
-                  {c.newStudent}
-                </Link>
-              </div>
+              <p className="text-[13px] text-muted mb-5 leading-[1.6]">{c.mismatchNote}</p>
+              <Link href={withNext(asTutor ? "/dashboard" : "/student")} className="btn btn-primary">
+                {asTutor ? c.goDashboard : c.goStudent}
+              </Link>
             </div>
           </div>
         </section>
@@ -306,16 +373,23 @@ export function AuthInner({ next, channel }: { next: string | null; channel: Otp
         <div className="container container-narrow flex justify-center">
           <div className="panel panel-pad rise w-full max-w-[460px] min-w-0">
             <h1 className="font-display text-[clamp(22px,_4vw,_28px)] tracking-[-0.6px] mb-1.5 text-ink">
-              {t.auth.title}
+              {title}
             </h1>
-            <p className="text-[13.5px] text-muted mb-6 leading-[1.55]">
-              {isEmail ? c.lead : c.leadSms}
-            </p>
+            <p className="text-[13.5px] text-muted mb-5 leading-[1.55]">{lead}</p>
 
-            {/* A real <form>: this was loose divs with onClick handlers, so pressing
-                Enter after typing an address or a code did nothing at all — the
-                single most reflexive action on a login screen. onSubmit dispatches
-                to whichever step is on screen. */}
+            {/* What this account actually gets you — three facts, role-specific.
+                This is the whole reason the funnel is split: the two audiences want
+                different things and a shared toggle could speak to neither. */}
+            <ul className="list-none flex flex-col gap-2 mb-6">
+              {perks.map((p) => (
+                <li key={p} className="flex items-start gap-[9px] text-[13.5px] text-ink2 leading-[1.5]">
+                  <Check className="w-4 h-4 text-green-ink flex-none mt-0.5" />
+                  <span className="min-w-0">{p}</span>
+                </li>
+              ))}
+            </ul>
+
+            {/* A real <form> so Enter submits — this was loose divs with onClick. */}
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -327,9 +401,6 @@ export function AuthInner({ next, channel }: { next: string | null; channel: Otp
             <Field label={isEmail ? c.email : t.auth.phone}>
               <div className="inp">
                 {isEmail ? <Mail className="" /> : <Phone className="" />}
-                {/* Tunisia's country code as a real affix rather than placeholder
-                    text that vanishes the moment you type — the same `.pre` slot
-                    the slug field uses for "tnajem.tn/". */}
                 {!isEmail && (
                   <span className="pre whitespace-nowrap shrink-0" dir="ltr">+216</span>
                 )}
@@ -351,6 +422,31 @@ export function AuthInner({ next, channel }: { next: string | null; channel: Otp
               </div>
             </Field>
 
+            {/* Birth year — students only. Drives the minor-consent gate. */}
+            {isStudent && (
+              <Field label={c.byLabel}>
+                <div className="inp">
+                  <Calendar className="" />
+                  <select
+                    value={birthYear}
+                    onChange={(e) => setBirthYear(e.target.value)}
+                    disabled={codeSent}
+                    required
+                    aria-required="true"
+                    aria-label={c.byLabel}
+                    className="min-w-0 w-full border-0 bg-transparent font-[inherit] disabled:cursor-not-allowed"
+                    style={{ color: birthYear ? "var(--ink)" : "var(--muted)" }}
+                  >
+                    <option value="" disabled>{c.byPh}</option>
+                    {years.map((y) => (
+                      <option key={y} value={y} className="text-ink">{y}</option>
+                    ))}
+                  </select>
+                </div>
+                <p className="text-[13px] text-muted mt-1.5 leading-[1.5]">{c.byNote}</p>
+              </Field>
+            )}
+
             {/* role="alert" so screen readers announce it on change */}
             {error && (
               <p role="alert" className="text-rose text-[13px] font-semibold leading-[1.5] mb-3 text-start">
@@ -368,8 +464,8 @@ export function AuthInner({ next, channel }: { next: string | null; channel: Otp
                 <Button type="submit" variant="primary" disabled={loading}>
                   {loading ? t.common.loading : t.auth.sendCode}
                 </Button>
-                {/* For someone who reloaded mid-flow: jump straight to the code they
-                    already have, without spending a send or waiting out a cooldown. */}
+                {/* For someone who reloaded mid-flow: reach the code they already
+                    have without spending a send or waiting out a cooldown. */}
                 <div className="text-center">
                   <button
                     type="button"
@@ -382,7 +478,6 @@ export function AuthInner({ next, channel }: { next: string | null; channel: Otp
               </>
             ) : (
               <div className="rise">
-                {/* Where the code went + an escape hatch if the number is wrong. */}
                 <div className="flex items-center justify-between gap-2.5 flex-wrap mb-3.5">
                   <span className="text-[13px] text-ink2 min-w-0">{c.sentTo(identifier.trim())}</span>
                   <button
@@ -401,9 +496,7 @@ export function AuthInner({ next, channel }: { next: string | null; channel: Otp
                 {/* Local development only. requestOtp() returns the code ONLY when
                     NODE_ENV is not "production" AND no provider is configured; a
                     production deploy with no mail or SMS credentials now fails the
-                    send outright rather than printing a stranger's code here. (The
-                    previous note claimed production was safe because a provider
-                    would be set — precisely the assumption that failed.) */}
+                    send outright rather than printing a stranger's code here. */}
                 {devCode && (
                   <div className="bg-sand border-[1.4px] border-dashed border-ochre-btn rounded-brand py-2.5 px-3 mb-3.5 text-center text-[13px] text-ink2 leading-[1.5]">
                     <b className="font-display text-[18px] tracking-[3px] text-ink block" dir="ltr">
@@ -486,23 +579,20 @@ export function AuthInner({ next, channel }: { next: string | null; channel: Otp
             )}
             </form>
 
-            {/* Signup is a different page now, one per audience. */}
-            <div className="mt-6 pt-5 border-t border-line text-[13px] text-muted leading-[1.6]">
-              <p className="mb-1.5">{c.noAccountHint}</p>
-              <div className="flex gap-4 flex-wrap">
+            {/* The two exits: I already have an account, or I'm the other audience. */}
+            <div className="mt-6 pt-5 border-t border-line flex flex-col gap-2 text-[13px] text-muted leading-[1.6]">
+              <p>
+                {c.haveAccount}{" "}
                 <Link
-                  href={signupHref("/signup/prof")}
+                  href={withNext("/auth")}
                   className="linklike inline-flex items-center justify-center min-h-[44px] min-w-[44px]"
                 >
-                  {c.newTutor}
+                  {c.signIn}
                 </Link>
-                <Link
-                  href={signupHref("/signup/eleve")}
-                  className="linklike inline-flex items-center justify-center min-h-[44px] min-w-[44px]"
-                >
-                  {c.newStudent}
-                </Link>
-              </div>
+              </p>
+              <Link href={withNext(isStudent ? "/signup/prof" : "/signup/eleve")} className="linklike">
+                {isStudent ? c.otherTutor : c.otherStudent}
+              </Link>
             </div>
           </div>
         </div>
