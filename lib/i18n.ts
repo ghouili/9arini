@@ -12,10 +12,6 @@ const fr = {
        and, worse, "0 places" on a full class, which reads as still-bookable. */
     seats: (n: number) =>
       n <= 0 ? "Complet" : n === 1 ? "1 place restante" : `${n} places restantes`,
-    /* Tnajem processes NO payment (lib/payments.ts — paymentsEnabled() is false).
-       This used to read "Paiement sécurisé · Flouci & D17", promising a checkout
-       that does not exist. Keep this string truthful for as long as that holds. */
-    secure: "Sans carte bancaire · tu payes ton prof directement",
     seeAll: "Tout voir",
     copy: "Copier",
     copied: "Copié ✓",
@@ -82,7 +78,7 @@ const fr = {
     nextSessions: "Séances suivantes",
     pay: "Réserver ma séance gratuite",
     payPaid: (p: number) => `Réserver — ${p} TND à régler au prof`,
-    noCharge: "Aucun paiement en ligne, aucune carte bancaire.",
+    noCharge: "Aucun paiement en ligne. Tu règles ton prof directement.",
     okTitle: "C'est réservé !",
     okBody: "Ta place est confirmée. On t'envoie le lien sur WhatsApp.",
     okCta: "Voir mes cours",
@@ -227,7 +223,6 @@ const ar: typeof fr = {
     free1st: "الأولى مجانية",
     seats: (n: number) =>
       n <= 0 ? "كامل" : n === 1 ? "بلاصة وحدة تبقات" : n === 2 ? "زوز بلايص تبقاو" : `${n} بلايص تبقاو`,
-    secure: "بلا كارت بنكية · تخلّص أستاذك مباشرة",
     seeAll: "عرض الكل",
     copy: "نسخ",
     copied: "تم النسخ ✓",
@@ -282,7 +277,7 @@ const ar: typeof fr = {
     nextSessions: "الحصص الموالية",
     pay: "احجز حصتي المجانية",
     payPaid: (p: number) => `احجز — ${p} د.ت تخلّصهم للأستاذ`,
-    noCharge: "ما فماش خلاص أونلاين، وما تحتاجش كارت بنكية.",
+    noCharge: "ما فماش خلاص أونلاين. تخلّص أستاذك مباشرة.",
     okTitle: "تم الحجز!",
     okBody: "مكانك مؤكّد. نبعثولك الرابط على واتساب.",
     okCta: "شوف حصصي",

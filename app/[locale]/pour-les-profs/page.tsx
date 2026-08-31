@@ -43,7 +43,7 @@ const copy = {
     sub: "Crée ta page gratuitement en 2 minutes, fixe ton tarif, et donne tes cours en direct. Pendant le pilote, l'élève te paie en main propre : Tnajem ne prend rien.",
     ctaPrimary: "Crée ta page de prof",
     ctaGhost: "Voir les profs sur Tnajem",
-    micro: "Gratuit pendant le pilote, sans carte. Plus tard : à partir de 29 TND/mois, et 10 % uniquement sur les paiements traités par Tnajem.",
+    micro: "Gratuit pendant le pilote. Plus tard : 10 % sur chaque élève payant, uniquement sur les paiements traités par Tnajem, plus un abonnement à partir de 29 TND/mois.",
     tarifsCta: "Voir les tarifs",
     pilotChip: "Pilote — 0 % aujourd'hui",
 
@@ -67,7 +67,7 @@ const copy = {
     f1t: "Ta page, ton lien",
     f1b: "Ton nom, ta matière, tes cours. Un seul lien à coller sur WhatsApp, Insta ou TikTok — c'est là que tes élèves réservent.",
     f2t: "Ton tarif — tu gardes 100 %",
-    f2b: "Tu fixes ton prix, cours par cours, sans plafond. Pendant le pilote, l'élève te paie en main propre et Tnajem ne prend aucune commission. Plus tard, les 10 % ne s'appliqueront qu'aux paiements traités par Tnajem — jamais à ce qu'on te règle en main propre.",
+    f2b: "Tu fixes ton prix, cours par cours, sans plafond. Pendant le pilote, l'élève te paie en main propre et Tnajem ne prend rien. Plus tard, Tnajem coûtera deux choses : 10 % sur chaque élève payant — uniquement sur les paiements traités par Tnajem — plus un abonnement à partir de 29 TND/mois. Ton élève te paie en main propre ? On ne prend rien.",
     f3t: "Vérifié à la main",
     f3b: "On regarde ta pièce d'identité nous-mêmes. Une fois validé, ta page passe en ligne et apparaît dans Explorer — souvent sous 24–48 h.",
     f4t: "Cours en direct",
@@ -77,7 +77,7 @@ const copy = {
     howEyebrow: "Comment ça marche",
     howTitle: "De zéro à ta 1ʳᵉ réservation",
     s1t: "Crée ta page",
-    s1b: "Nom, matière, une phrase sur toi. Deux minutes, sans carte bancaire.",
+    s1b: "Nom, matière, une phrase sur toi. Deux minutes, sans engagement.",
     s2t: "Fais-toi vérifier",
     s2b: "Envoie ta pièce d'identité. On vérifie à la main, puis ta page est publique.",
     s3t: "Partage et enseigne",
@@ -96,9 +96,8 @@ const copy = {
     inYou: "Toi · 100 %",
     inFee: "Tnajem · 0 %",
     inLaterLbl: "Plus tard, si l'élève paie via Tnajem",
-    inLater: "1 152 TND",
-    inLaterYou: "Toi · 90 %",
-    inLaterFee: "Tnajem · 10 %",
+    inLater: "1 123 TND",
+    inLaterFee: "− 128 (10 %) − 29 (abonnement)",
     inLaterNote: "Payé en main propre : toujours 100 % pour toi.",
     inWithdraw:
       "Pendant le pilote, l'élève te paie directement, de la main à la main. Tnajem ne prend aucune commission et ne touche pas à ton argent. Paiement en ligne : bientôt.",
@@ -107,7 +106,7 @@ const copy = {
     faqEyebrow: "Avant de te lancer",
     faqTitle: "Les questions qu'on nous pose",
     q1: "Combien Tnajem prend ?",
-    a1: "Rien, aujourd'hui. Pendant le pilote, tu gardes 100 % : l'élève te paie directement, Tnajem ne touche pas à l'argent. Quand le paiement en ligne arrivera, une commission de 10 % s'appliquera uniquement aux paiements traités par Tnajem — jamais à ceux que ton élève te règle en main propre, et jamais sur la 1ʳᵉ séance, qui reste offerte. On te préviendra avant.",
+    a1: "Rien, aujourd'hui. Pendant le pilote, tu gardes 100 % : l'élève te paie directement, Tnajem ne touche pas à l'argent. Plus tard, il y aura deux choses, et jamais l'une sans l'autre : 10 % sur chaque élève payant, uniquement sur les paiements traités par Tnajem, plus un abonnement à partir de 29 TND/mois. Rien sur ce qu'on te règle en main propre, et rien sur la 1ʳᵉ séance, qui reste offerte. On te préviendra avant.",
     q2: "Faut-il un diplôme ?",
     a2: "Non. Maîtrise ta matière, une bonne connexion, et tu démarres aujourd'hui. On vérifie ton identité à la main avant que ta page soit publiée.",
     q3: "Si un élève ne vient pas ?",
@@ -116,7 +115,7 @@ const copy = {
     // final
     finalTitle: "Ta page de prof t'attend.",
     finalSub: "Crée-la en 2 minutes.",
-    finalReassure: "Gratuit pendant le pilote · sans carte · supprimable à tout moment.",
+    finalReassure: "Gratuit pendant le pilote · sans engagement · supprimable à tout moment.",
     crossBottom: "Tu es élève ? Trouve ton prof",
   },
   ar: {
@@ -128,7 +127,7 @@ const copy = {
     sub: "اعمل صفحتك فابور في دقيقتين، حدّد تعريفتك، واعطي دروسك مباشرة. في فترة التجربة، التلميذ يخلّصك في يدك : Tnajem ما تاخذ والو.",
     ctaPrimary: "اعمل صفحتك متاع أستاذ",
     ctaGhost: "شوف الأساتذة في Tnajem",
-    micro: "فابور في فترة التجربة، بلا كارت. من بعد : اشتراك من 29 دينار في الشهر، و 10 % كان على الخلاص اللي يعدّي من Tnajem.",
+    micro: "فابور في فترة التجربة. من بعد : 10 % على كل تلميذ خلّص، كان على الخلاص اللي يعدّي من Tnajem، زائد اشتراك من 29 دينار في الشهر.",
     tarifsCta: "شوف الأسعار",
     pilotChip: "تجربة — 0 % اليوم",
 
@@ -150,7 +149,7 @@ const copy = {
     f1t: "صفحتك، ولينكك",
     f1b: "إسمك، مادتك، دروسك. لينك وحيد تلصقو في واتساب، إنستا ولا تيكتوك — ومن غادي تلامذتك يحجزو.",
     f2t: "ثمنك إنتي — وتحتفظ بـ 100 %",
-    f2b: "إنتي تحدّد ثمنك، درس بدرس، بلا سقف. في فترة التجربة، التلميذ يخلّصك في يدك وTnajem ما تاخذ حتى عمولة. من بعد، الـ 10 % باش تكون كان على الخلاص اللي يعدّي من Tnajem — عمرها ما تكون على اللي يخلّصك بيه في يدك.",
+    f2b: "إنتي تحدّد ثمنك، درس بدرس، بلا سقف. في فترة التجربة، التلميذ يخلّصك في يدك وTnajem ما تاخذ والو. من بعد، Tnajem باش تكلّف زوز حاجات : 10 % على كل تلميذ خلّص — كان على الخلاص اللي يعدّي من Tnajem — زائد اشتراك من 29 دينار في الشهر. التلميذ خلّصك في يدك؟ ما ناخذو والو.",
     f3t: "التثبّت يتعمل بيدينا",
     f3b: "نشوفو بطاقة تعريفك بيدينا. كي تتقبل، صفحتك تولّي أونلاين وتبان في «اكتشف» — عادةً في 24–48 ساعة.",
     f4t: "دروس مباشرة",
@@ -159,7 +158,7 @@ const copy = {
     howEyebrow: "كيفاش يخدم",
     howTitle: "من الصفر لأول حجز متاعك",
     s1t: "اعمل صفحتك",
-    s1b: "إسم، مادة، وجملة عليك. دقيقتين، بلا كارت بنكية.",
+    s1b: "إسم، مادة، وجملة عليك. دقيقتين، بلا التزام.",
     s2t: "تثبّت من هويتك",
     s2b: "ابعث بطاقة تعريفك. نتثبّتو بيدينا، ومن بعد صفحتك تولّي ظاهرة للناس.",
     s3t: "شارك وقرّي",
@@ -177,9 +176,8 @@ const copy = {
     inYou: "إنتي · 100 %",
     inFee: "Tnajem · 0 %",
     inLaterLbl: "من بعد، كان التلميذ خلّص من Tnajem",
-    inLater: "1 152 دينار",
-    inLaterYou: "إنتي · 90 %",
-    inLaterFee: "Tnajem · 10 %",
+    inLater: "1 123 دينار",
+    inLaterFee: "− 128 (10 %) − 29 (اشتراك)",
     inLaterNote: "خلّصك في يدك : ديما 100 % متاعك.",
     inWithdraw:
       "في فترة التجربة، التلميذ يخلّصك مباشرة، يد بيد. Tnajem ما تاخذ حتى عمولة وما تلمسش فلوسك. الخلاص أونلاين : قريب.",
@@ -187,7 +185,7 @@ const copy = {
     faqEyebrow: "قبل ما تبدا",
     faqTitle: "الأسئلة اللي يسقسيونا عليها",
     q1: "قدّاش تاخذ Tnajem ؟",
-    a1: "والو، اليوم. في فترة التجربة تحتفظ بـ 100 % : التلميذ يخلّصك مباشرة، وTnajem ما تلمسش الفلوس. كي يجي الخلاص أونلاين، باش تولّي فما عمولة 10 % كان على الخلاص اللي يعدّي من Tnajem — عمرها ما تكون على اللي يخلّصك بيه في يدك، ولا على أول حصة اللي تبقى فابور. ونعلموك قبل.",
+    a1: "والو، اليوم. في فترة التجربة تحتفظ بـ 100 % : التلميذ يخلّصك مباشرة، وTnajem ما تلمسش الفلوس. من بعد باش يوليو زوز حاجات، وعمرها وحدة بلا لأخرى : 10 % على كل تلميذ خلّص، كان على الخلاص اللي يعدّي من Tnajem، زائد اشتراك من 29 دينار في الشهر. والو على اللي يخلّصك بيه في يدك، ووالو على أول حصة اللي تبقى فابور. ونعلموك قبل.",
     q2: "يلزم شهادة ؟",
     a2: "لا. اتقن مادتك، كنكسيون مليحة، وتبدا اليوم. نتثبّتو من هويتك بيدينا قبل ما تتنشر صفحتك.",
     q3: "كان التلميذ ما جاش ؟",
@@ -195,7 +193,7 @@ const copy = {
 
     finalTitle: "صفحتك متاع أستاذ تستنّى فيك.",
     finalSub: "اعملها في دقيقتين.",
-    finalReassure: "فابور في فترة التجربة · بلا كارت · تنجم تمسحها وقتلي تحب.",
+    finalReassure: "فابور في فترة التجربة · بلا التزام · تنجم تمسحها وقتلي تحب.",
     crossBottom: "إنتي تلميذ ؟ لقا أستاذك",
   },
 } as const;
@@ -530,9 +528,11 @@ function IncomePanel({ c }: { c: Copy }) {
           </div>
         </div>
 
-        {/* The future 90/10, kept visually secondary so today's real number stays
-            the headline. Stating it here is what stops "tu gardes 100 %" from
-            reading as a permanent promise. */}
+        {/* What Tnajem will cost later, kept visually secondary so today's real
+            number stays the headline. Both costs are named — the 10 % AND the
+            subscription — because showing one without the other is how a tutor
+            ends up feeling misled by the second one. Stating any of it here is
+            also what stops "tu gardes 100 %" reading as a permanent promise. */}
         <div className="lpp-later">
           <div className="text-[13px] text-on-blue-soft font-semibold leading-[1.5]">
             {c.inLaterLbl}
@@ -540,7 +540,7 @@ function IncomePanel({ c }: { c: Copy }) {
           <div className="flex justify-between gap-2.5 flex-wrap mt-1 items-baseline">
             <span className="font-display font-bold text-[19px] text-on-blue">{c.inLater}</span>
             <span className="font-display font-bold text-[13px] text-on-blue-soft">
-              {c.inLaterYou} · {c.inLaterFee}
+              {c.inLaterFee}
             </span>
           </div>
           <div className="text-[13px] text-on-blue-soft mt-1 leading-[1.5]">{c.inLaterNote}</div>

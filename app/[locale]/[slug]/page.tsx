@@ -99,7 +99,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   /* "paiement en dinar" promised a checkout that does not exist: payments are OFF
      for the pilot (lib/payments.ts), the storefront takes no card, and the link
      preview is the first thing a WhatsApp reader sees. Promise what we deliver. */
-  const pitch = "Réserve un cours en direct — 1ère séance offerte, sans carte bancaire.";
+  const pitch = "Réserve un cours en direct — 1ère séance offerte, sans engagement.";
   const description = tutor.bio ? `${clamp(tutor.bio, 120)} · ${pitch}` : `${tutor.subject}. ${pitch}`;
   const ogTitle = `${title} · Tnajem`;
   const alt = `${tutor.full_name} sur Tnajem — ${tutor.subject}`;

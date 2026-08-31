@@ -23,8 +23,8 @@ const BODY = `# Tnajem (تنجّم)
 - The first session with a tutor is always free, and never carries commission.
 - Students never pay Tnajem: no subscription, no student service fee. They pay the tutor for the lessons themselves.
 - TODAY: Tnajem takes no commission and holds no money. Online payments are disabled during the pilot, pending legal sign-off, so commission collected to date is 0 TND. Every plan below is free right now — nobody is being billed.
-- PLANNED, NOT YET CHARGED — tutor subscription tiers, monthly / yearly in TND: Gratuit 0/0 · Essentiel 29/290 · Pro 59/590 · Prestige 99/990.
-- PLANNED, NOT YET CHARGED — a flat 10% commission, identical on every plan, applied ONLY to payments that Tnajem itself processes. If a student pays the tutor directly (cash, hand to hand), Tnajem takes nothing.
+- PLANNED, NOT YET CHARGED — tutor subscription tiers, monthly / yearly in TND: Gratuit 0/0 (1–14 students) · Essentiel 29/290 (15–20) · Pro 59/590 (21–35) · Prestige 99/990 (36+).
+- PLANNED, NOT YET CHARGED — a tutor pays TWO things, never one without the other: the subscription above, PLUS a flat 10% commission on each paying student. The 10% applies ONLY to payments that Tnajem itself processes. If a student pays the tutor directly (cash, hand to hand), Tnajem takes nothing.
 - Tnajem has not promised that commission stays at 0% permanently. The 0% is a property of the pilot, not a guarantee.
 
 ## How it works

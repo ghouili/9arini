@@ -43,7 +43,7 @@ const copy = {
     ctaPrimary: "Trouve ton prof",
     ctaSecondary: "Comment ça marche ?",
     heroMicro:
-      "Sans carte bancaire. Ensuite, tu règles ton prof directement — aucun abonnement.",
+      "Sans engagement. Tu paies juste avant chaque séance — ou au mois, si tu préfères. La 1ʳᵉ séance est toujours offerte.",
 
     // hero illustration (NOT a real listing — generic on purpose)
     heroAria:
@@ -58,7 +58,7 @@ const copy = {
     howTitle: "Du premier clic au cours en direct, en 4 étapes.",
     steps: [
       { t: "Cherche ton prof", p: "Par matière et par niveau, du primaire au Bac." },
-      { t: "Réserve ta 1ère séance", p: "0 TND, sans carte. Tu choisis l'horaire." },
+      { t: "Réserve ta 1ère séance", p: "0 TND. Tu choisis l'horaire." },
       { t: "Suis le cours en direct", p: "En vidéo, depuis ton téléphone ou ton PC." },
       { t: "Continue si ça te plaît", p: "Le prof affiche son tarif — tu le règles directement avec lui." },
     ],
@@ -67,7 +67,7 @@ const copy = {
     know: [
       {
         t: "La 1ère séance est offerte",
-        p: "0 TND, sans carte, sans engagement. Si le prof ne te convient pas, tu n'as rien perdu.",
+        p: "0 TND, sans engagement. Si le prof ne te convient pas, tu n'as rien perdu.",
       },
       {
         t: "Chaque prof est vérifié à la main",
@@ -75,7 +75,7 @@ const copy = {
       },
       {
         t: "Tu règles ton prof directement",
-        p: "Il fixe son tarif et l'affiche avant que tu réserves. Aucun abonnement, aucun frais Tnajem. Le paiement en ligne viendra plus tard.",
+        p: "Il fixe son tarif et l'affiche avant que tu réserves. Sans engagement : tu paies juste avant chaque séance — ou au mois, si tu préfères. Le paiement en ligne viendra plus tard.",
       },
     ],
     honestNote:
@@ -83,7 +83,7 @@ const copy = {
 
     finalTitle: "Choisis ton prof. La 1ère séance est offerte.",
     finalCta: "Trouve ton prof",
-    finalMicro: "0 TND pour commencer · sans carte · annulation libre jusqu'à 24h avant.",
+    finalMicro: "0 TND pour commencer · sans engagement · annulation libre jusqu'à 24h avant.",
 
     profTitle: "Tu es prof ?",
     profBody: "Donne tes cours en direct, fixe ton tarif, et garde 100 % pendant le pilote.",
@@ -98,7 +98,7 @@ const copy = {
     sub: "اختار المادة، واحجز حصة بالفيديو. الأولى بلاش.",
     ctaPrimary: "لقّي أستاذك",
     ctaSecondary: "كيفاش يخدم؟",
-    heroMicro: "بلا كارت بنكية. ومن بعد، تخلّص أستاذك مباشرة — وبلا اشتراك.",
+    heroMicro: "بلا التزام. تخلّص قبل كل حصة — ولا بالشهر، كيف ما تحب. أول حصة ديما بلاش.",
 
     // الرسم التوضيحي متاع الهيرو (موش أساتذة حقيقيين)
     heroAria: "رسم توضيحي: بحث «رياضيات · باك» يورّي أساتذة متثبّت منهم، وأول حصة بـ 0 دينار.",
@@ -112,7 +112,7 @@ const copy = {
     howTitle: "من أول كليك للدرس المباشر، في 4 مراحل.",
     steps: [
       { t: "لوّج على أستاذك", p: "حسب المادة والمستوى، من الابتدائي للباك." },
-      { t: "احجز أول حصة", p: "0 دينار، بلا كارت. وإنتي تختار الوقت." },
+      { t: "احجز أول حصة", p: "0 دينار. وإنتي تختار الوقت." },
       { t: "احضر الدرس مباشرة", p: "بالفيديو، من تليفونك ولا من الكمبيوتر." },
       { t: "كمّل كان عجبك", p: "الأستاذ يبيّن ثمنو — وتخلّصو مباشرة معاه." },
     ],
@@ -121,7 +121,7 @@ const copy = {
     know: [
       {
         t: "أول حصة بلاش",
-        p: "0 دينار، بلا كارت، وبلا التزام. كان الأستاذ ما عجبكش، ما خسّرت والو.",
+        p: "0 دينار، وبلا التزام. كان الأستاذ ما عجبكش، ما خسّرت والو.",
       },
       {
         t: "كل أستاذ متثبّت منّو بيدينا",
@@ -129,7 +129,7 @@ const copy = {
       },
       {
         t: "تخلّص أستاذك مباشرة",
-        p: "هو اللي يحدّد ثمنو ويبيّنو قبل ما تحجز. بلا اشتراك، وبلا حتى فريسي لـ Tnajem. الخلاص أونلاين باش يجي مبعد.",
+        p: "هو اللي يحدّد ثمنو ويبيّنو قبل ما تحجز. بلا التزام : تخلّص قبل كل حصة — ولا بالشهر، كيف ما تحب. الخلاص أونلاين باش يجي مبعد.",
       },
     ],
     honestNote:
@@ -137,7 +137,7 @@ const copy = {
 
     finalTitle: "اختار أستاذك. أول حصة بلاش.",
     finalCta: "لقّي أستاذك",
-    finalMicro: "0 دينار باش تبدا · بلا كارت · تنجّم تلغي حتى 24 ساعة قبل.",
+    finalMicro: "0 دينار باش تبدا · بلا التزام · تنجّم تلغي حتى 24 ساعة قبل.",
 
     profTitle: "إنتي أستاذ؟",
     profBody: "قرّي مباشرة، حدّد ثمنك، واحتفظ بـ 100 % في فترة التجربة.",

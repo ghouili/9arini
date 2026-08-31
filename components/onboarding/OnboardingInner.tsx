@@ -47,7 +47,7 @@ import type { OnboardingState } from "@/lib/types";
 const copy = {
   fr: {
     yourName: "Ton nom…",
-    fine: "Gratuit, sans carte. Zéro commission pendant le pilote : l'élève te paie directement.",
+    fine: "Gratuit pendant le pilote : l'élève te paie en main propre et Tnajem ne prend rien. Plus tard, 10 % sur chaque élève payant via Tnajem, plus un abonnement à partir de 29 TND/mois.",
     perks: [
       "Ta page prête en 2 minutes",
       "Tu fixes ton prix — 100 % pour toi pendant le pilote",
@@ -81,7 +81,7 @@ const copy = {
   },
   ar: {
     yourName: "اسمك…",
-    fine: "فابور، بلا كارت. بلا عمولة في فترة التجربة : التلميذ يخلّصك مباشرة.",
+    fine: "فابور في فترة التجربة : التلميذ يخلّصك في يدك وTnajem ما تاخذ والو. من بعد، 10 % على كل تلميذ يخلّص من Tnajem، زائد اشتراك من 29 دينار في الشهر.",
     perks: [
       "صفحتك حاضرة في دقيقتين",
       "إنتي تحدّد ثمنك — 100 % متاعك في فترة التجربة",

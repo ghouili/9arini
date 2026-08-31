@@ -40,7 +40,7 @@ const copy = {
     // ── Money (true for the pilot: Tnajem takes nothing, ever, today) ──
     payTitle: "À payer sur Tnajem",
     payAmount: "0 TND",
-    noCard: "Aucune carte bancaire, aucun paiement en ligne.",
+    noCard: "Aucun paiement en ligne. Tu règles ton prof directement.",
     freeSession: "Cette séance est offerte par ton prof.",
     paidSession: (p: number) =>
       `Cette séance est à ${p} TND — tu la règles directement avec ton prof, après.`,
@@ -87,7 +87,7 @@ const copy = {
 
     payTitle: "اللي تخلّصو في Tnajem",
     payAmount: "0 د.ت",
-    noCard: "لا كارت بنكية، لا خلاص أونلاين.",
+    noCard: "ما فماش خلاص أونلاين. تخلّص أستاذك مباشرة.",
     freeSession: "هذه الحصة مقدّمة مجاناً من أستاذك.",
     paidSession: (p: number) =>
       `هذه الحصة بـ ${p} د.ت — تخلّصها مباشرة مع أستاذك، من بعد.`,

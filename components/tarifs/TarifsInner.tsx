@@ -35,7 +35,7 @@ const copy = {
     h1: "Nos tarifs, en clair.",
     lead: "Tnajem est gratuit pendant le pilote. Voici ce que ça coûtera quand les paiements en ligne s'ouvriront — pour que tu puisses décider en connaissance de cause, dès aujourd'hui.",
     ctaPrimary: "Crée ta page de prof",
-    heroMicro: "Sans carte bancaire. Rien n'est facturé aujourd'hui.",
+    heroMicro: "Rien n'est facturé aujourd'hui.",
 
     // Banner — which one shows depends on the real PAYMENTS_ENABLED flag.
     pilotBanner:
@@ -44,7 +44,9 @@ const copy = {
       "Les paiements en ligne sont actifs. Les formules ci-dessous sont facturées, et la commission de 10 % s'applique aux paiements traités par Tnajem.",
 
     plansTitle: "Les formules",
-    plansLead: "L'abonnement est côté prof. L'élève, lui, ne paie jamais Tnajem : ni abonnement, ni frais de service.",
+    plansLead: "Tnajem coûte deux choses au prof, et jamais l'une sans l'autre : un abonnement mensuel, plus 10 % sur chaque élève payant — uniquement sur les paiements que Tnajem traite. L'élève, lui, ne paie jamais Tnajem.",
+    plusComm: "+ 10 % sur chaque élève payant",
+    plusCommNote: "Uniquement sur les paiements traités par Tnajem. Rien sur ce qu'on te règle en main propre.",
     notBilled: "Pas encore facturé",
     recommended: "Recommandé",
     perMonth: "/ mois",
@@ -56,7 +58,7 @@ const copy = {
         name: "Gratuit",
         price: "0 TND",
         year: "0 TND / an",
-        who: "Tu débutes",
+        who: "1 à 14 élèves",
         billed: false,
         features: ["Ta page de prof et ton lien", "1 cours en ligne", "Réservations et avis", "Paiement en main propre"],
       },
@@ -65,7 +67,7 @@ const copy = {
         name: "Essentiel",
         price: "29 TND",
         year: "290 TND / an — 2 mois offerts",
-        who: "1 à 5 élèves",
+        who: "15 à 20 élèves",
         billed: true,
         features: ["Jusqu'à 5 cours", "Rappels SMS et WhatsApp", "Statistiques de base", "Tout ce qu'il y a dans Gratuit"],
       },
@@ -74,7 +76,7 @@ const copy = {
         name: "Pro",
         price: "59 TND",
         year: "590 TND / an",
-        who: "6 à 15 élèves",
+        who: "21 à 35 élèves",
         billed: true,
         features: ["Cours illimités", "Mis en avant dans Explorer", "Vends tes fiches et enregistrements", "Statistiques complètes"],
       },
@@ -83,7 +85,7 @@ const copy = {
         name: "Prestige",
         price: "99 TND",
         year: "990 TND / an",
-        who: "Plus de 15 élèves",
+        who: "36 élèves et plus",
         billed: true,
         features: ["Placement prioritaire", "Replays de tes séances", "Vérification prioritaire (48 h)", "Support prioritaire"],
       },
@@ -111,7 +113,7 @@ const copy = {
 
     finalTitle: "Prêt à créer ta page ?",
     finalSub: "C'est gratuit, et ça prend 2 minutes.",
-    finalMicro: "Gratuit pendant le pilote · sans carte · supprimable à tout moment.",
+    finalMicro: "Gratuit pendant le pilote · sans engagement · supprimable à tout moment.",
     backToProfs: "Tout savoir sur Tnajem pour les profs",
   },
 
@@ -120,7 +122,7 @@ const copy = {
     h1: "أسعارنا، واضحة.",
     lead: "Tnajem فابور في فترة التجربة. هاذي هي الأثمنة اللي باش تولّي كي يتحل الخلاص أونلاين — باش تعرف من توّا على شنوّة داخل.",
     ctaPrimary: "اعمل صفحتك متاع أستاذ",
-    heroMicro: "بلا كارت بنكية. اليوم ما فما حتى فاتورة.",
+    heroMicro: "اليوم ما فما حتى فاتورة.",
 
     pilotBanner:
       "فابور في فترة التجربة — ما زال ما نفوترو حتى خطة. الخلاص أونلاين مطفي : Tnajem ما تحصّل والو، ما تاخذ حتى عمولة، وما تفوترك حتى اشتراك. باش نعلموك قبل ما يتبدّل الحال.",
@@ -128,7 +130,9 @@ const copy = {
       "الخلاص أونلاين خدّام. الخطط اللي تحت ولّاو يتفوترو، والعمولة متاع 10 % تنطبق على الخلاص اللي يعدّي من Tnajem.",
 
     plansTitle: "الخطط",
-    plansLead: "الاشتراك على الأستاذ. أمّا التلميذ، عمرو ما يخلّص Tnajem : لا اشتراك ولا فريسي.",
+    plansLead: "Tnajem تكلّف الأستاذ زوز حاجات، وعمرها وحدة بلا لأخرى : اشتراك شهري، زائد 10 % على كل تلميذ خلّص — كان على الخلاص اللي تعدّيه Tnajem. أمّا التلميذ، عمرو ما يخلّص Tnajem.",
+    plusComm: "+ 10 % على كل تلميذ خلّص",
+    plusCommNote: "كان على الخلاص اللي يعدّي من Tnajem. والو على اللي يخلّصك بيه في يدك.",
     notBilled: "ما زال ما يتفوترش",
     recommended: "ننصحو بيها",
     perMonth: "/ في الشهر",
@@ -140,7 +144,7 @@ const copy = {
         name: "فابور",
         price: "0 دينار",
         year: "0 دينار / في العام",
-        who: "توّا تبدا",
+        who: "من 1 لـ 14 تلميذ",
         billed: false,
         features: ["صفحتك ولينكك", "درس واحد أونلاين", "الحجوزات والآراء", "الخلاص في يدك"],
       },
@@ -149,7 +153,7 @@ const copy = {
         name: "الأساسي",
         price: "29 دينار",
         year: "290 دينار / في العام — شهرين فابور",
-        who: "من 1 لـ 5 تلامذة",
+        who: "من 15 لـ 20 تلميذ",
         billed: true,
         features: ["حتى لـ 5 دروس", "تذكير بالـ SMS والواتساب", "إحصائيات أساسية", "كل اللي في فابور"],
       },
@@ -158,7 +162,7 @@ const copy = {
         name: "برو",
         price: "59 دينار",
         year: "590 دينار / في العام",
-        who: "من 6 لـ 15 تلميذ",
+        who: "من 21 لـ 35 تلميذ",
         billed: true,
         features: ["دروس بلا حدّ", "تبان في «اكتشف»", "بيع الفيشات والتسجيلات", "إحصائيات كاملة"],
       },
@@ -167,7 +171,7 @@ const copy = {
         name: "بريستيج",
         price: "99 دينار",
         year: "990 دينار / في العام",
-        who: "أكثر من 15 تلميذ",
+        who: "36 تلميذ وأكثر",
         billed: true,
         features: ["مركز أول في العرض", "تسجيلات حصصك", "تثبّت بالأولوية (48 ساعة)", "دعم بالأولوية"],
       },
@@ -195,7 +199,7 @@ const copy = {
 
     finalTitle: "حاضر باش تعمل صفحتك ؟",
     finalSub: "فابور، وتاخذ دقيقتين.",
-    finalMicro: "فابور في فترة التجربة · بلا كارت · تنجم تمسحها وقتلي تحب.",
+    finalMicro: "فابور في فترة التجربة · بلا التزام · تنجم تمسحها وقتلي تحب.",
     backToProfs: "اعرف الكل على Tnajem للأساتذة",
   },
 } as const;
@@ -212,6 +216,12 @@ html[dir="rtl"] .tf-price{font-family:var(--fa);letter-spacing:normal}
 .tf-per{font-size:14px;font-weight:700;color:var(--muted)}
 .tf-year{font-size:13px;color:var(--muted);line-height:1.5}
 .tf-who{font-size:13px;font-weight:700;color:var(--blue)}
+/* The "+ 10 %" block. Sits directly under the price so the two costs are read
+   as one number, not as a price with a footnote. */
+.tf-plus{margin-block-start:10px;padding:9px 11px;border-radius:var(--r-s);
+  background:var(--ochre-tint);display:flex;flex-direction:column;gap:2px}
+.tf-plus b{font-size:13px;font-weight:700;color:var(--ochre-ink)}
+.tf-plus span{font-size:13px;line-height:1.5;color:var(--ink2)}
 .tf-feats{list-style:none;display:flex;flex-direction:column;gap:9px;margin-block-start:16px}
 .tf-feats li{display:flex;gap:9px;align-items:flex-start;font-size:13.5px;line-height:1.5;color:var(--ink2);min-width:0}
 .tf-feats .ic{width:17px;height:17px;flex:none;color:var(--green-ink);margin-block-start:2px}
@@ -249,6 +259,17 @@ function PlanCard({ plan, c, paymentsEnabled }: { plan: Copy["plans"][number]; c
         <span className="tf-per">{c.perMonth}</span>
       </div>
       <div className="tf-year mt-1">{plan.year}</div>
+
+      {/* §2.2: a price is never shown without the commission that comes with it.
+          A tutor who reads only the card and meets the 10 % later has been misled
+          by the layout, even though both numbers exist elsewhere on the page.
+          EVERY card, Gratuit included — the 10 % is charged per paying student on
+          all plans, so a free plan showing "0 TND" alone would be the same lie in
+          its most tempting form. */}
+      <div className="tf-plus">
+        <b>{c.plusComm}</b>
+        <span>{c.plusCommNote}</span>
+      </div>
 
       {/* Only on plans that would actually cost something — "pas encore facturé"
           on the 0 TND plan would be noise. */}

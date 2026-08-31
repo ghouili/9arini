@@ -15,16 +15,17 @@ const monthAr: Record<string, string> = {
   SEPT: "سبتمبر", OCT: "أكتوبر", NOV: "نوفمبر", DÉC: "ديسمبر",
 };
 
-/* Page-local copy (lib/i18n.ts is shared). Two shared keys are deliberately unused:
-     • t.common.secure  → "Paiement sécurisé · Flouci & D17". There is no payment
-       rail in the pilot, so `reassure` below states what is actually true.
+/* Page-local copy (lib/i18n.ts is shared). One shared key is deliberately unused:
      • t.common.seats   → "${n} places", which reads "1 places" and, at 0, still
        looks bookable. `seats()` says "Complet" / "كامل".
+   (t.common.secure used to be listed here too. It has been deleted outright: it
+   was the last of the bank-card claims, it rendered nowhere, and a dead string
+   is one nobody notices has stopped being true.)
      • t.extra.noResults→ "Aucun prof trouvé", which was shown when a CLASS 404s. */
 const copy = {
   fr: {
     reassure: "1ère séance gratuite · annulation gratuite jusqu'à 24h avant",
-    reassureShort: "Sans carte bancaire",
+    reassureShort: "Sans engagement",
     bookShort: "Réserver",
     loading: "On charge la séance…",
     notFound: "Séance introuvable",
@@ -40,7 +41,7 @@ const copy = {
   },
   ar: {
     reassure: "الحصة الأولى مجانية · إلغاء مجاني حتى 24 ساعة قبل",
-    reassureShort: "بلا كارت بنكية",
+    reassureShort: "بلا التزام",
     bookShort: "احجز",
     loading: "قاعدين نحمّلو الحصة…",
     notFound: "الحصة ما تلقاتش",

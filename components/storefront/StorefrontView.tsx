@@ -76,14 +76,14 @@ const copy = {
 
     // ── Trust (true for the pilot: no rail, no card, nothing charged here) ──
     freeFirst: "1ère séance gratuite",
-    noCard: "Sans carte bancaire",
+    noCard: "Sans engagement",
     cancel24: "Annulation gratuite 24h avant",
     payDirect:
       "Tnajem ne prend aucun paiement. La 1ère séance est offerte ; les suivantes, tu les règles directement avec ton prof.",
 
     // ── How it works ──
     howTitle: "Comment ça se passe",
-    how1: "Tu réserves ta place — sans carte bancaire.",
+    how1: "Tu réserves ta place — sans engagement.",
     how2: "Tu reçois le lien de la séance dans « Mes cours ».",
     how3: "1ère séance offerte. Ensuite tu payes ton prof directement, s'il te convient.",
 
@@ -117,13 +117,13 @@ const copy = {
       n <= 0 ? "كامل" : n === 1 ? "بلاصة وحدة تبقات" : n === 2 ? "زوز بلايص تبقاو" : `${n} بلايص تبقاو`,
 
     freeFirst: "الحصة الأولى مجانية",
-    noCard: "بلا كارت بنكية",
+    noCard: "بلا التزام",
     cancel24: "إلغاء مجاني 24 ساعة قبل",
     payDirect:
       "Tnajem ما تاخذ حتى خلاص. الحصة الأولى مجانية ؛ الحصص الموالية تخلّصهم مباشرة مع أستاذك.",
 
     howTitle: "كيفاش تمشي الحكاية",
-    how1: "تحجز بلاصتك — من غير كارت بنكية.",
+    how1: "تحجز بلاصتك — بلا التزام.",
     how2: "يوصلك رابط الحصة في « حصصي ».",
     how3: "الحصة الأولى مجانية. من بعد تخلّص أستاذك مباشرة، كان عجبك.",
 
