@@ -56,9 +56,10 @@ const fr = {
     link: "Ton lien Tnajem",
     preview: "Aperçu en direct",
     cta: "Publier ma page",
-    /* Was "Tnajem prend 12% seulement quand tu es payé" — contradicted by every
-       other surface (dashboard, new-class, llms.txt) and by the product itself:
-       during the pilot Tnajem takes no commission and holds no money. */
+    /* This once named a commission rate as if it were being charged. It is not:
+       during the pilot Tnajem takes no commission and holds no money. Future
+       pricing belongs on /tarifs, where it is labelled as future — never here,
+       stated as a live deduction. */
     fine: "Gratuit. Pendant le pilote, Tnajem ne prend aucune commission — tu gardes 100 %.",
     done: "Ta page est en ligne 🎉",
   },
@@ -100,8 +101,8 @@ const fr = {
     shareBtn: "Partager mon lien",
     how: "Comment ça marche",
     s1t: "Partage ton lien", s1p: "À tes élèves actuels et à ton audience.",
-    /* Was "Ils paient en TND — Flouci, carte ou D17" / "Tu gardes 88%": payments
-       are off and the pilot split is 100/0, not 88/12. */
+    /* These once described an online checkout and a revenue split. Payments are
+       off, so the pilot split is 100/0 and no rail exists to name. */
     s2t: "Tes élèves réservent", s2p: "Tu vois leur nom et leur numéro dans ton tableau de bord.",
     s3t: "Ils te paient directement", s3p: "De la main à la main pendant le pilote. Tnajem ne prend aucune commission. Le paiement en ligne arrivera plus tard.",
     trend: (p: number) => `+${p}% vs le mois dernier`,
@@ -124,7 +125,11 @@ const fr = {
     freeFirst: "Offrir la 1ère séance gratuitement", create: "Publier la classe",
   },
   createPack: { title: "Ajouter des fiches / enregistrement", name: "Titre", meta: "Détail (ex. 42 pages · 6 vidéos)", price: "Prix (TND)", create: "Publier" },
-  payout: { title: "Retirer mes gains", available: "Disponible", to: "Vers", wallet: "Portefeuille Flouci", bank: "Compte bancaire (RIB)", amount: "Montant", request: "Demander le retrait", note: "Les retraits arrivent sous 1–3 jours.", pending: "Les retraits réels s'activent après l'accord juridique." },
+  /* Only the four keys /dashboard/payout actually renders. The withdrawal-form
+     strings (to/amount/request) and the timing promises ("Les retraits arrivent
+     sous 1–3 jours.") were deleted: no payout rail exists (lib/payments.ts
+     throws), so nothing may state when money would arrive. */
+  payout: { title: "Retirer mes gains", available: "Disponible", wallet: "Portefeuille Flouci", bank: "Compte bancaire (RIB)" },
   student: {
     title: "Mes cours", soon: "DÉMARRE BIENTÔT", with: "avec",
     hours: "heures", mins: "min", secs: "sec",
@@ -183,7 +188,6 @@ const fr = {
     notifications: "Notifications",
     classPublished: "Classe publiée ✓",
     packPublished: "Fiches publiées ✓",
-    payoutRequested: "Demande de retrait envoyée ✓",
     modeEarning: "Avec gains",
     modeEmpty: "Nouveau prof",
     demoPreview: "Aperçu démo",
@@ -319,7 +323,7 @@ const ar: typeof fr = {
     freeFirst: "اعرض الحصة الأولى مجانا", create: "انشر الحصة",
   },
   createPack: { title: "أضف ملخصات / تسجيل", name: "العنوان", meta: "تفاصيل (مثال: 42 صفحة · 6 فيديوهات)", price: "السعر (د.ت)", create: "نشر" },
-  payout: { title: "اسحب أرباحي", available: "المتوفّر", to: "نحو", wallet: "محفظة فلوسي", bank: "حساب بنكي (RIB)", amount: "المبلغ", request: "اطلب السحب", note: "السحوبات توصل في 1–3 أيام.", pending: "السحب الحقيقي يتفعّل بعد الموافقة القانونية." },
+  payout: { title: "اسحب أرباحي", available: "المتوفّر", wallet: "محفظة فلوسي", bank: "حساب بنكي (RIB)" },
   student: {
     title: "حصصي", soon: "تبدأ قريبا", with: "مع",
     hours: "ساعات", mins: "دقيقة", secs: "ثانية",
@@ -377,7 +381,6 @@ const ar: typeof fr = {
     notifications: "الإشعارات",
     classPublished: "تم نشر الحصة ✓",
     packPublished: "تم النشر ✓",
-    payoutRequested: "تم إرسال طلب السحب ✓",
     modeEarning: "مع أرباح",
     modeEmpty: "أستاذ جديد",
     demoPreview: "عرض تجريبي",

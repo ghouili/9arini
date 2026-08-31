@@ -7,7 +7,8 @@ import { Back, Wallet, Shield, Bank, Bulb } from "@/components/icons";
 import { SiteShell } from "@/components/SiteShell";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { getDashboard } from "@/app/actions";
-import type { DashboardData } from "@/lib/types";
+import { WrongRoleNotice } from "@/components/WrongRoleNotice";
+import type { DashboardData, DashboardResult } from "@/lib/types";
 
 /* Page-local copy (never edit lib/i18n.ts from here). FR + Derija, RTL-safe. */
 const copy = {
@@ -57,18 +58,26 @@ export default function PayoutPage() {
   const { t, locale } = useLocale();
   const c = copy[locale];
 
-  // undefined = loading · null = signed out · object = real data (real balance)
-  const [data, setData] = useState<DashboardData | null | undefined>(undefined);
+  /* undefined = loading · null = signed out · {wrongRole} = signed in as a student
+     · object = real data (real balance) */
+  const [result, setResult] = useState<DashboardResult | undefined>(undefined);
 
   useEffect(() => {
     let alive = true;
     getDashboard()
-      .then((d) => alive && setData(d))
-      .catch(() => alive && setData(null));
+      .then((d) => alive && setResult(d))
+      .catch(() => alive && setResult(null));
     return () => {
       alive = false;
     };
   }, []);
+
+  // Same split as /dashboard — a payout screen must never render for a student.
+  const wrong = result && "wrongRole" in result ? result : null;
+  const data: DashboardData | null | undefined =
+    result === undefined ? undefined
+      : result === null || "wrongRole" in result ? null
+      : result;
 
   const balance = data?.balance_tnd ?? 0;
   const paymentsEnabled = data?.paymentsEnabled ?? false;
@@ -106,6 +115,8 @@ export default function PayoutPage() {
         <Spinner />
       </div>
     );
+  } else if (wrong) {
+    body = <WrongRoleNotice role={wrong.wrongRole} />;
   } else if (data === null) {
     body = (
       <div className="panel panel-pad text-center">
@@ -203,7 +214,7 @@ export default function PayoutPage() {
       <section className="web-section tight">
         <div className="container">
           <div className="app-layout">
-            <DashboardSidebar />
+            <DashboardSidebar paymentsEnabled={paymentsEnabled} />
 
             {/* Main content column */}
             <div className="min-w-0">

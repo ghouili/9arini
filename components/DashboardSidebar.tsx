@@ -43,7 +43,14 @@ const CSS = `
 html[dir="rtl"] .qs-title{letter-spacing:normal}
 `;
 
-export function DashboardSidebar() {
+/* `paymentsEnabled` is REQUIRED on purpose. Payments are hard-disabled
+   (lib/payments.ts), so "Retirer mes gains" must not be reachable — a tutor who
+   taps it lands on a screen that can only tell them withdrawal is impossible.
+   Making the prop required means every call site, now and later, has to decide
+   consciously whether a payout affordance renders; an optional prop would let a
+   new dashboard page reintroduce the dead link by simply forgetting it.
+   The flag cannot be read here: paymentsEnabled() is server-only. */
+export function DashboardSidebar({ paymentsEnabled }: { paymentsEnabled: boolean }) {
   const { t, locale } = useLocale();
   const c = NAV[locale];
   // usePathname() returns the locale-prefixed path (/fr/dashboard) while our
@@ -55,7 +62,9 @@ export function DashboardSidebar() {
     { href: "/dashboard/new-class", Icon: Video, label: t.dashboard.newClass },
     { href: "/dashboard/new-pack", Icon: Plus, label: t.dashboard.newPack },
     { href: "/onboarding/verify", Icon: Shield, label: c.verify },
-    { href: "/dashboard/payout", Icon: Wallet, label: t.payout.title },
+    ...(paymentsEnabled
+      ? [{ href: "/dashboard/payout", Icon: Wallet, label: t.payout.title }]
+      : []),
     { href: "/account", Icon: User, label: t.account.title },
   ];
 

@@ -3,17 +3,20 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Link } from "@/components/Link";
 import { Button, Spinner } from "@/components/ui";
 import { useLocale } from "@/components/LocaleProvider";
-import { Gear, Bell, Wallet, Share, Copy, Video, Plus, Bulb, Users, Eye, Book, Shield, Check, Phone, Clock } from "@/components/icons";
+import { Gear, Bell, Wallet, Share, Copy, Video, Plus, Bulb, Users, Eye, Book, Shield, Check, Phone, Clock, Mail } from "@/components/icons";
 import { SiteShell } from "@/components/SiteShell";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { getDashboard, getNotifications, markNotificationsRead } from "@/app/actions";
-import type { DashboardData, DashboardBooking, NotificationItem } from "@/lib/types";
+import { WrongRoleNotice } from "@/components/WrongRoleNotice";
+import { buildTutorSteps, STEP_COPY } from "@/lib/onboarding-steps";
+import type { OnboardingStep, StepState } from "@/lib/onboarding-steps";
+import type { DashboardData, DashboardBooking, NotificationItem, DashboardResult } from "@/lib/types";
 
 /* Page-local copy (never edit lib/i18n.ts from here). FR + Derija, RTL-safe.
-   NOTE: the shared t.dashboard.s1p/s2p/s3p strings still describe online payment
-   ("ils paient en TND — Flouci, carte ou D17") and a 12 % / 88 % split. Tnajem
-   processes NO money during the pilot, so this page uses its own honest steps
-   below instead of those keys. */
+   The shared t.dashboard.s1p/s2p/s3p keys are truthful but generic; this page
+   uses its own steps below so the wording can stay specific to what a tutor sees
+   here. Whatever it says must remain true of the pilot: Tnajem processes no
+   money, so nothing on this screen may describe a charge, a split or a payout. */
 const copy = {
   fr: {
     signedOutTitle: "Connecte-toi pour voir ton tableau de bord",
@@ -23,10 +26,11 @@ const copy = {
     bookings: "Tes élèves inscrits",
     bookingsSub: "Qui a réservé, et comment le joindre.",
     bookingsEmpty: "Personne n'a encore réservé.",
-    bookingsEmptyBody: "Partage ton lien. Dès qu'un élève réserve, tu vois son nom et son numéro ici — tu peux l'appeler avant le cours.",
+    bookingsEmptyBody: "Partage ton lien. Dès qu'un élève réserve, tu vois son nom et son contact ici — tu peux le joindre avant le cours.",
     signedUp: (n: number) => (n > 1 ? `${n} inscrits` : `${n} inscrit`),
     call: "Appeler",
-    noPhone: "Pas de numéro",
+    mail: "Écrire à",
+    noPhone: "Pas de contact",
     anon: "Élève",
     free: "Gratuit",
     paid: "Payé",
@@ -42,32 +46,9 @@ const copy = {
     hoursAgo: (n: number) => `il y a ${n} h`,
     daysAgo: (n: number) => `il y a ${n} j`,
 
-    // ── next steps ──
-    nextTitle: "À faire maintenant",
-    nextSub: "Quatre étapes, dans l'ordre. Chacune prend quelques minutes.",
-    done: "Fait",
-    inProgress: "En cours",
-    st1t: "Crée ta page de prof",
-    st1b: "Ton nom, ta matière, ton lien. Deux minutes.",
-    st1cta: "Créer ma page",
-    st2t: "Fais-toi vérifier",
-    st2b: "Envoie ta pièce d'identité. On vérifie à la main, puis ta page passe en ligne.",
-    st2cta: "Envoyer mes documents",
-    st2tPending: "Vérification en cours",
-    st2bPending: "On regarde tes documents. Réponse en général sous 24–48 h — rien à faire de ton côté.",
-    st2tRejected: "Dossier à compléter",
-    st2bRejected: "Il manque quelque chose. Corrige et renvoie tes documents.",
-    st2ctaRejected: "Renvoyer mes documents",
-    st2tDone: "Compte vérifié",
-    st2bDone: "Ta page est publique et listée dans Explorer.",
-    st3t: "Publie ta 1ʳᵉ classe",
-    st3b: "Un titre, une date, ton prix. Tu fixes le tarif, tu gardes 100 %.",
-    st3cta: "Créer ma classe",
-    st3tDone: "Ta 1ʳᵉ classe est publiée",
-    st3bDone: "Tu peux en ajouter d'autres quand tu veux.",
-    st4t: "Partage ton lien",
-    st4b: "WhatsApp, Insta, TikTok. C'est comme ça que les élèves arrivent.",
-    st4cta: "Voir mon lien",
+    /* The 4-step ladder's own strings live in lib/onboarding-steps.ts — they are
+       shared with /onboarding and /onboarding/verify, which used to describe the
+       same funnel with a different number of steps each. */
 
     // ── how you get paid (replaces the outdated shared strings) ──
     howTitle: "Comment tu es payé, aujourd'hui",
@@ -87,10 +68,11 @@ const copy = {
     bookings: "التلاميذ اللي حجزو",
     bookingsSub: "شكون حجز، وكيفاش تتصل بيه.",
     bookingsEmpty: "ما زال حتّى حد ما حجز.",
-    bookingsEmptyBody: "شارك رابطك. أوّل ما تلميذ يحجز، تشوف اسمو ونمرتو هوني — تنجم تكلّمو قبل الحصة.",
+    bookingsEmptyBody: "شارك رابطك. أوّل ما تلميذ يحجز، تشوف اسمو وكيفاش تتصل بيه هوني — تنجم تكلّمو قبل الحصة.",
     signedUp: (n: number) => `${n} محجوز`,
     call: "اتصل",
-    noPhone: "ما فماش نمرة",
+    mail: "اكتب لـ",
+    noPhone: "ما فماش وسيلة اتصال",
     anon: "تلميذ",
     free: "فابور",
     paid: "خالص",
@@ -105,32 +87,6 @@ const copy = {
     minsAgo: (n: number) => `منذ ${n} د`,
     hoursAgo: (n: number) => `منذ ${n} س`,
     daysAgo: (n: number) => `منذ ${n} يوم`,
-
-    nextTitle: "اللي لازم تعملو توّا",
-    nextSub: "أربع مراحل، وحدة وحدة. كل وحدة تاخذ دقايق.",
-    done: "تعمل",
-    inProgress: "في الطريق",
-    st1t: "اعمل صفحتك متاع أستاذ",
-    st1b: "إسمك، مادتك، اللينك متاعك. دقيقتين.",
-    st1cta: "اعمل صفحتي",
-    st2t: "تثبّت من هويتك",
-    st2b: "ابعث بطاقة تعريفك. نتثبّتو بيدينا، ومن بعد صفحتك تولّي أونلاين.",
-    st2cta: "ابعث وثائقي",
-    st2tPending: "التثبّت في الطريق",
-    st2bPending: "قاعدين نشوفو في وثائقك. الجواب عادةً في 24–48 ساعة — ما عندك ما تعمل.",
-    st2tRejected: "الملف يلزمو تكملة",
-    st2bRejected: "فمّا حاجة ناقصة. صلّح وعاود ابعث وثائقك.",
-    st2ctaRejected: "عاود ابعث وثائقي",
-    st2tDone: "الحساب متثبّت",
-    st2bDone: "صفحتك ظاهرة للناس وموجودة في «اكتشف».",
-    st3t: "انشر أول حصة متاعك",
-    st3b: "عنوان، وقت، وثمنك. إنتي تحدّد التعريفة، وتحتفظ بـ 100 %.",
-    st3cta: "اعمل حصتي",
-    st3tDone: "أول حصة متاعك تنشرت",
-    st3bDone: "تنجم تزيد أخرين وقتلي تحب.",
-    st4t: "شارك اللينك متاعك",
-    st4b: "واتساب، إنستا، تيكتوك. هكّا التلامذة يجيو.",
-    st4cta: "شوف اللينك متاعي",
 
     howTitle: "كيفاش تتخلّص، اليوم",
     h1t: "إنتي تحدّد ثمنك",
@@ -352,15 +308,6 @@ function NotifBell() {
 }
 
 // ── "What to do next" — the tutor's whole job, in order ─────────────────────
-type StepState = "done" | "current" | "todo" | "waiting";
-type Step = {
-  key: string;
-  title: string;
-  body: string;
-  state: StepState;
-  cta?: { label: string; href: string };
-};
-
 function StepMark({ state, n }: { state: StepState; n: number }) {
   const style: React.CSSProperties =
     state === "done"
@@ -377,7 +324,9 @@ function StepMark({ state, n }: { state: StepState; n: number }) {
   );
 }
 
-function NextSteps({ steps, c }: { steps: Step[]; c: CopyDict }) {
+function NextSteps({ steps }: { steps: OnboardingStep[] }) {
+  const { locale } = useLocale();
+  const c = STEP_COPY[locale];
   return (
     <div className="panel panel-pad mb-[clamp(14px,2vw,22px)]">
       <div className="mb-1.5">
@@ -658,6 +607,12 @@ function BookingsPanel({ d }: { d: DashboardData }) {
                   </div>
                 </div>
 
+                {/* Phone first, then email. Since login moved to email the number is
+                    OPTIONAL — collected on /student/welcome, not at signup — so for
+                    most students the address is the only contact that exists. Falling
+                    back to it is what keeps this column from being empty on day one,
+                    and what keeps the panel's own promise ("tu vois son nom et son
+                    numéro") honest. */}
                 {b.studentPhone ? (
                   <a
                     href={`tel:${b.studentPhone}`}
@@ -666,6 +621,15 @@ function BookingsPanel({ d }: { d: DashboardData }) {
                   >
                     <Phone className="w-[15px] h-[15px]" />
                     {b.studentPhone}
+                  </a>
+                ) : b.studentEmail ? (
+                  <a
+                    href={`mailto:${b.studentEmail}`}
+                    className="btn btn-ghost btn-sm qd-tel flex-none ms-auto w-auto max-w-full"
+                    aria-label={`${c.mail} ${b.studentName?.trim() || c.anon}`}
+                  >
+                    <Mail className="w-[15px] h-[15px]" />
+                    {b.studentEmail}
                   </a>
                 ) : (
                   <span
@@ -687,7 +651,7 @@ function BookingsPanel({ d }: { d: DashboardData }) {
 }
 
 // ── Real: tutor with a live storefront ──────────────────────────────────────
-function RealDashboard({ d, steps }: { d: DashboardData; steps: Step[] }) {
+function RealDashboard({ d, steps }: { d: DashboardData; steps: OnboardingStep[] }) {
   const { t, locale } = useLocale();
   const c = copy[locale];
   const stats = [
@@ -702,7 +666,7 @@ function RealDashboard({ d, steps }: { d: DashboardData; steps: Step[] }) {
 
   return (
     <>
-      <NextSteps steps={steps} c={c} />
+      <NextSteps steps={steps} />
 
       {/* Who booked — the tutor's core job-to-be-done */}
       <BookingsPanel d={d} />
@@ -813,9 +777,10 @@ function RealDashboard({ d, steps }: { d: DashboardData; steps: Step[] }) {
 }
 
 // ── Real: signed in but no storefront yet ───────────────────────────────────
-function RealNoStore({ steps }: { steps: Step[] }) {
+function RealNoStore({ steps }: { steps: OnboardingStep[] }) {
   const { t, locale } = useLocale();
   const c = copy[locale];
+  const sc = STEP_COPY[locale];
   return (
     <>
       <div className="panel panel-pad text-center mb-[clamp(14px,2vw,22px)]">
@@ -828,10 +793,10 @@ function RealNoStore({ steps }: { steps: Step[] }) {
         </p>
         <Link href="/onboarding" className="btn btn-primary max-w-[300px] mx-auto">
           <Plus />
-          {c.st1cta}
+          {sc.st1cta}
         </Link>
       </div>
-      <NextSteps steps={steps} c={c} />
+      <NextSteps steps={steps} />
       <HowItWorks c={c} />
     </>
   );
@@ -895,78 +860,41 @@ function DashHeader({
   );
 }
 
-/* The 4-step ladder, derived from real data only. */
-function buildSteps(d: DashboardData | null, c: CopyDict): Step[] {
-  const hasStore = !!d?.has_storefront;
-  const status = d?.status ?? "draft";
-  const hasClass = (d?.classes.length ?? 0) > 0;
-
-  const verifDone = status === "verified";
-  const verifWaiting = status === "pending";
-
-  /* Publishing a class and being findable both require a VERIFIED profile
-     (createClass enforces it server-side, and the storefront is unlisted until
-     approval) — so steps 3 and 4 stay locked, without a button that would fail. */
-  const steps: Step[] = [
-    {
-      key: "store",
-      title: c.st1t,
-      body: c.st1b,
-      state: hasStore ? "done" : "current",
-      cta: hasStore ? undefined : { label: c.st1cta, href: "/onboarding" },
-    },
-    {
-      key: "verify",
-      title: verifDone ? c.st2tDone : verifWaiting ? c.st2tPending : status === "rejected" ? c.st2tRejected : c.st2t,
-      body: verifDone ? c.st2bDone : verifWaiting ? c.st2bPending : status === "rejected" ? c.st2bRejected : c.st2b,
-      state: verifDone ? "done" : verifWaiting ? "waiting" : hasStore ? "current" : "todo",
-      cta:
-        verifDone || verifWaiting || !hasStore
-          ? undefined
-          : { label: status === "rejected" ? c.st2ctaRejected : c.st2cta, href: "/onboarding/verify" },
-    },
-    {
-      key: "class",
-      title: hasClass ? c.st3tDone : c.st3t,
-      body: hasClass ? c.st3bDone : c.st3b,
-      state: hasClass ? "done" : verifDone ? "current" : "todo",
-      cta: hasClass || !verifDone ? undefined : { label: c.st3cta, href: "/dashboard/new-class" },
-    },
-    {
-      key: "share",
-      title: c.st4t,
-      body: c.st4b,
-      state: verifDone && d?.slug ? "current" : "todo",
-      cta: verifDone && d?.slug ? { label: c.st4cta, href: "#share" } : undefined,
-    },
-  ];
-
-  // Only the FIRST actionable step keeps its button: one dominant next action.
-  let ctaGiven = false;
-  for (const s of steps) {
-    if (s.state !== "current") continue;
-    if (ctaGiven) s.cta = undefined;
-    else if (s.cta) ctaGiven = true;
-  }
-  return steps;
+/* Adapt the dashboard payload to the shared ladder's input (lib/onboarding-steps.ts). */
+function progressOf(d: DashboardData | null) {
+  return {
+    hasStorefront: !!d?.has_storefront,
+    status: d?.status ?? ("draft" as const),
+    hasClass: (d?.classes.length ?? 0) > 0,
+    hasSlug: !!d?.slug,
+  };
 }
 
 // ── Page ───────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
   const { t, locale } = useLocale();
   const c = copy[locale];
-  // undefined = loading · null = signed out / no session · object = real tutor data
-  const [data, setData] = useState<DashboardData | null | undefined>(undefined);
+  /* undefined = loading · null = signed out / no session · {wrongRole} = signed in
+     as the OTHER role · object = real tutor data */
+  const [result, setResult] = useState<DashboardResult | undefined>(undefined);
 
   useEffect(() => {
     let alive = true;
     getDashboard()
-      .then((d) => alive && setData(d))
-      .catch(() => alive && setData(null));
+      .then((d) => alive && setResult(d))
+      .catch(() => alive && setResult(null));
     return () => {
       alive = false;
     };
   }, []);
+
+  // Split the wrong-role case off so the rest of this component keeps the exact
+  // three states it already reasons about (loading / signed out / tutor data).
+  const wrong = result && "wrongRole" in result ? result : null;
+  const data: DashboardData | null | undefined =
+    result === undefined ? undefined
+      : result === null || "wrongRole" in result ? null
+      : result;
 
   const firstName = (data?.name ?? "").trim().split(/\s+/)[0];
   const hasPublished = !!data && (data.classes.length > 0 || data.packs.length > 0);
@@ -980,6 +908,11 @@ export default function DashboardPage() {
         <Spinner />
       </div>
     );
+  } else if (wrong) {
+    /* Signed in, but as a student. Checked BEFORE the signed-out branch: they do
+       have a session, and "connecte-toi" would be a lie. */
+    header = <DashHeader title={t.nav.dashboard} />;
+    body = <WrongRoleNotice role={wrong.wrongRole} />;
   } else if (data === null) {
     // No session (or no DB). Never render fabricated earnings — prompt sign-in.
     /* Title is the page name, not the panel's message: passing signedOutTitle +
@@ -989,7 +922,7 @@ export default function DashboardPage() {
     body = <SignedOut />;
   } else if (!data.has_storefront) {
     header = <DashHeader title={t.dashboard.createStore} subtitle={t.dashboard.createStoreBody} showTools />;
-    body = <RealNoStore steps={buildSteps(data, c)} />;
+    body = <RealNoStore steps={buildTutorSteps(progressOf(data), locale)} />;
   } else {
     header = (
       <DashHeader
@@ -1006,7 +939,7 @@ export default function DashboardPage() {
         }
       />
     );
-    body = <RealDashboard d={data} steps={buildSteps(data, c)} />;
+    body = <RealDashboard d={data} steps={buildTutorSteps(progressOf(data), locale)} />;
   }
 
   return (
@@ -1015,7 +948,8 @@ export default function DashboardPage() {
       <section className="web-section tight">
         <div className="container">
           <div className="app-layout">
-            <DashboardSidebar />
+            {/* Fail closed: while loading, signed out, or wrong-role, no payout link. */}
+            <DashboardSidebar paymentsEnabled={data?.paymentsEnabled ?? false} />
             <div className="min-w-0">
               {header}
               {body}

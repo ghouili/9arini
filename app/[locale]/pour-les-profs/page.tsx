@@ -4,8 +4,11 @@
    "Shopify for Tunisian tutors": branded page, live classes, you set your price.
 
    FREE PILOT: Tnajem processes no money. The student pays the tutor DIRECTLY,
-   off-platform; we take 0 % commission and issue no payouts. Online payment +
-   the 12 % platform fee are "bientôt" only — never stated as current features.
+   off-platform; we take 0 % commission and issue no payouts. Online payment, the
+   subscription plans and the 10 % commission are FUTURE — every mention of them
+   on this page is time-qualified ("plus tard", "quand…"), never stated as a
+   current feature. Equally, the 0 % is never promised as permanent: it is a
+   property of the pilot. Full model on /tarifs.
    Zero lessons taught, zero tutors, zero reviews → no counts, no testimonials,
    no ratings, no earnings claimed as real. The only money figure on the page is
    an arithmetic EXAMPLE, labelled as one.
@@ -14,7 +17,7 @@
    income, features, how, founding tutors, FAQ, final). A tutor needs five
    answers — free page in 2 minutes · you set your price · you keep 100 % · we
    verify you by hand · you teach live — so it now runs five sections and one
-   repeated CTA (→ /onboarding). The hero scene shows the TUTOR'S PAGE, not a
+   repeated CTA (→ /signup/prof). The hero scene shows the TUTOR'S PAGE, not a
    money counter: what you get, not what you might earn.
 
    Self-contained: bilingual copy (FR + Tunisian Derija) lives in `copy` below.
@@ -37,11 +40,12 @@ const copy = {
     h1a: "Ta page de prof.",
     h1b: "Tes cours en direct.",
     h1c: "Tu gardes 100 %.",
-    sub: "Crée ta page gratuitement en 2 minutes, fixe ton tarif, et donne tes cours en direct. L'élève te paie directement : Tnajem ne prend rien.",
+    sub: "Crée ta page gratuitement en 2 minutes, fixe ton tarif, et donne tes cours en direct. Pendant le pilote, l'élève te paie en main propre : Tnajem ne prend rien.",
     ctaPrimary: "Crée ta page de prof",
     ctaGhost: "Voir les profs sur Tnajem",
-    micro: "Gratuit. Sans carte. Zéro commission.",
-    pilotChip: "Pilote — on lance",
+    micro: "Gratuit pendant le pilote, sans carte. Plus tard : à partir de 29 TND/mois, et 10 % uniquement sur les paiements traités par Tnajem.",
+    tarifsCta: "Voir les tarifs",
+    pilotChip: "Pilote — 0 % aujourd'hui",
 
     // hero phone (illustration — pas de vraies données)
     phoneName: "Ta page de prof",
@@ -54,7 +58,7 @@ const copy = {
     shareLinkLabel: "Ton lien",
     shareLinkExample: "tnajem.tn/ta-page",
     classFilling: "Classe en cours de remplissage",
-    phoneBadges: ["0 % de commission", "Paiement direct"],
+    phoneBadges: ["0 % aujourd'hui", "Paiement direct"],
     heroSceneLabel: "Illustration : une page de prof Tnajem — nom, matière, un cours en direct et le lien à partager.",
 
     // ce que tu obtiens
@@ -63,7 +67,7 @@ const copy = {
     f1t: "Ta page, ton lien",
     f1b: "Ton nom, ta matière, tes cours. Un seul lien à coller sur WhatsApp, Insta ou TikTok — c'est là que tes élèves réservent.",
     f2t: "Ton tarif — tu gardes 100 %",
-    f2b: "Tu fixes ton prix, cours par cours, sans plafond. L'élève te paie directement : Tnajem ne prend aucune commission.",
+    f2b: "Tu fixes ton prix, cours par cours, sans plafond. Pendant le pilote, l'élève te paie en main propre et Tnajem ne prend aucune commission. Plus tard, les 10 % ne s'appliqueront qu'aux paiements traités par Tnajem — jamais à ce qu'on te règle en main propre.",
     f3t: "Vérifié à la main",
     f3b: "On regarde ta pièce d'identité nous-mêmes. Une fois validé, ta page passe en ligne et apparaît dans Explorer — souvent sous 24–48 h.",
     f4t: "Cours en direct",
@@ -81,16 +85,21 @@ const copy = {
 
     // l'exemple chiffré
     incomeEyebrow: "Combien tu peux gagner",
-    incomeTitle: "Fixe ton tarif, tu gardes tout.",
+    incomeTitle: "Fixe ton tarif. Aujourd'hui, tu gardes tout.",
     incomeLead: "Un exemple d'arithmétique — pas une promesse, et pas un plafond :",
     inStudents: "8 élèves",
     inSessions: "2 séances / sem",
     inPrice: "20 TND / séance",
-    inGross: "Exemple : 8 élèves × 2 séances × 20 TND",
+    inGross: "Exemple : 8 élèves × 2 séances × 20 TND × 4 semaines",
     inKeepLbl: "Tu gardes, aujourd'hui",
     inKeep: "1 280 TND",
     inYou: "Toi · 100 %",
     inFee: "Tnajem · 0 %",
+    inLaterLbl: "Plus tard, si l'élève paie via Tnajem",
+    inLater: "1 152 TND",
+    inLaterYou: "Toi · 90 %",
+    inLaterFee: "Tnajem · 10 %",
+    inLaterNote: "Payé en main propre : toujours 100 % pour toi.",
     inWithdraw:
       "Pendant le pilote, l'élève te paie directement, de la main à la main. Tnajem ne prend aucune commission et ne touche pas à ton argent. Paiement en ligne : bientôt.",
 
@@ -98,7 +107,7 @@ const copy = {
     faqEyebrow: "Avant de te lancer",
     faqTitle: "Les questions qu'on nous pose",
     q1: "Combien Tnajem prend ?",
-    a1: "Rien, aujourd'hui. Pendant le pilote, tu gardes 100 % : l'élève te paie directement, Tnajem ne touche pas à l'argent. Quand le paiement en ligne arrivera, une commission de 12 % s'appliquera — et on te préviendra avant.",
+    a1: "Rien, aujourd'hui. Pendant le pilote, tu gardes 100 % : l'élève te paie directement, Tnajem ne touche pas à l'argent. Quand le paiement en ligne arrivera, une commission de 10 % s'appliquera uniquement aux paiements traités par Tnajem — jamais à ceux que ton élève te règle en main propre, et jamais sur la 1ʳᵉ séance, qui reste offerte. On te préviendra avant.",
     q2: "Faut-il un diplôme ?",
     a2: "Non. Maîtrise ta matière, une bonne connexion, et tu démarres aujourd'hui. On vérifie ton identité à la main avant que ta page soit publiée.",
     q3: "Si un élève ne vient pas ?",
@@ -107,7 +116,7 @@ const copy = {
     // final
     finalTitle: "Ta page de prof t'attend.",
     finalSub: "Crée-la en 2 minutes.",
-    finalReassure: "Gratuit · sans carte · zéro commission · supprimable à tout moment.",
+    finalReassure: "Gratuit pendant le pilote · sans carte · supprimable à tout moment.",
     crossBottom: "Tu es élève ? Trouve ton prof",
   },
   ar: {
@@ -116,11 +125,12 @@ const copy = {
     h1a: "صفحتك متاع أستاذ.",
     h1b: "دروسك مباشرة.",
     h1c: "وتحتفظ بـ 100 %.",
-    sub: "اعمل صفحتك فابور في دقيقتين، حدّد تعريفتك، واعطي دروسك مباشرة. التلميذ يخلّصك مباشرة : Tnajem ما تاخذ والو.",
+    sub: "اعمل صفحتك فابور في دقيقتين، حدّد تعريفتك، واعطي دروسك مباشرة. في فترة التجربة، التلميذ يخلّصك في يدك : Tnajem ما تاخذ والو.",
     ctaPrimary: "اعمل صفحتك متاع أستاذ",
     ctaGhost: "شوف الأساتذة في Tnajem",
-    micro: "فابور. بلا كارت. بلا عمولة.",
-    pilotChip: "تجربة — توّا نبداو",
+    micro: "فابور في فترة التجربة، بلا كارت. من بعد : اشتراك من 29 دينار في الشهر، و 10 % كان على الخلاص اللي يعدّي من Tnajem.",
+    tarifsCta: "شوف الأسعار",
+    pilotChip: "تجربة — 0 % اليوم",
 
     phoneName: "صفحتك متاع أستاذ",
     phoneSubject: "رياضيات · من الابتدائي للباك",
@@ -132,7 +142,7 @@ const copy = {
     shareLinkLabel: "اللينك متاعك",
     shareLinkExample: "tnajem.tn/صفحتك",
     classFilling: "القسم في طور التعمير",
-    phoneBadges: ["0 % عمولة", "خلاص مباشر"],
+    phoneBadges: ["0 % اليوم", "خلاص مباشر"],
     heroSceneLabel: "رسم توضيحي : صفحة أستاذ في Tnajem — إسم، مادة، درس مباشر واللينك اللي تشاركو.",
 
     featEyebrow: "شنوّة باش تاخذ",
@@ -140,7 +150,7 @@ const copy = {
     f1t: "صفحتك، ولينكك",
     f1b: "إسمك، مادتك، دروسك. لينك وحيد تلصقو في واتساب، إنستا ولا تيكتوك — ومن غادي تلامذتك يحجزو.",
     f2t: "ثمنك إنتي — وتحتفظ بـ 100 %",
-    f2b: "إنتي تحدّد ثمنك، درس بدرس، بلا سقف. التلميذ يخلّصك مباشرة : Tnajem ما تاخذ حتى عمولة.",
+    f2b: "إنتي تحدّد ثمنك، درس بدرس، بلا سقف. في فترة التجربة، التلميذ يخلّصك في يدك وTnajem ما تاخذ حتى عمولة. من بعد، الـ 10 % باش تكون كان على الخلاص اللي يعدّي من Tnajem — عمرها ما تكون على اللي يخلّصك بيه في يدك.",
     f3t: "التثبّت يتعمل بيدينا",
     f3b: "نشوفو بطاقة تعريفك بيدينا. كي تتقبل، صفحتك تولّي أونلاين وتبان في «اكتشف» — عادةً في 24–48 ساعة.",
     f4t: "دروس مباشرة",
@@ -156,23 +166,28 @@ const copy = {
     s3b: "انشر لينكك، وانشر درسك. أول حصة فابور للتلميذ، ومن بعد يخلّصك مباشرة.",
 
     incomeEyebrow: "قداش تنجم تربح",
-    incomeTitle: "حدّد تعريفتك، وتحتفظ بالكل.",
+    incomeTitle: "حدّد تعريفتك. اليوم، تحتفظ بالكل.",
     incomeLead: "هاذا مثال حساب — موش وعد، وموش سقف :",
     inStudents: "8 تلامذة",
     inSessions: "حصتين / جمعة",
     inPrice: "20 دينار / حصة",
-    inGross: "مثال : 8 تلامذة × حصتين × 20 دينار",
+    inGross: "مثال : 8 تلامذة × حصتين × 20 دينار × 4 جماعي",
     inKeepLbl: "تحتفظ بيه، اليوم",
     inKeep: "1 280 دينار",
     inYou: "إنتي · 100 %",
     inFee: "Tnajem · 0 %",
+    inLaterLbl: "من بعد، كان التلميذ خلّص من Tnajem",
+    inLater: "1 152 دينار",
+    inLaterYou: "إنتي · 90 %",
+    inLaterFee: "Tnajem · 10 %",
+    inLaterNote: "خلّصك في يدك : ديما 100 % متاعك.",
     inWithdraw:
       "في فترة التجربة، التلميذ يخلّصك مباشرة، يد بيد. Tnajem ما تاخذ حتى عمولة وما تلمسش فلوسك. الخلاص أونلاين : قريب.",
 
     faqEyebrow: "قبل ما تبدا",
     faqTitle: "الأسئلة اللي يسقسيونا عليها",
     q1: "قدّاش تاخذ Tnajem ؟",
-    a1: "والو، اليوم. في فترة التجربة تحتفظ بـ 100 % : التلميذ يخلّصك مباشرة، وTnajem ما تلمسش الفلوس. كي يجي الخلاص أونلاين، باش تولّي فما عمولة 12 % — ونعلموك قبل.",
+    a1: "والو، اليوم. في فترة التجربة تحتفظ بـ 100 % : التلميذ يخلّصك مباشرة، وTnajem ما تلمسش الفلوس. كي يجي الخلاص أونلاين، باش تولّي فما عمولة 10 % كان على الخلاص اللي يعدّي من Tnajem — عمرها ما تكون على اللي يخلّصك بيه في يدك، ولا على أول حصة اللي تبقى فابور. ونعلموك قبل.",
     q2: "يلزم شهادة ؟",
     a2: "لا. اتقن مادتك، كنكسيون مليحة، وتبدا اليوم. نتثبّتو من هويتك بيدينا قبل ما تتنشر صفحتك.",
     q3: "كان التلميذ ما جاش ؟",
@@ -180,7 +195,7 @@ const copy = {
 
     finalTitle: "صفحتك متاع أستاذ تستنّى فيك.",
     finalSub: "اعملها في دقيقتين.",
-    finalReassure: "فابور · بلا كارت · بلا عمولة · تنجم تمسحها وقتلي تحب.",
+    finalReassure: "فابور في فترة التجربة · بلا كارت · تنجم تمسحها وقتلي تحب.",
     crossBottom: "إنتي تلميذ ؟ لقا أستاذك",
   },
 } as const;
@@ -445,11 +460,16 @@ function SectionHead({ eyebrow, title, center = false }: { eyebrow: string; titl
   );
 }
 
-/* The one CTA, repeated verbatim. Same label, same destination, everywhere. */
+/* The one CTA, repeated verbatim. Same label, same destination, everywhere.
+
+   Points at SIGNUP, not at /onboarding. This is a public marketing page, so most
+   people who tap it have no session at all — and the ones who do had their account
+   silently converted to a tutor account by the old destination. Signing up as a
+   tutor is now something you do on a page that says so. */
 function Cta({ label, size = "md" }: { label: string; size?: "md" | "lg" }) {
   return (
     <Link
-      href="/onboarding"
+      href="/signup/prof"
       className="btn btn-primary lpp-cta-primary"
       style={{
         width: "auto",
@@ -508,6 +528,22 @@ function IncomePanel({ c }: { c: Copy }) {
             </span>
             <span className="text-on-blue-soft">{c.inFee}</span>
           </div>
+        </div>
+
+        {/* The future 90/10, kept visually secondary so today's real number stays
+            the headline. Stating it here is what stops "tu gardes 100 %" from
+            reading as a permanent promise. */}
+        <div className="lpp-later">
+          <div className="text-[13px] text-on-blue-soft font-semibold leading-[1.5]">
+            {c.inLaterLbl}
+          </div>
+          <div className="flex justify-between gap-2.5 flex-wrap mt-1 items-baseline">
+            <span className="font-display font-bold text-[19px] text-on-blue">{c.inLater}</span>
+            <span className="font-display font-bold text-[13px] text-on-blue-soft">
+              {c.inLaterYou} · {c.inLaterFee}
+            </span>
+          </div>
+          <div className="text-[13px] text-on-blue-soft mt-1 leading-[1.5]">{c.inLaterNote}</div>
         </div>
 
         <div className="trust trust-dark relative z-[2] mt-[18px]">
@@ -675,6 +711,10 @@ export default function PourLesProfsPage() {
         /* ---- income ---- */
         .lpp-amount { font-family: var(--fd); font-size: clamp(34px,5.5vw,52px); font-weight: 700;
           letter-spacing: -1.4px; color: var(--amber); line-height: 1.05; overflow-wrap: anywhere; }
+        .lpp-later {
+          margin-block-start: 16px; padding-block-start: 14px;
+          border-block-start: 1px solid rgba(255,255,255,.18);
+        }
         .lpp-split { position: relative; height: 12px; border-radius: 999px; overflow: hidden; background: rgba(255,255,255,.18); }
         .lpp-split-you {
           position: absolute; inset-block: 0; inset-inline-start: 0; width: 100%;
@@ -789,9 +829,14 @@ export default function PourLesProfsPage() {
                 </Link>
               </Reveal>
 
-              <Reveal delay={280} as="p" className="text-[13px] text-muted flex items-center gap-[7px]">
-                <Check className="w-[15px] h-[15px] text-green flex-none" />
-                {c.micro}
+              <Reveal delay={280} as="p" className="text-[13px] text-muted flex items-start gap-[7px]">
+                <Check className="w-[15px] h-[15px] text-green flex-none mt-[3px]" />
+                <span className="min-w-0">
+                  {c.micro}{" "}
+                  <Link href="/tarifs" className="linklike linklike-inline">
+                    {c.tarifsCta}
+                  </Link>
+                </span>
               </Reveal>
             </div>
 

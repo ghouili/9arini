@@ -42,6 +42,7 @@ const ROUTES: { subpath: string; priority: number; changeFrequency: MetadataRout
   { subpath: "", priority: 1, changeFrequency: "weekly" },
   { subpath: "/pour-les-profs", priority: 0.9, changeFrequency: "weekly" },
   { subpath: "/explore", priority: 0.9, changeFrequency: "daily" },
+  { subpath: "/tarifs", priority: 0.8, changeFrequency: "monthly" },
   { subpath: "/terms", priority: 0.3, changeFrequency: "yearly" },
   { subpath: "/privacy", priority: 0.3, changeFrequency: "yearly" },
 ];

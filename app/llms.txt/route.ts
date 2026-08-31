@@ -20,9 +20,12 @@ const BODY = `# Tnajem (تنجّم)
 - Bilingual: French and Tunisian Arabic (Derija), with full right-to-left support.
 
 ## What it costs
-- The first session with a tutor is free.
-- Further sessions: the student pays the tutor directly, off-platform, in Tunisian dinar (TND).
-- Tnajem currently takes no commission and holds no money. Online payments are disabled during the pilot, pending legal sign-off.
+- The first session with a tutor is always free, and never carries commission.
+- Students never pay Tnajem: no subscription, no student service fee. They pay the tutor for the lessons themselves.
+- TODAY: Tnajem takes no commission and holds no money. Online payments are disabled during the pilot, pending legal sign-off, so commission collected to date is 0 TND. Every plan below is free right now — nobody is being billed.
+- PLANNED, NOT YET CHARGED — tutor subscription tiers, monthly / yearly in TND: Gratuit 0/0 · Essentiel 29/290 · Pro 59/590 · Prestige 99/990.
+- PLANNED, NOT YET CHARGED — a flat 10% commission, identical on every plan, applied ONLY to payments that Tnajem itself processes. If a student pays the tutor directly (cash, hand to hand), Tnajem takes nothing.
+- Tnajem has not promised that commission stays at 0% permanently. The 0% is a property of the pilot, not a guarantee.
 
 ## How it works
 1. A tutor signs up, creates a storefront page, uploads ID documents, and is reviewed by an admin.
@@ -37,6 +40,7 @@ const BODY = `# Tnajem (تنجّم)
 - ${SITE_URL}/ — home
 - ${SITE_URL}/explore — browse verified tutors
 - ${SITE_URL}/pour-les-profs — for tutors (how to join)
+- ${SITE_URL}/tarifs — pricing: the four tutor plans and the commission rule
 - ${SITE_URL}/<tutor-slug> — a tutor's public storefront
 
 ## Contact / entity

@@ -86,7 +86,7 @@ const copy = {
     finalMicro: "0 TND pour commencer · sans carte · annulation libre jusqu'à 24h avant.",
 
     profTitle: "Tu es prof ?",
-    profBody: "Donne tes cours en direct, fixe ton tarif, garde 100 % — zéro commission.",
+    profBody: "Donne tes cours en direct, fixe ton tarif, et garde 100 % pendant le pilote.",
     profCta: "Commence à enseigner →",
   },
 
@@ -140,7 +140,7 @@ const copy = {
     finalMicro: "0 دينار باش تبدا · بلا كارت · تنجّم تلغي حتى 24 ساعة قبل.",
 
     profTitle: "إنتي أستاذ؟",
-    profBody: "قرّي مباشرة، حدّد ثمنك، واحتفظ بـ 100 % — بلا عمولة.",
+    profBody: "قرّي مباشرة، حدّد ثمنك، واحتفظ بـ 100 % في فترة التجربة.",
     profCta: "ابدا تقرّي ←",
   },
 } as const;
@@ -356,7 +356,7 @@ export default function HomePage() {
 
             {/* RIGHT — illustration of the actual product (generic on purpose) */}
             <div className="lp-stage" role="img" aria-label={c.heroAria}>
-              <div className="lp-stage-bg" aria-hidden="true" />
+              <div className="bg-gray-800 " aria-hidden="true" />
               <div className="zellige lp-stage-zellige" aria-hidden="true" />
 
               <div className="lp-panel" aria-hidden="true">
@@ -473,7 +473,7 @@ export default function HomePage() {
               })}
             </div>
 
-            <div className="u-card u-card-pad mt-4 flex-row items-start gap-3">
+            {/* <div className="u-card u-card-pad mt-4 flex-row items-start gap-3">
               <span
                 aria-hidden="true"
                 className="grid h-9 w-9 flex-none place-items-center rounded-[11px] bg-blue50 text-blue"
@@ -481,7 +481,7 @@ export default function HomePage() {
                 <Shield className="h-[17px] w-[17px]" />
               </span>
               <p className="min-w-0 text-[13.5px] leading-relaxed text-ink2">{c.honestNote}</p>
-            </div>
+            </div> */}
           </div>
         </div>
       </section>

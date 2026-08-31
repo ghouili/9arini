@@ -21,6 +21,7 @@ const F = {
     myClasses: "Mes cours",
     signIn: "Se connecter",
     forTutors: "Pour les profs",
+    pricing: "Tarifs",
     createPage: "Créer ma page de prof",
     dashboard: "Tableau de bord",
   },
@@ -31,6 +32,7 @@ const F = {
     myClasses: "حصصي",
     signIn: "دخول",
     forTutors: "للأساتذة",
+    pricing: "الأسعار",
     createPage: "اعمل صفحتك متاع أستاذ",
     dashboard: "لوحتي",
   },
@@ -94,7 +96,8 @@ export function SiteFooter() {
           <h2>{f.tutors}</h2>
           <ul>
             <li><Link href="/pour-les-profs">{f.forTutors}</Link></li>
-            <li><Link href="/onboarding">{f.createPage}</Link></li>
+            <li><Link href="/tarifs">{f.pricing}</Link></li>
+            <li><Link href="/signup/prof">{f.createPage}</Link></li>
             <li><Link href="/dashboard">{f.dashboard}</Link></li>
           </ul>
         </nav>

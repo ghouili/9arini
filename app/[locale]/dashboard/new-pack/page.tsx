@@ -72,7 +72,10 @@ export default function NewPackPage() {
       <section className="web-section tight">
         <div className="container">
           <div className="app-layout">
-            <DashboardSidebar />
+            {/* This page does not fetch getDashboard(), so the flag is not in scope.
+                Hardcoded false is correct while payments are off; when PAYMENTS_ENABLED
+                ships, thread the real flag here (grep: DashboardSidebar paymentsEnabled={false}). */}
+            <DashboardSidebar paymentsEnabled={false} />
 
             {/* Main content column */}
             <div className="min-w-0">
