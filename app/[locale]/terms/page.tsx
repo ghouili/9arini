@@ -80,10 +80,11 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
         ],
       },
       {
-        h: "3. Compte, téléphone et code SMS",
+        h: "3. Compte, e-mail et code de connexion",
         p: [
-          "La connexion se fait avec ton numéro de téléphone et un code à usage unique envoyé par SMS. Ce code est personnel et temporaire : ne le communique jamais, à personne. Tnajem ne te demandera jamais ton code par téléphone, par WhatsApp ou par message.",
-          "Si tu perds l'accès à ton numéro, écris-nous : nous pouvons devoir vérifier ton identité avant de rétablir l'accès.",
+          "La connexion se fait avec ton adresse e-mail et un code à usage unique qu'on t'envoie par e-mail. Ce code est personnel et temporaire : ne le communique jamais, à personne. Tnajem ne te demandera jamais ton code par téléphone, par WhatsApp ou par message.",
+          "Ton numéro de téléphone est facultatif. Il sert à te joindre, jamais à te connecter.",
+          "Si tu perds l'accès à ton adresse e-mail, écris-nous : nous pouvons devoir vérifier ton identité avant de rétablir l'accès.",
         ],
       },
       {
@@ -228,10 +229,11 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
         ],
       },
       {
-        h: "3. الحساب، التليفون ورمز الـSMS",
+        h: "3. الحساب، الإيميل ورمز الدخول",
         p: [
-          "الدخول يتمّ برقم تليفونك وبرمز وحيد يوصلك في SMS. الرمز هذا شخصي ووقتي: ما تعطيه لحتى واحد. تنجّم عمرها ما تطلب منّك الرمز بالتليفون ولا بواتساب ولا برسالة.",
-          "إذا ضيّعت رقمك، اكتبلنا: نجّمو نحتاجو نتثبّتو في هويتك قبل ما نرجّعولك الدخول.",
+          "الدخول يتمّ بالإيميل متاعك وبرمز وحيد يوصلك في الإيميل. الرمز هذا شخصي ووقتي: ما تعطيه لحتى واحد. تنجّم عمرها ما تطلب منّك الرمز بالتليفون ولا بواتساب ولا برسالة.",
+          "رقم التليفون اختياري. يخدم باش نلقاوك، ما يخدمش للدخول.",
+          "إذا ضيّعت الإيميل متاعك، اكتبلنا: نجّمو نحتاجو نتثبّتو في هويتك قبل ما نرجّعولك الدخول.",
         ],
       },
       {

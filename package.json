@@ -20,7 +20,8 @@
     "ui:shots": "node scripts/ui-audit/shots.mjs",
     "ui:weight": "node scripts/ui-audit/weight.mjs",
     "ui:lighthouse": "node scripts/ui-audit/lighthouse.mjs",
-    "brand:build": "python scripts/brand/build-raster.py && node scripts/brand/build-og.mjs"
+    "brand:build": "python scripts/brand/build-raster.py && node scripts/brand/build-og.mjs",
+    "start:standalone": "node scripts/serve-standalone.mjs"
   },
   "dependencies": {
     "drizzle-orm": "^0.36.4",

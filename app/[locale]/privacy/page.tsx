@@ -6,7 +6,7 @@
    reviewed by a Tunisian lawyer (and the INPDP formalities completed) before
    go-live. The dated "modèle — à faire relire par un avocat" banner at the top
    is deliberate: do not remove it until counsel has signed off and the bracketed
-   placeholders (legal entity, INPDP declaration number, host, SMS provider) are
+   placeholders (legal entity, INPDP declaration number, host, e-mail provider) are
    filled in.
 
    Accuracy notes for whoever maintains this page — keep the copy in sync with
@@ -80,12 +80,12 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
         h: "2. Ce que nous collectons",
         p: ["Nous ne collectons que ce qui sert à faire fonctionner le service."],
         list: [
-          "Compte : ton numéro de téléphone, ton nom, ton rôle (élève, parent/tuteur ou prof), ta langue, et ton année de naissance (uniquement pour savoir si un accord parental est nécessaire).",
+          "Compte : ton adresse e-mail (c'est avec elle que tu te connectes), ton nom, ton rôle (élève, parent/tuteur ou prof), ta langue, et ton année de naissance (uniquement pour savoir si un accord parental est nécessaire). Ton numéro de téléphone est facultatif : tu peux l'ajouter pour qu'on te joigne, il ne sert jamais à te connecter.",
           "Accord parental (élève mineur) : le nom et le téléphone du parent ou tuteur, le texte de l'accord et sa date.",
           "Page publique du prof : nom, matière, niveau, présentation, photo, années d'expérience, établissement, liens vers tes réseaux — tout ce que tu publies toi-même et qui est visible par tout le monde.",
           "Documents de vérification (profs uniquement) : pièce d'identité (CIN ou passeport, recto/verso), éventuellement un selfie et des diplômes ou attestations. Ce sont les données les plus sensibles que nous détenons.",
           "Réservations : quelles séances tu as réservées, chez quel prof, à quelle date, et leur statut.",
-          "Technique : un cookie de session pour te garder connecté, les codes SMS (stockés uniquement sous forme hachée, jamais en clair) et des journaux techniques de base.",
+          "Technique : un cookie de session pour te garder connecté, les codes de connexion (stockés uniquement sous forme hachée, jamais en clair) et des journaux techniques de base.",
         ],
         after: [
           "Nous ne collectons aucune donnée bancaire : les paiements ne sont pas actifs sur Tnajem. Nous ne collectons pas ta géolocalisation, ni tes contacts, ni de données de santé.",
@@ -95,7 +95,7 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
         h: "3. Pourquoi, et sur quelle base",
         p: ["Chaque donnée a une raison d'être précise :"],
         list: [
-          "Numéro de téléphone → créer ton compte et t'identifier par code SMS (exécution du service que tu demandes).",
+          "Adresse e-mail → créer ton compte et t'identifier par un code à usage unique (exécution du service que tu demandes). Numéro de téléphone, si tu le donnes → te joindre au sujet d'une séance, rien d'autre.",
           "Nom et rôle → permettre au prof de savoir qui a réservé, et à l'élève de savoir avec qui il apprend.",
           "Année de naissance → déclencher l'accord parental obligatoire pour les moins de 18 ans (obligation légale et protection des mineurs).",
           "Nom et téléphone du parent → recueillir et prouver son consentement (consentement).",
@@ -118,7 +118,7 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
         ],
         after: [
           "Concrètement, les documents ne sont pas stockés dans le dossier public du site : ils sont écrits dans un répertoire privé du serveur, en dehors de tout ce qui est servi publiquement. Aucune adresse web publique ne permet de les ouvrir. Ils ne sont consultables qu'à travers une route protégée réservée aux administrateurs : le serveur vérifie que la session appartient à un administrateur autorisé (liste restreinte de numéros) avant d'afficher le fichier, et demande au navigateur de ne rien mettre en cache. Toute autre demande reçoit un refus.",
-          "Sous-traitants : l'hébergeur du serveur et de la base de données, et le fournisseur SMS qui envoie ton code de connexion (il reçoit ton numéro et le code, rien d'autre). Ils agissent sur nos instructions et n'ont pas le droit d'utiliser tes données pour eux-mêmes. [À compléter par l'avocat : identité de l'hébergeur et du fournisseur SMS, pays d'hébergement, et — si les serveurs sont hors de Tunisie — l'autorisation de transfert requise par la loi n° 2004-63.]",
+          "Sous-traitants : l'hébergeur du serveur et de la base de données, et le fournisseur d'e-mail qui envoie ton code de connexion (il reçoit ton adresse et le code, rien d'autre). Ils agissent sur nos instructions et n'ont pas le droit d'utiliser tes données pour eux-mêmes. [À compléter par l'avocat : identité de l'hébergeur et du fournisseur d'e-mail, pays d'hébergement, et — si les serveurs sont hors de Tunisie — l'autorisation de transfert requise par la loi n° 2004-63.]",
           "Nous ne communiquons des données à une autorité que si la loi tunisienne nous y oblige.",
         ],
       },
@@ -131,7 +131,7 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
           "Documents d'identité et diplômes : conservés le temps de l'examen du dossier, puis supprimés au plus tard 90 jours après la décision — que le prof soit accepté ou refusé.",
           "Après suppression, il ne reste qu'une trace minimale sans le document lui-même : le type de document présenté, la date du contrôle et la décision. C'est ce qui nous permet de prouver que la vérification a bien eu lieu.",
           "Compte, profil et réservations : conservés tant que ton compte existe, puis jusqu'à 3 ans après ta dernière activité (délai lié aux éventuels litiges), puis supprimés.",
-          "Codes SMS : hachés et supprimés après quelques minutes.",
+          "Codes de connexion : hachés et supprimés après quelques minutes.",
           "Session de connexion : supprimée à l'expiration ou à la déconnexion.",
         ],
         after: [
@@ -141,7 +141,7 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
       {
         h: "6. Sécurité",
         p: [
-          "Les documents sensibles sont stockés hors du dossier public et ne sont accessibles qu'à un nombre restreint d'administrateurs, via une route protégée. Les codes SMS sont hachés. Les échanges avec le site sont chiffrés (HTTPS). L'accès administrateur est limité à une liste de numéros définie côté serveur.",
+          "Les documents sensibles sont stockés hors du dossier public et ne sont accessibles qu'à un nombre restreint d'administrateurs, via une route protégée. Les codes de connexion sont hachés. Les échanges avec le site sont chiffrés (HTTPS). L'accès administrateur est limité à une liste d'adresses e-mail définie côté serveur.",
           "Aucun système n'est infaillible. En cas d'incident de sécurité affectant tes données, nous t'informerons et informerons l'INPDP dans les conditions prévues par la loi.",
         ],
       },
@@ -173,14 +173,14 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
       {
         h: "9. Cookies",
         p: [
-          "Nous utilisons un seul cookie essentiel : celui qui te garde connecté après la saisie de ton code SMS. Sans lui, le site ne peut pas fonctionner.",
+          "Nous utilisons un seul cookie essentiel : celui qui te garde connecté après la saisie de ton code de connexion. Sans lui, le site ne peut pas fonctionner.",
           "Pas de cookie publicitaire, pas de pixel de réseau social, pas de mesure d'audience tierce. Ton choix de langue est simplement gardé dans la mémoire locale de ton navigateur, sur ton appareil.",
         ],
       },
       {
         h: "10. Modifications de cette politique",
         p: [
-          "Cette politique évoluera — notamment lors de l'activation des paiements, qui introduira de nouvelles données (transactions). La version applicable est celle publiée sur cette page. En cas de changement important, nous te préviendrons dans l'application ou par SMS.",
+          "Cette politique évoluera — notamment lors de l'activation des paiements, qui introduira de nouvelles données (transactions). La version applicable est celle publiée sur cette page. En cas de changement important, nous te préviendrons dans l'application ou par e-mail.",
         ],
       },
       {
@@ -216,12 +216,12 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
         h: "2. شنوّة نجمعو",
         p: ["ما نجمعو كان اللي يلزم باش الخدمة تمشي."],
         list: [
-          "الحساب: رقم تليفونك، اسمك، دورك (تلميذ، وليّ ولا أستاذ)، لغتك، وسنة ميلادك (كان باش نعرفو إذا لازمة موافقة وليّ).",
+          "الحساب: الإيميل متاعك (بيه تدخل)، اسمك، دورك (تلميذ، وليّ ولا أستاذ)، لغتك، وسنة ميلادك (كان باش نعرفو إذا لازمة موافقة وليّ). رقم التليفون اختياري: تنجّم تزيدو باش نلقاوك، وعمرو ما يخدم للدخول.",
           "موافقة الوليّ (تلميذ قاصر): اسم الوليّ، رقم تليفونو، نصّ الموافقة وتاريخها.",
           "الصفحة العمومية متاع الأستاذ: الاسم، المادة، المستوى، التقديم، الصورة، سنوات الخبرة، المؤسسة، وروابط شبكاتك — كل شيء إنت اللي تنشرو وكل الناس تشوفو.",
           "وثائق التوثيق (الأساتذة برك): وثيقة هوية (بطاقة تعريف وطنية ولا جواز سفر، وجه وظهر)، وأحيانًا صورة سيلفي وشهائد. هاذي أكثر معطيات حسّاسة عندنا.",
           "الحجوزات: أنهي حصص حجزت، مع أنهي أستاذ، في أنهي تاريخ، وشنوّة وضعيتها.",
-          "تقني: كوكي للجلسة باش تبقى داخل، رموز الـSMS (محفوظين مشفّرين بـhash برك، عمرهم ما يتحفظو واضحين)، وسجلاّت تقنية أساسية.",
+          "تقني: كوكي للجلسة باش تبقى داخل، رموز الدخول (محفوظين مشفّرين بـhash برك، عمرهم ما يتحفظو واضحين)، وسجلاّت تقنية أساسية.",
         ],
         after: [
           "ما نجمعو حتى معطيات بنكية: الخلاص موش مفعّل في تنجّم. ما نجمعوش موقعك الجغرافي، لا جهات الاتصال متاعك، لا معطيات صحّية.",
@@ -231,7 +231,7 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
         h: "3. علاش، وعلى أيّ أساس",
         p: ["كل معطى عندو سبب واضح:"],
         list: [
-          "رقم التليفون ← نعملو حسابك ونتثبّتو منّك برمز SMS (تنفيذ الخدمة اللي طلبتها).",
+          "الإيميل ← نعملو حسابك ونتثبّتو منّك برمز وحيد (تنفيذ الخدمة اللي طلبتها). رقم التليفون، إذا عطيتو ← باش نلقاوك على خاطر حصّة، وخلاص.",
           "الاسم والدور ← الأستاذ يعرف شكون حجز، والتلميذ يعرف مع شكون باش يقرا.",
           "سنة الميلاد ← نفعّلو موافقة الوليّ الإجبارية لأقلّ من 18 سنة (واجب قانوني وحماية للقاصرين).",
           "اسم ورقم الوليّ ← نجمعو موافقتو ونثبّتوها (الموافقة).",
@@ -254,7 +254,7 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
         ],
         after: [
           "بصفة ملموسة، الوثائق ما تتحطّش في المجلّد العمومي متاع الموقع: تتكتب في مجلّد خاصّ في السيرفر، برّة كل شيء يتقدّم للعموم. ما فمّا حتى رابط عمومي ينجّم يفتحهم. ما يتشافوش كان عبر مسار محمي مخصّص للإداريين: السيرفر يتثبّت إلّي الجلسة تخصّ إداري مرخّص (قائمة محدودة من الأرقام) قبل ما يعرض الملفّ، ويطلب من المتصفّح ما يخزّن حتى شيء. أيّ طلب آخر يترفض.",
-          "المناولين: مستضيف السيرفر وقاعدة البيانات، ومزوّد الـSMS اللي يبعثلك رمز الدخول (ياخذ رقمك والرمز، وخلاص). يخدمو بتعليماتنا وما عندهمش الحقّ يستعملو معطياتك لروحهم. [يكمّلو المحامي: هوية المستضيف ومزوّد الـSMS، بلاد الاستضافة، وإذا كانت السيرفرات برّة تونس، الترخيص بالإحالة اللي يستوجبو القانون عدد 63 لسنة 2004.]",
+          "المناولين: مستضيف السيرفر وقاعدة البيانات، ومزوّد الإيميل اللي يبعثلك رمز الدخول (ياخذ الإيميل متاعك والرمز، وخلاص). يخدمو بتعليماتنا وما عندهمش الحقّ يستعملو معطياتك لروحهم. [يكمّلو المحامي: هوية المستضيف ومزوّد الإيميل، بلاد الاستضافة، وإذا كانت السيرفرات برّة تونس، الترخيص بالإحالة اللي يستوجبو القانون عدد 63 لسنة 2004.]",
           "ما نعطيوش معطيات لسلطة كان إذا القانون التونسي يلزمنا.",
         ],
       },
@@ -267,7 +267,7 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
           "وثائق الهوية والشهائد: نحتافظو بيهم وقت دراسة الملفّ برك، ومن بعد يتحذفو في أجل أقصاه 90 يوم بعد القرار — سواء الأستاذ تقبل ولا تنرفض.",
           "بعد الحذف، ما يبقى كان أثر بسيط بلا الملفّ روحو: نوع الوثيقة اللي تقدّمت، تاريخ التثبّت، والقرار. هذا اللي يخلّينا نثبّتو إلّي التوثيق صار فعلاً.",
           "الحساب، الملفّ الشخصي والحجوزات: نحتافظو بيهم طول ما حسابك موجود، ومن بعد حتى لـ3 سنين من آخر نشاط (أجل مرتبط بالنزاعات المحتملة)، ومن بعد يتحذفو.",
-          "رموز الـSMS: مشفّرة ويتحذفو بعد دقائق.",
+          "رموز الدخول: مشفّرة ويتحذفو بعد دقائق.",
           "جلسة الدخول: تتحذف كي تنتهي صلوحيتها ولا كي تخرج.",
         ],
         after: [
@@ -277,7 +277,7 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
       {
         h: "6. الأمان",
         p: [
-          "الوثائق الحسّاسة تتخزّن برّة المجلّد العمومي وما ينجّم يوصلّها كان عدد محدود من الإداريين عبر مسار محمي. رموز الـSMS مشفّرة. الاتّصال بالموقع مشفّر (HTTPS). النفاذ الإداري محدود بقائمة أرقام معرّفة في السيرفر.",
+          "الوثائق الحسّاسة تتخزّن برّة المجلّد العمومي وما ينجّم يوصلّها كان عدد محدود من الإداريين عبر مسار محمي. رموز الدخول مشفّرة. الاتّصال بالموقع مشفّر (HTTPS). النفاذ الإداري محدود بقائمة إيميلات معرّفة في السيرفر.",
           "ما فمّا نظام كامل. إذا صار حادث أمني يمسّ معطياتك، باش نعلموك ونعلمو الـINPDP كيما يستوجبو القانون.",
         ],
       },
@@ -309,14 +309,14 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
       {
         h: "9. الكوكيز",
         p: [
-          "نستعملو كوكي وحيد وضروري: هو اللي يخلّيك داخل بعد ما تعمّر رمز الـSMS. من غيرو الموقع ما يخدمش.",
+          "نستعملو كوكي وحيد وضروري: هو اللي يخلّيك داخل بعد ما تعمّر رمز الدخول. من غيرو الموقع ما يخدمش.",
           "ما فمّا كوكي إشهاري، ما فمّا بيكسل شبكات اجتماعية، ما فمّاش قياس جمهور خارجي. اختيار اللغة يتحفظ برك في الذاكرة المحلية متاع متصفّحك، في جهازك.",
         ],
       },
       {
         h: "10. تغيير السياسة هاذي",
         p: [
-          "السياسة هاذي باش تتطوّر — بالخصوص وقت تفعيل الخلاص، اللي باش يزيد معطيات جديدة (المعاملات). النسخة المعتمدة هي اللي منشورة في الصفحة هاذي. في صورة تغيير مهمّ، باش نعلموك في التطبيق ولا بـSMS.",
+          "السياسة هاذي باش تتطوّر — بالخصوص وقت تفعيل الخلاص، اللي باش يزيد معطيات جديدة (المعاملات). النسخة المعتمدة هي اللي منشورة في الصفحة هاذي. في صورة تغيير مهمّ، باش نعلموك في التطبيق ولا بالإيميل.",
         ],
       },
       {
