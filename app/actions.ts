@@ -17,6 +17,7 @@ import { revalidateTutor, revalidatePublicTutors } from "@/lib/cache";
 import { smsEnabled, sendSms } from "@/lib/sms";
 import { mailEnabled, sendMail } from "@/lib/mail";
 import { notify } from "@/lib/notify";
+import { requireAdmin, adminNotifyEmails } from "@/lib/admin";
 import { paymentsEnabled, tutorBalanceTnd } from "@/lib/payments";
 import { liveRoomUrl, resolveMeetUrl } from "@/lib/live";
 import {
@@ -1265,62 +1266,10 @@ function sniffMime(buf: Buffer): string | null {
   return null;
 }
 
-/* ADMIN GATE. Channel-aware — see adminAllowlist() below.
-
-   BUG (fixed): this used to be
-       (process.env.ADMIN_PHONES ?? "").split(",").map(s => normalizePhone(s.trim())).filter(Boolean)
-   and normalizePhone("") returns "+216" — it prefixes the Tunisian country code to
-   an empty string. `.filter(Boolean)` runs AFTER the map, so it never sees the "".
-   Consequences:
-     • ADMIN_PHONES unset/empty  → the admin list is ["+216"], NOT [].
-     • a trailing comma          → "+216" is silently appended to the real list.
-   And requireAdmin() compared it against normalizePhone(session.profile.phone ?? "")
-   — which is ALSO "+216" whenever a profile's phone is null (the column is
-   nullable). Null-phone profile + unset ADMIN_PHONES = full admin: the pending
-   verification queue and every uploaded national ID scan.
-
-   Fix: drop empty entries BEFORE normalizing, require a non-empty admin list, and
-   require the session to carry a real phone. Fails closed on a misconfigured env. */
-/* Follows the login channel: ADMIN_EMAILS under OTP_CHANNEL=email, ADMIN_PHONES
-   under =sms. It HAS to. Once accounts sign up by email, nobody has a phone on file
-   at signup any more, so a phone-only allowlist would lock every admin out of the
-   verification queue — and the queue is where the national ID scans live.
-
-   All three fail-closed properties of the phone version are preserved verbatim:
-   empty entries are dropped BEFORE normalising (normalizePhone("") returns "+216",
-   which is how this once granted admin to everyone), an empty allowlist refuses
-   everyone, and an entry that does not survive validation is discarded. */
-function adminAllowlist(): string[] {
-  const email = otpChannel() === "email";
-  const raw = email ? process.env.ADMIN_EMAILS : process.env.ADMIN_PHONES;
-  return (raw ?? "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0)      // ← never normalize an empty string
-    .map((s) => (email ? normalizeEmail(s) : normalizePhone(s)))
-    .filter((v) => (email ? isValidEmail(v) : isValidPhone(v)));  // never trust a junk entry
-}
-
-async function requireAdmin() {
-  const email = otpChannel() === "email";
-  const allow = adminAllowlist();
-  if (allow.length === 0) {
-    console.error(
-      `[Tnajem] ${email ? "ADMIN_EMAILS" : "ADMIN_PHONES"} is not configured — refusing all admin access.`,
-    );
-    return null; // fail closed, never open
-  }
-  const session = await getSession();
-  if (!session) return null;
-
-  // A profile with no identity of the ACTIVE kind can never be an admin.
-  const raw = ((email ? session.profile.email : session.profile.phone) ?? "").trim();
-  if (!raw) return null;
-
-  const normalized = email ? normalizeEmail(raw) : normalizePhone(raw);
-  if (!(email ? isValidEmail(normalized) : isValidPhone(normalized))) return null;
-  return allow.includes(normalized) ? session : null;
-}
+/* The admin gate lives in lib/admin.ts now — ONE implementation, shared with
+   app/api/admin/doc/[id]/route.ts. That route carried a phone-only copy, so
+   under email login (the default) every admin got 403 on every ID scan while
+   still being shown the queue. The fail-closed history is documented there. */
 
 export async function submitVerification(formData: FormData):
   Promise<{ ok: boolean; demo?: boolean; error?: string; retryAfter?: number }> {
@@ -1389,7 +1338,14 @@ export async function submitVerification(formData: FormData):
       // Store the SANITIZED name: this string is echoed into a Content-Disposition
       // header by the admin doc route, and the raw client name could carry CR/LF.
       fileName: safeFileName(file.name, 60),
-      storagePath: join("verification", mine.id, safe),
+      /* POSIX separators, ALWAYS. node:path.join is platform-dependent, so this
+         column filled up with "verification\<id>\<file>" on Windows and
+         "verification/<id>/<file>" on Linux — the same logical path stored two
+         ways. Both readers split on /[\/]+/ so it resolved either way, but the
+         stored value was not canonical: any future consumer that uses it verbatim
+         (a URL, a LIKE query, a join) silently misses half the rows.
+         scripts/sql/0006 normalises the rows that already exist. */
+      storagePath: ["verification", mine.id, safe].join("/"),
       mime,                 // the SNIFFED type — never the client's claim
       sizeBytes: bytes.length,
     });
@@ -1463,16 +1419,9 @@ export async function submitVerification(formData: FormData):
   return { ok: true };
 }
 
-/** Admin allowlist, shared with the /admin gate. Empty = nobody, fails closed. */
-function adminEmails(): string[] {
-  return (process.env.ADMIN_EMAILS ?? "")
-    .split(",")
-    .map((s) => s.trim().toLowerCase())
-    .filter(Boolean);
-}
 
 async function notifyAdminsOfSubmission(tutorId: string, slug: string, displayName: string): Promise<void> {
-  const to = adminEmails();
+  const to = adminNotifyEmails();
   if (!to.length) {
     console.warn(
       "[Tnajem] verification submitted (tutor %s) but ADMIN_EMAILS is empty — nobody was alerted. " +

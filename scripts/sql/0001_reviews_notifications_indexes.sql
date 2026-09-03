@@ -55,8 +55,20 @@ CREATE INDEX IF NOT EXISTS "reviews_tutor_id_created_at_idx"         ON "reviews
 -- getStorefront + getDashboard
 CREATE INDEX IF NOT EXISTS "packs_tutor_id_idx"                      ON "packs"         USING btree ("tutor_id");
 
--- Login path: 4 phone lookups per sign-in, all seq scans before this
-CREATE INDEX IF NOT EXISTS "otp_codes_phone_idx"                     ON "otp_codes"     USING btree ("phone");
+-- Login path: 4 identifier lookups per sign-in, all seq scans before this.
+-- Guarded on the COLUMN, not just the index name: 0005 renames otp_codes.phone
+-- to .identifier (and renames this index with it), so on an already-migrated
+-- database a bare CREATE INDEX here fails with 42703 and takes the whole replay
+-- down. `IF NOT EXISTS` only checks the index name, which is not enough.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'otp_codes' AND column_name = 'phone'
+  ) THEN
+    CREATE INDEX IF NOT EXISTS "otp_codes_phone_idx" ON "otp_codes" USING btree ("phone");
+  END IF;
+END $$;
 CREATE INDEX IF NOT EXISTS "otp_codes_expires_at_idx"                ON "otp_codes"     USING btree ("expires_at");
 
 -- verifyOtp runs this on EVERY student login

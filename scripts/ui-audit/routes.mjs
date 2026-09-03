@@ -50,7 +50,11 @@ function loadEnv() {
   envPromise ??= (async () => {
     try {
       const { config } = await import("dotenv");
-      config({ path: ".env.local", override: true });
+      /* Match Next.js precedence: .env holds the shared config, .env.local overrides it.
+         Loading only .env.local left these scripts blind to CRON_SECRET, ADMIN_EMAILS,
+         OTP_CHANNEL and MAIL_* — so the CLI and the running app disagreed. */
+      config({ path: ".env" });
+      config({ path: ".env.local", override: true }); // .env.local still wins over a stray shell var
     } catch {
       /* dotenv missing → fall through to whatever the shell exported */
     }

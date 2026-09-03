@@ -4,7 +4,7 @@ import { join, resolve, sep } from "node:path";
 import { eq } from "drizzle-orm";
 import { db, dbReady } from "@/lib/db";
 import { verificationDocs } from "@/lib/db/schema";
-import { getSession, normalizePhone, isValidPhone } from "@/lib/auth";
+import { isAdmin } from "@/lib/admin";
 import { isUuid, safeFileName } from "@/lib/validation";
 
 /* Protected viewer for uploaded verification documents — national ID scans.
@@ -16,38 +16,13 @@ import { isUuid, safeFileName } from "@/lib/validation";
 export const runtime = "nodejs";        // needs node:fs
 export const dynamic = "force-dynamic"; // never cached or prerendered
 
-/* ADMIN LIST — same bug as app/actions.ts::adminPhones() had, same fix.
-   normalizePhone("") returns "+216" (it prefixes the country code to an empty
-   string), and the old `.map(normalizePhone).filter(Boolean)` ran filter AFTER the
-   map — so an unset or trailing-comma ADMIN_PHONES produced the list ["+216"]
-   instead of []. Combined with normalizePhone(session.profile.phone ?? "") — also
-   "+216" when a profile's phone is null — a null-phone user became an admin and
-   could stream every tutor's ID scan. Filter empties BEFORE normalizing. */
-function adminPhones(): string[] {
-  return (process.env.ADMIN_PHONES ?? "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0)
-    .map((s) => normalizePhone(s))
-    .filter((p) => isValidPhone(p));
-}
-
-async function isAdmin(): Promise<boolean> {
-  const allow = adminPhones();
-  if (allow.length === 0) {
-    console.error("[Tnajem] ADMIN_PHONES is not configured — refusing doc access.");
-    return false; // fail closed
-  }
-  const session = await getSession();
-  if (!session) return false;
-
-  const phone = (session.profile.phone ?? "").trim();
-  if (!phone) return false; // no phone → never an admin
-
-  const normalized = normalizePhone(phone);
-  if (!isValidPhone(normalized)) return false;
-  return allow.includes(normalized);
-}
+/* The admin check is lib/admin.ts::isAdmin() — the SAME implementation the
+   verification queue uses. This file used to carry its own phone-only copy,
+   which was the live bug: login is email OTP (lib/auth.ts::otpChannel defaults
+   to "email"), so an admin who signed up by email has profile.phone === null
+   and this returned false every time. An admin could see the pending queue and
+   then get 403 on every ID scan in it. It failed CLOSED — never a hole, just a
+   welded-shut door — but the queue could not be worked at all. */
 
 /* Containment check for storage_path. The value comes from our own DB (written by
    submitVerification, which sanitizes), so this is defence in depth rather than a

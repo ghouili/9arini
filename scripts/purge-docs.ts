@@ -1,5 +1,9 @@
 import { config } from "dotenv";
-config({ path: ".env.local", override: true }); // .env.local wins over any stray shell DATABASE_URL
+/* Match Next.js precedence: .env holds the shared config, .env.local overrides it.
+   Loading only .env.local left these scripts blind to CRON_SECRET, ADMIN_EMAILS,
+   OTP_CHANNEL and MAIL_* — so the CLI and the running app disagreed. */
+config({ path: ".env" });
+config({ path: ".env.local", override: true }); // .env.local still wins over a stray shell var
 
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
