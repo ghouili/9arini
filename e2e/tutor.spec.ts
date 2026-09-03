@@ -1,0 +1,157 @@
+import { test, expect } from "@playwright/test";
+import { sql } from "./support/db";
+import { seedProfile, seedTutor, seedClass } from "./support/seed";
+import { mintSession, sessionCookie } from "./support/session";
+
+async function asTutor(browser: any, profileId: string) {
+  const ctx = await browser.newContext({ reducedMotion: "reduce" });
+  await ctx.addCookies([sessionCookie(await mintSession(profileId))]);
+  return ctx;
+}
+
+test("a tutor creates a storefront from the onboarding form", async ({ browser }) => {
+  const me = await seedProfile({ role: "tutor", birthYear: 1988 });
+  const ctx = await asTutor(browser, me.id);
+  const page = await ctx.newPage();
+
+  await page.goto("/fr/onboarding");
+  await page.getByPlaceholder("ex. Yassine Khelifi").fill("E2E Storefront Tutor");
+  await page.getByPlaceholder(/ex\. Maths/).fill("Maths — Bac");
+  await page.getByPlaceholder(/On révise les maths/).fill("Seeded by the E2E suite.");
+  await page.getByRole("button", { name: /Publier ma page/i }).dispatchEvent("click");
+
+  await expect.poll(async () => {
+    const [t] = await sql<{ n: number }[]>`
+      select count(*)::int n from tutors where profile_id = ${me.id}`;
+    return t.n;
+  }, { timeout: 20_000 }).toBe(1);
+
+  const [t] = await sql<{ slug: string; status: string; full_name: string }[]>`
+    select slug, status, full_name from tutors where profile_id = ${me.id}`;
+  // A new storefront is a DRAFT: only verified tutors are public.
+  expect(t.status).toBe("draft");
+  expect(t.full_name).toBe("E2E Storefront Tutor");
+
+  await ctx.close();
+});
+
+test("an unverified tutor's storefront exposes nothing and is noindex", async ({ page }) => {
+  const tutor = await seedTutor({ status: "pending", fullName: "Pending Person" });
+
+  const res = await page.goto(`/fr/${tutor.slug}`);
+
+  /* 200, NOT 404, and that is deliberate — do not "fix" it.
+     app/[locale]/[slug]/page.tsx renders <NotFoundScreen> inline instead of
+     calling notFound(), because on Next 14.2 a runtime notFound() renders its
+     boundary CLIENT-side only: the production body for a bad slug came back
+     literally empty (6 bytes), so a visitor on 3G whose bundle had not landed saw
+     a white screen. This is the most-shared URL shape in the product (a tutor
+     pastes their link into WhatsApp). The trade is documented in that file.
+
+     So the contract to protect is not the status code. It is: an unverified
+     tutor's details never reach the page, and the URL stays out of the index. */
+  expect(res?.status()).toBe(200);
+
+  const html = await page.content();
+  expect(html, "an unverified tutor's name must not be served").not.toContain("Pending Person");
+  expect(html, "a dead/unverified slug must be noindex").toMatch(/noindex/);
+});
+
+test("a verified tutor's storefront is public and shows no contact details", async ({ page }) => {
+  const tutor = await seedTutor({ status: "verified" });
+  await seedClass({ tutorId: tutor.id, seats: 5, hoursFromNow: 96 });
+
+  const res = await page.goto(`/fr/${tutor.slug}`);
+  expect(res?.status()).toBe(200);
+  await expect(page.locator("h1").first()).toContainText(/E2E Tutor/);
+
+  /* Step 8 will make this a hard, product-wide rule. Asserting it NOW means the
+     Stage A port cannot quietly regress it before then.
+
+     Scoped to <main>: SiteFooter carries Tnajem's OWN contact address, which is
+     the platform's, not a counterparty's, and is meant to be there. */
+  const main = await page.locator("main").innerHTML();
+  expect(main, "a storefront must not expose an e-mail address").not.toMatch(/mailto:/);
+  expect(main, "a storefront must not expose a phone number").not.toMatch(/tel:\+?\d/);
+});
+
+test("the tutor dashboard shows a booking on their own class", async ({ browser }) => {
+  const me = await seedProfile({ role: "tutor", birthYear: 1988 });
+  const tutor = await seedTutor({ profileId: me.id, status: "verified" });
+  const klass = await seedClass({ tutorId: tutor.id, seats: 5, hoursFromNow: 96 });
+  const student = await seedProfile({ role: "student", birthYear: 2000, fullName: "Amine Karoui" });
+  const { seedBooking } = await import("./support/seed");
+  await seedBooking({ classId: klass.id, studentId: student.id });
+
+  const ctx = await asTutor(browser, me.id);
+  const page = await ctx.newPage();
+  await page.goto("/fr/dashboard");
+
+  await expect(page.locator("main")).toContainText(klass.title);
+  await expect(page.locator("main")).toContainText("Amine");
+
+  await ctx.close();
+});
+
+test("a tutor publishes a class, and only a verified tutor can", async ({ browser }) => {
+  const me = await seedProfile({ role: "tutor", birthYear: 1988 });
+  const tutor = await seedTutor({ profileId: me.id, status: "verified" });
+
+  const ctx = await asTutor(browser, me.id);
+  const page = await ctx.newPage();
+  await page.goto("/fr/dashboard/new-class");
+
+  const title = `E2E Published ${Date.now()}`;
+  await page.getByPlaceholder(/Intégrales/).fill(title);
+  await page.locator('input[type="datetime-local"]').first()
+    .fill(new Date(Date.now() + 5 * 86400_000).toISOString().slice(0, 16));
+  /* price starts EMPTY and is `required`, so leaving it blank makes HTML5
+     validation swallow the submit with no error anywhere -- the form just does
+     nothing. duration (90) and seats (20) already have defaults. */
+  await page.getByPlaceholder("15").fill("40");
+  /* A real click, not dispatchEvent: this is a type="submit" button inside a
+     <form>, and a dispatched click event does not trigger form submission. (The
+     student dashboard needs the opposite treatment -- see student.spec.ts -- but
+     only because of its live countdown; this page is static.) */
+  await page.getByRole("button", { name: /Publier la classe/i }).click();
+
+  await expect.poll(async () => {
+    const [c] = await sql<{ n: number }[]>`
+      select count(*)::int n from classes where tutor_id = ${tutor.id} and title = ${title}`;
+    return c.n;
+  }, { timeout: 20_000 }).toBe(1);
+
+  await ctx.close();
+});
+
+test("an UNVERIFIED tutor cannot publish a class", async ({ browser }) => {
+  const me = await seedProfile({ role: "tutor", birthYear: 1988 });
+  const tutor = await seedTutor({ profileId: me.id, status: "pending" });
+
+  const ctx = await asTutor(browser, me.id);
+  const page = await ctx.newPage();
+  await page.goto("/fr/dashboard/new-class");
+
+  const title = `E2E Blocked ${Date.now()}`;
+  const nameField = page.getByPlaceholder(/Intégrales/);
+
+  /* The UI may not even offer the form to an unverified tutor. Either way the
+     contract is the same and it is enforced in createClass(), server-side: no
+     row is written. That is what must survive the move to Fastify. */
+  if (await nameField.count()) {
+    await nameField.fill(title);
+    await page.locator('input[type="datetime-local"]').first()
+      .fill(new Date(Date.now() + 5 * 86400_000).toISOString().slice(0, 16));
+    const price = page.getByPlaceholder("15");
+    if (await price.count()) await price.fill("40");
+    const btn = page.getByRole("button", { name: /Publier la classe/i });
+    if (await btn.count()) await btn.click();
+    await page.waitForTimeout(2000);
+  }
+
+  const [c] = await sql<{ n: number }[]>`
+    select count(*)::int n from classes where tutor_id = ${tutor.id}`;
+  expect(c.n, "an unverified tutor must not be able to publish").toBe(0);
+
+  await ctx.close();
+});
