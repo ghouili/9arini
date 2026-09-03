@@ -100,7 +100,12 @@ export type DashboardBooking = {
   classId: string;
   classTitle: string;
   studentName: string | null;
-  studentPhone: string | null;   // tutors can call/WhatsApp their students
+  /* How the tutor reaches this student. The phone is OPTIONAL now (email is the
+     login identity, the number is collected during onboarding), so the email is
+     the one that always exists — render the phone when present, fall back to the
+     address, never show an empty contact cell. */
+  studentPhone: string | null;
+  studentEmail: string | null;
   bookedAt: string;              // ISO
   classTs: number;               // epoch ms of the class start (sort/upcoming)
   isFree: boolean;
@@ -146,6 +151,42 @@ export type StudentDashboard = {
   past: StudentClass[];
 };
 
+/* ---- Wrong-role result ----
+   /dashboard serves tutors and /student serves students, but nothing stopped a
+   signed-in student loading /dashboard (they got the tutor shell with a "create
+   your storefront" prompt — an invitation to the exact silent role conversion we
+   just closed) or a tutor loading /student (an empty bookings list that reads like
+   a bug). Both actions now return this instead of data when the session's role is
+   not the one the page serves, so each page can say WHICH account you are signed
+   in as and link to the right place.
+
+   Discriminated by the presence of the key, so callers narrow with
+   `"wrongRole" in d` — no extra tag field on the happy-path payloads. */
+export type WrongRole = { wrongRole: Role };
+
+/* null still means "no session / no DB" on both — the signed-out panels already
+   depend on that and it is a different message from "wrong role". */
+export type DashboardResult = DashboardData | WrongRole | null;
+export type StudentDashboardResult = StudentDashboard | WrongRole | null;
+
+/* ---- Student profile (/student/welcome) ----
+   School level. A closed set because it is written to the DB from a public action
+   and read back into UI copy; `autre` is the escape hatch so the list never blocks
+   someone. Order is the Tunisian school ladder, not alphabetical. */
+export const STUDENT_LEVELS = ["primaire", "college", "lycee", "bac", "superieur", "autre"] as const;
+export type StudentLevel = (typeof STUDENT_LEVELS)[number];
+
+// What /student/welcome pre-fills from, and what saveStudentProfile writes.
+export type StudentProfile = {
+  fullName: string | null;
+  level: StudentLevel | null;
+  subjects: string[];        // stored comma-joined, exposed as a list
+  /* Optional CONTACT number — not a credential. Email is the login identity, so
+     this is where a student's phone is collected, and it is what keeps the tutor's
+     call button and notify()'s SMS side-channel meaningful. */
+  phone: string | null;
+};
+
 // ---- Tutor verification ----
 export type TutorVerifStatus = "draft" | "pending" | "verified" | "rejected";
 export type VerificationLinks = {
@@ -168,6 +209,23 @@ export type TutorVerification = {
   reviewNote: string | null;
   docKinds: string[];
 };
+/* ---- Tutor onboarding state (getOnboardingState) ----
+   What /onboarding and /onboarding/verify need on the server: where the tutor is in
+   the ladder (structurally the TutorProgress that lib/onboarding-steps.ts consumes)
+   plus the storefront values to pre-fill the form with.
+
+   `draft` is why revisiting /onboarding is now an edit rather than a blank slate:
+   createTutor() has always UPDATED an existing storefront in place, but the form
+   opened empty every time, so a tutor coming back to fix a typo was retyping their
+   whole page from memory. */
+export type OnboardingState = {
+  hasStorefront: boolean;
+  status: TutorVerifStatus;
+  hasClass: boolean;
+  hasSlug: boolean;
+  draft: { fullName: string; subject: string; bio: string; slug: string; phone: string } | null;
+};
+
 // ---- Explore feed ----
 // A verified tutor card on /explore. rating/review_count are computed from the
 // reviews table — an empty feed returns [] (we never ship demo tutors as real).

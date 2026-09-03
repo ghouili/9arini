@@ -102,7 +102,10 @@ export default function LiveLobbyPage({ params }: Props) {
     if (gate.role === "tutor") {
       getDashboard()
         .then((d) => {
-          const b = d?.bookings.find((x) => x.classId === params.id);
+          // canJoinClass already established gate.role === "tutor", so getDashboard
+          // cannot answer {wrongRole} here — narrow rather than assert.
+          if (!d || "wrongRole" in d) return;
+          const b = d.bookings.find((x) => x.classId === params.id);
           if (b) setTs(b.classTs);
         })
         .catch(() => undefined);

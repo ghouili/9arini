@@ -106,6 +106,10 @@ export function vOptionalUrl(raw: unknown, opts: { field: string; max?: number }
 export const RESERVED_SLUGS: readonly string[] = [
   "explore", "auth", "admin", "checkout", "dashboard", "onboarding", "student",
   "live", "class", "account", "messages", "api", "terms", "privacy", "_next",
+  /* The split signup funnel: /signup/prof and /signup/eleve. Reserved BEFORE the
+     routes shipped — the root catch-all would otherwise let a tutor claim
+     tnajem.tn/signup and shadow the top of the funnel. */
+  "signup",
   /* Brand names, not routes. "tnajem" would let a tutor impersonate the
      platform at tnajem.tn/tnajem; "9arini" is the name we renamed away from and
      is reserved so nobody squats it. */
@@ -201,6 +205,51 @@ export function isMinorBirthYear(birthYear: number | null | undefined, now: Date
   return now.getFullYear() - birthYear < 18;
 }
 
+/* ---------- Email (the login identity) ----------
+   normalizeEmail() lives in lib/auth.ts next to normalizePhone; the VALIDITY check
+   lives here because both sides need it — the server actions and the client-side
+   form. lib/auth.ts is "server-only", so a client component could never import from
+   it, which is precisely how the duplicated safeNext() got started. */
+/* Is this a plausible email address?
+
+   Deliberately permissive. RFC 5321 allows far more than people expect, so a
+   strict pattern mostly succeeds at rejecting addresses that genuinely deliver —
+   and the real proof of ownership is the code we are about to send, not this
+   function. What it DOES enforce is the part that matters downstream: a bounded
+   length (the value reaches Postgres and an outbound HTTP body), no whitespace,
+   exactly one "@", and a dotted domain.
+
+   Spelled out rather than written as one escaped regex: this is the check the
+   whole login funnel rests on, and it should be readable at a glance. */
+export function isValidEmail(e: string): boolean {
+  /* Validates EXACTLY what it is given — it does not trim, exactly like
+     isValidPhone below. Normalise first (normalizeEmail in lib/auth.ts), then
+     validate, then use the normalised value. A validator that quietly cleans its
+     input will happily approve a string its caller then sends verbatim. */
+  if (!e || e.length > 254) return false;
+  /* No whitespace and no control characters. Same codepoint walk safeNext() uses
+     below, and for the same reason: this string is interpolated into an outbound
+     mail request, where a stray CR/LF is header injection. 0x20 is the space. */
+  for (const ch of e) {
+    const c = ch.codePointAt(0) ?? 0;
+    if (c <= 0x20 || c === 0x7f) return false;
+  }
+  const at = e.indexOf("@");
+  if (at <= 0 || at !== e.lastIndexOf("@")) return false;   // needs exactly one, not leading
+  const domain = e.slice(at + 1);
+  if (!domain || domain.length > 253) return false;
+  if (!domain.includes(".")) return false;                  // bare hostnames are not deliverable
+  if (domain.startsWith(".") || domain.endsWith(".") || domain.includes("..")) return false;
+  return true;
+}
+
+/** The Valid<T> wrapper, for actions that map failures onto ActionResult. */
+export function vEmail(raw: unknown): Valid<string> {
+  if (typeof raw !== "string") return bad("invalid-email");
+  const value = raw.trim().toLowerCase();
+  return isValidEmail(value) ? ok(value) : bad("invalid-email");
+}
+
 /** Loose phone check (normalization itself lives in lib/auth.ts). */
 export function vPhone(raw: unknown): Valid<string> {
   if (typeof raw !== "string") return bad("invalid-phone");
@@ -208,6 +257,18 @@ export function vPhone(raw: unknown): Valid<string> {
   const digits = value.replace(/\D/g, "").length;
   if (digits < 8 || digits > 15) return bad("invalid-phone");
   return ok(value);
+}
+
+/** Optional phone: "" / null / undefined → null; anything present must be valid.
+    Since email became the login identity, the phone is a CONTACT field collected
+    during onboarding — a student or tutor may legitimately not give one, but a
+    half-typed number must still be rejected rather than stored. Mirrors the
+    vOptionalText / vOptionalUrl pair above. */
+export function vOptionalPhone(raw: unknown): Valid<string | null> {
+  if (raw === null || raw === undefined) return ok(null);
+  if (typeof raw !== "string" || !raw.trim()) return ok(null);
+  const r = vPhone(raw);
+  return r.ok ? ok(r.value) : r;
 }
 
 /* Open-redirect guard for ?next=. Lives here, not in the auth component, because

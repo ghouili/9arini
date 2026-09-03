@@ -8,9 +8,14 @@
    bundle failed. Verified by scripts/ui-audit/nojs.mjs.
 
    Reading searchParams makes this route dynamic, which is correct: its content
-   genuinely depends on the query string, and a login page is never cacheable. */
+   genuinely depends on the query string, and a login page is never cacheable.
+   The OTP CHANNEL is resolved here too. otpChannel() is server-only, and reading
+   it on the server keeps OTP_CHANNEL a runtime env var — a NEXT_PUBLIC_ value
+   would be baked in at build time, so reverting to SMS would mean a rebuild
+   rather than a restart. */
 import { AuthInner } from "@/components/auth/AuthInner";
 import { safeNext } from "@/lib/validation";
+import { otpChannel } from "@/lib/auth";
 
 export default function AuthPage({
   searchParams,
@@ -18,5 +23,5 @@ export default function AuthPage({
   searchParams: { next?: string | string[] };
 }) {
   const raw = Array.isArray(searchParams.next) ? searchParams.next[0] : searchParams.next;
-  return <AuthInner next={safeNext(raw ?? null)} />;
+  return <AuthInner next={safeNext(raw ?? null)} channel={otpChannel()} />;
 }

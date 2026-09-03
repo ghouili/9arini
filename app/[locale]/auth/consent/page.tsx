@@ -7,38 +7,22 @@ import { useLocale } from "@/components/LocaleProvider";
 import { Shield, Phone, User } from "@/components/icons";
 import { saveConsent } from "@/app/actions";
 import { SiteShell } from "@/components/SiteShell";
+import { safeNext } from "@/lib/validation";
 
-/* Open-redirect guard for ?next= — a verbatim copy of the one in app/auth/page.tsx.
-   Duplicated rather than shared because the two pages are the only consumers and
-   the rule must not drift silently; if you change one, change both.
+/* Guardian consent sits in the middle of a flow: middleware.ts / /live bounce a
+   guest to /auth?next=<path> (e.g. /checkout?class=x), the OTP is verified, and a
+   MINOR is routed here before they may use the app. ?next= is forwarded to this
+   page; we hand the student back to it once consent is signed, instead of dumping
+   them on /student and losing the booking they came for. That value may itself
+   point at /student/welcome carrying a further ?next= — see lib/auth-destination.ts
+   for the chain.
 
-   Guardian consent sits in the middle of a flow: middleware.ts / /live bounce a
-   guest to /auth?next=<path> (e.g. /checkout?class=x), /auth verifies the OTP,
-   and a MINOR is then routed here before they may use the app. /auth forwards
-   ?next= to this page; we hand the student back to it once consent is signed,
-   instead of dumping them on /student and losing the booking they came for.
-
-   The value is attacker-controllable, so we only ever follow it when it is a
-   *relative, same-origin* path:
-     • must start with a single "/"
-     • "//evil.tn" and "/\evil.tn" are protocol-relative → rejected
-     • any backslash, control char, or "scheme:" prefix → rejected
-     • "/auth..." → rejected (would loop back into the auth flow)
-   Anything suspicious falls through to /student. */
-function safeNext(raw: string | null): string | null {
-  if (!raw) return null;
-  const v = raw.trim();
-  if (!v.startsWith("/")) return null;                 // absolute URL or bare word
-  if (v.startsWith("//") || v.startsWith("/\\")) return null; // protocol-relative
-  if (/^\/[a-z][a-z0-9+.-]*:/i.test(v)) return null;   // "/javascript:…" & friends
-  if (v.includes("\\")) return null;                   // "/\evil.tn", backslash tricks
-  for (const ch of v) {                                // control chars (CR/LF header smuggling)
-    const c = ch.codePointAt(0) ?? 0;
-    if (c < 0x20 || c === 0x7f) return null;
-  }
-  if (v === "/auth" || v.startsWith("/auth/") || v.startsWith("/auth?")) return null;
-  return v;
-}
+   The open-redirect guard for it is safeNext() in lib/validation.ts. It used to be
+   a VERBATIM COPY sitting right here, under a comment conceding that the rule
+   "must not drift silently; if you change one, change both" — which describes a
+   bug waiting to happen rather than a mitigation. One implementation, and every
+   caller (this page, /auth, /signup/prof, /signup/eleve, /student/welcome) gets
+   the same answer. */
 
 /* useSearchParams() opts the subtree into client-side rendering. Without a
    <Suspense> boundary `next build` fails the whole route on the CSR bailout —

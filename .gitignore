@@ -19,3 +19,6 @@ scripts/ui-audit/shots/
 
 # UI-audit baselines
 scripts/ui-audit/shots-*/
+
+# MCP browser console logs — scratch output, regenerated per session
+/.playwright-mcp

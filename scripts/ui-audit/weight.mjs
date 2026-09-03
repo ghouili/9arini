@@ -17,7 +17,7 @@
    ══════════════════════════════════════════════════════════════════════════════ */
 
 import { chromium } from "playwright";
-import { expand, assertServer, SESSION_COOKIE } from "./routes.mjs";
+import { expand, assertServer, applySession } from "./routes.mjs";
 
 const KB = (n) => `${(n / 1024).toFixed(1)}kB`;
 
@@ -41,7 +41,7 @@ const fontsSeen = new Map();
 
 for (const r of targets) {
   const ctx = await browser.newContext({ viewport: { width: 380, height: 800 } });
-  await ctx.addCookies([SESSION_COOKIE]);
+  await applySession(ctx, r);
   const page = await ctx.newPage();
 
   const totals = { font: 0, js: 0, css: 0, img: 0, other: 0 };

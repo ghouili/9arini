@@ -3,10 +3,16 @@ import type { MetadataRoute } from "next";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://tnajem.tn";
 
 /* Everything behind auth (dashboard, account, checkout, live rooms), the admin
-   review queue and the protected document viewer must stay out of the index. */
+   review queue and the protected document viewer must stay out of the index.
+
+   /signup is in here with /auth, not treated as a landing page: both signup screens
+   are transactional forms whose only content is a phone field, and the pages we
+   actually want to rank for those two intents already exist — /pour-les-profs for
+   tutors, /explore for students, each of which links into the funnel. Indexing a
+   thin duplicate of that intent splits the ranking signal instead of adding one. */
 const DISALLOW = [
   "/api/", "/admin/", "/dashboard", "/dashboard/", "/account",
-  "/checkout", "/auth", "/onboarding", "/student", "/live/", "/class/",
+  "/checkout", "/auth", "/signup", "/onboarding", "/student", "/live/", "/class/",
 ];
 
 /* AI assistant crawlers — EXPLICITLY WELCOMED (founder decision 2026-07-12). A

@@ -28,6 +28,7 @@ export const Trend = (p: P) => <S {...p}><polyline points="3 17 9 11 13 15 21 7"
 export const Home = (p: P) => <S {...p}><path d="M4 11l8-6 8 6" /><path d="M6 10v9h12v-9" /></S>;
 export const Search = (p: P) => <S {...p}><circle cx="11" cy="11" r="6" /><line x1="20" y1="20" x2="15.6" y2="15.6" /></S>;
 export const Chat = (p: P) => <S {...p}><path d="M5.5 5h13a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 18.5 16H10l-4.2 3.4V6.5A1.5 1.5 0 0 1 5.5 5z" /></S>;
+export const Mail = (p: P) => <S {...p}><rect x="3" y="5" width="18" height="14" rx="2.2" /><path d="M3.6 7.2 12 13l8.4-5.8" /></S>;
 export const User = (p: P) => <S {...p}><circle cx="12" cy="8" r="3.6" /><path d="M5.5 20a6.5 6.5 0 0 1 13 0" /></S>;
 export const Eye = (p: P) => <S {...p}><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" /><circle cx="12" cy="12" r="2.6" /></S>;
 export const Bulb = (p: P) => <S {...p}><path d="M9.5 17h5M10 20h4" /><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.4 1 1.1 1 1.8h5c0-.7.4-1.4 1-1.8A6 6 0 0 0 12 3z" /></S>;

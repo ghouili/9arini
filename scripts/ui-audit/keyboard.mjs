@@ -22,7 +22,7 @@
    ══════════════════════════════════════════════════════════════════════════════ */
 
 import { chromium } from "playwright";
-import { expand, assertServer, SESSION_COOKIE } from "./routes.mjs";
+import { expand, assertServer, applySession } from "./routes.mjs";
 
 const MAX_TABS = 90;
 
@@ -72,7 +72,6 @@ await assertServer();
 const targets = expand();
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 380, height: 900 } });
-await ctx.addCookies([SESSION_COOKIE]);
 
 let failed = 0;
 const noRing = new Map();
@@ -81,6 +80,9 @@ const positiveTabindex = new Map();
 console.log("\nKeyboard operability — Tab through every route, both locales, 380px\n");
 
 for (const r of targets) {
+  // Per route, not once: the tutor screens and the student screens need
+  // DIFFERENT sessions now that both are role-guarded server-side.
+  await applySession(ctx, r);
   const label = `/${r.locale}${r.path === "/" ? "" : r.path}`;
   const page = await ctx.newPage();
   const problems = [];

@@ -5,7 +5,7 @@
    refactor is visually inert. */
 import { chromium } from "playwright";
 import { writeFileSync, readFileSync, existsSync } from "node:fs";
-import { expand, assertServer, SESSION_COOKIE } from "./routes.mjs";
+import { expand, assertServer, applySession } from "./routes.mjs";
 
 const out = process.argv[2];
 const cmp = process.argv[3];
@@ -15,10 +15,12 @@ await assertServer();
 const targets = expand((r) => true);
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: WIDTH, height: 900 }, reducedMotion: "reduce" });
-await ctx.addCookies([SESSION_COOKIE]);
 
 const snap = {};
 for (const r of targets) {
+  // Per route, not once: the tutor screens and the student screens need
+  // DIFFERENT sessions now that both are role-guarded server-side.
+  await applySession(ctx, r);
   const key = `${r.name}-${r.locale}`;
   const page = await ctx.newPage();
   try {

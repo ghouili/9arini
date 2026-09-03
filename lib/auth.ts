@@ -4,11 +4,17 @@ import { createHash, randomBytes, randomInt, timingSafeEqual } from "crypto";
 import { and, desc, eq, lt, sql } from "drizzle-orm";
 import { db, dbReady } from "./db";
 import { profiles, sessions, otpCodes, rateLimits } from "./db/schema";
+// Pure module (no server-only marker), so the CLIENT form can share this exact
+// check — which is the whole reason it does not live in this file.
+import { isValidEmail } from "./validation";
 
-/* Custom phone-OTP + session auth on Postgres (no external auth dep).
-   SMS delivery is pluggable: when no SMS provider is configured, requestOtp
-   returns the code so the flow is completable in dev. Sessions are opaque
-   tokens in an HTTP-only cookie, backed by the `sessions` table. */
+/* Custom OTP + session auth on Postgres (no external auth dep).
+
+   The code goes to an EMAIL address by default; OTP_CHANNEL=sms switches it back to
+   a text message (see otpChannel() below — the SMS path is kept live, not commented
+   out). Delivery is pluggable either way: when no provider is configured, requestOtp
+   returns the code so the flow is completable in dev. Sessions are opaque tokens in
+   an HTTP-only cookie, backed by the `sessions` table. */
 
 export const SESSION_COOKIE = "tnajem_session";
 /* NON-SENSITIVE UI hint, readable by the client. It lets the global <SiteHeader>
@@ -23,14 +29,24 @@ export const ROLE_HINT_COOKIE = "tnajem_role";
 const SESSION_DAYS = 30;
 const OTP_TTL_MIN = 5;
 const MAX_ATTEMPTS = 5;
-const OTP_RESEND_COOLDOWN_MS = 60_000; // min gap between code sends to one phone
+const OTP_RESEND_COOLDOWN_MS = 60_000; // min gap between code sends to one identity
+
+/* The same two numbers in seconds, EXPORTED so requestOtp can hand them to the
+   client and the login screens can draw a countdown for them.
+
+   The client must never carry its own copy. A hardcoded 60 in the UI is a promise
+   about a rule enforced here, and it becomes a lie the first time someone tunes
+   the cooldown — the button would re-enable while the server still refuses, which
+   reads to the user as the product being broken. One definition, handed down. */
+export const OTP_RESEND_COOLDOWN_SEC = OTP_RESEND_COOLDOWN_MS / 1000;
+export const OTP_TTL_SEC = OTP_TTL_MIN * 60;
 /* AUTH_SECRET is the whole strength of the OTP hash: hashCode() is
-   sha256(`${phone}:${code}:${SECRET}`). With the dev default in place — a string
-   that is committed to this repo — the hash of all 1,000,000 codes for a given
-   phone is computable offline, so `otp_codes.code_hash` stops being a secret and
+   sha256(`${identifier}:${code}:${SECRET}`). With the dev default in place — a
+   string committed to this repo — the hash of all 1,000,000 codes for a given
+   identity is computable offline, so `otp_codes.code_hash` stops being a secret and
    the 5-attempt budget stops meaning anything. That is a full auth bypass, and
-   ADMIN_PHONES is only ever one OTP away from the pending-verification queue and
-   every national ID scan in it.
+   the admin allowlist is only ever one OTP away from the pending-verification queue
+   and every national ID scan in it.
 
    So a production process must NEVER serve a login with the dev default. It throws.
 
@@ -198,6 +214,32 @@ export function clientIp(): string {
   }
 }
 
+/* ══════════════ OTP CHANNEL ══════════════
+   Which identity a login code is sent to. Email is the default; `sms` is the
+   revert path and is kept fully live and compiling, not commented out — commented
+   code is invisible to tsc and to the audit gates, so it rots the first time
+   anything around it moves. Flipping OTP_CHANNEL is the entire revert.
+
+   Read on the SERVER only. The auth/signup page shells read it and pass the answer
+   down as a prop, so the switch stays a runtime env var instead of a
+   NEXT_PUBLIC_ value baked in at build time. */
+export type OtpChannel = "email" | "sms";
+
+export function otpChannel(): OtpChannel {
+  return process.env.OTP_CHANNEL?.trim().toLowerCase() === "sms" ? "sms" : "email";
+}
+
+/** Sibling of normalizePhone(). Lower-cased so "Sam@X.com" and "sam@x.com" are one
+    account — the unique index on profiles.email is case-SENSITIVE, so without this
+    the same person could sign up twice. */
+export function normalizeEmail(raw: string): string {
+  return (raw || "").trim().toLowerCase();
+}
+
+// Re-exported so callers get both halves of the email identity from one place,
+// mirroring normalizePhone/isValidPhone above.
+export { isValidEmail };
+
 export function normalizePhone(raw: string): string {
   let p = (raw || "").replace(/[^\d+]/g, "");
   if (p.startsWith("00")) p = "+" + p.slice(2);
@@ -208,83 +250,89 @@ export function isValidPhone(p: string): boolean {
   const digits = p.replace(/\D/g, "").length;
   return digits >= 8 && digits <= 15; // E.164 upper bound
 }
-function hashCode(phone: string, code: string): string {
+/* Binds the code to the identity it was issued for, so a code minted for one
+   address/number cannot be replayed against another. `identifier` is a phone under
+   OTP_CHANNEL=sms and an email address under =email; the hash does not care. */
+function hashCode(identifier: string, code: string): string {
   // authSecret() throws in production when AUTH_SECRET is unset — the first login
   // attempt fails loudly rather than being served with the public dev default.
-  return createHash("sha256").update(`${phone}:${code}:${authSecret()}`).digest("hex");
+  return createHash("sha256").update(`${identifier}:${code}:${authSecret()}`).digest("hex");
 }
 function safeEq(a: string, b: string): boolean {
   const ba = Buffer.from(a), bb = Buffer.from(b);
   return ba.length === bb.length && timingSafeEqual(ba, bb);
 }
 
-/** Seconds the caller must wait before another code can be sent to this phone (0 = ok now).
-    Derived from the existing row's age (created = expiresAt − TTL), so no schema change. */
-export async function otpCooldownRemaining(phone: string): Promise<number> {
-  const [row] = await db.select().from(otpCodes).where(eq(otpCodes.phone, phone)).limit(1);
+/** Seconds the caller must wait before another code can be sent to this identity
+    (0 = ok now). Derived from the existing row's age (created = expiresAt − TTL),
+    so no schema change. */
+export async function otpCooldownRemaining(identifier: string): Promise<number> {
+  const [row] = await db.select().from(otpCodes).where(eq(otpCodes.identifier, identifier)).limit(1);
   if (!row) return 0;
   const createdAtMs = new Date(row.expiresAt).getTime() - OTP_TTL_MIN * 60_000;
   const remainingMs = OTP_RESEND_COOLDOWN_MS - (Date.now() - createdAtMs);
   return remainingMs > 0 ? Math.ceil(remainingMs / 1000) : 0;
 }
 
-/* Generate + store a one-time code for a phone.
+/* Generate + store a one-time code for an IDENTITY — an email address under
+   OTP_CHANNEL=email, a phone number under =sms. Nothing below depends on which:
+   the identifier is opaque to the lock, the hash and the cooldown alike.
 
    RACE (fixed): this used to be a bare `delete` followed by an `insert`. Two
-   concurrent requestOtp() calls for the same phone could interleave as
-   delete(A) → delete(B) → insert(A) → insert(B), leaving TWO live rows for the
-   same phone. verifyOtpCode() then read one of them with an arbitrary `limit(1)`,
-   so the code the user actually received was a coin-flip — and, worse, each row
-   carried its own `attempts` counter, doubling the brute-force budget per phone.
-   otp_codes has no unique index on `phone` (schema is owned elsewhere), so the DB
-   cannot reject the second insert for us.
+   concurrent requestOtp() calls for the same identity could interleave as
+   delete(A) → delete(B) → insert(A) → insert(B), leaving TWO live rows for it.
+   verifyOtpCode() then read one of them with an arbitrary `limit(1)`, so the code
+   the user actually received was a coin-flip — and, worse, each row carried its own
+   `attempts` counter, doubling the brute-force budget. otp_codes has no unique
+   index on `identifier` (schema is owned elsewhere), so the DB cannot reject the
+   second insert for us.
 
-   Fix: serialize per phone with a transaction-scoped Postgres advisory lock and
+   Fix: serialize per identity with a transaction-scoped Postgres advisory lock and
    re-check the resend cooldown INSIDE the lock (the outer check in requestOtp is
-   a fast path and is itself TOCTOU). One writer per phone at a time → exactly one
-   live code row, always.
+   a fast path and is itself TOCTOU). One writer per identity at a time → exactly
+   one live code row, always.
 
    Returns the plaintext code, or null when the cooldown is still running (the
    caller surfaces "too-soon"). */
-export async function createOtp(phone: string): Promise<string | null> {
+export async function createOtp(identifier: string): Promise<string | null> {
   const code = String(randomInt(100000, 1000000)); // CSPRNG — Math.random() is predictable
   const expiresAt = new Date(Date.now() + OTP_TTL_MIN * 60_000);
 
   return db.transaction(async (tx) => {
-    // Serialize every writer for this phone. Released automatically at commit/rollback.
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${phone}))`);
+    // Serialize every writer for this identity. Released automatically at commit/rollback.
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${identifier}))`);
 
-    const [existing] = await tx.select().from(otpCodes).where(eq(otpCodes.phone, phone)).limit(1);
+    const [existing] = await tx.select().from(otpCodes).where(eq(otpCodes.identifier, identifier)).limit(1);
     if (existing) {
       const createdMs = new Date(existing.expiresAt).getTime() - OTP_TTL_MIN * 60_000;
       if (Date.now() - createdMs < OTP_RESEND_COOLDOWN_MS) return null; // still cooling down
     }
 
-    await tx.delete(otpCodes).where(eq(otpCodes.phone, phone));
-    await tx.insert(otpCodes).values({ phone, codeHash: hashCode(phone, code), expiresAt });
+    await tx.delete(otpCodes).where(eq(otpCodes.identifier, identifier));
+    await tx.insert(otpCodes).values({ identifier, codeHash: hashCode(identifier, code), expiresAt });
     return code;
   });
 }
 
 /* Verify a code. The per-code attempt budget (MAX_ATTEMPTS) is the durable half of
-   the brute-force defence; app/actions.ts adds a per-IP/per-phone throttle on top,
+   the brute-force defence; app/actions.ts adds a per-IP/per-identity throttle on top,
    because requesting a fresh code resets `attempts` and would otherwise hand an
    attacker an unlimited number of 5-shot rounds against a 6-digit space.
 
-   Ordered by createdAt desc + delete-all-for-phone on success so a stray duplicate
-   row (from data written before the fix above) can never keep a stale code alive. */
-export async function verifyOtpCode(phone: string, code: string): Promise<boolean> {
+   Ordered by createdAt desc + delete-all-for-identity on success so a stray
+   duplicate row (written before the fix above) can never keep a stale code alive. */
+export async function verifyOtpCode(identifier: string, code: string): Promise<boolean> {
   const [row] = await db
     .select()
     .from(otpCodes)
-    .where(eq(otpCodes.phone, phone))
+    .where(eq(otpCodes.identifier, identifier))
     .orderBy(desc(otpCodes.createdAt))
     .limit(1);
   if (!row) return false;
   if (new Date(row.expiresAt) < new Date()) return false;
   if ((row.attempts ?? 0) >= MAX_ATTEMPTS) return false;
 
-  const ok = safeEq(row.codeHash, hashCode(phone, code));
+  const ok = safeEq(row.codeHash, hashCode(identifier, code));
   if (!ok) {
     // Increment in SQL, not from the value we read — two concurrent wrong guesses
     // would otherwise both write attempts = n+1 and only cost the attacker one try.
@@ -294,7 +342,7 @@ export async function verifyOtpCode(phone: string, code: string): Promise<boolea
       .where(eq(otpCodes.id, row.id));
     return false;
   }
-  await db.delete(otpCodes).where(eq(otpCodes.phone, phone));
+  await db.delete(otpCodes).where(eq(otpCodes.identifier, identifier));
   return true;
 }
 
@@ -323,17 +371,27 @@ export async function createSession(profileId: string, role?: string): Promise<v
     expires: expiresAt,
   });
 
-  // Readable UI hint (see ROLE_HINT_COOKIE) — NOT httpOnly on purpose so the header
-  // can read it without a network round-trip. Same lifetime as the session.
-  if (role) {
-    cookies().set(ROLE_HINT_COOKIE, role, {
-      httpOnly: false,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      expires: expiresAt,
-    });
-  }
+  if (role) setRoleHint(role, expiresAt);
+}
+
+/* Write the readable UI hint (see ROLE_HINT_COOKIE) — NOT httpOnly on purpose, so
+   <SiteHeader> can read it without a network round-trip.
+
+   EXTRACTED so it has a SECOND caller. The cookie used to be written in exactly one
+   place — the login above — which meant any later change to profiles.role left the
+   header rendering the OLD role for the rest of the session's 30 days. becomeTutor()
+   changes the role mid-session, so it has to be able to refresh this. Any future
+   writer of profiles.role must call this too. */
+export function setRoleHint(role: string, expires?: Date): void {
+  cookies().set(ROLE_HINT_COOKIE, role, {
+    httpOnly: false,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    // No expiry given (a mid-session role change) → ride the session cookie's own
+    // 30-day window rather than becoming a session cookie that dies on browser close.
+    expires: expires ?? new Date(Date.now() + SESSION_DAYS * 86_400_000),
+  });
 }
 
 /** Read-only — safe in server components. Returns the signed-in profile or null. */

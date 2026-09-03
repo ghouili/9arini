@@ -19,7 +19,7 @@
    ══════════════════════════════════════════════════════════════════════════════ */
 
 import { chromium } from "playwright";
-import { expand, assertServer, SESSION_COOKIE } from "./routes.mjs";
+import { expand, assertServer, applySession } from "./routes.mjs";
 
 /* Runs in the page. A selector may legitimately match several elements — the
    storefront ships BOTH a desktop CTA and a sticky mobile one, and only one of
@@ -55,7 +55,6 @@ const ctx = await browser.newContext({
   javaScriptEnabled: false,
   viewport: { width: 380, height: 800 },
 });
-await ctx.addCookies([SESSION_COOKIE]);
 
 let failed = 0;
 let checks = 0;
@@ -63,6 +62,9 @@ let checks = 0;
 console.log("\nNo-JavaScript render audit — public routes must be readable with the bundle off\n");
 
 for (const r of targets) {
+  // Per route, not once: the tutor screens and the student screens need
+  // DIFFERENT sessions now that both are role-guarded server-side.
+  await applySession(ctx, r);
   const page = await ctx.newPage();
   const label = `${r.locale}${r.path === "/" ? "" : r.path}`;
   const problems = [];

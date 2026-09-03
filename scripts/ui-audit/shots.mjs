@@ -28,7 +28,7 @@
 import { chromium } from "playwright";
 import { mkdirSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
-import { expand, assertServer, SESSION_COOKIE, WIDTHS } from "./routes.mjs";
+import { expand, assertServer, applySession, WIDTHS } from "./routes.mjs";
 import { ROOT } from "./lib-color.mjs";
 
 /* --out=<dir> writes somewhere other than shots/, so a BASELINE can be captured
@@ -120,9 +120,11 @@ for (const width of WIDTHS) {
     // mid-fade element also poisons the geometric measurements above.
     reducedMotion: "reduce",
   });
-  await ctx.addCookies([SESSION_COOKIE]);
 
   for (const r of targets) {
+  // Per route, not once: the tutor screens and the student screens need
+  // DIFFERENT sessions now that both are role-guarded server-side.
+    await applySession(ctx, r);
     const page = await ctx.newPage();
     const name = `${r.name}-${r.locale}-${width}`;
     try {

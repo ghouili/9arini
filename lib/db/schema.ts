@@ -43,9 +43,24 @@ export const profiles = pgTable("profiles", {
   id: uuid("id").primaryKey().defaultRandom(),
   role: userRole("role").notNull().default("student"),
   fullName: text("full_name"),
+  /* ---- Login identity ----
+     `email` is what a login code is sent to (lib/auth.ts::otpChannel); `phone` was,
+     and still is under OTP_CHANNEL=sms. Both are nullable-but-unique: Postgres does
+     not conflict NULLs, so exactly one of them is populated at signup and the other
+     is filled in later — phone is now an OPTIONAL CONTACT collected during
+     onboarding, which is what keeps the tutor's call button and notify()'s SMS
+     side-channel working. Added by scripts/sql/0005_email_identity.sql. */
+  email: text("email").unique(),
   phone: text("phone").unique(),
   locale: text("locale").notNull().default("fr"),
   birthYear: integer("birth_year"),
+  /* ---- Student profile (collected at /student/welcome) ----
+     Nullable on purpose: the welcome screen is skippable, and every profile
+     written before scripts/sql/0004_student_profile.sql predates these columns.
+     `subjects` is a comma-joined list, matching tutors.languages rather than
+     inventing a second convention for "a short list of tags" in one schema. */
+  level: text("level"),
+  subjects: text("subjects"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -304,20 +319,24 @@ export const rateLimits = pgTable("rate_limits", {
 
 export const otpCodes = pgTable("otp_codes", {
   id: uuid("id").primaryKey().defaultRandom(),
-  phone: text("phone").notNull(),
+  /* An email address under OTP_CHANNEL=email, a phone number under =sms. One
+     column for both, so flipping the channel needs no migration (renamed from
+     `phone` by scripts/sql/0005_email_identity.sql). */
+  identifier: text("identifier").notNull(),
   codeHash: text("code_hash").notNull(),
   attempts: integer("attempts").default(0),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
-  /* Every step of the login funnel scans this by phone: otpCooldownRemaining
+  /* Every step of the login funnel scans this by identity: otpCooldownRemaining
      (select), createOtp (delete + insert), verifyOtpCode (select, then delete).
-     Four phone lookups per successful login — today all of them are seq scans.
+     Four lookups per successful login — without this, all of them are seq scans.
      NOTE: this is deliberately a plain index, not unique. createOtp's
-     delete-then-insert means at most one live row per phone, so unique WOULD be
-     the correct constraint — but `db:push` would fail if two rows already exist
-     from a concurrent send. Dedupe first, then upgrade (SQL in SCALABILITY.md). */
-  phoneIdx: index("otp_codes_phone_idx").on(t.phone),
+     delete-then-insert under an advisory lock means at most one live row per
+     identity, so unique WOULD be the correct constraint — but `db:push` would fail
+     if two rows already exist from a concurrent send. Dedupe first, then upgrade
+     (SQL in SCALABILITY.md). */
+  identifierIdx: index("otp_codes_identifier_idx").on(t.identifier),
   /* Retention sweep: `delete from otp_codes where expires_at < now()`. */
   expiresAtIdx: index("otp_codes_expires_at_idx").on(t.expiresAt),
 }));

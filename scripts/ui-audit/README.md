@@ -23,6 +23,30 @@ node scripts/ui-audit/shots.mjs
 `UI_AUDIT_BASE` points the browser runners somewhere else (default
 `http://localhost:3111`).
 
+## Logged-in routes
+
+Routes marked `auth` in `routes.mjs` are visited with a **real session**, minted by
+`sessionCookie()` straight into the `sessions` table — one for a tutor, one for a
+student, because the two halves of the product are role-guarded server-side and
+cannot share a cookie. Mark a route `auth: "student"` when it belongs to the
+student side (`/student`, `/student/welcome`, `/onboarding/upgrade`); `auth: true`
+means the tutor side.
+
+This replaced the old `tnajem_session=demo` sentinel, which was never a session:
+`getSession()` looks it up in `sessions` and finds nothing whenever a database is
+configured, and `middleware.ts` rejects the literal string in production. Every
+`auth` route was therefore being measured in its signed-out state — tolerable while
+those pages rendered an empty panel, and actively misleading once `/onboarding`,
+`/onboarding/verify`, `/student/welcome` and `/onboarding/upgrade` grew server-side
+role guards that redirect. The harness would have reported six green route names
+while screenshotting `/auth` six times.
+
+Minting writes rows, so it **refuses any database that is not on localhost** and
+falls back to the sentinel — which is also what happens in demo mode (no
+`DATABASE_URL`), where the page guards are inert by design and the screens render
+anyway. The two audit accounts are `+21600000001` (tutor) and `+21600000002`
+(student).
+
 ## Auditing a production build
 
 Several defects only reproduce in a production build (streaming, Suspense

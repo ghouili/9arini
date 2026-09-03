@@ -32,6 +32,7 @@ const NAV = {
     myClasses: "Mes cours",
     dashboard: "Tableau de bord",
     account: "Mon profil",
+    becomeTutor: "Devenir prof",
     menu: "Menu",
     closeMenu: "Fermer le menu",
     nav: "Navigation principale",
@@ -47,6 +48,7 @@ const NAV = {
     myClasses: "حصصي",
     dashboard: "لوحتي",
     account: "حسابي",
+    becomeTutor: "ولّي أستاذ",
     menu: "القائمة",
     closeMenu: "سكّر القائمة",
     nav: "التنقّل الرئيسي",
@@ -182,7 +184,11 @@ export function SiteHeader() {
           ) : (
             <>
               <Link href="/auth" className="qh-signin">{c.signIn}</Link>
-              <Link href="/onboarding" className="btn btn-primary btn-sm qh-cta">{c.createPage}</Link>
+              {/* SIGNUP, not /onboarding. This CTA used to point straight at the
+                  tutor's step-1 screen, which was reachable by any signed-in
+                  profile and silently converted a student's account to a tutor
+                  one on submit. The role is now chosen by choosing a page. */}
+              <Link href="/signup/prof" className="btn btn-primary btn-sm qh-cta">{c.createPage}</Link>
             </>
           )}
 
@@ -214,12 +220,22 @@ export function SiteHeader() {
           <Link href="/pour-les-profs" aria-current={cur("/pour-les-profs")}>{c.forTutors}</Link>
           {isTutor && <Link href="/dashboard" aria-current={cur("/dashboard")}>{c.dashboard}</Link>}
 
+          {/* A signed-in student is offered the DELIBERATE upgrade screen, never
+              /onboarding directly — that link was the silent conversion. A visitor
+              with no session is offered signup. A tutor is offered neither: they
+              already have the page. */}
+          {isStudent && (
+            <Link href="/onboarding/upgrade" aria-current={cur("/onboarding/upgrade")}>
+              {c.becomeTutor}
+            </Link>
+          )}
+
           <div className="qh-sep" />
           {role
             ? <Link href="/account" aria-current={cur("/account")}>{c.account}</Link>
             : <Link href="/auth" aria-current={cur("/auth")}>{c.signIn}</Link>}
-          {!isTutor && (
-            <Link href="/onboarding" className="qh-menu-cta">{c.createPage}</Link>
+          {!role && (
+            <Link href="/signup/prof" className="qh-menu-cta">{c.createPage}</Link>
           )}
         </nav>
       )}

@@ -13,7 +13,7 @@
 
 import { chromium } from "playwright";
 import { AxeBuilder } from "@axe-core/playwright";
-import { expand, assertServer, SESSION_COOKIE } from "./routes.mjs";
+import { expand, assertServer, applySession } from "./routes.mjs";
 
 const BLOCKING = new Set(["serious", "critical"]);
 
@@ -123,7 +123,6 @@ await assertServer();
 const targets = expand();
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 380, height: 900 } });
-await ctx.addCookies([SESSION_COOKIE]);
 
 const byImpact = { critical: [], serious: [], moderate: [], minor: [] };
 const manual = { skip: [], small: new Map(), tiny: new Map() };
@@ -137,6 +136,9 @@ console.log("\naxe-core accessibility audit — WCAG 2.0/2.1 A + AA, both locale
    worse than no harness — it teaches you to ignore red. A route that fails twice
    is reported as an error and does fail the run. */
 for (const r of targets) {
+  // Per route, not once: the tutor screens and the student screens need
+  // DIFFERENT sessions now that both are role-guarded server-side.
+  await applySession(ctx, r);
   const label = `/${r.locale}${r.path === "/" ? "" : r.path}`;
   let page = await ctx.newPage();
   for (let attempt = 0; attempt < 2; attempt++) {

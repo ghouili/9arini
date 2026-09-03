@@ -18,7 +18,7 @@ const copy = {
 export default function AccountPage() {
   const { t, locale } = useLocale();
   const c = copy[locale];
-  const [me, setMe] = useState<{ name: string | null; role: string; phone: string | null } | null>(null);
+  const [me, setMe] = useState<{ name: string | null; role: string; email: string | null; phone: string | null } | null>(null);
 
   useEffect(() => { getMe().then(setMe).catch(() => setMe(null)); }, []);
 
@@ -75,6 +75,11 @@ export default function AccountPage() {
                 <div style={{ fontFamily: "var(--fd)", fontSize: "clamp(16px, 2vw, 20px)", fontWeight: 700, marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {me?.name || "—"}
                 </div>
+                {/* The login identity first — that is what they type to get back in.
+                    The phone is an optional contact and may simply not be set. */}
+                {me?.email && (
+                  <div dir="ltr" className="text-[14px] text-muted text-start break-all">{me.email}</div>
+                )}
                 {me?.phone && (
                   <div dir="ltr" className="text-[14px] text-muted text-start">{me.phone}</div>
                 )}
