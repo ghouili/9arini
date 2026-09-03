@@ -1,9 +1,8 @@
-import { config } from "dotenv";
-/* Match Next.js precedence: .env holds the shared config, .env.local overrides it.
-   Loading only .env.local left these scripts blind to CRON_SECRET, ADMIN_EMAILS,
-   OTP_CHANNEL and MAIL_* — so the CLI and the running app disagreed. */
-config({ path: ".env" });
-config({ path: ".env.local", override: true }); // .env.local still wins over a stray shell var
+/* Env is loaded from the REPO ROOT, resolved from this module rather than cwd --
+   under `npm run db:sql -w @tnajem/web` cwd is apps/web and the root .env files
+   would be silently missed. See _paths.ts. */
+import { loadEnv, SQL_DIR } from "./_paths";
+loadEnv();
 
 import postgres from "postgres";
 import { readFile, readdir } from "node:fs/promises";
@@ -34,7 +33,7 @@ async function main() {
   }
 
   const filter = process.argv.slice(2).find((a) => !a.startsWith("-"));
-  const dir = join(process.cwd(), "scripts", "sql");
+  const dir = SQL_DIR;
 
   let files: string[];
   try {

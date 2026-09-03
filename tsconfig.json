@@ -1,26 +1,4 @@
 {
-  "compilerOptions": {
-    "target": "ES2020",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
-    "incremental": true,
-    "plugins": [{ "name": "next" }],
-    "paths": { "@/*": ["./*"] }
-  },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  /* e2e/ and playwright.config.ts are NOT part of the app build. Next's build
-     type-checks everything tsconfig includes, and it cannot compile the
-     Playwright config — the build fails before it emits .next/standalone.
-     The suite has its own tsconfig (e2e/tsconfig.json) so it is still
-     type-checked, just not by the app. */
-  "exclude": ["node_modules", "e2e", "playwright.config.ts"]
+  "extends": "./tsconfig.base.json",
+  "files": []
 }

@@ -33,9 +33,33 @@ export const RETENTION_DAYS = 90;
 /** Decided states — the retention clock only starts once a human has ruled. */
 const DECIDED = ["verified", "rejected"] as const;
 
-/** Mirrors app/actions.ts: STORAGE_DIR in prod (persistent volume), ./.storage in dev. */
+/** Mirrors app/actions.ts: STORAGE_DIR in prod (persistent volume), ./.storage in dev.
+
+    STORAGE_DIR is REQUIRED in production, and that check is a data-protection
+    control, not a config nicety.
+
+    The fallback is relative to cwd. The moment the app is not launched from its
+    own directory -- a workspace script (`npm run db:purge -w @tnajem/web` runs
+    with cwd apps/web), a systemd unit with a different WorkingDirectory, Next's
+    standalone server.js which chdir()s to its own folder, a container entrypoint
+    -- this resolves somewhere with no documents in it. And the purge treats a
+    missing file as non-fatal: it counts it "already gone" and DELETES THE ROW
+    ANYWAY. The result is orphaned national ID scans left on disk with nothing
+    pointing at them, forever, from a job that reported success.
+
+    This is not hypothetical: moving the app into apps/ during the monorepo step
+    repointed this at apps/web/.storage while the scans were still at the repo
+    root. It was only harmless because no document was past the 90-day window. */
 export function storageBase(): string {
-  return process.env.STORAGE_DIR || join(process.cwd(), ".storage");
+  const dir = process.env.STORAGE_DIR?.trim();
+  if (dir) return resolve(dir);
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "STORAGE_DIR is required in production — refusing to fall back to a " +
+        "cwd-relative path for identity documents.",
+    );
+  }
+  return join(process.cwd(), ".storage");
 }
 
 /* Any drizzle/postgres-js handle. The schema generic differs between the

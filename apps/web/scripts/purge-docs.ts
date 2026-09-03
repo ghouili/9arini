@@ -1,9 +1,8 @@
-import { config } from "dotenv";
-/* Match Next.js precedence: .env holds the shared config, .env.local overrides it.
-   Loading only .env.local left these scripts blind to CRON_SECRET, ADMIN_EMAILS,
-   OTP_CHANNEL and MAIL_* — so the CLI and the running app disagreed. */
-config({ path: ".env" });
-config({ path: ".env.local", override: true }); // .env.local still wins over a stray shell var
+/* Env from the REPO ROOT, resolved from this module rather than cwd. See
+   _paths.ts -- a purge with the wrong cwd finds no files, treats every document
+   as already-gone, and deletes the rows anyway. */
+import { loadEnv } from "./_paths";
+loadEnv();
 
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";

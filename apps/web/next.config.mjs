@@ -1,3 +1,5 @@
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 /** @type {import('next').NextConfig} */
 
 const isProd = process.env.NODE_ENV === "production";
@@ -122,6 +124,17 @@ const nextConfig = {
   },
 
   experimental: {
+    /* MONOREPO. Without this, Next infers the tracing root from the nearest
+       lockfile and either misses packages/* (they are symlinks in the root
+       node_modules) or traces the whole repo -- including tools/ui-audit/shots*,
+       which is hundreds of megabytes of PNGs.
+
+       NOTE it lives under `experimental` on Next 14 (it moves to top level in
+       Next 15), so every Next 15 snippet you find is wrong for this repo. */
+    outputFileTracingRoot: join(dirname(fileURLToPath(import.meta.url)), "../../"),
+    outputFileTracingExcludes: {
+      "/**": ["tools/ui-audit/**", "e2e/**", "**/*.png", ".storage/**", ".e2e-storage/**"],
+    },
     // Verification doc uploads (ID/diploma images or PDFs) exceed the 1MB default.
     serverActions: { bodySizeLimit: "12mb" },
   },
