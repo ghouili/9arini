@@ -81,7 +81,7 @@ test.describe("admin document access", () => {
     const tutor = await seedTutor({ status: "pending" });
     await seedVerificationDoc(tutor.id);
 
-    const ctx = await browser.newContext();
+    const ctx = await browser.newContext({ reducedMotion: "reduce" });
     const { sessionCookie } = await import("./support/session");
     await ctx.addCookies([sessionCookie(await mintSession(admin.id))]);
     const page = await ctx.newPage();
@@ -96,7 +96,7 @@ test("approving a pending tutor makes them verified", async ({ browser }) => {
   const tutor = await seedTutor({ status: "pending" });
   await seedVerificationDoc(tutor.id);
 
-  const ctx = await browser.newContext();
+  const ctx = await browser.newContext({ reducedMotion: "reduce" });
   const { sessionCookie } = await import("./support/session");
   await ctx.addCookies([sessionCookie(await mintSession(admin.id))]);
   const page = await ctx.newPage();

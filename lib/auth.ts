@@ -174,7 +174,25 @@ async function rateLimitDb(key: string, limit: number, windowMs: number): Promis
         target: rateLimits.key,
         set: {
           count: sql`case when ${rateLimits.resetAt} <= now() then 1 else ${rateLimits.count} + 1 end`,
-          resetAt: sql`case when ${rateLimits.resetAt} <= now() then ${resetAt} else ${rateLimits.resetAt} end`,
+          /* The fresh window is computed from the DATABASE clock, not from a JS
+             Date bound as a parameter.
+
+             BUG (fixed): this used to interpolate ${resetAt} -- a JS Date -- into
+             the raw sql`` template. Inside sql`` Drizzle applies no column type
+             mapping, so postgres.js received a bare Date and threw
+             ERR_INVALID_ARG_TYPE ("The \"string\" argument must be ... Received an
+             instance of Date") on EVERY upsert. The catch below then swallowed it
+             and fell back to the in-process limiter, so the durable
+             cross-instance limiter this table exists for had never once worked --
+             silently, because the fallback is fail-open by design. It only
+             surfaced when the E2E suite started reading the server log.
+
+             Using now() here is also more correct than the old client-side value:
+             the whole point of the <= now() comparison is that instances with
+             skewed clocks agree on when a window ends. */
+          resetAt: sql`case when ${rateLimits.resetAt} <= now()
+                            then now() + ${windowMs} * interval '1 millisecond'
+                            else ${rateLimits.resetAt} end`,
         },
       })
       .returning({ count: rateLimits.count, resetAt: rateLimits.resetAt });
