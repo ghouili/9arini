@@ -21,7 +21,9 @@
     "ui:weight": "node scripts/ui-audit/weight.mjs",
     "ui:lighthouse": "node scripts/ui-audit/lighthouse.mjs",
     "brand:build": "python scripts/brand/build-raster.py && node scripts/brand/build-og.mjs",
-    "start:standalone": "node scripts/serve-standalone.mjs"
+    "start:standalone": "node scripts/serve-standalone.mjs",
+    "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p e2e"
   },
   "dependencies": {
     "drizzle-orm": "^0.36.4",
@@ -34,6 +36,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.62.1",
     "@types/node": "^20.14.0",
     "@types/nodemailer": "^8.0.1",
     "@types/react": "^18.3.3",

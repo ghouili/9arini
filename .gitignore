@@ -22,3 +22,8 @@ scripts/ui-audit/shots-*/
 
 # MCP browser console logs — scratch output, regenerated per session
 /.playwright-mcp
+
+# E2E suite artifacts
+/.e2e-storage
+/test-results
+/playwright-report
