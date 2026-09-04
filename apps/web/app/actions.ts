@@ -29,7 +29,7 @@ import type {
   ExploreTutor, TutorReviews, NotificationItem, NotificationKind, DashboardResult,
   StudentLevel, Role, OnboardingState,
 } from "@tnajem/shared";
-import { STUDENT_LEVELS } from "@tnajem/shared";
+import { STUDENT_LEVELS, parseStudentProfile } from "@tnajem/shared";
 import type { Me } from "@tnajem/shared";
 
 type DocKind = "id_front" | "id_back" | "selfie" | "diploma" | "certificate" | "role_proof" | "other";
@@ -261,101 +261,32 @@ export async function becomeTutor(input: { confirm: boolean; birthYear?: number 
     return { ok: true, demo: true };
   }
 
-  const session = await getSession();
-  if (!session) return { ok: false, error: "not-authenticated" };
-  if (session.profile.role === "tutor") return { ok: true }; // already there — idempotent
-  if (session.profile.role !== "student") return { ok: false, error: "not-eligible" };
+  /* PORTED to apps/api (POST /profile/become-tutor). The rate limit, the age rule
+     and the role write all live there.
 
-  // A role change is a privileged write on a public surface. Cheap ceiling.
-  const rl = await checkRateLimit(`role:upgrade:${session.profile.id}`, 5, 60 * 60_000);
-  if (!rl.ok) return { ok: false, error: "too-many-requests" };
-
-  /* Age. Prefer what is already on file — a student cannot re-declare themselves
-     older to get the role, exactly as verifyOtp only ever fills an UNKNOWN age. */
-  let birthYear = session.profile.birthYear;
-  if (birthYear == null) {
-    birthYear = vBirthYear(input.birthYear);
-    if (birthYear == null) return { ok: false, error: "age-required" };
-    await db.update(profiles).set({ birthYear }).where(eq(profiles.id, session.profile.id));
-  }
-  if (isMinorBirthYear(birthYear)) return { ok: false, error: "minor-cannot-teach" };
-
-  await db.update(profiles).set({ role: "tutor" }).where(eq(profiles.id, session.profile.id));
-  setRoleHint("tutor");
-  return { ok: true };
+     setRoleHint stays HERE: it writes a cookie on the browser, which the API
+     cannot do, and it is a forgeable UI hint the API has no business knowing
+     about. The endpoint returns the new role so we know when to set it. */
+  const res = await call<ActionResult & { role?: string }>("/profile/become-tutor", input);
+  if (res.ok && res.role) setRoleHint(res.role);
+  return { ok: res.ok, error: res.error };
 }
 
-/* ---------- Student profile (/student/welcome) ----------
-   The student half of onboarding, which did not exist: a student gave a phone
-   number and a birth year and nothing else, so `profiles.full_name` was null for
-   every student forever. Three surfaces were lying as a direct result — the tutor's
-   booking list showed "Élève" + a raw phone as the only handle on a child, the
-   new_booking notification said "Un élève a réservé", and public reviews shipped
-   with no author. Writing a name here fixes all three with no change to them.
-
-   Everything except the name is optional, and the screen itself is skippable: this
-   sits between logging in and using the product, and it must never cost a booking. */
 export async function saveStudentProfile(
   input: { fullName: string; level?: string | null; subjects?: string[]; phone?: string | null },
 ): Promise<ActionResult> {
-  const name = vText(input.fullName, { field: "name", max: 80, min: 2 });
-  if (!name.ok) return { ok: false, error: name.error };
-
-  /* Optional CONTACT phone — not a credential. Since email became the login
-     identity this is where a student's number is collected, and it is what keeps
-     the tutor's call button and notify()'s SMS side-channel meaningful. Absent is
-     fine; half-typed is not. */
-  const phone = vOptionalPhone(input.phone);
-  if (!phone.ok) return { ok: false, error: phone.error };
-  const normalizedPhone = phone.value ? normalizePhone(phone.value) : null;
-  if (normalizedPhone && !isValidPhone(normalizedPhone)) return { ok: false, error: "invalid-phone" };
-
-  // Closed set — it is written from a public action and read back into UI copy.
-  // Absent is fine; present-but-unrecognised is a tampered payload, so it fails.
-  let level: StudentLevel | null = null;
-  if (input.level != null && input.level !== "") {
-    if (!(STUDENT_LEVELS as readonly string[]).includes(input.level)) return { ok: false, error: "invalid-level" };
-    level = input.level as StudentLevel;
+  /* Validation runs BEFORE the demo short-circuit, exactly as it always has, so
+     the ui-audit harness can exercise the error states with no database. It uses
+     parseStudentProfile from @tnajem/shared — the SAME function the API handler
+     calls, not a copy. */
+  if (!dbReady) {
+    const check = parseStudentProfile(input);
+    return check.ok ? { ok: true, demo: true } : { ok: false, error: check.error };
   }
-
-  /* Free text from the client, stored comma-joined (the tutors.languages
-     convention). Bound the count AND each entry, dedupe, and strip commas so one
-     entry can never smuggle in extra ones when the string is split on read. */
-  const subjects = Array.isArray(input.subjects)
-    ? Array.from(
-        new Set(
-          input.subjects
-            .map((x) => (typeof x === "string" ? x.replace(/,/g, " ").trim().slice(0, 40) : ""))
-            .filter(Boolean),
-        ),
-      ).slice(0, 8)
-    : [];
-
-  if (!dbReady) return { ok: true, demo: true };
-  const session = await getSession();
-  if (!session) return { ok: false, error: "not-authenticated" };
-  // Symmetric with createTutor's gate: the student screen writes a student profile.
-  if (session.profile.role !== "student") return { ok: false, error: "not-a-student" };
-
-  await db
-    .update(profiles)
-    .set({
-      fullName: name.value,
-      level,
-      subjects: subjects.length ? subjects.join(",") : null,
-      // Never null out a number already on file just because this submit omitted it.
-      ...(normalizedPhone ? { phone: normalizedPhone } : {}),
-    })
-    .where(eq(profiles.id, session.profile.id));
-  return { ok: true };
+  // PORTED to apps/api (POST /profile/student).
+  return call<ActionResult>("/profile/student", input);
 }
 
-/* PORTED to apps/api (GET /me). The signature is unchanged, so every call site is
-   untouched — that is the point of the proxy pattern.
-
-   Both identities come back: the account screen shows whichever one you signed up
-   with, and the phone is an optional contact that may simply not be set. This is
-   SELF-view; Step 8's zero-contact rule governs what a counterparty sees. */
 export async function getMe(): Promise<Me | null> {
   return call<Me | null>("/me", undefined, "GET");
 }
@@ -455,45 +386,8 @@ export async function createTutor(input: { name: string; subject: string; bio: s
    the shells fall back to a first-step-only bar, which is the honest default. */
 export async function getOnboardingState(): Promise<OnboardingState | null> {
   if (!dbReady) return null;
-  const session = await getSession();
-  if (!session || session.profile.role !== "tutor") return null;
-
-  const [mine] = await db
-    .select({ id: tutors.id, slug: tutors.slug, fullName: tutors.fullName, subject: tutors.subject, bio: tutors.bio, status: tutors.status })
-    .from(tutors)
-    .where(eq(tutors.profileId, session.profile.id))
-    .limit(1);
-
-  // The contact phone lives on the PROFILE, not the storefront, so it pre-fills
-  // even before a tutor has created their page.
-  const contactPhone = session.profile.phone ?? "";
-
-  if (!mine) {
-    return {
-      hasStorefront: false, status: "draft", hasClass: false, hasSlug: false,
-      draft: contactPhone ? { fullName: "", subject: "", bio: "", slug: "", phone: contactPhone } : null,
-    };
-  }
-
-  // count(*) rather than fetching rows: the ladder only asks "any classes yet?".
-  const [cnt] = await db
-    .select({ n: sql<number>`count(*)::int` })
-    .from(classes)
-    .where(eq(classes.tutorId, mine.id));
-
-  return {
-    hasStorefront: true,
-    status: mine.status,
-    hasClass: (cnt?.n ?? 0) > 0,
-    hasSlug: Boolean(mine.slug),
-    draft: {
-      fullName: mine.fullName ?? "",
-      subject: mine.subject ?? "",
-      bio: mine.bio ?? "",
-      slug: mine.slug ?? "",
-      phone: contactPhone,
-    },
-  };
+  // PORTED to apps/api (GET /profile/onboarding).
+  return call<OnboardingState | null>("/profile/onboarding", undefined, "GET");
 }
 
 export async function createClass(input: {

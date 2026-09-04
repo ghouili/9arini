@@ -23,3 +23,4 @@
 export * from "./types";
 export * from "./validation";
 export * from "./admin";
+export * from "./profile-input";
