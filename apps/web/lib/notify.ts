@@ -2,7 +2,7 @@ import "server-only";
 import { eq } from "@tnajem/db";
 import { db, dbReady } from "@/lib/db";
 import { profiles, notifications } from "@tnajem/db";
-import { smsEnabled, sendSms } from "@/lib/sms";
+import { smsEnabled, sendSms } from "@tnajem/shared/sms";
 import type { NotificationKind } from "@tnajem/shared";
 
 /* Notification dispatcher.

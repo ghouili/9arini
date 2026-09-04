@@ -1,0 +1,144 @@
+import { test, expect } from "@playwright/test";
+import { sql } from "./support/db";
+import { recoverOtp, resetRateLimits } from "./support/otp";
+import { email } from "./support/seed";
+import { randomBytes } from "node:crypto";
+
+/* The REAL login flow, end to end, through the browser.
+
+   Every other spec mints a session row directly, which is right — they are about
+   booking and moderation, not about login. But that means nothing exercised
+   requestOtp/verifyOtp, so when they were ported to apps/api the whole suite
+   would have stayed green even if the port were completely broken.
+
+   This spec is the one that would catch it. It also exercises the single most
+   fragile agreement in the split: apps/web and apps/api must hash an OTP
+   identically, or a code minted by one cannot be verified by the other and login
+   fails intermittently depending on which process served the request.
+   support/otp.ts recovers the plaintext by brute force from otp_codes.code_hash
+   (10^6 space, ~1s) using AUTH_SECRET — no production code change, and it fails
+   loudly if the hash construction ever drifts. */
+
+test.beforeEach(async () => {
+  /* rate_limits is Postgres-backed, so it persists across runs and server
+     restarts. The OTP request limiter is 10 sends per 10 minutes per IP and every
+     worker shares 127.0.0.1 — without this reset, run 2 of the day fails in a way
+     that looks exactly like an application bug. */
+  await resetRateLimits();
+});
+
+test("a student signs up with a real OTP and lands signed in", async ({ page }) => {
+  const identifier = email(`e2e-login-${randomBytes(4).toString("hex")}`);
+
+  await page.goto("/fr/signup/eleve");
+  await page.locator('input[type="email"]').fill(identifier);
+  /* The birth-year select is `required` — the student signup collects it for the
+     minor-consent gate. Leave it blank and HTML5 validation swallows the submit
+     with no error in the page, the console, or the server log: the form simply
+     does nothing. (Same trap as the required `price` field on new-class.) */
+  await page.locator("select").selectOption("1995");
+  await page.locator('button[type="submit"]').click();
+
+  // The code exists in the database, hashed.
+  await expect.poll(async () => {
+    const [r] = await sql<{ n: number }[]>`
+      select count(*)::int n from otp_codes where identifier = ${identifier}`;
+    return r.n;
+  }, { timeout: 20_000, message: "requestOtp did not mint a code" }).toBe(1);
+
+  const code = await recoverOtp(identifier);
+  expect(code, "the web and the API must hash an OTP identically").toMatch(/^\d{6}$/);
+
+  // Type it into whichever field the code step presents.
+  /* Wait for the code step to actually render before typing. The submit button is
+     reused across both steps and is `disabled` while the request is in flight —
+     clicking it too early resolves the locator to a disabled "Chargement…" button
+     and burns the whole timeout. */
+  const codeField = page.getByPlaceholder("000000");
+  await expect(codeField).toBeVisible({ timeout: 20_000 });
+  await codeField.fill(code);
+
+  const submit = page.locator('button[type="submit"]');
+  await expect(submit).toBeEnabled({ timeout: 20_000 });
+  await submit.click();
+
+  // A profile now exists, and the browser holds a session for it.
+  await expect.poll(async () => {
+    const [p] = await sql<{ n: number }[]>`
+      select count(*)::int n from profiles where email = ${identifier}`;
+    return p.n;
+  }, { timeout: 20_000, message: "verifyOtp did not create the account" }).toBe(1);
+
+  await expect.poll(async () => {
+    const [s] = await sql<{ n: number }[]>`
+      select count(*)::int n from sessions s
+      join profiles p on p.id = s.profile_id where p.email = ${identifier}`;
+    return s.n;
+  }, { timeout: 20_000, message: "no session row — the token never came back from the API" }).toBeGreaterThan(0);
+
+  // And the cookie actually reached the browser: adoptSession() ran on the web side.
+  const cookies = await page.context().cookies();
+  const session = cookies.find((c) => c.name === "tnajem_session");
+  expect(session, "the session cookie must be set on the BROWSER, not the web server").toBeTruthy();
+  expect(session?.httpOnly, "the session cookie must stay httpOnly").toBe(true);
+
+  await sql`delete from sessions where profile_id in (select id from profiles where email = ${identifier})`;
+  await sql`delete from profiles where email = ${identifier}`;
+});
+
+test("a wrong code is refused and does not create an account", async () => {
+  const identifier = email(`e2e-badcode-${randomBytes(4).toString("hex")}`);
+  const api = process.env.E2E_API_URL ?? "http://127.0.0.1:4000";
+
+  const post = (p: string, b: unknown) =>
+    fetch(`${api}${p}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(b),
+    }).then((r) => r.json() as Promise<Record<string, unknown>>);
+
+  await post("/auth/otp/request", { identifier });
+  const real = await recoverOtp(identifier);
+  const wrong = real === "000000" ? "111111" : "000000";
+
+  const res = await post("/auth/otp/verify", { identifier, code: wrong, role: "student", birthYear: 1990 });
+  expect(res.error, "a wrong code must be invalid-code, never a signed-in session").toBe("invalid-code");
+
+  const [p] = await sql<{ n: number }[]>`
+    select count(*)::int n from profiles where email = ${identifier}`;
+  expect(p.n, "a failed verification must not create an account").toBe(0);
+
+  /* The attempt is counted IN SQL, not from a value read first — two concurrent
+     wrong guesses would otherwise both write attempts = n+1 and cost the attacker
+     only one try against a 5-guess budget. */
+  const [row] = await sql<{ attempts: number }[]>`
+    select attempts from otp_codes where identifier = ${identifier}`;
+  expect(row.attempts).toBe(1);
+
+  await sql`delete from otp_codes where identifier = ${identifier}`;
+});
+
+test("signing in with an unknown identity and no role does not silently create one", async () => {
+  const identifier = email(`e2e-noacct-${randomBytes(4).toString("hex")}`);
+  const api = process.env.E2E_API_URL ?? "http://127.0.0.1:4000";
+  const post = (p: string, b: unknown) =>
+    fetch(`${api}${p}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(b),
+    }).then((r) => r.json() as Promise<Record<string, unknown>>);
+
+  await post("/auth/otp/request", { identifier });
+  const code = await recoverOtp(identifier);
+
+  // No `role`: this is SIGN IN, not signup. The signup screens are the only place
+  // a profile is born, so a role is always something the user was shown and chose.
+  const res = await post("/auth/otp/verify", { identifier, code });
+  expect(res.error).toBe("no-account");
+
+  const [p] = await sql<{ n: number }[]>`
+    select count(*)::int n from profiles where email = ${identifier}`;
+  expect(p.n).toBe(0);
+
+  await sql`delete from otp_codes where identifier = ${identifier}`;
+});

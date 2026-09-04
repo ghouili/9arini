@@ -22,6 +22,12 @@
       ],
       "@tnajem/shared/contracts": [
         "../../packages/shared/src/contracts/index.ts"
+      ],
+      "@tnajem/shared/mail": [
+        "../../packages/shared/src/mail.ts"
+      ],
+      "@tnajem/shared/sms": [
+        "../../packages/shared/src/sms.ts"
       ]
     }
   },

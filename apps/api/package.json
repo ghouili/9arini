@@ -19,6 +19,7 @@
     "@tnajem/shared": "*",
     "dotenv": "^16.4.5",
     "fastify": "^4.28.1",
+    "nodemailer": "^9.0.6",
     "zod": "^3.23.8"
   },
   "devDependencies": {

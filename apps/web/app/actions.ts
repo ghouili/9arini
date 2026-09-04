@@ -10,12 +10,11 @@ import {
   normalizePhone, isValidPhone, createOtp, verifyOtpCode, otpCooldownRemaining,
   createSession, destroySession, getSession, setDemoCookie, checkRateLimit, clientIp,
   setRoleHint, otpChannel, normalizeEmail, isValidEmail,
-  OTP_RESEND_COOLDOWN_SEC, OTP_TTL_SEC,
-} from "@/lib/auth";
+  OTP_RESEND_COOLDOWN_SEC, OTP_TTL_SEC, adoptSession,} from "@/lib/auth";
 import { demoClasses, demoEnabled } from "@/lib/demo";
 import { revalidateTutor, revalidatePublicTutors } from "@/lib/cache";
-import { smsEnabled, sendSms } from "@/lib/sms";
-import { mailEnabled, sendMail } from "@/lib/mail";
+import { smsEnabled, sendSms } from "@tnajem/shared/sms";
+import { mailEnabled, sendMail } from "@tnajem/shared/mail";
 import { notify } from "@/lib/notify";
 import { requireAdmin, adminNotifyEmails } from "@/lib/admin";
 import { call } from "@/lib/api";
@@ -114,36 +113,7 @@ async function recomputeTutorStats(tutorId: string, tx: Updater = db): Promise<v
    the only bilingual promise the product makes. Plain text — a six-digit code
    needs no layout, and text-only bodies are the least likely to be held back by a
    spam filter, which for an OTP is the whole product. */
-const OTP_MAIL = {
-  fr: {
-    subject: (code: string) => `Tnajem — ton code : ${code}`,
-    body: (code: string) =>
-      `Ton code de connexion Tnajem est :
-
-    ${code}
-
-` +
-      `Il est valable 5 minutes.
-
-` +
-      `Si tu n'as pas demandé ce code, ignore cet email — personne ne peut se connecter sans lui.`,
-    sms: (code: string) => `Tnajem : ton code de connexion est ${code} (valable 5 min).`,
-  },
-  ar: {
-    subject: (code: string) => `تنجّم — الكود متاعك : ${code}`,
-    body: (code: string) =>
-      `كود الدخول متاعك في تنجّم :
-
-    ${code}
-
-` +
-      `صالح 5 دقايق.
-
-` +
-      `إذا ما طلبتش هذا الكود، ما تعبّرش لهذا الإيميل — حتّى حد ما ينجم يدخل بلاه.`,
-    sms: (code: string) => `تنجّم : كود الدخول متاعك هو ${code} (صالح 5 دقايق).`,
-  },
-} as const;
+/* OTP_MAIL moved to apps/api/src/lib/otp-copy.ts with the sender. */
 
 /* `resendAfter` / `expiresIn` (seconds) travel with every successful send so the
    login screens can count down the cooldown and the code's life WITHOUT keeping
@@ -153,75 +123,21 @@ export async function requestOtp(input: { identifier: string; locale?: string })
     ok: boolean; devCode?: string; demo?: boolean; error?: string; retryAfter?: number;
     resendAfter?: number; expiresIn?: number;
   }> {
-  const timing = { resendAfter: OTP_RESEND_COOLDOWN_SEC, expiresIn: OTP_TTL_SEC };
   if (!dbReady) {
-    /* Demo mode (no DATABASE_URL) — the UI audit harness and local preview. The
+    /* Demo mode (no DATABASE_URL) — the UI-audit harness and local preview. The
        sentinel code is still withheld in production: a prod deploy that lost its
-       DATABASE_URL must degrade to "can't sign in", never to "sign in as anyone". */
+       DATABASE_URL must degrade to "can't sign in", never to "sign in as anyone".
+       Kept on the WEB side because it exists to keep `next build` and the audit
+       harness working without a database; apps/api asserts DATABASE_URL at boot. */
     return IS_PROD
       ? { ok: false, error: "send-failed" }
-      : { ok: true, demo: true, devCode: "000000", ...timing };
+      : { ok: true, demo: true, devCode: "000000", resendAfter: OTP_RESEND_COOLDOWN_SEC, expiresIn: OTP_TTL_SEC };
   }
-
-  /* Normalise, then validate, then use the NORMALISED value — never the raw input.
-     normalizeEmail lower-cases, which is what stops "Sam@x.com" and "sam@x.com"
-     becoming two accounts against a case-sensitive unique index. */
-  const channel = otpChannel();
-  const id = channel === "email" ? normalizeEmail(input.identifier) : normalizePhone(input.identifier);
-  const idOk = channel === "email" ? isValidEmail(id) : isValidPhone(id);
-  if (!idOk) return { ok: false, error: channel === "email" ? "invalid-email" : "invalid-phone" };
-
-  /* Anti-abuse, two layers:
-       1. per-IP — the per-identity cooldown below is keyed on a value the ATTACKER
-          supplies, so on its own it stops nothing: rotate the address and you can
-          send unlimited messages. On SMS that was a direct billing drain and an
-          SMS-bombing service pointed at arbitrary Tunisians from our sender id.
-          Email is cheaper but not free of consequence: the equivalent abuse is
-          mail-bombing a stranger's inbox from our domain, which is how a sending
-          domain earns a spam reputation and stops delivering for everyone.
-       2. per-identity cooldown — protects one victim from repeat messages. */
-  const ip = await checkRateLimit(`otp:req:ip:${clientIp()}`, 10, 10 * 60_000); // 10 sends / 10 min / IP
-  if (!ip.ok) return { ok: false, error: "too-soon", retryAfter: ip.retryAfter };
-
-  const wait = await otpCooldownRemaining(id);
-  if (wait > 0) return { ok: false, error: "too-soon", retryAfter: wait };
-
-  // createOtp re-checks the cooldown under an advisory lock and returns null if a
-  // concurrent call already minted a code for this identity (see lib/auth.ts).
-  const code = await createOtp(id);
-  if (!code) return { ok: false, error: "too-soon", retryAfter: 60 };
-
-  const m = OTP_MAIL[input.locale === "ar" ? "ar" : "fr"];
-
-  /* Production posture: the code is NEVER returned to the client when a provider
-     is configured. If delivery fails, surface a retryable error — do not fall
-     through and leak it. */
-  if (channel === "email") {
-    if (mailEnabled()) {
-      const sent = await sendMail(id, m.subject(code), m.body(code));
-      return sent ? { ok: true, ...timing } : { ok: false, error: "send-failed" };
-    }
-  } else if (smsEnabled()) {
-    const sent = await sendSms(id, m.sms(code));
-    return sent ? { ok: true, ...timing } : { ok: false, error: "send-failed" };
-  }
-
-  /* No provider configured. Two very different situations, and conflating them was
-     an account-takeover hole: the old code returned the OTP here unconditionally,
-     gated only on mailEnabled()/smsEnabled(). Those are env-presence checks, so a
-     PRODUCTION deploy shipped without MAIL_* became an oracle — type any stranger's
-     address, read their login code off the screen, own the account.
-     Fail closed in production; keep the on-screen code for local development only. */
-  if (IS_PROD) {
-    console.error(
-      "[Tnajem] requestOtp: no OTP provider configured in production — refusing to " +
-        "return the code. Set MAIL_HOST/MAIL_USER/MAIL_PASS/MAIL_FROM_ADDRESS (or " +
-        "TWILIO_* with OTP_CHANNEL=sms). Nobody can sign in until this is fixed.",
-    );
-    return { ok: false, error: "send-failed" };
-  }
-  return { ok: true, devCode: code, ...timing };
+  // PORTED to apps/api (POST /auth/otp/request). Rate limits, the advisory-locked
+  // mint and delivery all live there now.
+  return call("/auth/otp/request", input);
 }
+
 export async function verifyOtp(input: { identifier: string; code: string; role?: "tutor" | "student"; locale?: string; birthYear?: number }):
   Promise<{ ok: boolean; role?: string; needsConsent?: boolean; created?: boolean; roleMismatch?: boolean; needsProfile?: boolean; hasStorefront?: boolean; error?: string; retryAfter?: number }> {
   if (!dbReady) {
@@ -237,124 +153,43 @@ export async function verifyOtp(input: { identifier: string; code: string; role?
       created: true, roleMismatch: false, needsProfile: demoRole === "student",
     };
   }
-  /* Same normalise-then-validate order as requestOtp, and the same channel. An
-     invalid identity is reported as "invalid-code", not "invalid-email": this
-     endpoint must not become an oracle that distinguishes a malformed address from
-     a wrong code. */
-  const channel = otpChannel();
-  const id = channel === "email" ? normalizeEmail(input.identifier) : normalizePhone(input.identifier);
-  const idOk = channel === "email" ? isValidEmail(id) : isValidPhone(id);
-  if (!idOk) return { ok: false, error: "invalid-code" };
 
-  /* Brute-force budget. otp_codes.attempts caps guesses at 5 PER CODE, but that
-     counter is reset by every new code — and requesting one only costs a 60s
-     cooldown on that phone. So the pre-existing ceiling was really "5 guesses per
-     minute, forever, per phone" against a 6-digit space, plus an unthrottled DB
-     hit per guess. Two throttles close it:
-       • per-phone: 10 guesses / 15 min — with the 5-per-code cap this leaves an
-         attacker ~960 guesses/day against 1,000,000 codes (≈0.1%/day).
-       • per-IP: stops one host from farming many phones in parallel.
-     Both are in-process (see lib/auth.ts) — good enough for a single instance.
+  /* PORTED to apps/api (POST /auth/otp/verify). Everything that decides identity
+     — normalisation, the two throttles, code verification, profile creation, the
+     consent gate — runs there.
 
-     Being THROTTLED is reported distinctly as "too-many-attempts". That is a fact
-     about the caller, not about the account: it is returned for any identity once
-     the budget is spent, so it reveals nothing about whether an account exists.
-     Expiry, by contrast, stays folded into "invalid-code" — telling a caller their
-     code "expired" would confirm one had been issued, which is exactly the
-     enumeration oracle the opacity above exists to prevent. */
-  const perId = await checkRateLimit(`otp:vfy:id:${id}`, 10, 15 * 60_000);
-  if (!perId.ok) return { ok: false, error: "too-many-attempts", retryAfter: perId.retryAfter };
-  const perIp = await checkRateLimit(`otp:vfy:ip:${clientIp()}`, 30, 15 * 60_000);
-  if (!perIp.ok) return { ok: false, error: "too-many-attempts", retryAfter: perIp.retryAfter };
+     The COOKIES stay here, and must. apps/api is talking to this server, not to
+     the browser, so it returns the token it minted and we write it. The role hint
+     is web-only by design: it is a forgeable UI hint that decides one nav link,
+     and the API has no business knowing it exists. */
+  const res = await call<{
+    ok: boolean; role?: string; needsConsent?: boolean; created?: boolean;
+    roleMismatch?: boolean; needsProfile?: boolean; hasStorefront?: boolean;
+    error?: string; retryAfter?: number;
+    session?: { token: string; expiresAt: string };
+  }>("/auth/otp/verify", input);
 
-  const valid = await verifyOtpCode(id, (input.code || "").trim());
-  if (!valid) return { ok: false, error: "invalid-code" };
-
-  /* `role` and `locale` are pgEnum/text columns and this is a public surface: an
-     arbitrary string would reach Postgres and blow up as "invalid input value for
-     enum user_role" (a 500 by input). Pin both to the allowed set.
-
-     role is now OPTIONAL, and its absence is meaningful: /auth is SIGN IN and sends
-     none, /signup/{prof,eleve} send a fixed one. A caller with no role can never
-     create an account — see the `no-account` branch below. That is what keeps the
-     signup screens the only place a profile is born, so a role is always something
-     the user was actually shown and chose. */
-  const requestedRole = input.role === "tutor" ? "tutor" : input.role === "student" ? "student" : null;
-  const locale = input.locale === "ar" ? "ar" : "fr";
-  // Self-reported at student signup; used ONLY for the minor-consent gate. Tutors
-  // are verified adults (ID check), so we never record an age for them.
-  const birthYear = requestedRole === "student" ? vBirthYear(input.birthYear) : null;
-
-  /* Look the account up by the identity column the ACTIVE channel owns. Under
-     OTP_CHANNEL=sms this is profiles.phone, exactly as before; under email it is
-     profiles.email. Both columns are nullable-and-unique, so the two channels can
-     coexist in one table without either forcing a value on the other. */
-  const idColumn = channel === "email" ? profiles.email : profiles.phone;
-  let [profile] = await db.select().from(profiles).where(eq(idColumn, id)).limit(1);
-  let created = false;
-  if (!profile) {
-    /* No account, and the caller did not say which kind to create — i.e. someone
-       typed a number into SIGN IN that has never signed up. We refuse rather than
-       quietly minting a student profile they never asked for.
-
-       The code has already been consumed at this point (verifyOtpCode deletes on
-       success), so they will need a fresh one to sign up. That is deliberate: the
-       alternative is checking whether the phone has an account BEFORE proving they
-       own it, which is a user-enumeration oracle. One extra SMS on a rare path
-       beats letting anyone probe which Tunisian numbers are on the platform. */
-    if (!requestedRole) return { ok: false, error: "no-account" };
-    // Only the active channel's column is written. The other stays null until the
-    // user supplies it — the phone is now an optional CONTACT collected during
-    // onboarding (/student/welcome, /onboarding), not a login credential.
-    const identity = channel === "email" ? { email: id } : { phone: id };
-    [profile] = await db.insert(profiles).values({ ...identity, role: requestedRole, locale, birthYear }).returning();
-    created = true;
-  } else if (profile.role === "student" && profile.birthYear == null && birthYear != null) {
-    // One-time fill of an UNKNOWN age: lets a student who predates this field set it.
-    // Never overwrites a known value, so a minor can't re-auth claiming to be an adult
-    // to escape consent — the gate only ever relaxes from a real, on-file birth year.
-    await db.update(profiles).set({ birthYear }).where(eq(profiles.id, profile.id));
-    profile = { ...profile, birthYear };
+  if (res.ok && res.session) {
+    adoptSession(res.session.token, new Date(res.session.expiresAt), res.role);
   }
-  // NOTE: an existing profile's role is deliberately NOT overwritten from input —
-  // otherwise anyone could flip their own role by re-authenticating as the other one.
-  await createSession(profile.id, profile.role);
-
-  let needsConsent = false;
-  // Guardian consent is a MINORS-only requirement (INPDP). Adults skip it; unknown
-  // age fails safe (isMinorBirthYear treats null as minor), matching reserveSeat's gate.
-  if (profile.role === "student" && isMinorBirthYear(profile.birthYear)) {
-    const [c] = await db.select().from(consents).where(eq(consents.minorId, profile.id)).limit(1);
-    needsConsent = !c;
-  }
-  /* The requested role differed from the one on file. We still sign them in — they
-     proved they own the number — but the caller must SAY so rather than redirect
-     them somewhere that silently contradicts what they just tapped. */
-  const roleMismatch = !created && requestedRole != null && profile.role !== requestedRole;
-
-  /* A student with no name yet still owes us the welcome screen. Checked on every
-     login, not just the first, so a student who skipped it (the skip link exists so
-     onboarding can never cost a booking) is asked again next time. */
-  const needsProfile = profile.role === "student" && !profile.fullName;
-
-  /* Does this tutor already have a storefront? Without it postAuthDestination could
-     only ever send tutors to /onboarding, so a tutor who has been publishing for
-     months landed on "create your page" at every single login. One indexed lookup,
-     and only for tutors — students never reach that branch. */
-  let hasStorefront = false;
-  if (profile.role === "tutor") {
-    const [mine] = await db
-      .select({ id: tutors.id })
-      .from(tutors)
-      .where(eq(tutors.profileId, profile.id))
-      .limit(1);
-    hasStorefront = Boolean(mine);
-  }
-
-  return { ok: true, role: profile.role, needsConsent, created, roleMismatch, needsProfile, hasStorefront };
+  const { session: _session, ...rest } = res;
+  return rest;
 }
 
 export async function logout(): Promise<{ ok: boolean }> {
+  /* The API deletes the row; this clears the cookies. Both halves matter: a
+     cleared cookie with a live row means anyone holding the token is still signed
+     in, and a deleted row with a live cookie means the browser keeps sending a
+     token that no longer resolves. destroySession() does the cookie half. */
+  if (dbReady) {
+    try {
+      await call("/auth/logout");
+    } catch {
+      /* An API outage must not strand someone signed in on this browser. Clearing
+         the cookie is the half we can always do; the row expires on its own and
+         is swept by the purge. */
+    }
+  }
   await destroySession();
   return { ok: true };
 }

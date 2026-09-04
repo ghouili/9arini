@@ -1,4 +1,16 @@
-import "server-only";
+/* SERVER-ONLY INFRASTRUCTURE. Reached via the "@tnajem/shared/mail" (or /sms)
+   SUBPATH and deliberately NOT re-exported from the barrel — the barrel is
+   imported by client components, and dragging a mail transport into the
+   browser bundle is the same mistake that broke the build when auth-core
+   was barrelled (UnhandledSchemeError: node:crypto).
+
+   There is no `import "server-only"` here for the same reason as @tnajem/db:
+   Fastify and tsx both load this and server-only throws under tsx.
+
+   It lives in shared rather than apps/api because BOTH apps need it during
+   the Step 4 transition: the API sends OTP mail, and apps/web still runs
+   lib/notify.ts. Once notify moves in the notif domain, this can follow it
+   into apps/api. */
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
 

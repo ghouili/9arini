@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { and, eq, gt, profiles, sessions } from "@tnajem/db";
+import { and, eq, gt, lt, profiles, sessions } from "@tnajem/db";
 import { SESSION_COOKIE, SESSION_DAYS } from "@tnajem/shared/auth-core";
 import { db } from "../db";
 import { COOKIE_DOMAIN, IS_PROD } from "../env";
@@ -32,10 +32,24 @@ export type SessionProfile = {
 export type Session = { token: string; profile: SessionProfile };
 
 export async function createSession(profileId: string): Promise<{ token: string; expiresAt: Date }> {
+  /* Session fixation: a fresh 256-bit token is minted on every successful login
+     and the cookie is overwritten, so a token an attacker planted pre-login is
+     never the one that ends up authenticated. */
   const token = randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 86_400_000);
-  // Re-minted on every login, never reused — anti-fixation.
   await db.insert(sessions).values({ token, profileId, expiresAt });
+
+  /* Opportunistic GC of this profile's expired rows — the sessions table
+     otherwise grows forever (every login on every device leaves a row behind).
+     Best-effort: a failed cleanup must not fail the login. */
+  try {
+    await db
+      .delete(sessions)
+      .where(and(eq(sessions.profileId, profileId), lt(sessions.expiresAt, new Date())));
+  } catch (e) {
+    console.error("[tnajem-api] session cleanup failed", e);
+  }
+
   return { token, expiresAt };
 }
 

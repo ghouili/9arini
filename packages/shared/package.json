@@ -10,16 +10,20 @@
     "./validation": "./src/validation.ts",
     "./admin": "./src/admin.ts",
     "./auth-core": "./src/auth-core.ts",
-    "./contracts": "./src/contracts/index.ts"
+    "./contracts": "./src/contracts/index.ts",
+    "./mail": "./src/mail.ts",
+    "./sms": "./src/sms.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "typescript": "^5.5.4",
-    "@types/node": "^20.14.0"
+    "@types/node": "^20.14.0",
+    "@types/nodemailer": "^8.0.1"
   },
   "dependencies": {
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "nodemailer": "^9.0.6"
   }
 }

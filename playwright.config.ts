@@ -43,6 +43,27 @@ export default defineConfig({
         API_PORT: "4000",
         STORAGE_DIR: resolve(process.env.E2E_STORAGE_DIR ?? ".e2e-storage"),
         ADMIN_EMAILS: "e2e-admin@tnajem.invalid",
+        /* NO REAL MAIL FROM THE TEST SUITE.
+
+           MAIL_* are set in .env, so mailEnabled() was true and every OTP request
+           opened a live SMTP connection from the developer's real account — to
+           @tnajem.invalid addresses that can never be delivered. That is slow
+           (it made the signup spec time out at 60s waiting on a submit button
+           still showing "Chargement…"), and it is the kind of thing that quietly
+           burns a sending reputation.
+
+           dotenv does NOT overwrite a key that is already present in process.env,
+           even when the value is an empty string — verified — so setting these
+           blank here beats .env without editing it. requestOtp then takes its
+           no-provider path, which is dev-only and safe: it fails CLOSED in
+           production (IS_PROD refuses to return the code). The suite never reads
+           the on-screen code anyway; support/otp.ts recovers it from the hash. */
+        MAIL_HOST: "",
+        MAIL_USER: "",
+        MAIL_PASS: "",
+        MAIL_FROM_ADDRESS: "",
+        TWILIO_ACCOUNT_SID: "",
+        TWILIO_AUTH_TOKEN: "",
       },
     },
     {

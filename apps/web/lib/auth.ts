@@ -304,6 +304,27 @@ export async function createSession(profileId: string, role?: string): Promise<v
    header rendering the OLD role for the rest of the session's 30 days. becomeTutor()
    changes the role mid-session, so it has to be able to refresh this. Any future
    writer of profiles.role must call this too. */
+/* Adopt a session the API just minted.
+
+   After the auth-write port the DB row is created by apps/api, which cannot set a
+   cookie on the browser — it is talking to the web server, not to the user. So it
+   returns the token and this writes the cookie.
+
+   The attributes are the SAME ones createSession() uses, and they stay defined in
+   exactly one place on purpose: a mismatch on sameSite, path or secure between two
+   writers produces two cookies with one name and an intermittently logged-out
+   user, which is miserable to diagnose. */
+export function adoptSession(token: string, expiresAt: Date, role?: string): void {
+  cookies().set(SESSION_COOKIE, token, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    expires: expiresAt,
+  });
+  if (role) setRoleHint(role, expiresAt);
+}
+
 export function setRoleHint(role: string, expires?: Date): void {
   cookies().set(ROLE_HINT_COOKIE, role, {
     httpOnly: false,
