@@ -5,7 +5,7 @@
    into a <Suspense> boundary, and Next bails such a boundary to client-only
    rendering, so the shipped HTML carries no heading, no phone field and no submit
    button. This is the top of the student funnel on Tunisian 3G — it renders in the
-   first HTML payload or it does not render at all. scripts/ui-audit/nojs.mjs
+   first HTML payload or it does not render at all. tools/ui-audit/nojs.mjs
    asserts exactly that.
 
    Reading searchParams makes the route dynamic, which is correct: a signup page is

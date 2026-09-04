@@ -1,6 +1,6 @@
 /* Mint a real session row and hand Playwright the cookie.
 
-   This is the pattern scripts/ui-audit/routes.mjs already proved in this repo.
+   This is the pattern tools/ui-audit/routes.mjs already proved in this repo.
    It survives the web/api split completely, and for a specific reason: sessions
    are OPAQUE random tokens validated by a Postgres join, with no signing
    (lib/auth.ts createSession/getSession). So the Fastify API will validate the

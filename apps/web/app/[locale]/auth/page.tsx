@@ -5,7 +5,7 @@
    boundary to client-only rendering on a statically-rendered route: the shipped
    HTML for /fr/auth had no <h1>, no phone field and no submit button at all - a
    blank login page for the whole JS window on 3G, and permanently blank if the
-   bundle failed. Verified by scripts/ui-audit/nojs.mjs.
+   bundle failed. Verified by tools/ui-audit/nojs.mjs.
 
    Reading searchParams makes this route dynamic, which is correct: its content
    genuinely depends on the query string, and a login page is never cacheable.

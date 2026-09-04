@@ -17,7 +17,7 @@
 
    Plain <a> rather than the locale-aware <Link>: <Link> is a client component,
    and a full document load is the right behaviour for a URL that does not exist.
-   RTL-safe (logical properties only). Verified by scripts/ui-audit/nojs.mjs. */
+   RTL-safe (logical properties only). Verified by tools/ui-audit/nojs.mjs. */
 import { dict } from "@/lib/i18n";
 import type { AppLocale } from "@/lib/locale";
 import { SiteShell } from "@/components/SiteShell";

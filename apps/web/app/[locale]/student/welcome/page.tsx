@@ -5,7 +5,7 @@
    1. READ ?next= HERE, not with the client search-params hook. That hook forces the
       subtree into a <Suspense> boundary which Next bails to client-only rendering,
       so the form would be missing from the shipped HTML — the failure mode
-      app/[locale]/auth/page.tsx documents at length and scripts/ui-audit/nojs.mjs
+      app/[locale]/auth/page.tsx documents at length and tools/ui-audit/nojs.mjs
       exists to catch.
 
    2. PRE-FILL from the profile row. A student who skipped this screen and came back

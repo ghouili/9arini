@@ -14,7 +14,12 @@
     "typecheck": "tsc --noEmit",
     "db:sql": "tsx bin/apply-sql.ts",
     "db:purge": "tsx bin/purge-docs.ts",
-    "db:seed": "tsx src/seed.ts"
+    "db:seed": "tsx src/seed.ts",
+    "db:push": "echo \"BLOCKED: drizzle-kit 0.28 is not PostgreSQL 18-safe (it tries to DROP the NOT NULL constraints on ~60 columns). Use \\\"npm run db:sql\\\" instead - see packages/db/sql/. Details in packages/db/bin/apply-sql.ts.\" && exit 1",
+    "db:push:unsafe": "drizzle-kit push",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "drizzle-orm": "^0.36.4",
@@ -24,6 +29,7 @@
     "dotenv": "^16.4.5",
     "tsx": "^4.19.2",
     "typescript": "^5.5.4",
-    "@types/node": "^20.14.0"
+    "@types/node": "^20.14.0",
+    "drizzle-kit": "^0.28.1"
   }
 }

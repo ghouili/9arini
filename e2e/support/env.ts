@@ -26,7 +26,7 @@ export const AUTH_SECRET = process.env.AUTH_SECRET ?? "";
 export const RUN_ID = process.env.E2E_RUN_ID ?? "local";
 
 /* SAFETY RAIL. This suite writes and deletes rows. It must never be pointed at a
-   database that is not on this machine. Same rail as scripts/ui-audit/routes.mjs,
+   database that is not on this machine. Same rail as tools/ui-audit/routes.mjs,
    and non-negotiable given that this database stores national ID scans. */
 export function assertLocalDb(url: string): void {
   if (!url) throw new Error("E2E: no database URL (set E2E_DATABASE_URL)");

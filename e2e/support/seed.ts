@@ -2,7 +2,7 @@
    what this run created and nothing else.
 
    NO GLOBAL TRUNCATE. This database holds real development data (14 profiles, 7
-   tutors, 6 verification docs) and scripts/ui-audit/routes.mjs depends on the real
+   tutors, 6 verification docs) and tools/ui-audit/routes.mjs depends on the real
    slug "yassine-math". Truncating would break `npm run ui:audit`. */
 import { randomBytes, randomUUID } from "node:crypto";
 import { sql } from "./db";

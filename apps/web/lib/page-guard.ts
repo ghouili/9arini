@@ -15,7 +15,7 @@ import type { AppLocale } from "./locale";
    THE `inert` CASE IS LOAD-BEARING, not a convenience. getSession() short-circuits
    to null whenever DATABASE_URL is unset, and the UI audit harness drives every
    logged-in screen with the dev sentinel `tnajem_session=demo` and no database
-   (scripts/ui-audit/routes.mjs). A guard written as `if (!session) redirect(...)`
+   (tools/ui-audit/routes.mjs). A guard written as `if (!session) redirect(...)`
    would therefore bounce /onboarding, /onboarding/verify and /student/welcome out
    of `npm run ui:audit` and out of local demo mode entirely — the screens would
    stop being measured by the very harness that exists to measure them. Every

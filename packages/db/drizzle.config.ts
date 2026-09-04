@@ -1,15 +1,17 @@
 import { config } from "dotenv";
 import type { Config } from "drizzle-kit";
 
-// Load .env.local (Next's convention) so drizzle-kit sees DATABASE_URL.
-/* Match Next.js precedence: .env holds the shared config, .env.local overrides it.
-   Loading only .env.local left these scripts blind to CRON_SECRET, ADMIN_EMAILS,
-   OTP_CHANNEL and MAIL_* — so the CLI and the running app disagreed. */
-config({ path: ".env" });
-config({ path: ".env.local", override: true }); // .env.local still wins over a stray shell var
+/* Env from the REPO ROOT, resolved from this module rather than cwd — drizzle-kit
+   runs with cwd packages/db under a workspace script, where a relative .env path
+   silently loads nothing. Same helper the migration runner uses. */
+import { loadEnv } from "./bin/_paths";
+loadEnv();
 
 export default {
-  schema: "./lib/db/schema.ts",
+  /* The schema moved to this package in Step 2. It pointed at ./lib/db/schema.ts
+     -- a path that no longer exists -- which db:studio and db:generate would have
+     failed on the first time anyone ran them. */
+  schema: "./src/schema.ts",
   out: "./drizzle",
   dialect: "postgresql",
   dbCredentials: { url: process.env.DATABASE_URL ?? "postgresql://postgres:postgres@localhost:5432/tnajem" },

@@ -12,7 +12,7 @@
    Accuracy notes for whoever maintains this page — keep the copy in sync with
    the code:
    • ID documents are written to a private server directory (STORAGE_DIR, default
-     `.storage/`, OUTSIDE /public) — see app/actions.ts + lib/db/schema.ts
+     `.storage/`, OUTSIDE /public) — see app/actions.ts + packages/db/src/schema.ts
      (verification_docs).
    • They are only ever served through app/api/admin/doc/[id]/route.ts, which
      requires a valid session whose phone is in ADMIN_PHONES, and responds with

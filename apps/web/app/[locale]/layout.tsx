@@ -24,7 +24,7 @@ import "../globals.css";
 
    Weight 800 dropped (never used) and 500 dropped after moving this codebase's
    only two font-weight:500 declarations to 600. Measured by
-   scripts/ui-audit/weight.mjs. */
+   tools/ui-audit/weight.mjs. */
 const displayFont = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--font-display" });
 const bodyFont = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["400", "600", "700"], variable: "--font-body" });
 const arabicFont = IBM_Plex_Sans_Arabic({ subsets: ["arabic"], weight: ["400", "600", "700"], variable: "--font-ar" });
