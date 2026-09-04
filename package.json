@@ -9,12 +9,12 @@
   ],
   "scripts": {
     "dev": "npm run dev -w @tnajem/web",
-    "build": "npm run build -w @tnajem/web",
+    "build": "npm run build -w @tnajem/web && npm run build -w @tnajem/api",
     "start": "npm run start -w @tnajem/web",
     "start:standalone": "npm run start:standalone -w @tnajem/web",
     "lint": "npm run lint -w @tnajem/web",
     "typecheck": "npm run typecheck --workspaces --if-present && tsc --noEmit -p e2e",
-    "test": "playwright test",
+    "test": "npm run test -w @tnajem/api && playwright test",
     "test:e2e": "playwright test",
     "db:sql": "npm run db:sql -w @tnajem/db --",
     "db:purge": "npm run db:purge -w @tnajem/db --",
@@ -25,7 +25,10 @@
     "ui:shots": "node tools/ui-audit/shots.mjs",
     "ui:weight": "node tools/ui-audit/weight.mjs",
     "ui:lighthouse": "node tools/ui-audit/lighthouse.mjs",
-    "brand:build": "npm run brand:build -w @tnajem/web"
+    "brand:build": "npm run brand:build -w @tnajem/web",
+    "dev:api": "npm run dev -w @tnajem/api",
+    "build:api": "npm run build -w @tnajem/api",
+    "test:api": "npm run test -w @tnajem/api"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

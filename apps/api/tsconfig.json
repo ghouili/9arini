@@ -1,16 +1,13 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "jsx": "preserve",
-    "plugins": [
-      {
-        "name": "next"
-      }
+    "types": [
+      "node"
+    ],
+    "lib": [
+      "esnext"
     ],
     "paths": {
-      "@/*": [
-        "./*"
-      ],
       "@tnajem/db": [
         "../../packages/db/src/index.ts"
       ],
@@ -26,12 +23,7 @@
     }
   },
   "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts"
-  ],
-  "exclude": [
-    "node_modules"
+    "src/**/*.ts",
+    "test/**/*.ts"
   ]
 }

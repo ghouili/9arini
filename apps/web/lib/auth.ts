@@ -7,6 +7,22 @@ import { profiles, sessions, otpCodes, rateLimits } from "@tnajem/db";
 // Pure module (no server-only marker), so the CLIENT form can share this exact
 // check — which is the whole reason it does not live in this file.
 import { isValidEmail, normalizeEmail, normalizePhone, isValidPhone } from "@tnajem/shared";
+/* The subpath, NOT the barrel: auth-core imports node:crypto, and the barrel is
+   imported by client components — re-exporting it there breaks the web build with
+   "UnhandledSchemeError: Reading from node:crypto is not handled". */
+import {
+  SESSION_COOKIE,
+  ROLE_HINT_COOKIE,
+  SESSION_DAYS,
+  OTP_TTL_MIN,
+  MAX_ATTEMPTS,
+  OTP_RESEND_COOLDOWN_MS,
+  OTP_RESEND_COOLDOWN_SEC,
+  OTP_TTL_SEC,
+  hashOtpCode,
+  safeEq,
+  warnIfSecretMissing,
+} from "@tnajem/shared/auth-core";
 
 /* Custom OTP + session auth on Postgres (no external auth dep).
 
@@ -16,97 +32,14 @@ import { isValidEmail, normalizeEmail, normalizePhone, isValidPhone } from "@tna
    returns the code so the flow is completable in dev. Sessions are opaque tokens in
    an HTTP-only cookie, backed by the `sessions` table. */
 
-export const SESSION_COOKIE = "tnajem_session";
-/* NON-SENSITIVE UI hint, readable by the client. It lets the global <SiteHeader>
-   show the right nav link WITHOUT a getMe() server-action POST on every page load —
-   the POST that made every perfectly-cached page drag an uncacheable request behind
-   it (SCALABILITY.md / launch brief Phase 2). It is NOT a credential: it is readable
-   and forgeable, holds only the coarse role, and only ever decides which link the
-   header renders. Every server action still re-derives identity from the httpOnly
-   SESSION_COOKIE above, so forging this buys nothing but a nav link that bounces you
-   to /auth. */
-export const ROLE_HINT_COOKIE = "tnajem_role";
-const SESSION_DAYS = 30;
-const OTP_TTL_MIN = 5;
-const MAX_ATTEMPTS = 5;
-const OTP_RESEND_COOLDOWN_MS = 60_000; // min gap between code sends to one identity
+/* The session/OTP agreements live in @tnajem/shared/auth-core so apps/api and
+   this app cannot drift apart. During Step 4 both processes validate the SAME
+   sessions and verify the SAME otp_codes rows concurrently; a hash construction
+   or cookie name that differed even slightly would break login in a way that
+   looks intermittent. Re-exported so every `@/lib/auth` import is untouched. */
+export { SESSION_COOKIE, ROLE_HINT_COOKIE, OTP_RESEND_COOLDOWN_SEC, OTP_TTL_SEC };
 
-/* The same two numbers in seconds, EXPORTED so requestOtp can hand them to the
-   client and the login screens can draw a countdown for them.
-
-   The client must never carry its own copy. A hardcoded 60 in the UI is a promise
-   about a rule enforced here, and it becomes a lie the first time someone tunes
-   the cooldown — the button would re-enable while the server still refuses, which
-   reads to the user as the product being broken. One definition, handed down. */
-export const OTP_RESEND_COOLDOWN_SEC = OTP_RESEND_COOLDOWN_MS / 1000;
-export const OTP_TTL_SEC = OTP_TTL_MIN * 60;
-/* AUTH_SECRET is the whole strength of the OTP hash: hashCode() is
-   sha256(`${identifier}:${code}:${SECRET}`). With the dev default in place — a
-   string committed to this repo — the hash of all 1,000,000 codes for a given
-   identity is computable offline, so `otp_codes.code_hash` stops being a secret and
-   the 5-attempt budget stops meaning anything. That is a full auth bypass, and
-   the admin allowlist is only ever one OTP away from the pending-verification queue
-   and every national ID scan in it.
-
-   So a production process must NEVER serve a login with the dev default. It throws.
-
-   ── WHY THIS IS LAZY AND NOT A MODULE-LOAD THROW ────────────────────────────
-   It used to throw in a module-level IIFE. That breaks `next build`.
-
-   `next build` runs with NODE_ENV=production and EVALUATES this module: every
-   page imports SiteShell → SiteHeader → "@/app/actions" → this file, so lib/auth
-   is in the server module graph of literally every route, including the ones that
-   get prerendered to static HTML (/, /terms, /privacy, /pour-les-profs …). A
-   module-level throw therefore fires during "Generating static pages" on any box
-   that does not have AUTH_SECRET in the BUILD environment — which is the normal
-   setup (build in CI, inject secrets at runtime; or `docker build` with runtime
-   env). The result is a failed build, not a safe one, and it makes the build
-   artifact depend on a runtime secret. It only passed locally because .env.local
-   happens to define AUTH_SECRET and Next loads .env.local during build.
-
-   Lazy is strictly better and loses nothing that matters:
-     • The secret is resolved on FIRST USE — i.e. inside hashCode(), which is only
-       reachable from createOtp() / verifyOtpCode(). A production process with no
-       AUTH_SECRET throws on the very first login attempt, before a single code is
-       ever minted or accepted. No request is EVER served with the insecure default.
-     • The boot-time warning below still makes a misconfigured deploy loud in the
-       logs immediately, without killing a build that has no business needing the
-       secret.
-   Fail fast at the first login, not at `next build`. */
-const DEV_SECRET = "dev-insecure-secret-change-me";
-
-function missingSecretError(): Error {
-  return new Error(
-    "[Tnajem] AUTH_SECRET is not set (or is empty). It is REQUIRED in production: every " +
-      "OTP hash depends on it and the dev default is public. Generate one with " +
-      "`openssl rand -hex 32` and put it in the environment. Refusing to hash an OTP.",
-  );
-}
-
-let cachedSecret: string | null = null;
-
-/** Resolved on first use (never at module load — see above). Throws in prod if unset. */
-function authSecret(): string {
-  if (cachedSecret) return cachedSecret;
-  const fromEnv = process.env.AUTH_SECRET?.trim();
-  if (fromEnv) {
-    cachedSecret = fromEnv;
-    return cachedSecret;
-  }
-  if (process.env.NODE_ENV === "production") throw missingSecretError();
-  cachedSecret = DEV_SECRET;
-  return cachedSecret;
-}
-
-/* Boot-time loudness without boot-time death: a production process that starts
-   without AUTH_SECRET says so in the logs on the first import, and then dies on
-   the first login attempt (authSecret() above). `next build` is unaffected. */
-if (process.env.NODE_ENV === "production" && !process.env.AUTH_SECRET?.trim()) {
-  console.error(
-    "[Tnajem] FATAL CONFIG: AUTH_SECRET is not set. Every login WILL fail until it is. " +
-      "Generate one with `openssl rand -hex 32`.",
-  );
-}
+warnIfSecretMissing();
 
 /* ══════════════ Rate limiting (dependency-free, in-process) ══════════════
    A fixed-window counter kept in a module-level Map.
@@ -241,28 +174,16 @@ export function clientIp(): string {
    Read on the SERVER only. The auth/signup page shells read it and pass the answer
    down as a prop, so the switch stays a runtime env var instead of a
    NEXT_PUBLIC_ value baked in at build time. */
-export type OtpChannel = "email" | "sms";
-
-export function otpChannel(): OtpChannel {
-  return process.env.OTP_CHANNEL?.trim().toLowerCase() === "sms" ? "sms" : "email";
-}
+export type { OtpChannel } from "@tnajem/shared/auth-core";
+export { otpChannel } from "@tnajem/shared/auth-core";
 
 /* The four identity helpers now live in @tnajem/shared so the admin allowlist can
    import them from a PURE module — this file is `server-only`, which Fastify and
    tsx cannot load. Re-exported here so every existing call site is untouched. */
 export { normalizeEmail, normalizePhone, isValidPhone, isValidEmail };
-/* Binds the code to the identity it was issued for, so a code minted for one
-   address/number cannot be replayed against another. `identifier` is a phone under
-   OTP_CHANNEL=sms and an email address under =email; the hash does not care. */
-function hashCode(identifier: string, code: string): string {
-  // authSecret() throws in production when AUTH_SECRET is unset — the first login
-  // attempt fails loudly rather than being served with the public dev default.
-  return createHash("sha256").update(`${identifier}:${code}:${authSecret()}`).digest("hex");
-}
-function safeEq(a: string, b: string): boolean {
-  const ba = Buffer.from(a), bb = Buffer.from(b);
-  return ba.length === bb.length && timingSafeEqual(ba, bb);
-}
+/* hashCode and safeEq come from @tnajem/shared/auth-core — ONE implementation,
+   shared with apps/api, for the reason given at the top of this file. */
+const hashCode = hashOtpCode;
 
 /** Seconds the caller must wait before another code can be sent to this identity
     (0 = ok now). Derived from the existing row's age (created = expiresAt − TTL),

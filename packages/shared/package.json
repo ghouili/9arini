@@ -8,7 +8,8 @@
     ".": "./src/index.ts",
     "./types": "./src/types.ts",
     "./validation": "./src/validation.ts",
-    "./admin": "./src/admin.ts"
+    "./admin": "./src/admin.ts",
+    "./auth-core": "./src/auth-core.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
