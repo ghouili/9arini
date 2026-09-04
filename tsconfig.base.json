@@ -28,6 +28,9 @@
       ],
       "@tnajem/db/storage": [
         "./packages/db/src/storage.ts"
+      ],
+      "@tnajem/shared/contracts": [
+        "./packages/shared/src/contracts/index.ts"
       ]
     }
   }

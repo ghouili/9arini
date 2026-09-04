@@ -291,3 +291,17 @@ export type PendingTutor = {
   submittedAt: string | null;
   docs: { id: string; kind: string; fileName: string }[];
 };
+
+/** What getMe() returns: the caller's OWN profile summary.
+
+    email and phone are present here and that is correct even under the Step 8
+    zero-contact rule — this is self-view, not a counterparty view. /account
+    renders your own address. The rule Step 8 enforces is that a TUTOR never sees
+    a STUDENT's contact and vice versa; it has never meant hiding your own. */
+export type Me = {
+  id: string;
+  name: string | null;
+  role: string;
+  email: string | null;
+  phone: string | null;
+};

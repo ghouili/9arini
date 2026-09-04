@@ -26,21 +26,42 @@ export default defineConfig({
      public/. start:standalone handles both. A dev server is NOT usable here
      either: ISR/unstable_cache only behave correctly in a production build, and
      this suite has to protect that guardrail. */
-  webServer: process.env.E2E_BASE_URL ? undefined : {
-    command: "npm run build && npm run start:standalone",
-    url: "http://localhost:3210/fr",
-    reuseExistingServer: !process.env.CI,
-    timeout: 300_000,
-    env: {
-      PORT: "3210",
-      /* ABSOLUTE, always. Next's standalone server.js chdir()s to its own
-         directory, so a relative STORAGE_DIR resolves to
-         .next/standalone/.e2e-storage for the server while the seeder writes to
-         <repo>/.e2e-storage. The doc route then 404s on a file that exists. */
-      STORAGE_DIR: resolve(process.env.E2E_STORAGE_DIR ?? ".e2e-storage"),
-      /* Pin the admin allowlist to a seeded identity so admin.spec.ts does not
-         depend on whoever happens to be in the developer's .env. */
-      ADMIN_EMAILS: "e2e-admin@tnajem.invalid",
+  /* TWO servers now. From Step 4 the web app proxies actions to the API, so a
+     suite that starts only the web app would exercise a half-wired system and
+     fail in a way that looks like a product bug.
+
+     Playwright starts these in order and waits for each `url` to answer. Note
+     this is CONFIG, not a spec: the Stage A contract is that no spec file
+     changes, and none has. */
+  webServer: process.env.E2E_BASE_URL ? undefined : [
+    {
+      command: "npm run build -w @tnajem/api && npm run start -w @tnajem/api",
+      url: "http://127.0.0.1:4000/health",
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+      env: {
+        API_PORT: "4000",
+        STORAGE_DIR: resolve(process.env.E2E_STORAGE_DIR ?? ".e2e-storage"),
+        ADMIN_EMAILS: "e2e-admin@tnajem.invalid",
+      },
     },
-  },
+    {
+      command: "npm run build -w @tnajem/web && npm run start:standalone -w @tnajem/web",
+      url: "http://localhost:3210/fr",
+      reuseExistingServer: !process.env.CI,
+      timeout: 300_000,
+      env: {
+        PORT: "3210",
+        /* ABSOLUTE, always. Next's standalone server.js chdir()s to its own
+           directory, so a relative STORAGE_DIR resolves to
+           .next/standalone/.e2e-storage for the server while the seeder writes to
+           <repo>/.e2e-storage. The doc route then 404s on a file that exists. */
+        STORAGE_DIR: resolve(process.env.E2E_STORAGE_DIR ?? ".e2e-storage"),
+        /* Pin the admin allowlist to a seeded identity so admin.spec.ts does not
+           depend on whoever happens to be in the developer's .env. */
+        ADMIN_EMAILS: "e2e-admin@tnajem.invalid",
+        API_URL: "http://127.0.0.1:4000",
+      },
+    },
+  ],
 });

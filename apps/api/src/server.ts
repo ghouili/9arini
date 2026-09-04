@@ -16,6 +16,7 @@ import {
 } from "./env";
 import { loggerOptions } from "./lib/logging";
 import { db } from "./db";
+import { meRoutes } from "./routes/me";
 
 export async function buildServer(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -57,6 +58,8 @@ export async function buildServer(): Promise<FastifyInstance> {
   app.addHook("onSend", async (req, reply) => {
     reply.header("x-request-id", req.id);
   });
+
+  await app.register(meRoutes);
 
   app.get("/health", async () => {
     let dbOk = false;

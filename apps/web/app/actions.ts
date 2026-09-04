@@ -18,6 +18,7 @@ import { smsEnabled, sendSms } from "@/lib/sms";
 import { mailEnabled, sendMail } from "@/lib/mail";
 import { notify } from "@/lib/notify";
 import { requireAdmin, adminNotifyEmails } from "@/lib/admin";
+import { call } from "@/lib/api";
 import { paymentsEnabled, tutorBalanceTnd } from "@/lib/payments";
 import { liveRoomUrl, resolveMeetUrl } from "@/lib/live";
 import {
@@ -30,6 +31,7 @@ import type {
   StudentLevel, Role, OnboardingState,
 } from "@tnajem/shared";
 import { STUDENT_LEVELS } from "@tnajem/shared";
+import type { Me } from "@tnajem/shared";
 
 type DocKind = "id_front" | "id_back" | "selfie" | "diploma" | "certificate" | "role_proof" | "other";
 
@@ -513,14 +515,14 @@ export async function saveStudentProfile(
   return { ok: true };
 }
 
-export async function getMe():
-  Promise<{ id: string; name: string | null; role: string; email: string | null; phone: string | null } | null> {
-  const session = await getSession();
-  if (!session) return null;
-  const p = session.profile;
-  // Both identities: the account screen shows whichever one you signed up with,
-  // and the phone is now an optional contact that may simply not be set.
-  return { id: p.id, name: p.fullName, role: p.role, email: p.email, phone: p.phone };
+/* PORTED to apps/api (GET /me). The signature is unchanged, so every call site is
+   untouched — that is the point of the proxy pattern.
+
+   Both identities come back: the account screen shows whichever one you signed up
+   with, and the phone is an optional contact that may simply not be set. This is
+   SELF-view; Step 8's zero-contact rule governs what a counterparty sees. */
+export async function getMe(): Promise<Me | null> {
+  return call<Me | null>("/me", undefined, "GET");
 }
 
 /* ---------- Tutor storefront (bound to the signed-in user) ---------- */
