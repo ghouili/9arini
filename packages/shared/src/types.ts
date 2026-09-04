@@ -305,3 +305,6 @@ export type Me = {
   email: string | null;
   phone: string | null;
 };
+
+/** One public storefront reference, for app/sitemap.ts. */
+export type PublicTutorRef = { slug: string; lastModified: Date };

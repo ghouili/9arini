@@ -155,3 +155,48 @@ test("an UNVERIFIED tutor cannot publish a class", async ({ browser }) => {
 
   await ctx.close();
 });
+
+test("a tutor with no reviews shows no rating markup", async ({ page }) => {
+  /* The truth rule, guarded: a tutor with no reviews must show "Nouveau" and must
+     NOT emit AggregateRating JSON-LD. Google issues manual actions for fabricated
+     rating markup. The gating exists in [slug]/page.tsx; this keeps the port from
+     quietly removing it. */
+  const tutor = await seedTutor({ status: "verified", fullName: "Unreviewed Tutor" });
+  await seedClass({ tutorId: tutor.id, seats: 5, hoursFromNow: 96 });
+
+  const html = await (await page.request.get(`/fr/${tutor.slug}`)).text();
+  expect(html.includes("AggregateRating"), "no reviews must mean no rating markup").toBe(false);
+  expect(html).toContain("Pas encore d");
+});
+
+test("the storefront renders a real review, with the author's name shortened", async ({ browser }) => {
+  /* getTutorReviews moved to apps/api in the tutors domain and nothing asserted its
+     RESULT — the storefront renders fine with an empty feed, so a broken port would
+     have been invisible.
+
+     A SEPARATE tutor from the test above, seeded WITH its review before the page is
+     ever requested. Sharing one tutor fails, and correctly: the first request warms
+     the ISR cache, so a review inserted afterwards is not visible until the entry
+     expires. That is the caching e2e/isr.spec.ts exists to protect. */
+  const tutor = await seedTutor({ status: "verified", fullName: "Reviewed Tutor" });
+  const klass = await seedClass({ tutorId: tutor.id, seats: 5, hoursFromNow: -48 });
+  const student = await seedProfile({ role: "student", birthYear: 1990, fullName: "Amine Karoui" });
+
+  const { seedBooking } = await import("./support/seed");
+  await seedBooking({ classId: klass.id, studentId: student.id, status: "attended" });
+  await sql`insert into reviews (id, tutor_id, student_id, class_id, rating, text)
+            values (gen_random_uuid(), ${tutor.id}, ${student.id}, ${klass.id}, 5, 'Excellent cours.')`;
+
+  const ctx = await browser.newContext({ reducedMotion: "reduce" });
+  const page = await ctx.newPage();
+  await page.goto(`/fr/${tutor.slug}`);
+
+  await expect(page.locator("main")).toContainText("Excellent cours.");
+  // The SHORTENED author name only — publicName() is a security boundary on a
+  // fully public, unauthenticated page, not formatting.
+  await expect(page.locator("main")).toContainText("Amine K.");
+  const main = await page.locator("main").innerHTML();
+  expect(main, "the reviewer's full name must never reach a public page").not.toContain("Amine Karoui");
+
+  await ctx.close();
+});

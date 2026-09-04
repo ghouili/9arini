@@ -324,3 +324,28 @@ export function isValidPhone(p: string): boolean {
   const digits = p.replace(/\D/g, "").length;
   return digits >= 8 && digits <= 15; // E.164 upper bound
 }
+
+/* ── Public display helpers ──────────────────────────────────────────────────
+   Moved here so apps/api and apps/web cannot drift. publicName in particular is
+   a security boundary, not formatting: it is what keeps a reviewer's full name
+   off a public, unauthenticated page. Step 8 tightens it to first-name-only. */
+
+/** "Amine Karoui" -> "Amine K." Never the phone, never the full identity. */
+export function publicName(full: string | null): string | null {
+  if (!full) return null;
+  const parts = full.trim().split(/\s+/);
+  if (parts.length < 2) return parts[0] ?? null;
+  return `${parts[0]} ${parts[parts.length - 1][0].toUpperCase()}.`;
+}
+
+/** Two-letter monogram for the avatar. No photo exists yet (see Step 13). */
+export function initials(name: string): string {
+  const p = name.trim().split(/\s+/);
+  return ((p[0]?.[0] ?? "") + (p.length > 1 ? p[p.length - 1][0] : "")).toUpperCase() || "?";
+}
+
+/** Month abbreviations used by the storefront class cards. */
+export const MONTHS_FR = [
+  "JANV", "FÉVR", "MARS", "AVR", "MAI", "JUIN",
+  "JUIL", "AOÛT", "SEPT", "OCT", "NOV", "DÉC",
+] as const;

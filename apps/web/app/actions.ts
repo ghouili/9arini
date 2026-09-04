@@ -17,7 +17,7 @@ import { smsEnabled, sendSms } from "@tnajem/shared/sms";
 import { mailEnabled, sendMail } from "@tnajem/shared/mail";
 import { notify } from "@/lib/notify";
 import { requireAdmin, adminNotifyEmails } from "@/lib/admin";
-import { call } from "@/lib/api";
+import { call, callAnonymous } from "@/lib/api";
 import { paymentsEnabled, tutorBalanceTnd } from "@/lib/payments";
 import { liveRoomUrl, resolveMeetUrl } from "@/lib/live";
 import {
@@ -293,97 +293,21 @@ export async function getMe(): Promise<Me | null> {
 
 /* ---------- Tutor storefront (bound to the signed-in user) ---------- */
 export async function createTutor(input: { name: string; subject: string; bio: string; slug: string; phone?: string | null }): Promise<ActionResult> {
-  // `/[slug]` is a root catch-all → a reserved slug would shadow a real route. Validate first.
-  const slug = vSlug(input.slug);
-  if (!slug.ok) return { ok: false, error: slug.error };
-  const name = vText(input.name, { field: "name", max: 80, min: 2 });
-  if (!name.ok) return { ok: false, error: name.error };
-  const subject = vText(input.subject, { field: "subject", max: 80 });
-  if (!subject.ok) return { ok: false, error: subject.error };
-  const bio = vOptionalText(input.bio, { field: "bio", max: 1000 });
-  if (!bio.ok) return { ok: false, error: bio.error };
-
-  /* Optional CONTACT phone, same role as on the student welcome screen: email is
-     the login identity, so this is where a tutor's number is collected. It is what
-     lets notify() text them about a new booking. */
-  const phone = vOptionalPhone(input.phone);
-  if (!phone.ok) return { ok: false, error: phone.error };
-  const normalizedPhone = phone.value ? normalizePhone(phone.value) : null;
-  if (normalizedPhone && !isValidPhone(normalizedPhone)) return { ok: false, error: "invalid-phone" };
-
-  if (!dbReady) return { ok: true, demo: true, slug: slug.value };
-  const session = await getSession();
-  if (!session) return { ok: false, error: "not-authenticated" };
-
-  /* ---- ROLE GATE ----
-     This action used to write `role: "tutor"` alongside the name, which made it the
-     de-facto role switch for the whole product: ANY signed-in profile that reached
-     /onboarding became a tutor. It was one tap away from a student's own navigation
-     (the header offered them "Créer ma page"), and nothing anywhere asked them to
-     confirm it. Meanwhile verifyOtp deliberately refuses to change an existing
-     profile's role — so the screen that ASKED for a role could not set one, and the
-     action that SET one never asked.
-
-     Now there is exactly one writer of `role = 'tutor'`: becomeTutor() below, behind
-     an explicit confirmation screen and an adult-age check. This action only ever
-     writes the tutor's display name. */
-  if (session.profile.role !== "tutor") return { ok: false, error: "not-a-tutor" };
-  const uid = session.profile.id;
-
-  const [mine] = await db.select().from(tutors).where(eq(tutors.profileId, uid)).limit(1);
-
-  /* ---- THE SLUG IS WRITE-ONCE ----
-     This used to `.set({ slug: slug.value, ... })` unconditionally, so any submit
-     could rename a live storefront. That silently 404s every link the tutor has
-     already shared — the WhatsApp message to their class, the bio link on their
-     Instagram — and frees the old slug for someone else to claim. It is the single
-     most destructive thing this action could do, and it needed nothing more than a
-     stale tab or a replayed request to happen.
-
-     So: once a storefront exists, its slug is fixed here. The client mirrors this
-     by locking the field (see OnboardingInner), but the rule lives HERE, because a
-     client that forgets is exactly the case this is defending against. Renaming, if
-     it is ever wanted, belongs in its own action with an explicit confirmation and
-     a redirect from the old slug. */
-  const effectiveSlug = mine ? mine.slug : slug.value;
-
-  if (!mine) {
-    // Only a first publish can collide: an existing tutor keeps the slug they hold.
-    const [bySlug] = await db.select().from(tutors).where(eq(tutors.slug, effectiveSlug)).limit(1);
-    if (bySlug && bySlug.profileId !== uid) return { ok: false, error: "slug-taken" };
+  if (!dbReady) {
+    /* Demo mode still validates the slug so the audit harness can exercise the
+       reserved/taken states. vSlug is the same function the API calls. */
+    const slug = vSlug(input.slug);
+    return slug.ok ? { ok: true, demo: true, slug: slug.value } : { ok: false, error: slug.error };
   }
+  /* PORTED to apps/api (POST /tutors). The role gate, the WRITE-ONCE slug rule and
+     the collision check all live there.
 
-  await db
-    .update(profiles)
-    // Never null out a number already on file just because this submit omitted it.
-    .set({ fullName: name.value, ...(normalizedPhone ? { phone: normalizedPhone } : {}) })
-    .where(eq(profiles.id, uid));
-
-  if (mine) {
-    await db.update(tutors)
-      .set({ fullName: name.value, subject: subject.value, bio: bio.value })
-      .where(eq(tutors.id, mine.id));
-  } else {
-    await db.insert(tutors)
-      .values({ profileId: uid, slug: effectiveSlug, fullName: name.value, subject: subject.value, bio: bio.value });
-  }
-
-  /* The storefront is ISR-cached per slug for 60s (lib/cache.ts). Only one slug can
-     ever need busting now that renames are impossible. Non-throwing — a cache miss
-     must never fail a write that already committed. (Not revalidatePublicTutors():
-     a tutor here is still `draft`, so nothing about the public set changed.) */
-  revalidateTutor(effectiveSlug);
-  return { ok: true, slug: effectiveSlug };
+     call() replays the `revalidate` envelope the endpoint returns — revalidateTag
+     only works inside a Next request scope, so cache busting cannot move to the
+     API. See apps/web/lib/api.ts rule 4. */
+  return call<ActionResult>("/tutors", input);
 }
 
-/* Where the signed-in tutor stands in the onboarding ladder, plus their current
-   storefront values. Read by the SERVER shells of /onboarding and
-   /onboarding/verify so the shared progress bar (components/OnboardingProgress)
-   shows the same position on both screens and on the dashboard — the three used to
-   disagree, one of them by way of a hardcoded string.
-
-   Returns null when there is nothing to report (no DB, no session, not a tutor);
-   the shells fall back to a first-step-only bar, which is the honest default. */
 export async function getOnboardingState(): Promise<OnboardingState | null> {
   if (!dbReady) return null;
   // PORTED to apps/api (GET /profile/onboarding).
@@ -1340,82 +1264,23 @@ export async function rejectTutor(input: { tutorId: string; note?: string }): Pr
    keeps its static preview; with a DB, an empty catalogue returns [] — we never
    pass demo tutors off as real ones. */
 export async function getExploreTutors(filters?: { subject?: string; q?: string }): Promise<ExploreTutor[] | null> {
-  // null → the client renders its static demo preview (DEV ONLY). In production a
-  // missing DB must never surface fabricated tutors: return [] so /explore shows
-  // its honest empty state instead.
+  /* null → the client renders its static demo preview (DEV ONLY). In production a
+     missing DB must never surface fabricated tutors: return [] so /explore shows
+     its honest empty state instead. */
   if (!dbReady) return demoEnabled ? null : [];
 
-  const subject = (filters?.subject ?? "").trim();
-  const q = (filters?.q ?? "").trim().slice(0, 60);
+  /* PORTED to apps/api (GET /tutors/explore).
 
-  const conds = [eq(tutors.status, "verified")];
-  if (subject) conds.push(ilike(tutors.subject, `%${subject}%`));
-  if (q) {
-    const like = `%${q}%`;
-    const text = or(
-      ilike(tutors.fullName, like),
-      ilike(tutors.subject, like),
-      ilike(tutors.level, like),
-      ilike(tutors.bio, like),
-    );
-    if (text) conds.push(text);
-  }
-
-  /* Bounded. This was an unbounded `select()` over the whole tutors table: it grows
-     linearly with the catalogue, and /explore calls it on every keystroke-ish filter
-     change. 60 cards is far more than the grid shows; the filters are the real
-     navigation. (Signature unchanged — the page still calls getExploreTutors({…}).) */
-  const rows = await db
-    .select()
-    .from(tutors)
-    .where(and(...conds))
-    .orderBy(desc(tutors.rating))
-    .limit(60);
-  if (rows.length === 0) return [];
-  const ids = rows.map((t) => t.id);
-
-  // Ratings straight from the reviews table (tutors.rating is a cached mirror of this).
-  const revAgg = await db
-    .select({
-      tutorId: reviews.tutorId,
-      avg: sql<string | null>`avg(${reviews.rating})`,
-      n: sql<number>`count(*)::int`,
-    })
-    .from(reviews)
-    .where(inArray(reviews.tutorId, ids))
-    .groupBy(reviews.tutorId);
-  const byTutor = new Map(revAgg.map((r) => [r.tutorId, r]));
-
-  // "À partir de X TND" — cheapest class still on sale.
-  const priceAgg = await db
-    .select({ tutorId: classes.tutorId, min: sql<string | null>`min(${classes.priceTnd})` })
-    .from(classes)
-    .where(and(inArray(classes.tutorId, ids), ne(classes.status, "cancelled")))
-    .groupBy(classes.tutorId);
-  const priceByTutor = new Map(priceAgg.map((p) => [p.tutorId, p.min]));
-
-  return rows.map((t) => {
-    const agg = byTutor.get(t.id);
-    const min = priceByTutor.get(t.id);
-    return {
-      slug: t.slug,
-      full_name: t.fullName,
-      subject: t.subject,
-      level: t.level ?? "",
-      bio: t.bio ?? "",
-      avatar_initials: initials(t.fullName),
-      rating: agg?.avg ? Math.round(Number(agg.avg) * 10) / 10 : 0,
-      review_count: agg?.n ?? 0,
-      students_count: t.studentsCount ?? 0,
-      price_from_tnd: min !== null && min !== undefined ? Number(min) : null,
-    };
-  });
+     callAnonymous, NOT call: this runs during SSR on a cached route. Touching
+     cookies() or headers() here would throw inside unstable_cache and silently
+     opt the route out of caching outside it. e2e/isr.spec.ts guards that. */
+  const qs = new URLSearchParams();
+  if (filters?.subject) qs.set("subject", filters.subject);
+  if (filters?.q) qs.set("q", filters.q);
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  return callAnonymous<ExploreTutor[]>(`/tutors/explore${suffix}`);
 }
 
-/* ---------- Reviews ----------
-   Only the student who booked the class, only once it has started, only once.
-   Writing one recomputes the tutor's public rating + students count, so the
-   storefront stars stop being decoration. */
 export async function createReview(input: { classId: string; rating: number; text?: string }): Promise<ActionResult> {
   const rating = vRating(input.rating);
   if (!rating.ok) return { ok: false, error: rating.error };
@@ -1478,60 +1343,17 @@ export async function createReview(input: { classId: string; rating: number; tex
 export async function getTutorReviews(tutorSlug: string): Promise<TutorReviews> {
   const empty: TutorReviews = { items: [], average: 0, count: 0 };
   if (!dbReady) return empty;
-
   if (typeof tutorSlug !== "string" || !tutorSlug.trim()) return empty;
-  const [t] = await db.select().from(tutors).where(eq(tutors.slug, tutorSlug.trim())).limit(1);
-  if (!t) return empty;
-  // Match getStorefront(): a non-verified tutor has no public page, so it must have
-  // no public review feed either (otherwise reviews leak the existence + reputation
-  // of a rejected tutor to anyone who guesses the slug).
-  if (t.status !== "verified") return empty;
 
-  /* Only the reviewer's SHORTENED name ships ("Amine K." via publicName) — never
-     profiles.phone, never the raw full name, never the reviewer's profile id. This
-     is a fully public, unauthenticated surface, so the projection below is the
-     security boundary: it selects fullName and nothing else identifying. */
-  const rows = await db
-    .select({
-      id: reviews.id,
-      rating: reviews.rating,
-      text: reviews.text,
-      createdAt: reviews.createdAt,
-      studentName: profiles.fullName,
-      classTitle: classes.title,
-    })
-    .from(reviews)
-    .innerJoin(profiles, eq(reviews.studentId, profiles.id))
-    .leftJoin(classes, eq(reviews.classId, classes.id))
-    .where(eq(reviews.tutorId, t.id))
-    .orderBy(desc(reviews.createdAt))
-    .limit(50);
+  /* PORTED to apps/api (GET /tutors/:slug/reviews).
 
-  const items = rows.map((r) => ({
-    id: r.id,
-    rating: r.rating,
-    text: r.text,
-    studentName: publicName(r.studentName), // "Amine K." — no phone, no full identity
-    classTitle: r.classTitle ?? null,
-    createdAt: new Date(r.createdAt).toISOString(),
-  }));
-
-  /* BUG (fixed): average and count were computed from `items` — i.e. from the 50
-     rows this query happens to return. A tutor with 200 reviews publicly displayed
-     "50 avis", and the average silently became "average of the 50 most recent"
-     rather than the real one. Aggregate over the whole table instead; `items` stays
-     capped at 50 for the feed. */
-  const [agg] = await db
-    .select({ avg: sql<string | null>`avg(${reviews.rating})`, n: sql<number>`count(*)::int` })
-    .from(reviews)
-    .where(eq(reviews.tutorId, t.id));
-
-  const count = agg?.n ?? 0;
-  const average = agg?.avg ? Math.round(Number(agg.avg) * 10) / 10 : 0;
-  return { items, average, count };
+     callAnonymous is MANDATORY here, not a preference: [slug]/page.tsx calls this
+     from INSIDE unstable_cache, where Next 14 throws on cookies(). This is also
+     the most-shared URL in the product, so a silent cache opt-out here is the
+     single most expensive mistake available in Step 4. */
+  return callAnonymous<TutorReviews>(`/tutors/${encodeURIComponent(tutorSlug.trim())}/reviews`);
 }
 
-/* ---------- Notifications ---------- */
 export async function getNotifications(): Promise<NotificationItem[]> {
   if (!dbReady) return [];
   const session = await getSession();

@@ -1,7 +1,6 @@
 import "server-only";
-import { desc, eq } from "@tnajem/db";
-import { db, dbReady } from "@/lib/db";
-import { tutors, classes as classesT, packs as packsT } from "@tnajem/db";
+import { callAnonymous } from "./api";
+import { dbReady } from "@/lib/db";
 import { demoEnabled, demoStorefront } from "@/lib/demo";
 import type { Storefront, Tutor, ClassItem, Pack } from "@tnajem/shared";
 
@@ -61,38 +60,18 @@ export async function getStorefront(slug: string): Promise<Storefront | null> {
     return demoStorefront;                     // dev only: any slug shows the demo storefront
   }
 
-  const [t] = await db.select().from(tutors).where(eq(tutors.slug, slug)).limit(1);
-  if (!t) return null;
-  if (t.status !== "verified") return null; // pending/unverified tutors aren't public
+  /* PORTED to apps/api (GET /tutors/:slug/storefront).
 
-  const cls = await db.select().from(classesT).where(eq(classesT.tutorId, t.id));
-  const pks = await db.select().from(packsT).where(eq(packsT.tutorId, t.id));
+     This is NOT a server action — it is a direct DB read feeding the ISR-cached
+     storefront and the sitemap, which is exactly why GATE 4's grep
+     (`grep -rn "from '@tnajem/db'" apps/web/app apps/web/components`) would have
+     reported success while apps/web/lib still held a Postgres pool for the
+     most-trafficked page in the product. Widen the gate to all of apps/web.
 
-  const tutor: Tutor = {
-    id: t.id, slug: t.slug, full_name: t.fullName, subject: t.subject, level: t.level ?? "Bac",
-    bio: t.bio ?? "", avatar_initials: initials(t.fullName), rating: Number(t.rating ?? 0),
-    students_count: t.studentsCount ?? 0, verified: Boolean(t.verified),
-  };
-
-  const mapClass = (c: (typeof cls)[number]): ClassItem => {
-    const d = new Date(c.scheduledAt);
-    return {
-      id: c.id, tutor_id: t.id, tutor_name: t.fullName, title: c.title,
-      description: c.description ?? undefined,
-      day: String(d.getDate()), month: MONTHS_FR[d.getMonth()],
-      time: d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
-      duration_min: c.durationMin ?? 90, price_tnd: Number(c.priceTnd),
-      seats: c.seats ?? 0, seats_left: Math.max(0, (c.seats ?? 0) - (c.seatsTaken ?? 0)),
-      is_free_first: Boolean(c.isFreeFirst), meet_url: c.meetUrl ?? undefined,
-      whiteboard_url: c.whiteboardUrl ?? undefined, quiz_url: c.quizUrl ?? undefined,
-      replay_url: c.replayUrl ?? undefined, status: c.status ?? "scheduled",
-    };
-  };
-  const mapPack = (p: (typeof pks)[number]): Pack => ({
-    id: p.id, tutor_id: t.id, title: p.title, meta: p.description ?? "", price_tnd: Number(p.priceTnd),
-  });
-
-  return { tutor, classes: cls.map(mapClass), packs: pks.map(mapPack) };
+     callAnonymous, never call: [slug]/page.tsx reads this through unstable_cache
+     (lib/cache.ts::getCachedStorefront), where cookies() throws, and outside that
+     wrapper it would silently opt the route out of ISR. */
+  return callAnonymous<Storefront | null>(`/tutors/${encodeURIComponent(slug)}/storefront`);
 }
 
 /** One public storefront, for app/sitemap.ts. */
@@ -108,27 +87,8 @@ export type PublicTutorRef = { slug: string; lastModified: Date };
    the rest of this file exists to prevent). */
 export async function getPublicTutorRefs(): Promise<PublicTutorRef[]> {
   if (!dbReady) return [];
-
-  try {
-    const rows = await db
-      .select({
-        slug: tutors.slug,
-        reviewedAt: tutors.reviewedAt,
-        createdAt: tutors.createdAt,
-      })
-      .from(tutors)
-      .where(eq(tutors.status, "verified"))
-      .orderBy(desc(tutors.createdAt));
-
-    return rows
-      .filter((r) => Boolean(r.slug))
-      .map((r) => ({
-        slug: r.slug,
-        // Best available "last changed": the verification decision, else creation.
-        lastModified: r.reviewedAt ?? r.createdAt ?? new Date(),
-      }));
-  } catch (e) {
-    console.error("[Tnajem] sitemap: could not read verified tutors", e);
-    return [];
-  }
+  // PORTED to apps/api (GET /tutors/public-refs). Anonymous: it feeds the sitemap.
+  const rows = await callAnonymous<{ slug: string; lastModified: string }[]>("/tutors/public-refs");
+  return rows.map((r) => ({ slug: r.slug, lastModified: new Date(r.lastModified) }));
 }
+
