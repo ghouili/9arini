@@ -150,4 +150,29 @@ export async function callAnonymous<T>(path: string, revalidate = 60): Promise<T
   return (await request(path, { method: "GET", anonymous: true, revalidate })) as T;
 }
 
+/** Multipart passthrough for the verification upload.
+
+    The FormData object is handed straight to fetch: undici sets the boundary
+    itself, and setting content-type by hand without one is the classic way to
+    break a multipart request. It is deliberately NOT buffered — the action
+    already holds the files in this process once, and reading them again here
+    would double peak memory on the same box. */
+export async function callMultipart<T>(path: string, form: FormData): Promise<T> {
+  const token = sessionToken();
+  const ip = forwardedFor();
+  const res = await fetch(`${API_URL}${path}`, {
+    method: "POST",
+    headers: {
+      ...(token ? { cookie: `${SESSION_COOKIE}=${token}` } : {}),
+      ...(ip ? { "x-forwarded-for": ip } : {}),
+    },
+    body: form,
+    cache: "no-store",
+    // Uploads are up to 6 x 8 MB over a Tunisian 3G link; 10s is not enough.
+    signal: AbortSignal.timeout(120_000),
+  });
+  if (!res.ok) throw new ApiTransportError(`POST ${path} -> ${res.status}`, res.status);
+  return (await res.json()) as T;
+}
+
 export { ApiTransportError };

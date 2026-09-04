@@ -1,90 +1,63 @@
 import type { NextRequest } from "next/server";
-import { readFile } from "node:fs/promises";
-import { join, resolve, sep } from "node:path";
-import { eq } from "@tnajem/db";
-import { db, dbReady } from "@/lib/db";
-import { verificationDocs } from "@tnajem/db";
-import { isAdmin } from "@/lib/admin";
-import { storageBase, resolveDocPath } from "@tnajem/db";
-import { isUuid, safeFileName } from "@tnajem/shared";
+import { cookies } from "next/headers";
+import { SESSION_COOKIE } from "@tnajem/shared/auth-core";
 
 /* Protected viewer for uploaded verification documents — national ID scans.
-   Files live outside /public; only an admin session may stream them.
 
-   This is the single highest-value endpoint in the product: it is the one URL that
-   returns a Tunisian national ID card. Everything below is deliberate. */
+   This is now a STREAMING PASS-THROUGH to apps/api. The URL does not change, and
+   that is deliberate: e2e/admin.spec.ts asserts this exact path, and it is the URL
+   the admin console links to. Moving it would have been a behaviour change dressed
+   up as plumbing. It moves in Step 5, when the browser talks to api.tnajem.tn
+   directly — and that is a new file with its own gate.
 
-export const runtime = "nodejs";        // needs node:fs
+   THE AUTHORISATION LIVES IN apps/api. This handler deliberately makes NO access
+   decision of its own: a second gate here would be a second implementation of the
+   most sensitive check in the product, and this codebase has already been bitten
+   three times by two copies of a rule that nothing forced to agree. It forwards
+   the session cookie and returns whatever the API decides, including the 403.
+
+   Every hardening header comes from the API response and is passed through
+   verbatim (CSP sandbox, nosniff, no-store, Content-Disposition). They are not
+   re-derived here, for the same reason. */
+
+export const runtime = "nodejs";        // needs a real fetch to the API
 export const dynamic = "force-dynamic"; // never cached or prerendered
 
-/* The admin check is lib/admin.ts::isAdmin() — the SAME implementation the
-   verification queue uses. This file used to carry its own phone-only copy,
-   which was the live bug: login is email OTP (lib/auth.ts::otpChannel defaults
-   to "email"), so an admin who signed up by email has profile.phone === null
-   and this returned false every time. An admin could see the pending queue and
-   then get 403 on every ID scan in it. It failed CLOSED — never a hole, just a
-   welded-shut door — but the queue could not be worked at all. */
+const API_URL = process.env.API_URL ?? "http://127.0.0.1:4000";
 
-/* storageBase() and resolveDocPath() come from @tnajem/db now. This file used
-   to carry a byte-identical copy of both, as did lib/retention.ts -- three
-   implementations that agreed only because they happened to share a cwd. */
+const PASSTHROUGH_HEADERS = [
+  "content-type",
+  "content-disposition",
+  "content-security-policy",
+  "x-content-type-options",
+  "cache-control",
+  "referrer-policy",
+];
 
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: { id: string } },
+): Promise<Response> {
+  const token = cookies().get(SESSION_COOKIE)?.value;
 
-/* Only ever hand back a type we know is inert-ish, and never one the CLIENT chose.
-   submitVerification now sniffs magic bytes and stores the SNIFFED type, but rows
-   written before that fix still carry the uploader's claimed Content-Type, so
-   re-validate on the way out too. Anything unrecognised is downloaded, not rendered. */
-const SAFE_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif", "application/pdf"]);
-
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
-  if (!dbReady) return new Response("Not available", { status: 404 });
-
-  if (!(await isAdmin())) {
-    return new Response("Forbidden", { status: 403 });
-  }
-
-  // A non-uuid id would hit a uuid column and throw 22P02 → a 500 instead of a 404.
-  if (!isUuid(params.id)) return new Response("Not found", { status: 404 });
-
-  const [doc] = await db.select().from(verificationDocs).where(eq(verificationDocs.id, params.id)).limit(1);
-  if (!doc) return new Response("Not found", { status: 404 });
-
-  const abs = resolveDocPath(storageBase(), doc.storagePath);
-  if (!abs) {
-    console.error(`[Tnajem] refusing unsafe storage_path on doc ${doc.id}`);
-    return new Response("Not found", { status: 404 });
-  }
-
-  let buf: Buffer;
-  try {
-    buf = await readFile(abs);
-  } catch {
-    return new Response("File missing", { status: 404 });
-  }
-
-  const mime = doc.mime && SAFE_MIME.has(doc.mime) ? doc.mime : "application/octet-stream";
-  const inline = mime !== "application/octet-stream"; // unknown type → force a download
-
-  /* Header hardening. The stored bytes are attacker-supplied (a tutor uploads them)
-     and this response is rendered inside an ADMIN's authenticated origin, so a file
-     that sniffs as HTML would be stored XSS with the worst possible blast radius —
-     the session that can read every ID scan in the system.
-       • nosniff        — the browser must honour Content-Type, not guess from bytes.
-       • CSP sandbox    — even if something does render, it runs with no origin, no
-                          scripts, no forms. Neutralises the payload.
-       • filename       — sanitized: the raw client filename could carry CR/LF and
-                          split the header. safeFileName() strips everything outside
-                          [a-zA-Z0-9._-].
-       • no-store       — an ID scan must not sit in a shared/browser cache.
-       • Referrer-Policy— don't leak the doc id to any embedded/linked origin. */
-  return new Response(new Uint8Array(buf), {
-    headers: {
-      "Content-Type": mime,
-      "Content-Disposition": `${inline ? "inline" : "attachment"}; filename="${safeFileName(doc.fileName, 60)}"`,
-      "Content-Security-Policy": "default-src 'none'; img-src 'self'; object-src 'none'; sandbox",
-      "X-Content-Type-Options": "nosniff",
-      "Cache-Control": "private, no-store, max-age=0",
-      "Referrer-Policy": "no-referrer",
+  const upstream = await fetch(
+    `${API_URL}/admin/doc/${encodeURIComponent(params.id)}`,
+    {
+      headers: token ? { cookie: `${SESSION_COOKIE}=${token}` } : {},
+      cache: "no-store",
+      signal: AbortSignal.timeout(30_000),
     },
-  });
+  );
+
+  const headers = new Headers();
+  for (const h of PASSTHROUGH_HEADERS) {
+    const v = upstream.headers.get(h);
+    if (v) headers.set(h, v);
+  }
+  /* Belt and braces: if the API ever forgot one of these, the document must still
+     not be cached or sniffed. Only set what is missing — never override the API. */
+  if (!headers.has("cache-control")) headers.set("cache-control", "private, no-store, max-age=0");
+  if (!headers.has("x-content-type-options")) headers.set("x-content-type-options", "nosniff");
+
+  return new Response(upstream.body, { status: upstream.status, headers });
 }

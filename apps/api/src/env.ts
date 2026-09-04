@@ -30,9 +30,26 @@ function repoRoot(): string {
   return PKG_ROOT;
 }
 
+/* PRECEDENCE: a real environment variable BEATS both files.
+
+   Neither call passes override:true, which is deliberate and was learned the hard
+   way. The CLI scripts use override on .env.local so a stray shell DATABASE_URL
+   cannot silently point a migration at the wrong database — that is right for a
+   one-shot script a human runs by hand.
+
+   It is WRONG for a long-running service. A server must be configurable by its
+   environment: a container, a systemd unit, CI, and the E2E harness all set
+   variables deliberately. With override:true, .env.local silently won — the test
+   suite passed STORAGE_DIR pointing at .e2e-storage, .env.local replaced it with
+   apps/web/.storage, and every ID-scan read 404'd because the API was looking in a
+   directory the fixtures had never written to. The API was, in effect, not
+   configurable at all.
+
+   dotenv skips a key that is already present in process.env, so this gives the
+   standard order: process env > .env.local > .env. */
 const root = repoRoot();
+config({ path: join(root, ".env.local") });
 config({ path: join(root, ".env") });
-config({ path: join(root, ".env.local"), override: true });
 
 export const PORT = Number(process.env.API_PORT ?? 4000);
 export const HOST = process.env.API_HOST ?? "127.0.0.1";
