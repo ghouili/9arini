@@ -1,70 +1,45 @@
 import "server-only";
 
+import { getSession, otpChannel } from "./auth";
 import {
-  getSession,
-  otpChannel,
-  normalizeEmail,
-  normalizePhone,
-  isValidEmail,
-  isValidPhone,
-} from "./auth";
+  adminAuthIdentities,
+  isAllowlistedAdmin,
+  adminNotifyEmails as adminNotifyEmailsFromEnv,
+} from "@tnajem/shared";
 
-/* THE admin allowlist. One implementation, imported by every admin surface.
+/* The web app's admin gate.
 
-   There used to be three, and they disagreed:
+   The PARSING and the ALLOWLIST DECISION live in @tnajem/shared/admin — one
+   implementation, shared with apps/api and covered by apps/api/test/admin.test.ts.
+   This file holds only the part that cannot be shared: reading the session, which
+   needs next/headers.
 
-     1. app/actions.ts::adminAllowlist()  — channel-aware, correct
-     2. app/api/admin/doc/[id]/route.ts::adminPhones() — PHONE-ONLY
-     3. app/actions.ts::adminEmails()     — no validation at all
+   That split is the point. This module briefly carried its own copy of the parser
+   (Step 0 consolidated three implementations into it; Step 2 then created the
+   shared one and left this behind), which meant the unit tests were guarding code
+   the web app never executed. Two implementations of a security control that
+   nothing forces to agree is exactly the shape of the original bug.
 
-   (2) was the live bug. Login moved to email OTP (lib/auth.ts::otpChannel defaults
-   to "email"), so an admin who signed up by email has profile.phone === null — and
-   a phone-only check returns false for every one of them. The result: an admin
-   could open /admin/verifications and see the queue, then get 403 on every single
-   ID scan they tried to open. The queue was unusable. It failed CLOSED, so it was
-   never a security hole — just a door that was welded shut.
-
-   Three fail-closed properties are preserved verbatim from the phone version, and
-   must survive any future edit:
-
-     a. Empty entries are dropped BEFORE normalising. normalizePhone("") returns
-        "+216" (it prefixes the country code to an empty string), so a trailing
-        comma in ADMIN_PHONES once produced the list ["+216"] — and since a profile
-        with a null phone also normalised to "+216", every null-phone user became
-        an admin and could stream any tutor's national ID card.
-     b. An empty allowlist refuses EVERYONE. Never "no list means allow all".
-     c. An entry that fails validation is discarded, not trusted. */
-function adminAllowlist(): string[] {
-  const email = otpChannel() === "email";
-  const raw = email ? process.env.ADMIN_EMAILS : process.env.ADMIN_PHONES;
-  return (raw ?? "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0) // ← (a): never normalize an empty string
-    .map((s) => (email ? normalizeEmail(s) : normalizePhone(s)))
-    .filter((v) => (email ? isValidEmail(v) : isValidPhone(v))); // ← (c)
-}
+   The fail-closed properties are documented in @tnajem/shared/admin — read them
+   there before changing anything here. */
 
 /** The admin's session, or null. Fails closed on every path. */
 export async function requireAdmin() {
-  const email = otpChannel() === "email";
-  const allow = adminAllowlist();
+  const channel = otpChannel();
+  const allow = adminAuthIdentities(process.env, channel);
+
   if (allow.length === 0) {
     console.error(
-      `[Tnajem] ${email ? "ADMIN_EMAILS" : "ADMIN_PHONES"} is not configured — refusing all admin access.`,
+      `[Tnajem] ${channel === "email" ? "ADMIN_EMAILS" : "ADMIN_PHONES"} is not configured — ` +
+        "refusing all admin access.",
     );
-    return null; // ← (b): fail closed, never open
+    return null; // fail closed, never open
   }
+
   const session = await getSession();
   if (!session) return null;
 
-  // A profile with no identity of the ACTIVE kind can never be an admin.
-  const raw = ((email ? session.profile.email : session.profile.phone) ?? "").trim();
-  if (!raw) return null;
-
-  const normalized = email ? normalizeEmail(raw) : normalizePhone(raw);
-  if (!(email ? isValidEmail(normalized) : isValidPhone(normalized))) return null;
-  return allow.includes(normalized) ? session : null;
+  return isAllowlistedAdmin(session.profile, allow, channel) ? session : null;
 }
 
 /** Boolean form, for route handlers that only need the verdict. */
@@ -72,15 +47,10 @@ export async function isAdmin(): Promise<boolean> {
   return (await requireAdmin()) !== null;
 }
 
-/* Who to EMAIL when something needs review. Distinct from the allowlist on
-   purpose: you notify admins by address even when the login channel is SMS, so
-   this always reads ADMIN_EMAILS. It gets the same trim/drop-empty/validate
-   treatment, so a trailing comma can no longer produce a junk recipient. */
+/* Who to EMAIL about a new submission. Distinct from the allowlist on purpose —
+   see the note in @tnajem/shared/admin. Wrapped so the call site keeps its
+   zero-argument shape; the shared function takes env explicitly because a plain
+   unit test must be able to hand it one. */
 export function adminNotifyEmails(): string[] {
-  return (process.env.ADMIN_EMAILS ?? "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0)
-    .map((s) => normalizeEmail(s))
-    .filter((e) => isValidEmail(e));
+  return adminNotifyEmailsFromEnv(process.env);
 }
