@@ -18,8 +18,8 @@ import { mailEnabled, sendMail } from "@tnajem/shared/mail";
 import { notify } from "@/lib/notify";
 import { requireAdmin, adminNotifyEmails } from "@/lib/admin";
 import { call, callAnonymous } from "@/lib/api";
-import { paymentsEnabled, tutorBalanceTnd } from "@/lib/payments";
-import { liveRoomUrl, resolveMeetUrl } from "@/lib/live";
+import { paymentsEnabled, tutorBalanceTnd } from "@tnajem/shared/payments";
+import { liveRoomUrl, resolveMeetUrl } from "@tnajem/shared/live";
 import {
   vText, vOptionalText, vInt, vPrice, vFutureDate, vOptionalUrl, vSlug, vRating, vPhone,
   vUuid, isUuid, safeFileName, vBirthYear, isMinorBirthYear, vOptionalPhone,
@@ -319,80 +319,16 @@ export async function createClass(input: {
   durationMin: number; priceTnd: number; seats: number; isFreeFirst: boolean;
   meetUrl?: string; whiteboardUrl?: string; quizUrl?: string;
 }): Promise<ActionResult> {
-  // Was accepting past dates, negative prices and arbitrary meetUrl strings (javascript: …).
-  const title = vText(input.title, { field: "title", max: 120, min: 3 });
-  if (!title.ok) return { ok: false, error: title.error };
-  const description = vOptionalText(input.description, { field: "description", max: 1000 });
-  if (!description.ok) return { ok: false, error: description.error };
-  const when = vFutureDate(input.scheduledAt, { field: "date" });
-  if (!when.ok) return { ok: false, error: when.error };
-  const duration = vInt(input.durationMin, { field: "duration", min: 15, max: 480 });
-  if (!duration.ok) return { ok: false, error: duration.error };
-  const price = vPrice(input.priceTnd, { field: "price", max: 5000 });
-  if (!price.ok) return { ok: false, error: price.error };
-  const seats = vInt(input.seats, { field: "seats", min: 1, max: 500 });
-  if (!seats.ok) return { ok: false, error: seats.error };
-  const meetUrl = vOptionalUrl(input.meetUrl, { field: "meet-url" });
-  if (!meetUrl.ok) return { ok: false, error: meetUrl.error };
-  const whiteboardUrl = vOptionalUrl(input.whiteboardUrl, { field: "whiteboard-url" });
-  if (!whiteboardUrl.ok) return { ok: false, error: whiteboardUrl.error };
-  const quizUrl = vOptionalUrl(input.quizUrl, { field: "quiz-url" });
-  if (!quizUrl.ok) return { ok: false, error: quizUrl.error };
-
   if (!dbReady) return { ok: true, demo: true };
-  const session = await getSession();
-  if (!session) return { ok: false, error: "not-authenticated" };
-  const [mine] = await db.select().from(tutors).where(eq(tutors.profileId, session.profile.id)).limit(1);
-  if (!mine) return { ok: false, error: "no-storefront" };
-
-  /* VERIFICATION GATE. A draft/pending tutor could already build a catalogue, and
-     — the part that actually matters — so could a REJECTED one: nothing here ever
-     looked at `status`. The content isn't publicly visible (getStorefront,
-     getExploreTutors and getClass all hide non-verified tutors), but a tutor we
-     have refused should not be able to keep stocking a storefront that goes live
-     the instant anyone flips their status, and the class id is a bookable handle
-     the moment it exists. Content creation belongs behind the same gate as the
-     booking path. `createTutor` stays open — creating the storefront is the step
-     that gets them INTO verification. */
-  if (mine.status !== "verified") return { ok: false, error: "not-verified" };
-
-  // meetUrl stays nullable: lib/live.ts derives a room from the class id when it's
-  // empty, so the student's Join button is never dead.
-  await db.insert(classes).values({
-    tutorId: mine.id, title: title.value, description: description.value,
-    scheduledAt: when.value, durationMin: duration.value,
-    priceTnd: String(price.value), seats: seats.value, isFreeFirst: Boolean(input.isFreeFirst),
-    meetUrl: meetUrl.value, whiteboardUrl: whiteboardUrl.value, quizUrl: quizUrl.value,
-  });
-
-  // The storefront lists this tutor's classes — drop its 60s ISR entry now.
-  revalidateTutor(mine.slug);
-  return { ok: true };
+  /* PORTED to apps/api (POST /classes). The validators, the verification gate and
+     the insert all live there; call() replays the revalidate envelope. */
+  return call<ActionResult>("/classes", input);
 }
 
 export async function createPack(input: { title: string; meta?: string; priceTnd: number }): Promise<ActionResult> {
-  const title = vText(input.title, { field: "title", max: 120, min: 3 });
-  if (!title.ok) return { ok: false, error: title.error };
-  const meta = vOptionalText(input.meta, { field: "meta", max: 200 });
-  if (!meta.ok) return { ok: false, error: meta.error };
-  const price = vPrice(input.priceTnd, { field: "price", max: 5000 });
-  if (!price.ok) return { ok: false, error: price.error };
-
   if (!dbReady) return { ok: true, demo: true };
-  const session = await getSession();
-  if (!session) return { ok: false, error: "not-authenticated" };
-  const [mine] = await db.select().from(tutors).where(eq(tutors.profileId, session.profile.id)).limit(1);
-  if (!mine) return { ok: false, error: "no-storefront" };
-  // Same verification gate as createClass — a rejected tutor does not get to keep
-  // building a catalogue. See the comment there.
-  if (mine.status !== "verified") return { ok: false, error: "not-verified" };
-
-  await db.insert(packs).values({
-    tutorId: mine.id, title: title.value, description: meta.value, priceTnd: String(price.value),
-  });
-
-  revalidateTutor(mine.slug); // packs are rendered on the public storefront
-  return { ok: true };
+  // PORTED to apps/api (POST /packs).
+  return call<ActionResult>("/packs", input);
 }
 
 /* ---------- Dashboard (real data for the signed-in tutor) ----------
@@ -400,125 +336,8 @@ export async function createPack(input: { title: string; meta?: string; priceTnd
    its demo preview. Otherwise returns the tutor's real storefront + classes. */
 export async function getDashboard(): Promise<DashboardResult> {
   if (!dbReady) return null;
-  const session = await getSession();
-  if (!session) return null;
-
-  /* ---- ROLE GATE ----
-     A signed-in STUDENT used to get the full tutor shell here, complete with a
-     "create your storefront" prompt — i.e. the dashboard actively walked students
-     into the silent role conversion that createTutor performed. Say which account
-     they are actually signed in as instead.
-
-     Deliberately NOT symmetric: getStudentDashboard stays open to everyone, because
-     a tutor CAN legitimately book another tutor's class (reserveSeat only blocks
-     self-booking) and /student is the only place those bookings are visible. */
-  if (session.profile.role !== "tutor") return { wrongRole: session.profile.role as Role };
-
-  const uid = session.profile.id;
-
-  const [mine] = await db.select().from(tutors).where(eq(tutors.profileId, uid)).limit(1);
-  if (!mine) {
-    // Signed in but no storefront yet → prompt them to create one.
-    return {
-      name: session.profile.fullName, slug: null, has_storefront: false,
-      balance_tnd: 0, paymentsEnabled: paymentsEnabled(), students: 0, sessions: 0,
-      rating: 0, reviewCount: 0, status: "draft", classes: [], packs: [], bookings: [],
-    };
-  }
-
-  // Bounded reads. These are per-tutor so they grow slowly, but "slowly" is still
-  // unbounded: a tutor running weekly classes for two years has ~100 rows, and the
-  // bookings join below multiplies by attendees. Caps keep one prolific tutor from
-  // turning their own dashboard into a timeout.
-  const rows = await db.select().from(classes)
-    .where(eq(classes.tutorId, mine.id))
-    .orderBy(desc(classes.scheduledAt))
-    .limit(200);
-  const mapped = rows.map((c) => {
-    const d = new Date(c.scheduledAt);
-    return {
-      id: c.id,
-      title: c.title,
-      day: String(d.getDate()),
-      month: DASH_MONTHS[d.getMonth()] ?? "",
-      time: d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
-      price_tnd: Number(c.priceTnd),
-      seats: c.seats ?? 0,
-      seats_left: Math.max(0, (c.seats ?? 0) - (c.seatsTaken ?? 0)),
-      status: c.status ?? "scheduled",
-    };
-  });
-
-  const packRows = await db.select().from(packs).where(eq(packs.tutorId, mine.id)).limit(100);
-  const mappedPacks = packRows.map((p) => ({
-    id: p.id, title: p.title, meta: p.description ?? "", price_tnd: Number(p.priceTnd),
-  }));
-
-  // Who actually booked — the tutor needs names + phones to reach their students.
-  const bookingRows = await db
-    .select({
-      bookingId: bookings.id,
-      classId: classes.id,
-      classTitle: classes.title,
-      scheduledAt: classes.scheduledAt,
-      isFree: bookings.isFree,
-      status: bookings.status,
-      bookedAt: bookings.createdAt,
-      studentName: profiles.fullName,
-      studentPhone: profiles.phone,
-      /* The phone is now OPTIONAL (collected during onboarding, not at signup), so
-         it is null for anyone who skipped it. Without the address beside it this
-         column would be empty for most students on day one — the same failure as
-         the nameless-student bug: a promise in the dashboard copy ("tu vois son nom
-         et son numéro") that the data cannot keep. */
-      studentEmail: profiles.email,
-    })
-    .from(bookings)
-    // Single join — NOT a query per class. (Checked: getDashboard and
-    // getStudentDashboard were already join-based; the only N+1 in this file was
-    // getPendingVerifications, fixed above.)
-    .innerJoin(classes, eq(bookings.classId, classes.id))
-    .innerJoin(profiles, eq(bookings.studentId, profiles.id))
-    .where(eq(classes.tutorId, mine.id))
-    .orderBy(desc(bookings.createdAt))
-    .limit(500);
-
-  const mappedBookings: DashboardBooking[] = bookingRows.map((b) => ({
-    bookingId: b.bookingId,
-    classId: b.classId,
-    classTitle: b.classTitle,
-    studentName: b.studentName,
-    studentPhone: b.studentPhone,
-    studentEmail: b.studentEmail,
-    bookedAt: new Date(b.bookedAt).toISOString(),
-    classTs: new Date(b.scheduledAt).getTime(),
-    isFree: Boolean(b.isFree),
-    status: b.status ?? "reserved",
-  }));
-
-  const [revAgg] = await db
-    .select({ n: sql<number>`count(*)::int` })
-    .from(reviews)
-    .where(eq(reviews.tutorId, mine.id));
-
-  // Real balance from lib/payments.ts — 0 while payments are hard-disabled. Never fabricated.
-  const balance = await tutorBalanceTnd(mine.id);
-
-  return {
-    name: mine.fullName ?? session.profile.fullName,
-    slug: mine.slug,
-    has_storefront: true,
-    balance_tnd: balance,
-    paymentsEnabled: paymentsEnabled(),
-    students: mine.studentsCount ?? 0,
-    sessions: rows.length,
-    rating: Number(mine.rating ?? 0),
-    reviewCount: revAgg?.n ?? 0,
-    status: mine.status,
-    classes: mapped,
-    packs: mappedPacks,
-    bookings: mappedBookings,
-  };
+  // PORTED to apps/api (GET /dashboard).
+  return call<DashboardResult>("/dashboard", undefined, "GET");
 }
 
 /* ---------- Booking (student reserves a seat — free first session) ----------
@@ -804,69 +623,18 @@ export async function getStudentDashboard(): Promise<StudentDashboard | null> {
 /* ---------- Single class read (for class detail / checkout / live) ----------
    Demo mode → demo class; real mode → the row by id, or null if missing. */
 export async function getClass(id: string): Promise<ClassItem | null> {
-  if (!dbReady) return demoClasses.find((c) => c.id === id) ?? demoClasses[0] ?? null;
-  if (!isUuid(id)) return null;
+  if (!dbReady) return demoEnabled ? (demoClasses.find((c) => c.id === id) ?? null) : null;
+  /* PORTED to apps/api (GET /classes/:id).
 
-  const [c] = await db.select().from(classes).where(eq(classes.id, id)).limit(1);
-  if (!c) return null;
-  const [tut] = await db.select().from(tutors).where(eq(tutors.id, c.tutorId)).limit(1);
+     call(), not callAnonymous: the entitlement check needs the session — meet_url
+     ships ONLY to the owning tutor or a student with a live booking, and it is the
+     only thing protecting a live room full of minors.
 
-  /* Who is asking? Three tiers, and they decide two separate things:
-       – whether the class is visible at all
-       – whether the ROOM LINKS come back with it                                   */
-  const session = await getSession();
-  const uid = session?.profile.id ?? null;
-  const isOwner = Boolean(uid && tut?.profileId === uid);
-
-  let hasBooking = false;
-  if (uid && !isOwner) {
-    const [bk] = await db.select({ status: bookings.status }).from(bookings)
-      .where(and(eq(bookings.classId, c.id), eq(bookings.studentId, uid))).limit(1);
-    hasBooking = Boolean(bk && bk.status !== "cancelled");
-  }
-  const entitled = isOwner || hasBooking;
-
-  /* VISIBILITY — /class/[id] is a PUBLIC route (not in middleware's matcher), and
-     this action had no tutor-status check, so a draft/pending/REJECTED tutor's
-     classes were fully readable and bookable by direct link even though /explore
-     and the storefront hide them. Non-verified tutors are now visible only to the
-     tutor themselves and to students who already hold a booking (so a tutor who
-     gets un-verified later doesn't break their existing students' class page). */
-  if (tut?.status !== "verified" && !entitled) return null;
-
-  /* ROOM LINKS — the real leak. meet_url is the ONLY thing protecting the live
-     video room: lib/live.ts derives a deterministic Jitsi URL from the class id and
-     Jitsi rooms are open to anyone holding the link. getClass() returned it to
-     EVERY caller, and /class/[id] is public — so any anonymous visitor could read
-     the server-action response (or call the action directly), lift the room URL and
-     walk into a live session full of minors. canJoinClass() was gating the /live
-     page while getClass() handed out the key next to it.
-
-     Now the links only ship to someone canJoinClass() would also admit: the owning
-     tutor, or a student with a live booking. The /live page reads gate.meetUrl from
-     canJoinClass() and only calls getClass() after the gate passes, so nothing in
-     the UI regresses; /class and /checkout never rendered these fields. */
-  const d = new Date(c.scheduledAt);
-  return {
-    id: c.id,
-    tutor_id: c.tutorId,
-    tutor_name: tut?.fullName ?? undefined,
-    title: c.title,
-    description: c.description ?? undefined,
-    day: String(d.getDate()),
-    month: DASH_MONTHS[d.getMonth()] ?? "",
-    time: d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
-    duration_min: c.durationMin ?? 90,
-    price_tnd: Number(c.priceTnd),
-    seats: c.seats ?? 0,
-    seats_left: Math.max(0, (c.seats ?? 0) - (c.seatsTaken ?? 0)),
-    is_free_first: Boolean(c.isFreeFirst),
-    meet_url: entitled ? resolveMeetUrl(c) : undefined,
-    whiteboard_url: entitled ? (c.whiteboardUrl ?? undefined) : undefined,
-    quiz_url: entitled ? (c.quizUrl ?? undefined) : undefined,
-    replay_url: entitled ? (c.replayUrl ?? undefined) : undefined,
-    status: c.status ?? "scheduled",
-  };
+     This is safe to make session-dependent because getClass is invoked from CLIENT
+     components only. If anyone ever renders it from a server component on a cached
+     route, the entitlement decision gets baked into cached HTML. That invariant is
+     currently held by convention; e2e asserts the anonymous case. */
+  return call<ClassItem | null>(`/classes/${encodeURIComponent(id)}`, undefined, "GET");
 }
 
 /* ===================== Tutor verification =====================

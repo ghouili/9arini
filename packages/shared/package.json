@@ -12,7 +12,9 @@
     "./auth-core": "./src/auth-core.ts",
     "./contracts": "./src/contracts/index.ts",
     "./mail": "./src/mail.ts",
-    "./sms": "./src/sms.ts"
+    "./sms": "./src/sms.ts",
+    "./payments": "./src/payments.ts",
+    "./live": "./src/live.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

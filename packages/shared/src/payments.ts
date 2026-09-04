@@ -1,4 +1,12 @@
-import "server-only";
+/* SERVER-ONLY. Reached via the "@tnajem/shared/payments" SUBPATH, never the
+   barrel — the barrel is imported by client components. No `import
+   "server-only"` for the same reason as @tnajem/db: Fastify and tsx both load
+   this and server-only throws under tsx.
+
+   PAYMENTS ARE OFF. paymentsEnabled() is true only when PAYMENTS_ENABLED=1,
+   every adapter throws while it is off, and tutorBalanceTnd returns a real 0.
+   Nothing here fabricates earnings. Do not flip it until counsel signs off AND
+   the provider contract and webhook signature verification exist. */
 
 /* ============================ PAYMENTS — HARD-DISABLED ============================
 

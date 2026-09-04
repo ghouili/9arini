@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { TarifsInner } from "@/components/tarifs/TarifsInner";
-import { paymentsEnabled } from "@/lib/payments";
+import { paymentsEnabled } from "@tnajem/shared/payments";
 import { isLocale, DEFAULT_LOCALE, type AppLocale } from "@/lib/locale";
 
 /* /tarifs — the public pricing page.

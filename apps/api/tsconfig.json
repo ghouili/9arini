@@ -28,6 +28,12 @@
       ],
       "@tnajem/shared/sms": [
         "../../packages/shared/src/sms.ts"
+      ],
+      "@tnajem/shared/payments": [
+        "../../packages/shared/src/payments.ts"
+      ],
+      "@tnajem/shared/live": [
+        "../../packages/shared/src/live.ts"
       ]
     }
   },

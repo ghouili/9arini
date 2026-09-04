@@ -20,6 +20,7 @@ import { meRoutes } from "./routes/me";
 import { authRoutes } from "./routes/auth";
 import { profileRoutes } from "./routes/profile";
 import { tutorRoutes } from "./routes/tutors";
+import { classRoutes } from "./routes/classes";
 
 export async function buildServer(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -66,6 +67,7 @@ export async function buildServer(): Promise<FastifyInstance> {
   await app.register(authRoutes);
   await app.register(profileRoutes);
   await app.register(tutorRoutes);
+  await app.register(classRoutes);
 
   app.get("/health", async () => {
     let dbOk = false;
