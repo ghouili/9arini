@@ -10,7 +10,7 @@ import { getDashboard, getNotifications, markNotificationsRead } from "@/app/act
 import { WrongRoleNotice } from "@/components/WrongRoleNotice";
 import { buildTutorSteps, STEP_COPY } from "@/lib/onboarding-steps";
 import type { OnboardingStep, StepState } from "@/lib/onboarding-steps";
-import type { DashboardData, DashboardBooking, NotificationItem, DashboardResult } from "@/lib/types";
+import type { DashboardData, DashboardBooking, NotificationItem, DashboardResult } from "@tnajem/shared";
 
 /* Page-local copy (never edit lib/i18n.ts from here). FR + Derija, RTL-safe.
    The shared t.dashboard.s1p/s2p/s3p keys are truthful but generic; this page

@@ -6,10 +6,10 @@ loadEnv();
 
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { otpCodes, rateLimits, sessions, tutors, verificationDocs } from "../lib/db/schema";
+import { otpCodes, rateLimits, sessions, tutors, verificationDocs } from "../src/schema";
 import {
   purgeExpiredAuthRows, purgeExpiredVerificationDocs, RETENTION_DAYS, storageBase,
-} from "../lib/retention";
+} from "../src/retention";
 
 /* Retention purge — CLI entry point. Runs TWO jobs:
  *

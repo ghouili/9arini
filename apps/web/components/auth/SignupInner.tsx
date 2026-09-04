@@ -32,7 +32,7 @@ import { postAuthDestination } from "@/lib/auth-destination";
 import { useCountdown, formatCountdown } from "@/components/useCountdown";
 // Pure module — the SAME validity check the server runs, so the form and the action
 // can never disagree about what a valid address is.
-import { isValidEmail } from "@/lib/validation";
+import { isValidEmail } from "@tnajem/shared";
 import type { OtpChannel } from "@/lib/auth";
 
 export type SignupRole = "tutor" | "student";

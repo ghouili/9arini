@@ -7,7 +7,7 @@ import { useToast } from "@/components/useToast";
 import { SiteShell } from "@/components/SiteShell";
 import { Shield, Check, Eye, Users, Forward } from "@/components/icons";
 import { getPendingVerifications, approveTutor, rejectTutor } from "@/app/actions";
-import type { PendingTutor } from "@/lib/types";
+import type { PendingTutor } from "@tnajem/shared";
 
 /* Self-contained bilingual copy (FR + Tunisian Derija). Does NOT touch lib/i18n.ts. */
 const copy = {

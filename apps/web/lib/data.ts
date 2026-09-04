@@ -1,9 +1,9 @@
 import "server-only";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq } from "@tnajem/db";
 import { db, dbReady } from "@/lib/db";
-import { tutors, classes as classesT, packs as packsT } from "@/lib/db/schema";
+import { tutors, classes as classesT, packs as packsT } from "@tnajem/db";
 import { demoEnabled, demoStorefront } from "@/lib/demo";
-import type { Storefront, Tutor, ClassItem, Pack } from "@/lib/types";
+import type { Storefront, Tutor, ClassItem, Pack } from "@tnajem/shared";
 
 /* ══════════════════════════════════════════════════════════════════════════════
    Server-side reads.

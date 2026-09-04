@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import { db, dbReady } from "@/lib/db";
-import { purgeExpiredAuthRows, purgeExpiredVerificationDocs, RETENTION_DAYS } from "@/lib/retention";
+import { purgeExpiredAuthRows, purgeExpiredVerificationDocs, RETENTION_DAYS } from "@tnajem/db";
 
 /* Cron entry point for the retention purges (see lib/retention.ts). Two jobs, one
  * schedule:

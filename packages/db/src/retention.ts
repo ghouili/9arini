@@ -25,42 +25,18 @@
 import { and, eq, inArray, isNotNull, lt, sql } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { readdir, rm, rmdir, stat } from "node:fs/promises";
-import { join, resolve, sep } from "node:path";
-import { otpCodes, rateLimits, sessions, tutors, verificationDocs } from "./db/schema";
+import { join } from "node:path";
+/* ONE storageBase()/resolveDocPath(), in ./storage. There used to be three
+   copies of each across the uploader, the admin doc route and this file; they
+   agreed only because all three happened to run with the same cwd. */
+import { storageBase, resolveDocPath } from "./storage";
+export { storageBase };
+import { otpCodes, rateLimits, sessions, tutors, verificationDocs } from "./schema";
 
 export const RETENTION_DAYS = 90;
 
 /** Decided states — the retention clock only starts once a human has ruled. */
 const DECIDED = ["verified", "rejected"] as const;
-
-/** Mirrors app/actions.ts: STORAGE_DIR in prod (persistent volume), ./.storage in dev.
-
-    STORAGE_DIR is REQUIRED in production, and that check is a data-protection
-    control, not a config nicety.
-
-    The fallback is relative to cwd. The moment the app is not launched from its
-    own directory -- a workspace script (`npm run db:purge -w @tnajem/web` runs
-    with cwd apps/web), a systemd unit with a different WorkingDirectory, Next's
-    standalone server.js which chdir()s to its own folder, a container entrypoint
-    -- this resolves somewhere with no documents in it. And the purge treats a
-    missing file as non-fatal: it counts it "already gone" and DELETES THE ROW
-    ANYWAY. The result is orphaned national ID scans left on disk with nothing
-    pointing at them, forever, from a job that reported success.
-
-    This is not hypothetical: moving the app into apps/ during the monorepo step
-    repointed this at apps/web/.storage while the scans were still at the repo
-    root. It was only harmless because no document was past the 90-day window. */
-export function storageBase(): string {
-  const dir = process.env.STORAGE_DIR?.trim();
-  if (dir) return resolve(dir);
-  if (process.env.NODE_ENV === "production") {
-    throw new Error(
-      "STORAGE_DIR is required in production — refusing to fall back to a " +
-        "cwd-relative path for identity documents.",
-    );
-  }
-  return join(process.cwd(), ".storage");
-}
 
 /* Any drizzle/postgres-js handle. The schema generic differs between the
    `server-only` client (typed with the full schema) and the standalone one the
@@ -98,18 +74,6 @@ export type PurgeOptions = {
   /** Line logger. Never receives file names or any other document content. */
   log?: (line: string) => void;
 };
-
-/* storage_path is stored relative to the storage base (e.g. "verification/<tutorId>/<file>")
-   and was built with path.join, so the separator is platform-dependent. Split on
-   both, refuse "..", and refuse anything that escapes the base — the value comes
-   from the DB, and a purge that can unlink outside STORAGE_DIR is a footgun. */
-function resolveDocPath(baseDir: string, storagePath: string): string | null {
-  const parts = storagePath.split(/[\\/]+/).filter((p) => p && p !== ".");
-  if (parts.length === 0 || parts.some((p) => p === "..")) return null;
-  const root = resolve(baseDir);
-  const abs = resolve(root, ...parts);
-  return abs === root || abs.startsWith(root + sep) ? abs : null;
-}
 
 export async function purgeExpiredVerificationDocs(
   db: PurgeDb,

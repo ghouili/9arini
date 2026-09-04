@@ -8,7 +8,7 @@ import { Avatar, Button, Spinner } from "@/components/ui";
 import { Back, Video, Bulb, Clock } from "@/components/icons";
 import { ClassTools } from "@/components/teaching/ClassTools";
 import { canJoinClass, getClass, getStudentDashboard, getDashboard } from "@/app/actions";
-import type { ClassItem } from "@/lib/types";
+import type { ClassItem } from "@tnajem/shared";
 
 /* Page-local copy (lib/i18n.ts is shared — don't touch it). */
 const copy = {

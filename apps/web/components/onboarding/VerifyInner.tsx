@@ -7,7 +7,7 @@ import { Shield, Check, Upload, User, Eye, Bulb } from "@/components/icons";
 import { SiteShell } from "@/components/SiteShell";
 import { getMyVerification, submitVerification } from "@/app/actions";
 import { OnboardingProgress } from "@/components/OnboardingProgress";
-import type { TutorVerification, Locale, OnboardingState } from "@/lib/types";
+import type { TutorVerification, Locale, OnboardingState } from "@tnajem/shared";
 
 /* ------------------------------------------------------------------ */
 /* Self-contained bilingual copy (FR + Tunisian Derija). Do NOT edit   */

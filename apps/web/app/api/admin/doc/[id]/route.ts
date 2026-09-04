@@ -1,11 +1,12 @@
 import type { NextRequest } from "next/server";
 import { readFile } from "node:fs/promises";
 import { join, resolve, sep } from "node:path";
-import { eq } from "drizzle-orm";
+import { eq } from "@tnajem/db";
 import { db, dbReady } from "@/lib/db";
-import { verificationDocs } from "@/lib/db/schema";
+import { verificationDocs } from "@tnajem/db";
 import { isAdmin } from "@/lib/admin";
-import { isUuid, safeFileName } from "@/lib/validation";
+import { storageBase, resolveDocPath } from "@tnajem/db";
+import { isUuid, safeFileName } from "@tnajem/shared";
 
 /* Protected viewer for uploaded verification documents — national ID scans.
    Files live outside /public; only an admin session may stream them.
@@ -24,18 +25,10 @@ export const dynamic = "force-dynamic"; // never cached or prerendered
    then get 403 on every ID scan in it. It failed CLOSED — never a hole, just a
    welded-shut door — but the queue could not be worked at all. */
 
-/* Containment check for storage_path. The value comes from our own DB (written by
-   submitVerification, which sanitizes), so this is defence in depth rather than a
-   live hole — but this handler reads arbitrary bytes off disk and returns them, so
-   a single bad row (bad migration, manual edit, future writer that forgets to
-   sanitize) must not become "read any file on the box". Mirrors lib/retention.ts. */
-function resolveDocPath(baseDir: string, storagePath: string): string | null {
-  const parts = storagePath.split(/[\\/]+/).filter((p) => p && p !== ".");
-  if (parts.length === 0 || parts.some((p) => p === "..")) return null;
-  const root = resolve(baseDir);
-  const abs = resolve(root, ...parts);
-  return abs === root || abs.startsWith(root + sep) ? abs : null;
-}
+/* storageBase() and resolveDocPath() come from @tnajem/db now. This file used
+   to carry a byte-identical copy of both, as did lib/retention.ts -- three
+   implementations that agreed only because they happened to share a cwd. */
+
 
 /* Only ever hand back a type we know is inert-ish, and never one the CLIENT chose.
    submitVerification now sniffs magic bytes and stores the SNIFFED type, but rows
@@ -56,8 +49,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   const [doc] = await db.select().from(verificationDocs).where(eq(verificationDocs.id, params.id)).limit(1);
   if (!doc) return new Response("Not found", { status: 404 });
 
-  const base = process.env.STORAGE_DIR || join(process.cwd(), ".storage");
-  const abs = resolveDocPath(base, doc.storagePath);
+  const abs = resolveDocPath(storageBase(), doc.storagePath);
   if (!abs) {
     console.error(`[Tnajem] refusing unsafe storage_path on doc ${doc.id}`);
     return new Response("Not found", { status: 404 });

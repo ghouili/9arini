@@ -5,7 +5,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { Avatar, Button, Chip, Spinner } from "@/components/ui";
 import { Play, Video, Star, Clock } from "@/components/icons";
 import { getStudentDashboard, getMe, cancelBooking, createReview } from "@/app/actions";
-import type { StudentClass, StudentDashboard } from "@/lib/types";
+import type { StudentClass, StudentDashboard } from "@tnajem/shared";
 import { SiteShell } from "@/components/SiteShell";
 
 /* Page-local copy (never lib/i18n.ts — that file is shared).

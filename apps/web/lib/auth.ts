@@ -1,12 +1,12 @@
 import "server-only";
 import { cookies, headers } from "next/headers";
 import { createHash, randomBytes, randomInt, timingSafeEqual } from "crypto";
-import { and, desc, eq, lt, sql } from "drizzle-orm";
+import { and, desc, eq, lt, sql } from "@tnajem/db";
 import { db, dbReady } from "./db";
-import { profiles, sessions, otpCodes, rateLimits } from "./db/schema";
+import { profiles, sessions, otpCodes, rateLimits } from "@tnajem/db";
 // Pure module (no server-only marker), so the CLIENT form can share this exact
 // check — which is the whole reason it does not live in this file.
-import { isValidEmail } from "./validation";
+import { isValidEmail, normalizeEmail, normalizePhone, isValidPhone } from "@tnajem/shared";
 
 /* Custom OTP + session auth on Postgres (no external auth dep).
 
@@ -247,27 +247,10 @@ export function otpChannel(): OtpChannel {
   return process.env.OTP_CHANNEL?.trim().toLowerCase() === "sms" ? "sms" : "email";
 }
 
-/** Sibling of normalizePhone(). Lower-cased so "Sam@X.com" and "sam@x.com" are one
-    account — the unique index on profiles.email is case-SENSITIVE, so without this
-    the same person could sign up twice. */
-export function normalizeEmail(raw: string): string {
-  return (raw || "").trim().toLowerCase();
-}
-
-// Re-exported so callers get both halves of the email identity from one place,
-// mirroring normalizePhone/isValidPhone above.
-export { isValidEmail };
-
-export function normalizePhone(raw: string): string {
-  let p = (raw || "").replace(/[^\d+]/g, "");
-  if (p.startsWith("00")) p = "+" + p.slice(2);
-  if (!p.startsWith("+")) p = "+216" + p.replace(/^0+/, ""); // default Tunisia
-  return p;
-}
-export function isValidPhone(p: string): boolean {
-  const digits = p.replace(/\D/g, "").length;
-  return digits >= 8 && digits <= 15; // E.164 upper bound
-}
+/* The four identity helpers now live in @tnajem/shared so the admin allowlist can
+   import them from a PURE module — this file is `server-only`, which Fastify and
+   tsx cannot load. Re-exported here so every existing call site is untouched. */
+export { normalizeEmail, normalizePhone, isValidPhone, isValidEmail };
 /* Binds the code to the identity it was issued for, so a code minted for one
    address/number cannot be replayed against another. `identifier` is a phone under
    OTP_CHANNEL=sms and an email address under =email; the hash does not care. */

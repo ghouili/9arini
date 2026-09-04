@@ -1,9 +1,9 @@
 "use server";
-import { eq, and, or, ne, sql, desc, ilike, inArray, isNull } from "drizzle-orm";
+import { eq, and, or, ne, sql, desc, ilike, inArray, isNull } from "@tnajem/db";
 import { db, dbReady } from "@/lib/db";
 import {
   profiles, tutors, classes, packs, bookings, consents, verificationDocs, reviews, notifications,
-} from "@/lib/db/schema";
+} from "@tnajem/db";
 import { writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import {
@@ -23,13 +23,13 @@ import { liveRoomUrl, resolveMeetUrl } from "@/lib/live";
 import {
   vText, vOptionalText, vInt, vPrice, vFutureDate, vOptionalUrl, vSlug, vRating, vPhone,
   vUuid, isUuid, safeFileName, vBirthYear, isMinorBirthYear, vOptionalPhone,
-} from "@/lib/validation";
+} from "@tnajem/shared";
 import type {
   DashboardData, DashboardBooking, StudentDashboard, ClassItem, TutorVerification, PendingTutor,
   ExploreTutor, TutorReviews, NotificationItem, NotificationKind, DashboardResult,
   StudentLevel, Role, OnboardingState,
-} from "@/lib/types";
-import { STUDENT_LEVELS } from "@/lib/types";
+} from "@tnajem/shared";
+import { STUDENT_LEVELS } from "@tnajem/shared";
 
 type DocKind = "id_front" | "id_back" | "selfie" | "diploma" | "certificate" | "role_proof" | "other";
 

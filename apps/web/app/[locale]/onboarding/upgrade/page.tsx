@@ -6,7 +6,7 @@
 import { redirect } from "next/navigation";
 import { UpgradeInner } from "@/components/onboarding/UpgradeInner";
 import { pageGuard, localeOf, localePath } from "@/lib/page-guard";
-import { isMinorBirthYear } from "@/lib/validation";
+import { isMinorBirthYear } from "@tnajem/shared";
 
 export default async function UpgradePage({ params }: { params: { locale: string } }) {
   const locale = localeOf(params.locale);

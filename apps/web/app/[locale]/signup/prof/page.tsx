@@ -15,7 +15,7 @@
    would be baked in at build time, so reverting to SMS would mean a rebuild
    rather than a restart. */
 import { SignupInner } from "@/components/auth/SignupInner";
-import { safeNext } from "@/lib/validation";
+import { safeNext } from "@tnajem/shared";
 import { otpChannel } from "@/lib/auth";
 
 export default function SignupTutorPage({

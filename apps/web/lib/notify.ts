@@ -1,9 +1,9 @@
 import "server-only";
-import { eq } from "drizzle-orm";
+import { eq } from "@tnajem/db";
 import { db, dbReady } from "@/lib/db";
-import { profiles, notifications } from "@/lib/db/schema";
+import { profiles, notifications } from "@tnajem/db";
 import { smsEnabled, sendSms } from "@/lib/sms";
-import type { NotificationKind } from "@/lib/types";
+import type { NotificationKind } from "@tnajem/shared";
 
 /* Notification dispatcher.
 

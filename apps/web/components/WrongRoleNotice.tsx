@@ -2,7 +2,7 @@
 import { Link } from "@/components/Link";
 import { useLocale } from "@/components/LocaleProvider";
 import { User, Book } from "@/components/icons";
-import type { Role } from "@/lib/types";
+import type { Role } from "@tnajem/shared";
 
 /* Shown when a signed-in user opens a screen that belongs to the OTHER role.
 

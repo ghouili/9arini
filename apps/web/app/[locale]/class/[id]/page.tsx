@@ -6,7 +6,7 @@ import { SiteShell } from "@/components/SiteShell";
 import { Calendar, Clock, Users, Shield, Gift, Back } from "@/components/icons";
 import { useLocale } from "@/components/LocaleProvider";
 import { getClass, getExploreTutors } from "@/app/actions";
-import type { ClassItem, ExploreTutor } from "@/lib/types";
+import type { ClassItem, ExploreTutor } from "@tnajem/shared";
 
 /** Month label map FR → AR (short) — same table as the storefront/checkout. */
 const monthAr: Record<string, string> = {

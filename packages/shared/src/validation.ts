@@ -299,3 +299,28 @@ export function safeNext(raw: string | null): string | null {
   if (v === "/auth" || v.startsWith("/auth/") || v.startsWith("/auth?")) return null;
   return v;
 }
+
+/* ── Identity normalisers ────────────────────────────────────────────────────
+   Moved here from lib/auth.ts (which is `server-only`) so the admin allowlist —
+   which must be importable by Fastify, by the web app, and by a plain unit test —
+   can reach all four of these from one pure module. Behaviour is unchanged;
+   lib/auth.ts re-exports them so no call site moved. */
+
+/** Sibling of normalizePhone(). Lower-cased so "Sam@X.com" and "sam@x.com" are one
+    account — the unique index on profiles.email is case-SENSITIVE, so without this
+    the same person could sign up twice. */
+export function normalizeEmail(raw: string): string {
+  return (raw || "").trim().toLowerCase();
+}
+
+export function normalizePhone(raw: string): string {
+  let p = (raw || "").replace(/[^\d+]/g, "");
+  if (p.startsWith("00")) p = "+" + p.slice(2);
+  if (!p.startsWith("+")) p = "+216" + p.replace(/^0+/, ""); // default Tunisia
+  return p;
+}
+
+export function isValidPhone(p: string): boolean {
+  const digits = p.replace(/\D/g, "").length;
+  return digits >= 8 && digits <= 15; // E.164 upper bound
+}

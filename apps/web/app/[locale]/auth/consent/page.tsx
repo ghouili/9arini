@@ -7,7 +7,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { Shield, Phone, User } from "@/components/icons";
 import { saveConsent } from "@/app/actions";
 import { SiteShell } from "@/components/SiteShell";
-import { safeNext } from "@/lib/validation";
+import { safeNext } from "@tnajem/shared";
 
 /* Guardian consent sits in the middle of a flow: middleware.ts / /live bounce a
    guest to /auth?next=<path> (e.g. /checkout?class=x), the OTP is verified, and a

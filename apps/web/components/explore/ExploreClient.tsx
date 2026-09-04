@@ -27,7 +27,7 @@ import { Search, Star, Users, Bolt } from "@/components/icons";
 import { SiteShell } from "@/components/SiteShell";
 import { getExploreTutors } from "@/app/actions";
 import { demoStorefront } from "@/lib/demo";
-import type { ExploreTutor } from "@/lib/types";
+import type { ExploreTutor } from "@tnajem/shared";
 
 /* ── Page-local copy (FR + Tunisian Derija) ── */
 const copy = {

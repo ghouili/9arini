@@ -8,7 +8,7 @@ import { SiteShell } from "@/components/SiteShell";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { getDashboard } from "@/app/actions";
 import { WrongRoleNotice } from "@/components/WrongRoleNotice";
-import type { DashboardData, DashboardResult } from "@/lib/types";
+import type { DashboardData, DashboardResult } from "@tnajem/shared";
 
 /* Page-local copy (never edit lib/i18n.ts from here). FR + Derija, RTL-safe. */
 const copy = {

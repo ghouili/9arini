@@ -1,4 +1,4 @@
-import type { Storefront, ClassItem, Pack } from "./types";
+import type { Storefront, ClassItem, Pack } from "@tnajem/shared";
 
 /* ══════════════════════════════════════════════════════════════════════════════
    Demo data — the zero-backend fallback. DEVELOPMENT ONLY.

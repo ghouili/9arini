@@ -9,14 +9,11 @@
     "start:standalone": "node scripts/serve-standalone.mjs",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "db:sql": "tsx scripts/apply-sql.ts",
     "db:push": "echo \"BLOCKED: drizzle-kit 0.28 is not PostgreSQL 17-safe (it tries to DROP the NOT NULL constraints on ~60 columns). Use 'npm run db:sql' instead — see scripts/sql/. Details in scripts/apply-sql.ts.\" && exit 1",
     "db:push:unsafe": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
-    "db:seed": "tsx lib/db/seed.ts",
-    "db:purge": "tsx scripts/purge-docs.ts",
     "brand:build": "python scripts/brand/build-raster.py && node scripts/brand/build-og.mjs"
   },
   "dependencies": {
@@ -26,7 +23,9 @@
     "postgres": "^3.4.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "server-only": "^0.0.1"
+    "server-only": "^0.0.1",
+    "@tnajem/db": "*",
+    "@tnajem/shared": "*"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",

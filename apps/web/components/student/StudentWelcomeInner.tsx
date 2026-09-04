@@ -27,8 +27,8 @@ import { useLocale } from "@/components/LocaleProvider";
 import { User, Book, Phone } from "@/components/icons";
 import { saveStudentProfile } from "@/app/actions";
 import { SiteShell } from "@/components/SiteShell";
-import { STUDENT_LEVELS } from "@/lib/types";
-import type { StudentLevel, StudentProfile } from "@/lib/types";
+import { STUDENT_LEVELS } from "@tnajem/shared";
+import type { StudentLevel, StudentProfile } from "@tnajem/shared";
 
 const COPY = {
   fr: {

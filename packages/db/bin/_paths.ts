@@ -13,20 +13,23 @@
 import { config } from "dotenv";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
-/** apps/web — the directory this script's package lives in. */
-export const APP_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
+/** packages/db — the directory this script's package lives in. */
+export const PKG_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 
 /** The workspace root: walk up until we find the root package.json (the one
-    declaring workspaces). Falls back to APP_ROOT when run outside a monorepo. */
+    declaring workspaces). Falls back to PKG_ROOT when run outside a monorepo. */
 export function repoRoot(): string {
-  let dir = APP_ROOT;
+  let dir = PKG_ROOT;
   for (let i = 0; i < 6; i++) {
     const pkg = join(dir, "package.json");
     if (existsSync(pkg)) {
       try {
-        const j = JSON.parse(require("node:fs").readFileSync(pkg, "utf8"));
+        /* readFileSync must be IMPORTED: this package is type:module, so a bare
+           require() throws ReferenceError -- and the catch below swallowed it,
+           so the walk silently ran past the repo root and .env was never found. */
+        const j = JSON.parse(readFileSync(pkg, "utf8"));
         if (j.workspaces) return dir;
       } catch { /* keep walking */ }
     }
@@ -34,7 +37,7 @@ export function repoRoot(): string {
     if (up === dir) break;
     dir = up;
   }
-  return APP_ROOT;
+  return PKG_ROOT;
 }
 
 /** Load .env then .env.local from the REPO ROOT, matching Next's precedence. */
@@ -44,5 +47,5 @@ export function loadEnv(): void {
   config({ path: join(root, ".env.local"), override: true });
 }
 
-/** scripts/sql, resolved from this module — never from cwd. */
-export const SQL_DIR = join(APP_ROOT, "scripts", "sql");
+/** packages/db/sql, resolved from this module — never from cwd. */
+export const SQL_DIR = join(PKG_ROOT, "sql");

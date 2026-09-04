@@ -32,8 +32,8 @@ import { SiteShell } from "@/components/SiteShell";
 import { OnboardingProgress } from "@/components/OnboardingProgress";
 import { createTutor } from "@/app/actions";
 import { useToast } from "@/components/useToast";
-import { vSlug } from "@/lib/validation";
-import type { OnboardingState } from "@/lib/types";
+import { vSlug } from "@tnajem/shared";
+import type { OnboardingState } from "@tnajem/shared";
 
 /* Page-local copy (FR + Tunisian Derija). lib/i18n.ts is shared/read-only, and
    several of its strings cannot be used here:

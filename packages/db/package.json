@@ -5,9 +5,25 @@
   "type": "module",
   "main": "./src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./schema": "./src/schema.ts",
+    "./storage": "./src/storage.ts",
+    "./retention": "./src/retention.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:sql": "tsx bin/apply-sql.ts",
+    "db:purge": "tsx bin/purge-docs.ts",
+    "db:seed": "tsx src/seed.ts"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.36.4",
+    "postgres": "^3.4.5"
+  },
+  "devDependencies": {
+    "dotenv": "^16.4.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.5.4",
+    "@types/node": "^20.14.0"
   }
 }

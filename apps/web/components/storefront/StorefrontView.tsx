@@ -28,7 +28,7 @@ import {
   Gift,
 } from "@/components/icons";
 import { SiteShell } from "@/components/SiteShell";
-import type { Storefront, TutorReviews, ClassItem } from "@/lib/types";
+import type { Storefront, TutorReviews, ClassItem } from "@tnajem/shared";
 
 /** Month label map FR → AR (short). Demo data uses FR short labels. */
 const monthAr: Record<string, string> = {

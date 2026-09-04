@@ -1,7 +1,7 @@
 "use client";
 import { useLocale } from "@/components/LocaleProvider";
 import { Video, Board, Quiz } from "@/components/icons";
-import type { ClassItem } from "@/lib/types";
+import type { ClassItem } from "@tnajem/shared";
 
 /* Link-out teaching toolkit for a class: one-tap launchers for the tutor's
    video room (Jitsi/Meet), whiteboard (Bitpaper/Excalidraw) and quiz (Wooclap/Quizizz).

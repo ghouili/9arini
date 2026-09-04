@@ -6,7 +6,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { Check, Calendar, Clock, Users, Shield, Back } from "@/components/icons";
 import { Spinner } from "@/components/ui";
 import { getClass, reserveSeat } from "@/app/actions";
-import type { ClassItem } from "@/lib/types";
+import type { ClassItem } from "@tnajem/shared";
 
 /** Month label map FR → AR (short) — same table as the storefront. Class rows
     carry FR short labels, so an Arabic checkout used to read "23 JUIN". */

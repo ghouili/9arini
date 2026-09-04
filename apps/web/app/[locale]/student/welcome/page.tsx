@@ -18,10 +18,10 @@
       refuse anyway. */
 import { redirect } from "next/navigation";
 import { StudentWelcomeInner } from "@/components/student/StudentWelcomeInner";
-import { safeNext } from "@/lib/validation";
+import { safeNext } from "@tnajem/shared";
 import { pageGuard, localeOf, localePath } from "@/lib/page-guard";
-import { STUDENT_LEVELS } from "@/lib/types";
-import type { StudentLevel, StudentProfile } from "@/lib/types";
+import { STUDENT_LEVELS } from "@tnajem/shared";
+import type { StudentLevel, StudentProfile } from "@tnajem/shared";
 
 const EMPTY: StudentProfile = { fullName: null, level: null, subjects: [], phone: null };
 

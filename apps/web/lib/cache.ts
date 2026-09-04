@@ -1,7 +1,7 @@
 import "server-only";
 import { unstable_cache, revalidateTag } from "next/cache";
 import { getStorefront, getPublicTutorRefs, type PublicTutorRef } from "@/lib/data";
-import type { Storefront } from "@/lib/types";
+import type { Storefront } from "@tnajem/shared";
 
 /* ══════════════════════════════════════════════════════════════════════════════
    Cache layer for the PUBLIC, ANONYMOUS surface only.

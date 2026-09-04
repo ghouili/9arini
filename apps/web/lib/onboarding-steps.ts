@@ -1,4 +1,4 @@
-import type { Locale, TutorVerifStatus } from "./types";
+import type { Locale, TutorVerifStatus } from "@tnajem/shared";
 
 /* ─────────────────────────────────────────────────────────────────────────────
    THE tutor onboarding ladder — one definition, used by every screen in it.
