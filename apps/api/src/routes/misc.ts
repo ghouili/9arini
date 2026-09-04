@@ -1,0 +1,228 @@
+import type { FastifyInstance } from "fastify";
+import { z } from "zod";
+import {
+  and, desc, eq, inArray, isNull,
+  bookings, classes, consents, notifications, reviews, tutors,
+} from "@tnajem/db";
+import {
+  vRating, vOptionalText, vUuid, vText, vPhone, isUuid,
+  normalizePhone, isValidPhone,
+  type NotificationItem, type NotificationKind,
+} from "@tnajem/shared";
+import { resolveMeetUrl } from "@tnajem/shared/live";
+import { db } from "../db";
+import { getSession } from "../lib/session";
+import { checkRateLimit } from "../lib/rate-limit";
+import { recomputeTutorStats } from "../lib/stats";
+
+/* reviews · consent · notifications · live-room access.
+
+   Grouped because each is one or two endpoints; splitting them into four files
+   would be filing, not structure. */
+
+const reviewBody = z.object({
+  classId: z.string(),
+  rating: z.number(),
+  text: z.string().optional(),
+});
+
+const consentBody = z.object({
+  guardianName: z.string(),
+  guardianPhone: z.string(),
+});
+
+const markReadBody = z.object({ ids: z.array(z.string()).optional() }).optional();
+
+export async function miscRoutes(app: FastifyInstance): Promise<void> {
+  /* ── POST /reviews ───────────────────────────────────────────────────────── */
+  app.post("/reviews", async (req, reply) => {
+    const parsed = reviewBody.safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: "bad-request" });
+    const input = parsed.data;
+
+    const rating = vRating(input.rating);
+    if (!rating.ok) return { ok: false, error: rating.error };
+    const text = vOptionalText(input.text, { field: "review", max: 1000 });
+    if (!text.ok) return { ok: false, error: text.error };
+
+    const classId = vUuid(input.classId, { field: "class" });
+    if (!classId.ok) return { ok: false, error: "not-found" };
+
+    const session = await getSession(req);
+    if (!session) return { ok: false, error: "not-authenticated" };
+    const uid = session.profile.id;
+
+    const rl = await checkRateLimit(`review:${uid}`, 10, 60 * 60_000); // 10 attempts / hour
+    if (!rl.ok) return { ok: false, error: "too-many-requests" };
+
+    const [cls] = await db.select().from(classes).where(eq(classes.id, classId.value)).limit(1);
+    if (!cls) return { ok: false, error: "not-found" };
+
+    /* AUTHZ: you may only review a class you actually BOOKED, and the unique
+       (student_id, class_id) index makes it once. The review is attributed to
+       cls.tutorId read from the DATABASE — never to a tutor id supplied by the
+       caller — so there is no way to spray 5★ reviews onto someone else's
+       storefront. */
+    const [bk] = await db
+      .select()
+      .from(bookings)
+      .where(and(eq(bookings.classId, cls.id), eq(bookings.studentId, uid)))
+      .limit(1);
+    if (!bk || bk.status === "cancelled") return { ok: false, error: "not-booked" };
+
+    // No reviewing a class that has not happened yet.
+    if (new Date(cls.scheduledAt).getTime() > Date.now()) {
+      return { ok: false, error: "class-not-started" };
+    }
+
+    /* Insert + stat recompute in ONE transaction. recomputeTutorStats is a single
+       UPDATE with the aggregates as subqueries, so two students reviewing the same
+       tutor concurrently cannot both read the old average and write it back — the
+       lost update that silently dropped a review from the public rating. */
+    try {
+      await db.transaction(async (tx) => {
+        await tx.insert(reviews).values({
+          tutorId: cls.tutorId,
+          studentId: uid,
+          classId: cls.id,
+          rating: rating.value,
+          text: text.value,
+        });
+        await recomputeTutorStats(cls.tutorId, tx);
+      });
+    } catch {
+      return { ok: false, error: "already-reviewed" }; // unique(student, class)
+    }
+
+    /* The storefront shows the rating AND the review feed, both cached for 60s.
+       One extra point-lookup for the slug (indexed PK), OUTSIDE the transaction —
+       a write path must not be held open for a cache concern. */
+    const [tut] = await db
+      .select({ slug: tutors.slug })
+      .from(tutors)
+      .where(eq(tutors.id, cls.tutorId))
+      .limit(1);
+
+    return { ok: true, revalidate: tut?.slug ? { tutors: [tut.slug] } : undefined };
+  });
+
+  /* ── POST /consent ───────────────────────────────────────────────────────── */
+  app.post("/consent", async (req, reply) => {
+    const parsed = consentBody.safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: "bad-request" });
+    const input = parsed.data;
+
+    const session = await getSession(req);
+    if (!session) return { ok: false, error: "not-authenticated" };
+
+    // This row is the legal record of parental consent (INPDP) — it must be real data.
+    const name = vText(input.guardianName, { field: "guardian-name", max: 120, min: 2 });
+    if (!name.ok) return { ok: false, error: name.error };
+    const phone = vPhone(input.guardianPhone);
+    if (!phone.ok) return { ok: false, error: phone.error };
+    const normalized = normalizePhone(phone.value);
+    if (!isValidPhone(normalized)) return { ok: false, error: "invalid-phone" };
+
+    /* `consents` has no unique key on minor_id and this had no dedupe, so a client
+       could POST it in a loop and write unbounded rows against one profile —
+       storage burn, and a legal record with no single answer to "who consented?".
+       One consent per minor: re-submitting updates it in place. */
+    const [existing] = await db
+      .select()
+      .from(consents)
+      .where(eq(consents.minorId, session.profile.id))
+      .limit(1);
+
+    const values = {
+      guardianName: name.value,
+      guardianPhone: normalized,
+      consentText: "Consentement du parent/tuteur pour un compte de moins de 18 ans (INPDP).",
+    };
+
+    if (existing) {
+      await db.update(consents).set(values).where(eq(consents.id, existing.id));
+    } else {
+      await db.insert(consents).values({ minorId: session.profile.id, ...values });
+    }
+    return { ok: true };
+  });
+
+  /* ── GET /notifications ──────────────────────────────────────────────────── */
+  app.get("/notifications", async (req): Promise<NotificationItem[]> => {
+    const session = await getSession(req);
+    if (!session) return [];
+
+    const rows = await db
+      .select()
+      .from(notifications)
+      .where(eq(notifications.profileId, session.profile.id))
+      .orderBy(desc(notifications.createdAt))
+      .limit(50);
+
+    return rows.map((n) => ({
+      id: n.id,
+      kind: n.kind as NotificationKind,
+      title: n.title,
+      body: n.body,
+      href: n.href ?? null,
+      read: Boolean(n.readAt),
+      createdAt: new Date(n.createdAt).toISOString(),
+    }));
+  });
+
+  /* ── POST /notifications/read ────────────────────────────────────────────── */
+  app.post("/notifications/read", async (req, reply) => {
+    const parsed = markReadBody.safeParse(req.body ?? {});
+    if (!parsed.success) return reply.code(400).send({ error: "bad-request" });
+
+    const session = await getSession(req);
+    if (!session) return { ok: false, error: "not-authenticated" };
+
+    /* isUuid filter: a non-uuid string would reach a uuid column and throw 22P02.
+       THE SCOPE IS WHAT ENFORCES OWNERSHIP — ids only ever narrow it, never widen
+       it, so a caller cannot mark someone else's notifications read by passing
+       their ids. */
+    const ids = (parsed.data?.ids ?? []).filter((s) => isUuid(s)).slice(0, 100);
+    const scope = and(
+      eq(notifications.profileId, session.profile.id),
+      isNull(notifications.readAt),
+    );
+    await db
+      .update(notifications)
+      .set({ readAt: new Date() })
+      .where(ids.length ? and(scope, inArray(notifications.id, ids)) : scope);
+    return { ok: true };
+  });
+
+  /* ── GET /classes/:id/join ───────────────────────────────────────────────── */
+  app.get<{ Params: { id: string } }>("/classes/:id/join", async (req) => {
+    const classId = req.params.id;
+    if (!isUuid(classId)) return { canJoin: false, reason: "not-found" };
+
+    const session = await getSession(req);
+    if (!session) return { canJoin: false, reason: "not-authenticated" };
+    const uid = session.profile.id;
+
+    const [cls] = await db.select().from(classes).where(eq(classes.id, classId)).limit(1);
+    if (!cls) return { canJoin: false, reason: "not-found" };
+
+    const [tut] = await db.select().from(tutors).where(eq(tutors.id, cls.tutorId)).limit(1);
+    if (tut?.profileId === uid) {
+      return { canJoin: true, role: "tutor" as const, meetUrl: resolveMeetUrl(cls) };
+    }
+
+    const [bk] = await db
+      .select()
+      .from(bookings)
+      .where(and(eq(bookings.classId, cls.id), eq(bookings.studentId, uid)))
+      .limit(1);
+    if (bk && bk.status !== "cancelled") {
+      return { canJoin: true, role: "student" as const, meetUrl: resolveMeetUrl(cls) };
+    }
+
+    /* meet_url is the ONLY thing protecting a live room full of minors, so anyone
+       without an owner or a live booking gets no URL at all — not a URL plus a
+       false flag. */
+    return { canJoin: false, reason: "not-booked" };
+  });
+}

@@ -59,42 +59,12 @@ export type ActionResult = { ok: boolean; demo?: boolean; slug?: string; error?:
    nothing forces to agree is precisely the bug that had the admin allowlist tested
    in one place and running in another. */
 
-/* Recompute a tutor's public stats from real rows — never a fabricated number.
-   rating = average of their reviews (0 if none); students = distinct students
-   holding a live (non-cancelled) booking on one of their classes.
+/* recomputeTutorStats moved to apps/api/src/lib/stats.ts. It ran INSIDE the
+   transactions of reserveSeat, cancelBooking and createReview, so it had to move
+   before them — splitting it across processes would have broken the transaction
+   they share and resurrected the lost-update race. All three are ported now, so
+   the web copy is dead and is deleted rather than left to drift. */
 
-   RACE (fixed): this used to SELECT the aggregates, then UPDATE with the values it
-   had read. Two students reviewing the same tutor at the same moment both read the
-   pre-insert average and both wrote it back, so one review silently vanished from
-   the public rating (lost update). Same shape for students_count.
-
-   Fix: one statement. The aggregates are computed as correlated subqueries INSIDE
-   the UPDATE, so Postgres evaluates them against the row's state at write time and
-   concurrent writers serialize on the tutor row instead of clobbering each other.
-   No read-then-write window left to lose.
-
-   `tx` lets callers run this inside a transaction (reserveSeat / cancelBooking /
-   createReview all do). Structurally typed on `update` alone so the same function
-   accepts both the plain db handle and a drizzle transaction handle. */
-type Updater = Pick<typeof db, "update">;
-
-async function recomputeTutorStats(tutorId: string, tx: Updater = db): Promise<void> {
-  await tx
-    .update(tutors)
-    .set({
-      rating: sql`coalesce((
-        select round(avg(${reviews.rating})::numeric, 1)
-        from ${reviews} where ${reviews.tutorId} = ${tutorId}
-      ), 0)`,
-      studentsCount: sql`(
-        select count(distinct ${bookings.studentId})::int
-        from ${bookings}
-        join ${classes} on ${bookings.classId} = ${classes.id}
-        where ${classes.tutorId} = ${tutorId} and ${bookings.status} <> 'cancelled'
-      )`,
-    })
-    .where(eq(tutors.id, tutorId));
-}
 
 /* ---------- Auth (OTP) ----------
 
@@ -195,37 +165,9 @@ export async function logout(): Promise<{ ok: boolean }> {
 }
 
 export async function saveConsent(input: { guardianName: string; guardianPhone: string }): Promise<ActionResult> {
-  if (!dbReady) return { ok: true, demo: true };
-  const session = await getSession();
-  if (!session) return { ok: false, error: "not-authenticated" };
-
-  // This row is the legal record of parental consent (INPDP) — it must be real data.
-  const name = vText(input.guardianName, { field: "guardian-name", max: 120, min: 2 });
-  if (!name.ok) return { ok: false, error: name.error };
-  const phone = vPhone(input.guardianPhone);
-  if (!phone.ok) return { ok: false, error: phone.error };
-  const normalized = normalizePhone(phone.value);
-  if (!isValidPhone(normalized)) return { ok: false, error: "invalid-phone" };
-
-  // `consents` has no unique key on minor_id, and this action had no dedupe — so a
-  // client could POST it in a loop and write unbounded rows against one profile
-  // (storage burn, and a legal record that no longer has a single answer for
-  // "who consented?"). One consent per minor: re-submitting updates it in place.
-  const [existing] = await db.select().from(consents)
-    .where(eq(consents.minorId, session.profile.id)).limit(1);
-
-  const values = {
-    guardianName: name.value,
-    guardianPhone: normalized,
-    consentText: "Consentement du parent/tuteur pour un compte de moins de 18 ans (INPDP).",
-  };
-
-  if (existing) {
-    await db.update(consents).set(values).where(eq(consents.id, existing.id));
-  } else {
-    await db.insert(consents).values({ minorId: session.profile.id, ...values });
-  }
-  return { ok: true };
+  if (demoFallback) return { ok: true, demo: true };
+  // PORTED to apps/api (POST /consent). One consent row per minor, updated in place.
+  return call<ActionResult>("/consent", input);
 }
 
 /* ---------- Role: the one and only student → tutor upgrade ----------
@@ -809,61 +751,11 @@ export async function getExploreTutors(filters?: { subject?: string; q?: string 
 }
 
 export async function createReview(input: { classId: string; rating: number; text?: string }): Promise<ActionResult> {
-  const rating = vRating(input.rating);
-  if (!rating.ok) return { ok: false, error: rating.error };
-  const text = vOptionalText(input.text, { field: "review", max: 1000 });
-  if (!text.ok) return { ok: false, error: text.error };
-
-  if (!dbReady) return { ok: true, demo: true };
-  const classId = vUuid(input.classId, { field: "class" });
-  if (!classId.ok) return { ok: false, error: "not-found" };
-  const session = await getSession();
-  if (!session) return { ok: false, error: "not-authenticated" };
-  const uid = session.profile.id;
-
-  const rl = await checkRateLimit(`review:${uid}`, 10, 60 * 60_000); // 10 review attempts / hour
-  if (!rl.ok) return { ok: false, error: "too-many-requests" };
-
-  const [cls] = await db.select().from(classes).where(eq(classes.id, classId.value)).limit(1);
-  if (!cls) return { ok: false, error: "not-found" };
-
-  /* AUTHZ (held): you may only review a class you actually booked. The unique
-     (student_id, class_id) index makes it once. Note the review is attributed to
-     cls.tutorId read from the DB — NOT to any tutor id supplied by the caller — so
-     there is no way to spray 5★ reviews onto someone else's storefront. */
-  const [bk] = await db.select().from(bookings)
-    .where(and(eq(bookings.classId, cls.id), eq(bookings.studentId, uid))).limit(1);
-  if (!bk || bk.status === "cancelled") return { ok: false, error: "not-booked" };
-
-  // No reviewing a class that hasn't happened yet.
-  if (new Date(cls.scheduledAt).getTime() > Date.now()) return { ok: false, error: "class-not-started" };
-
-  /* Insert + stat recompute in ONE transaction. recomputeTutorStats() is now a
-     single UPDATE with the aggregates as subqueries (see its comment), so two
-     students reviewing the same tutor concurrently can no longer both read the
-     old average and write it back — the lost-update that silently dropped a review
-     from the public rating. */
-  try {
-    await db.transaction(async (tx) => {
-      await tx.insert(reviews).values({
-        tutorId: cls.tutorId, studentId: uid, classId: cls.id,
-        rating: rating.value, text: text.value,
-      });
-      await recomputeTutorStats(cls.tutorId, tx);
-    });
-  } catch {
-    return { ok: false, error: "already-reviewed" }; // unique(student, class)
-  }
-
-  /* The storefront shows the rating + the review feed, both cached for 60s. Bust
-     them so the tutor's stars move immediately. One extra point-lookup for the
-     slug (indexed PK), outside the transaction — the tx above is a write path and
-     must not be held open for a cache concern. */
-  const [tut] = await db.select({ slug: tutors.slug }).from(tutors)
-    .where(eq(tutors.id, cls.tutorId)).limit(1);
-  revalidateTutor(tut?.slug);
-
-  return { ok: true };
+  if (demoFallback) return { ok: true, demo: true };
+  /* PORTED to apps/api (POST /reviews). The booking check, the "class must have
+     started" rule and the insert+recompute transaction all moved together — the
+     last caller of the web-side recomputeTutorStats, so that duplicate is gone. */
+  return call<ActionResult>("/reviews", input);
 }
 
 /** Reviews for a public storefront. Unknown slug → empty (never throws for a 404 page). */
@@ -882,41 +774,17 @@ export async function getTutorReviews(tutorSlug: string): Promise<TutorReviews> 
 }
 
 export async function getNotifications(): Promise<NotificationItem[]> {
-  if (!dbReady) return [];
-  const session = await getSession();
-  if (!session) return [];
-
-  const rows = await db
-    .select()
-    .from(notifications)
-    .where(eq(notifications.profileId, session.profile.id))
-    .orderBy(desc(notifications.createdAt))
-    .limit(50);
-
-  return rows.map((n) => ({
-    id: n.id,
-    kind: n.kind as NotificationKind,
-    title: n.title,
-    body: n.body,
-    href: n.href ?? null,
-    read: Boolean(n.readAt),
-    createdAt: new Date(n.createdAt).toISOString(),
-  }));
+  if (demoFallback) return [];
+  // PORTED to apps/api (GET /notifications).
+  return call<NotificationItem[]>("/notifications", undefined, "GET");
 }
 
 /** Marks the caller's unread notifications as read (all of them, or just `ids`). */
 export async function markNotificationsRead(input?: { ids?: string[] }): Promise<ActionResult> {
-  if (!dbReady) return { ok: true, demo: true };
-  const session = await getSession();
-  if (!session) return { ok: false, error: "not-authenticated" };
-
-  // isUuid filter: a non-uuid string here would reach a uuid column and throw 22P02.
-  // The scope below is what enforces ownership — ids only ever narrow it, never widen it.
-  const ids = (input?.ids ?? []).filter((s) => isUuid(s)).slice(0, 100);
-  const scope = and(eq(notifications.profileId, session.profile.id), isNull(notifications.readAt));
-  await db.update(notifications).set({ readAt: new Date() })
-    .where(ids.length ? and(scope, inArray(notifications.id, ids)) : scope);
-  return { ok: true };
+  if (demoFallback) return { ok: true, demo: true };
+  // PORTED to apps/api (POST /notifications/read). Ownership is enforced by the
+  // query scope there; ids only ever narrow it.
+  return call<ActionResult>("/notifications/read", input ?? {});
 }
 
 /* ---------- Live room access ----------
@@ -925,27 +793,15 @@ export async function markNotificationsRead(input?: { ids?: string[] }): Promise
 export async function canJoinClass(classId: string): Promise<{
   canJoin: boolean; role?: "tutor" | "student"; meetUrl?: string; reason?: string;
 }> {
-  // Dev demo mode opens the room so the flow is walkable without a DB. In
-  // production a missing DB must NEVER open a live room to anyone with the URL.
-  if (!dbReady) {
+  /* Dev demo mode opens the room so the flow is walkable without a DB. In
+     PRODUCTION a missing backend must NEVER open a live room to anyone holding the
+     URL — demoFallback is false there, so this falls through to the API. */
+  if (demoFallback) {
     return demoEnabled
       ? { canJoin: true, role: "student", meetUrl: liveRoomUrl(classId) }
       : { canJoin: false, reason: "not-found" };
   }
-  if (!isUuid(classId)) return { canJoin: false, reason: "not-found" };
-  const session = await getSession();
-  if (!session) return { canJoin: false, reason: "not-authenticated" };
-  const uid = session.profile.id;
-
-  const [cls] = await db.select().from(classes).where(eq(classes.id, classId)).limit(1);
-  if (!cls) return { canJoin: false, reason: "not-found" };
-
-  const [tut] = await db.select().from(tutors).where(eq(tutors.id, cls.tutorId)).limit(1);
-  if (tut?.profileId === uid) return { canJoin: true, role: "tutor", meetUrl: resolveMeetUrl(cls) };
-
-  const [bk] = await db.select().from(bookings)
-    .where(and(eq(bookings.classId, cls.id), eq(bookings.studentId, uid))).limit(1);
-  if (bk && bk.status !== "cancelled") return { canJoin: true, role: "student", meetUrl: resolveMeetUrl(cls) };
-
-  return { canJoin: false, reason: "not-booked" };
+  // PORTED to apps/api (GET /classes/:id/join).
+  return call(`/classes/${encodeURIComponent(classId)}/join`, undefined, "GET");
 }
+
