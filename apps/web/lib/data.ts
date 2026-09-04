@@ -1,5 +1,6 @@
 import "server-only";
 import { callAnonymous } from "./api";
+import { demoFallback } from "./backend";
 import { dbReady } from "@/lib/db";
 import { demoEnabled, demoStorefront } from "@/lib/demo";
 import type { Storefront, Tutor, ClassItem, Pack } from "@tnajem/shared";
@@ -55,7 +56,7 @@ const initials = (name: string) => {
 };
 
 export async function getStorefront(slug: string): Promise<Storefront | null> {
-  if (!dbReady) {
+  if (demoFallback) {
     assertNotProdWithoutDb("getStorefront");   // prod + no DB → throw, never fabricate
     return demoStorefront;                     // dev only: any slug shows the demo storefront
   }
@@ -86,7 +87,7 @@ export type PublicTutorRef = { slug: string; lastModified: Date };
    not a real page, and pointing a crawler at it would be exactly the fabrication
    the rest of this file exists to prevent). */
 export async function getPublicTutorRefs(): Promise<PublicTutorRef[]> {
-  if (!dbReady) return [];
+  if (demoFallback) return [];
   // PORTED to apps/api (GET /tutors/public-refs). Anonymous: it feeds the sitemap.
   const rows = await callAnonymous<{ slug: string; lastModified: string }[]>("/tutors/public-refs");
   return rows.map((r) => ({ slug: r.slug, lastModified: new Date(r.lastModified) }));

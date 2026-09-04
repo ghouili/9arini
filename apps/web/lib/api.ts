@@ -76,7 +76,13 @@ class ApiTransportError extends Error {
   }
 }
 
-type CallOptions = { method?: "GET" | "POST"; body?: unknown; anonymous?: boolean };
+type CallOptions = {
+  method?: "GET" | "POST";
+  body?: unknown;
+  anonymous?: boolean;
+  /** Seconds Next may cache this fetch. Anonymous reads only — see request(). */
+  revalidate?: number;
+};
 
 async function request(path: string, opts: CallOptions): Promise<unknown> {
   const method = opts.method ?? "POST";
@@ -89,12 +95,30 @@ async function request(path: string, opts: CallOptions): Promise<unknown> {
     if (ip) headersOut["x-forwarded-for"] = ip; // OVERWRITE, never append
   }
 
+  /* CACHING — and `no-store` is NOT the safe default here.
+
+     An authenticated call must never be cached: the response depends on who is
+     asking. So those stay no-store.
+
+     An ANONYMOUS call is different, and getting this wrong cost a real regression:
+     getPublicTutorRefs runs inside unstable_cache (lib/cache.ts), and Next 14
+     REFUSES a no-store fetch in that scope — "Dynamic server usage: no-store
+     fetch". The wrapper then failed, and /sitemap.xml quietly shipped with ZERO
+     tutor slugs: 200 OK, 12 entries, every verified tutor's storefront missing
+     from Google's discovery path. No error page, no failing test, just the
+     product's main organic-growth surface silently emptied.
+
+     So anonymous reads use a bounded `next.revalidate` instead: legal inside
+     unstable_cache, and bounded so nothing can be cached indefinitely. The outer
+     wrapper still owns the real TTL (60s storefront, 3600s sitemap); this inner
+     bound is only ever fresher. */
   const res = await fetch(`${API_URL}${path}`, {
     method,
     headers: headersOut,
     body: method === "GET" ? undefined : JSON.stringify(opts.body ?? {}),
-    // The caller owns caching (unstable_cache on the ISR pages); never cache here.
-    cache: "no-store",
+    ...(opts.anonymous
+      ? { next: { revalidate: opts.revalidate ?? 60 } }
+      : { cache: "no-store" as const }),
     signal: AbortSignal.timeout(10_000),
   });
 
@@ -120,9 +144,10 @@ export async function call<T>(path: string, body?: unknown, method: "GET" | "POS
   return out;
 }
 
-/** Anonymous call for SSR/ISR reads. Rule 3: touches NO cookies and NO headers. */
-export async function callAnonymous<T>(path: string): Promise<T> {
-  return (await request(path, { method: "GET", anonymous: true })) as T;
+/** Anonymous call for SSR/ISR reads. Rule 3: touches NO cookies and NO headers,
+    and never no-store — see the caching note in request(). */
+export async function callAnonymous<T>(path: string, revalidate = 60): Promise<T> {
+  return (await request(path, { method: "GET", anonymous: true, revalidate })) as T;
 }
 
 export { ApiTransportError };

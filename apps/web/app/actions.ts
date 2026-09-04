@@ -18,6 +18,7 @@ import { mailEnabled, sendMail } from "@tnajem/shared/mail";
 import { notify } from "@/lib/notify";
 import { requireAdmin, adminNotifyEmails } from "@/lib/admin";
 import { call, callAnonymous } from "@/lib/api";
+import { demoFallback } from "@/lib/backend";
 import { paymentsEnabled, tutorBalanceTnd } from "@tnajem/shared/payments";
 import { liveRoomUrl, resolveMeetUrl } from "@tnajem/shared/live";
 import {
@@ -47,17 +48,12 @@ const CANCEL_WINDOW_MS = 24 * 60 * 60 * 1000; // the UI promises free cancellati
 
 export type ActionResult = { ok: boolean; demo?: boolean; slug?: string; error?: string };
 
-/* Display name for public surfaces: "Amine Karoui" → "Amine K." (never the phone). */
-function publicName(full: string | null): string | null {
-  if (!full) return null;
-  const parts = full.trim().split(/\s+/);
-  if (parts.length < 2) return parts[0] ?? null;
-  return `${parts[0]} ${parts[parts.length - 1][0].toUpperCase()}.`;
-}
-const initials = (name: string) => {
-  const p = name.trim().split(/\s+/);
-  return ((p[0]?.[0] ?? "") + (p.length > 1 ? p[p.length - 1][0] : "")).toUpperCase() || "?";
-};
+/* publicName and initials moved to @tnajem/shared (validation.ts) when the tutors
+   domain was ported. They are NOT re-declared here: publicName is a security
+   boundary, not formatting -- it is what keeps a reviewer's full name off a
+   public, unauthenticated page -- and two copies of a security boundary that
+   nothing forces to agree is precisely the bug that had the admin allowlist tested
+   in one place and running in another. */
 
 /* Recompute a tutor's public stats from real rows — never a fabricated number.
    rating = average of their reviews (0 if none); students = distinct students
@@ -123,7 +119,7 @@ export async function requestOtp(input: { identifier: string; locale?: string })
     ok: boolean; devCode?: string; demo?: boolean; error?: string; retryAfter?: number;
     resendAfter?: number; expiresIn?: number;
   }> {
-  if (!dbReady) {
+  if (demoFallback) {
     /* Demo mode (no DATABASE_URL) — the UI-audit harness and local preview. The
        sentinel code is still withheld in production: a prod deploy that lost its
        DATABASE_URL must degrade to "can't sign in", never to "sign in as anyone".
@@ -140,7 +136,7 @@ export async function requestOtp(input: { identifier: string; locale?: string })
 
 export async function verifyOtp(input: { identifier: string; code: string; role?: "tutor" | "student"; locale?: string; birthYear?: number }):
   Promise<{ ok: boolean; role?: string; needsConsent?: boolean; created?: boolean; roleMismatch?: boolean; needsProfile?: boolean; hasStorefront?: boolean; error?: string; retryAfter?: number }> {
-  if (!dbReady) {
+  if (demoFallback) {
     setDemoCookie(input.role === "tutor" ? "tutor" : "student");
     const demoRole = input.role ?? "student";
     // Demo mode mirrors the real gate: a student is a minor unless they gave an
@@ -256,7 +252,7 @@ export async function saveConsent(input: { guardianName: string; guardianPhone: 
 export async function becomeTutor(input: { confirm: boolean; birthYear?: number }): Promise<ActionResult> {
   if (!input?.confirm) return { ok: false, error: "not-confirmed" };
 
-  if (!dbReady) {
+  if (demoFallback) {
     setDemoCookie("tutor"); // demo has no profile row; the cookie IS the state
     return { ok: true, demo: true };
   }
@@ -279,7 +275,7 @@ export async function saveStudentProfile(
      the ui-audit harness can exercise the error states with no database. It uses
      parseStudentProfile from @tnajem/shared — the SAME function the API handler
      calls, not a copy. */
-  if (!dbReady) {
+  if (demoFallback) {
     const check = parseStudentProfile(input);
     return check.ok ? { ok: true, demo: true } : { ok: false, error: check.error };
   }
@@ -293,7 +289,7 @@ export async function getMe(): Promise<Me | null> {
 
 /* ---------- Tutor storefront (bound to the signed-in user) ---------- */
 export async function createTutor(input: { name: string; subject: string; bio: string; slug: string; phone?: string | null }): Promise<ActionResult> {
-  if (!dbReady) {
+  if (demoFallback) {
     /* Demo mode still validates the slug so the audit harness can exercise the
        reserved/taken states. vSlug is the same function the API calls. */
     const slug = vSlug(input.slug);
@@ -309,7 +305,7 @@ export async function createTutor(input: { name: string; subject: string; bio: s
 }
 
 export async function getOnboardingState(): Promise<OnboardingState | null> {
-  if (!dbReady) return null;
+  if (demoFallback) return null;
   // PORTED to apps/api (GET /profile/onboarding).
   return call<OnboardingState | null>("/profile/onboarding", undefined, "GET");
 }
@@ -319,14 +315,14 @@ export async function createClass(input: {
   durationMin: number; priceTnd: number; seats: number; isFreeFirst: boolean;
   meetUrl?: string; whiteboardUrl?: string; quizUrl?: string;
 }): Promise<ActionResult> {
-  if (!dbReady) return { ok: true, demo: true };
+  if (demoFallback) return { ok: true, demo: true };
   /* PORTED to apps/api (POST /classes). The validators, the verification gate and
      the insert all live there; call() replays the revalidate envelope. */
   return call<ActionResult>("/classes", input);
 }
 
 export async function createPack(input: { title: string; meta?: string; priceTnd: number }): Promise<ActionResult> {
-  if (!dbReady) return { ok: true, demo: true };
+  if (demoFallback) return { ok: true, demo: true };
   // PORTED to apps/api (POST /packs).
   return call<ActionResult>("/packs", input);
 }
@@ -335,7 +331,7 @@ export async function createPack(input: { title: string; meta?: string; priceTnd
    Returns null in demo mode or when signed out → the dashboard then shows
    its demo preview. Otherwise returns the tutor's real storefront + classes. */
 export async function getDashboard(): Promise<DashboardResult> {
-  if (!dbReady) return null;
+  if (demoFallback) return null;
   // PORTED to apps/api (GET /dashboard).
   return call<DashboardResult>("/dashboard", undefined, "GET");
 }
@@ -623,7 +619,7 @@ export async function getStudentDashboard(): Promise<StudentDashboard | null> {
 /* ---------- Single class read (for class detail / checkout / live) ----------
    Demo mode → demo class; real mode → the row by id, or null if missing. */
 export async function getClass(id: string): Promise<ClassItem | null> {
-  if (!dbReady) return demoEnabled ? (demoClasses.find((c) => c.id === id) ?? null) : null;
+  if (demoFallback) return demoEnabled ? (demoClasses.find((c) => c.id === id) ?? null) : null;
   /* PORTED to apps/api (GET /classes/:id).
 
      call(), not callAnonymous: the entitlement check needs the session — meet_url
@@ -1035,7 +1031,7 @@ export async function getExploreTutors(filters?: { subject?: string; q?: string 
   /* null → the client renders its static demo preview (DEV ONLY). In production a
      missing DB must never surface fabricated tutors: return [] so /explore shows
      its honest empty state instead. */
-  if (!dbReady) return demoEnabled ? null : [];
+  if (demoFallback) return demoEnabled ? null : [];
 
   /* PORTED to apps/api (GET /tutors/explore).
 
@@ -1110,7 +1106,7 @@ export async function createReview(input: { classId: string; rating: number; tex
 /** Reviews for a public storefront. Unknown slug → empty (never throws for a 404 page). */
 export async function getTutorReviews(tutorSlug: string): Promise<TutorReviews> {
   const empty: TutorReviews = { items: [], average: 0, count: 0 };
-  if (!dbReady) return empty;
+  if (demoFallback) return empty;
   if (typeof tutorSlug !== "string" || !tutorSlug.trim()) return empty;
 
   /* PORTED to apps/api (GET /tutors/:slug/reviews).

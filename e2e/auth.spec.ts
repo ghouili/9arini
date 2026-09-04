@@ -27,6 +27,12 @@ test.beforeEach(async () => {
   await resetRateLimits();
 });
 
+/* Longer than the 60s default: this is a two-step browser flow plus an OTP
+   preimage search, and it runs against servers shared with every other spec. The
+   assertions inside are all bounded; this only stops a slow CI box from reporting
+   a timeout as a product failure. */
+test.setTimeout(120_000);
+
 test("a student signs up with a real OTP and lands signed in", async ({ page }) => {
   const identifier = email(`e2e-login-${randomBytes(4).toString("hex")}`);
 
@@ -37,7 +43,16 @@ test("a student signs up with a real OTP and lands signed in", async ({ page }) 
      with no error in the page, the console, or the server log: the form simply
      does nothing. (Same trap as the required `price` field on new-class.) */
   await page.locator("select").selectOption("1995");
-  await page.locator('button[type="submit"]').click();
+
+  /* Wait for ENABLED before clicking. The submit button is `disabled={loading}`
+     and is reused across both steps of this form, so a click that arrives while a
+     request is in flight resolves to a disabled button and burns the timeout
+     instead of failing fast. This spec passes in ~3s alone but has the most steps
+     of any in the suite (two form submits plus a 10^6 hash search), so it is the
+     first to feel any shared slowness. */
+  const emailSubmit = page.locator('button[type="submit"]');
+  await expect(emailSubmit).toBeEnabled({ timeout: 20_000 });
+  await emailSubmit.click();
 
   // The code exists in the database, hashed.
   await expect.poll(async () => {

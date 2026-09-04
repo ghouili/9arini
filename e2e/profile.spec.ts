@@ -50,10 +50,18 @@ test("becomeTutor promotes a student and rewrites the role hint", async ({ brows
 
   /* The role hint is a WEB-side cookie the API never sets — it only reports the
      new role. If this is missing, setRoleHint stopped being called and the header
-     renders the wrong nav link until the next full reload. */
-  const cookies = await page.context().cookies();
-  const hint = cookies.find((c: { name: string; value: string }) => c.name === "tnajem_role");
-  expect(hint?.value, "the role-hint cookie must be rewritten on the browser").toBe("tutor");
+     renders the wrong nav link until the next full reload.
+
+     POLLED, not read once. The assertion above queries the DATABASE, which changes
+     midway through the request; the cookie only exists once the response reaches
+     the browser. Reading it immediately after the row flips races the response —
+     which is exactly how this flaked. */
+  await expect
+    .poll(async () => {
+      const cookies = await page.context().cookies();
+      return cookies.find((c: { name: string; value: string }) => c.name === "tnajem_role")?.value;
+    }, { timeout: 15_000, message: "the role-hint cookie must be rewritten on the browser" })
+    .toBe("tutor");
 
   await ctx.close();
 });

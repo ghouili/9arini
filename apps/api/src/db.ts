@@ -1,3 +1,14 @@
+/* ./env FIRST, and this import is load-bearing — do not "tidy" it away as unused.
+
+   It is what runs dotenv. This module reads DATABASE_URL at module load, so if
+   env.ts has not been evaluated yet the variable is simply undefined and the
+   process exits with "FATAL: DATABASE_URL is required".
+
+   It used to work by ACCIDENT of import order: server.ts imports ./env near the
+   top, and the route modules happened to be evaluated after it. Adding
+   routes/classes.ts reordered the graph and the API stopped booting. Importing it
+   here makes the dependency explicit instead of emergent. */
+import "./env";
 import { createDb } from "@tnajem/db";
 
 /* The API's database handle.
