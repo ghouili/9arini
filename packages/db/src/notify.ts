@@ -1,9 +1,23 @@
-import "server-only";
-import { eq } from "@tnajem/db";
-import { db, dbReady } from "@/lib/db";
-import { profiles, notifications } from "@tnajem/db";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
+import { eq } from "drizzle-orm";
+import { profiles, notifications } from "./schema";
 import { smsEnabled, sendSms } from "@tnajem/shared/sms";
 import type { NotificationKind } from "@tnajem/shared";
+
+/* Lives in @tnajem/db, not in either app, because BOTH need it during the Step 4
+   transition: reserveSeat and cancelBooking already run in apps/api, while
+   createReview and the admin decisions still run in apps/web. A copy in each was
+   the obvious move and the wrong one -- two implementations of a side-effecting
+   function that nothing forces to agree is how the admin allowlist ended up
+   tested in one place and running in another.
+
+   It takes a db handle, exactly like retention.ts, so it belongs to whichever
+   process calls it. No `server-only` marker: Fastify and tsx both load this. */
+
+/** Any drizzle handle. Generic on purpose -- the schema type differs between the
+    web client and the standalone one. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type NotifyDb = PostgresJsDatabase<any>;
 
 /* Notification dispatcher.
 
@@ -23,8 +37,12 @@ export type NotifyInput = {
   sms?: string; // when set + provider configured → also texted to the profile's phone
 };
 
-export async function notify(profileId: string, input: NotifyInput): Promise<{ ok: boolean }> {
-  if (!dbReady || !profileId) return { ok: false };
+export async function notify(
+  db: NotifyDb,
+  profileId: string,
+  input: NotifyInput,
+): Promise<{ ok: boolean }> {
+  if (!profileId) return { ok: false };
   try {
     await db.insert(notifications).values({
       profileId,
@@ -40,7 +58,7 @@ export async function notify(profileId: string, input: NotifyInput): Promise<{ o
     }
     return { ok: true };
   } catch (e) {
-    console.error("[Tnajem] notify failed:", input.kind, profileId, e);
+    console.error("[tnajem] notify failed:", input.kind, profileId, e);
     return { ok: false };
   }
 }

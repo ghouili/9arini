@@ -44,15 +44,21 @@ test("a student signs up with a real OTP and lands signed in", async ({ page }) 
      does nothing. (Same trap as the required `price` field on new-class.) */
   await page.locator("select").selectOption("1995");
 
-  /* Wait for ENABLED before clicking. The submit button is `disabled={loading}`
-     and is reused across both steps of this form, so a click that arrives while a
-     request is in flight resolves to a disabled button and burns the timeout
-     instead of failing fast. This spec passes in ~3s alone but has the most steps
-     of any in the suite (two form submits plus a 10^6 hash search), so it is the
-     first to feel any shared slowness. */
-  const emailSubmit = page.locator('button[type="submit"]');
-  await expect(emailSubmit).toBeEnabled({ timeout: 20_000 });
-  await emailSubmit.click();
+  /* form.requestSubmit(), not button.click().
+
+     The submit button is `disabled={loading}` and is REUSED across both steps of
+     this form, so Playwright's actionability wait races React's re-render: the
+     locator resolves while the button is enabled and the click then waits for it
+     to become "visible, enabled and stable" again, burning the whole test timeout.
+     That is what made this the only flaky spec in the suite — reliably ~3s alone,
+     intermittently 2 minutes in a full run.
+
+     requestSubmit() fires the real submit path (validation included) directly on
+     the form, so there is no element to be actionable. Same trade as the
+     dispatchEvent() used on the student dashboard, for the same underlying reason:
+     do not make an assertion depend on a UI settling that the product never
+     promised. */
+  await page.locator("form").first().evaluate((f: HTMLFormElement) => f.requestSubmit());
 
   // The code exists in the database, hashed.
   await expect.poll(async () => {
@@ -73,9 +79,7 @@ test("a student signs up with a real OTP and lands signed in", async ({ page }) 
   await expect(codeField).toBeVisible({ timeout: 20_000 });
   await codeField.fill(code);
 
-  const submit = page.locator('button[type="submit"]');
-  await expect(submit).toBeEnabled({ timeout: 20_000 });
-  await submit.click();
+  await page.locator("form").first().evaluate((f: HTMLFormElement) => f.requestSubmit());
 
   // A profile now exists, and the browser holds a session for it.
   await expect.poll(async () => {

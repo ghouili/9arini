@@ -15,7 +15,11 @@ import { demoClasses, demoEnabled } from "@/lib/demo";
 import { revalidateTutor, revalidatePublicTutors } from "@/lib/cache";
 import { smsEnabled, sendSms } from "@tnajem/shared/sms";
 import { mailEnabled, sendMail } from "@tnajem/shared/mail";
-import { notify } from "@/lib/notify";
+/* notify now takes a db handle (it moved to @tnajem/db so apps/api can use the
+   SAME implementation). Bound here so the ~8 call sites below are unchanged. */
+import { notify as notifyWith } from "@tnajem/db";
+const notify = (profileId: string, input: Parameters<typeof notifyWith>[2]) =>
+  notifyWith(db, profileId, input);
 import { requireAdmin, adminNotifyEmails } from "@/lib/admin";
 import { call, callAnonymous } from "@/lib/api";
 import { demoFallback } from "@/lib/backend";
@@ -341,279 +345,38 @@ export async function getDashboard(): Promise<DashboardResult> {
    Idempotent — re-booking the same class returns { already: true }. */
 export async function reserveSeat(input: { classId: string }):
   Promise<{ ok: boolean; demo?: boolean; already?: boolean; error?: string }> {
-  if (!dbReady) return { ok: true, demo: true };
-  const classId = vUuid(input.classId, { field: "class" });
-  if (!classId.ok) return { ok: false, error: "not-found" };
-  const session = await getSession();
-  if (!session) return { ok: false, error: "not-authenticated" };
-  const uid = session.profile.id;
+  if (demoFallback) return { ok: true, demo: true };
+  /* PORTED to apps/api (POST /bookings).
 
-  // Booking is a DB-write endpoint anyone with a session can hammer.
-  const rl = await checkRateLimit(`book:${uid}`, 20, 60_000);
-  if (!rl.ok) return { ok: false, error: "too-many-requests" };
+     The atomic seat claim, the guardian-consent gate, the verification gate, the
+     rate limit and the post-commit notifications all moved together — as did
+     recomputeTutorStats, which runs INSIDE that transaction. Splitting them across
+     processes would have resurrected the lost-update race.
 
-  /* ---- GUARDIAN CONSENT (INPDP / Loi 2004-63) ----
-     This was a promise, not a control. verifyOtp() returns `needsConsent` for a
-     student with no `consents` row and the client sends them to /auth/consent,
-     where saveConsent() records the guardian's name + phone — but NOTHING on the
-     server ever checked that the row exists again. A student who closed that page,
-     hit Back, or simply navigated straight to /checkout?class=<id> booked a seat
-     with a real tutor and no consent on file. /privacy and the consent screen both
-     tell users this consent is required before a minor uses the service, so the
-     gap was: the legal record we publicly commit to collecting was optional in
-     practice, and the only surface that could have enforced it — the booking, the
-     moment the minor actually engages a tutor — didn't look.
-
-     It looks now. Distinct error code so the UI can route to /auth/consent instead
-     of showing "réessaie" for something retrying will never fix.
-
-     Scoped to a MINOR student: consent is the guardian regime for under-18s, so an
-     adult student (a real birth year that makes them >= 18) books without it, while
-     a minor — or a student whose age we don't know (null birth year fails safe) —
-     must have a consent row. `consents.minor_id` is only ever written for a student
-     profile (saveConsent + verifyOtp); a tutor booking another tutor's class is not
-     the minor this regime protects. Founder decision 2026-07-12: collect birth year
-     at signup, gate consent under-18. */
-  if (session.profile.role === "student" && isMinorBirthYear(session.profile.birthYear)) {
-    const [consent] = await db
-      .select({ id: consents.id })
-      .from(consents)
-      .where(eq(consents.minorId, uid))
-      .limit(1);
-    if (!consent) return { ok: false, error: "needs-consent" };
-  }
-
-  const [cls] = await db.select().from(classes).where(eq(classes.id, classId.value)).limit(1);
-  if (!cls) return { ok: false, error: "not-found" };
-  if (cls.status === "cancelled" || cls.status === "done") return { ok: false, error: "unavailable" };
-  // A class in the past cannot be booked (there was no check at all — you could
-  // reserve a seat in last month's session and then review it, see createReview).
-  if (new Date(cls.scheduledAt).getTime() < Date.now()) return { ok: false, error: "unavailable" };
-
-  /* The tutor must actually be verified. getStorefront() and getExploreTutors()
-     both hide non-verified tutors, but NOTHING stopped a draft/pending/REJECTED
-     tutor from handing out a direct /class/<id> link and taking real bookings from
-     minors — the id is all you needed. The verification gate has to live on the
-     booking path, not only on the discovery path. */
-  const [tut] = await db.select().from(tutors).where(eq(tutors.id, cls.tutorId)).limit(1);
-  if (!tut || tut.status !== "verified") return { ok: false, error: "unavailable" };
-  if (tut.profileId === uid) return { ok: false, error: "own-class" }; // no self-booking
-
-  /* ---- Atomic seat claim ----
-     BEFORE: read seats_taken → compare to seats → UPDATE seats_taken = seats_taken + 1.
-     Two students hitting "Réserver" on the last seat both read seats_taken = 19 of
-     20, both passed the check, and both incremented → 21 bookings on a 20-seat
-     class. Classic TOCTOU; on a "1ère séance gratuite" launch with a popular tutor
-     this fires on day one.
-
-     AFTER: the availability test IS the UPDATE's WHERE clause, evaluated by
-     Postgres under a row lock. The loser's UPDATE matches zero rows and it gets
-     "full" instead of a phantom seat. Booking insert + seat claim + tutor stats all
-     ride one transaction, so a failure anywhere (e.g. the unique(class,student)
-     constraint firing on a double-submit) rolls back the seat too — no leaked seats. */
-  /* The transaction RETURNS the outcome rather than assigning to a captured
-     variable. TypeScript's control-flow analysis does not track assignments made
-     inside a callback (it cannot know the callback ran), so a captured
-     `let outcome = "full"` stays narrowed to the literal "full" afterwards and
-     every later comparison is a compile error. Returning the value keeps the
-     type honest — and is clearer anyway. */
-  type SeatOutcome = "booked" | "already" | "full";
-  let outcome: SeatOutcome;
-  try {
-    outcome = await db.transaction(async (tx): Promise<SeatOutcome> => {
-      const [existing] = await tx.select().from(bookings)
-        .where(and(eq(bookings.classId, classId.value), eq(bookings.studentId, uid))).limit(1);
-      if (existing && existing.status !== "cancelled") return "already";
-
-      const claimed = await tx.update(classes)
-        .set({ seatsTaken: sql`coalesce(${classes.seatsTaken}, 0) + 1` })
-        .where(and(
-          eq(classes.id, classId.value),
-          sql`coalesce(${classes.seatsTaken}, 0) < coalesce(${classes.seats}, 0)`,
-        ))
-        .returning({ id: classes.id });
-      if (claimed.length === 0) return "full"; // sold out — nobody oversells
-
-      if (existing) {
-        await tx.update(bookings).set({ status: "reserved" }).where(eq(bookings.id, existing.id));
-      } else {
-        await tx.insert(bookings).values({
-          classId: classId.value, studentId: uid,
-          isFree: Boolean(cls.isFreeFirst), status: "reserved",
-        });
-      }
-
-      // students_count used to be a blind +1 per booking, so ONE student booking
-      // three classes advertised the tutor as having three students. Recompute the
-      // real distinct count instead (single statement, inside the tx).
-      await recomputeTutorStats(cls.tutorId, tx);
-      return "booked";
-    });
-  } catch {
-    // unique(class_id, student_id) → a concurrent double-submit from the same
-    // student. The tx rolled back, so the seat was NOT consumed. Idempotent success.
-    return { ok: true, already: true };
-  }
-
-  if (outcome === "already") return { ok: true, already: true };
-  if (outcome === "full") return { ok: false, error: "full" };
-
-  /* seats_left just moved, and the storefront caches it for 60s — a class the
-     cache still shows as "3 places" is how you get a student to the checkout of a
-     sold-out session. Bust it. Outside the transaction (it commits above) and
-     before the SMS: revalidateTutor() is a synchronous, non-throwing local call,
-     unlike notify(). */
-  revalidateTutor(tut.slug);
-
-  // Tell both sides — AFTER the commit. notify() never throws, and it does SMS I/O:
-  // running it inside the transaction would hold the seat lock open on the network
-  // (a Twilio round-trip would pin one of the 10 pool connections — see lib/db/index.ts).
-  const when = new Date(cls.scheduledAt);
-  const whenLabel = when.toLocaleString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
-
-  await notify(uid, {
-    kind: "booking_confirmed",
-    title: "Place réservée ✅",
-    body: `${cls.title} — ${whenLabel}${tut ? ` avec ${tut.fullName}` : ""}.`,
-    href: `/class/${cls.id}`,
-    sms: `Tnajem : ta place pour « ${cls.title} » le ${whenLabel} est réservée. Lien de la séance dans ton espace élève.`,
-  });
-  if (tut?.profileId) {
-    await notify(tut.profileId, {
-      kind: "new_booking",
-      title: "Nouvelle réservation 🎉",
-      body: `${session.profile.fullName ?? "Un élève"} a réservé « ${cls.title} » (${whenLabel}).`,
-      href: "/dashboard",
-    });
-  }
-  return { ok: true };
+     call() replays the revalidate envelope: seats_left just moved and the
+     storefront caches it for 60s, so a class the cache still shows as "3 places"
+     is how a student reaches the checkout of a sold-out session. */
+  return call<{ ok: boolean; already?: boolean; error?: string }>("/bookings", input);
 }
 
 /* ---------- Cancellation (student) ----------
    The UI promises "annulation gratuite jusqu'à 24h avant" — enforce it here, not
    just in copy. Frees the seat back up and tells the tutor. */
 export async function cancelBooking(input: { bookingId: string }): Promise<ActionResult> {
-  if (!dbReady) return { ok: true, demo: true };
-  const bookingId = vUuid(input.bookingId, { field: "booking" });
-  if (!bookingId.ok) return { ok: false, error: "not-found" };
-  const session = await getSession();
-  if (!session) return { ok: false, error: "not-authenticated" };
-  const uid = session.profile.id;
-
-  const [bk] = await db.select().from(bookings).where(eq(bookings.id, bookingId.value)).limit(1);
-  if (!bk) return { ok: false, error: "not-found" };
-  // IDOR guard: the booking must be the caller's own. (Held — verified, not changed.)
-  if (bk.studentId !== uid) return { ok: false, error: "forbidden" };
-  if (bk.status === "cancelled") return { ok: true }; // idempotent fast path
-
-  const [cls] = await db.select().from(classes).where(eq(classes.id, bk.classId)).limit(1);
-  if (!cls) return { ok: false, error: "not-found" };
-
-  const startsInMs = new Date(cls.scheduledAt).getTime() - Date.now();
-  if (startsInMs < CANCEL_WINDOW_MS) return { ok: false, error: "too-late" };
-
-  /* ---- Atomic seat release ----
-     BEFORE: the "already cancelled?" check was a plain read, then three blind
-     UPDATEs. Two concurrent cancels of the SAME booking both saw status='reserved',
-     both ran the decrement, and the class gave back TWO seats for one departure —
-     which oversells the class exactly like the reserveSeat race did (greatest(…,0)
-     only stops the counter going negative; it does not stop it going too low).
-
-     AFTER: the status flip is the guard. `WHERE id = ? AND status <> 'cancelled'`
-     with RETURNING means only ONE writer ever gets a row back, and only that writer
-     releases the seat. The second cancel matches nothing and no-ops. */
-  let released = false;
-  await db.transaction(async (tx) => {
-    const done = await tx
-      .update(bookings)
-      .set({ status: "cancelled" })
-      .where(and(
-        eq(bookings.id, bk.id),
-        sql`coalesce(${bookings.status}, 'reserved') <> 'cancelled'`,
-      ))
-      .returning({ id: bookings.id });
-    if (done.length === 0) return; // lost the race — the other writer freed the seat
-
-    await tx
-      .update(classes)
-      .set({ seatsTaken: sql`greatest(coalesce(${classes.seatsTaken}, 0) - 1, 0)` })
-      .where(eq(classes.id, cls.id));
-    // Distinct-student recount (not a blind -1, which under-counted a student who
-    // still holds other bookings with this tutor).
-    await recomputeTutorStats(cls.tutorId, tx);
-    released = true;
-  });
-
-  if (!released) return { ok: true }; // idempotent: someone already cancelled it
-
-  const [tut] = await db.select().from(tutors).where(eq(tutors.id, cls.tutorId)).limit(1);
-  // The seat is back on sale — the cached storefront must stop saying it isn't.
-  revalidateTutor(tut?.slug);
-
-  if (tut?.profileId) {
-    const whenLabel = new Date(cls.scheduledAt)
-      .toLocaleString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
-    await notify(tut.profileId, {
-      kind: "booking_cancelled",
-      title: "Annulation",
-      body: `${session.profile.fullName ?? "Un élève"} a annulé sa place pour « ${cls.title} » (${whenLabel}). La place est de nouveau libre.`,
-      href: "/dashboard",
-    });
-  }
-  return { ok: true };
+  if (demoFallback) return { ok: true, demo: true };
+  /* PORTED to apps/api (POST /bookings/cancel). The 24h window is enforced against
+     SERVER time there, the seat release is atomic (status flip as the WHERE guard,
+     so only one writer can decrement), and the IDOR check on booking ownership
+     moved with it. */
+  return call<ActionResult>("/bookings/cancel", input);
 }
 
 /* ---------- Student dashboard (real reservations) ----------
    Returns null in demo mode / signed out → the student page shows demo data. */
 export async function getStudentDashboard(): Promise<StudentDashboard | null> {
-  if (!dbReady) return null;
-  const session = await getSession();
-  if (!session) return null;
-  const uid = session.profile.id;
-
-  const rows = await db
-    .select({
-      bookingId: bookings.id,
-      isFree: bookings.isFree,
-      classId: classes.id,
-      title: classes.title,
-      scheduledAt: classes.scheduledAt,
-      status: classes.status,
-      meetUrl: classes.meetUrl,
-      replayUrl: classes.replayUrl,
-      tutorName: tutors.fullName,
-    })
-    .from(bookings)
-    .innerJoin(classes, eq(bookings.classId, classes.id))
-    .innerJoin(tutors, eq(classes.tutorId, tutors.id))
-    // Cancelled reservations disappear from the student's list (the seat is back on sale).
-    .where(and(eq(bookings.studentId, uid), ne(bookings.status, "cancelled")))
-    .orderBy(desc(classes.scheduledAt))
-    .limit(300); // one join, bounded — no per-booking query
-
-  const items = rows.map((r) => {
-    const d = new Date(r.scheduledAt);
-    return {
-      bookingId: r.bookingId,
-      classId: r.classId,
-      title: r.title,
-      tutorName: r.tutorName,
-      day: String(d.getDate()),
-      month: DASH_MONTHS[d.getMonth()] ?? "",
-      time: d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
-      ts: d.getTime(),
-      isFree: Boolean(r.isFree),
-      status: r.status ?? "scheduled",
-      // Never blank: falls back to the room derived from the class id (lib/live.ts).
-      meetUrl: resolveMeetUrl({ id: r.classId, meetUrl: r.meetUrl }),
-      replayUrl: r.replayUrl ?? undefined,
-    };
-  });
-
-  const cutoff = Date.now() - 2 * 60 * 60 * 1000; // keep a class "upcoming" ~2h past start
-  const upcoming = items.filter((i) => i.ts >= cutoff).sort((a, b) => a.ts - b.ts);
-  const past = items.filter((i) => i.ts < cutoff).sort((a, b) => b.ts - a.ts);
-  return { upcoming, past };
+  if (demoFallback) return null;
+  // PORTED to apps/api (GET /student/dashboard).
+  return call<StudentDashboard | null>("/student/dashboard", undefined, "GET");
 }
 
 /* ---------- Single class read (for class detail / checkout / live) ----------
