@@ -172,6 +172,26 @@ export type StudentDashboard = {
   past: StudentClass[];
 };
 
+/* ---- Materials (Step 10) ----
+   A material the CURRENT VIEWER is allowed to see. The API filters the list per
+   viewer, so the mere presence of an item is already the access decision — a
+   client never has to reproduce the rule, and cannot get it wrong. */
+export type MaterialItem = {
+  id: string;
+  kind: "file" | "youtube";
+  visibility: "public" | "students" | "private";
+  title: string;
+  description?: string;
+  classId?: string;
+  fileName?: string;
+  /** The SNIFFED type, never the uploader's claim. */
+  mime?: string;
+  sizeBytes?: number;
+  /** 11 characters. Rendered ONLY through youtube-nocookie. */
+  youtubeId?: string;
+  createdAt: string;
+};
+
 /* ---- Messaging (Step 8b) ----
    The counterparty name is ALREADY publicDisplayName'd by the API. A thread list
    is a counterparty surface like any other, and Step 8's allow-list does not stop

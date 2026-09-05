@@ -137,6 +137,7 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
           "envoyer du spam, de la publicité, ou détourner Tnajem de son objet éducatif.",
         ],
         after: [
+          "Les documents et vidéos que tu publies restent les tiens, mais tu garantis avoir le droit de les partager. Un ayant droit peut demander le retrait d'un document sans avoir de compte chez nous ; nous examinons la demande, et si elle est fondée le document est retiré et un avertissement est enregistré sur le compte du prof. Les avertissements sont comptés, jamais appliqués automatiquement — une décision de suspension est prise par une personne.",
           "Les coordonnées personnelles restent privées des deux côtés. Un prof voit le prénom de son élève, jamais son numéro ni son email ; un élève voit le prénom de son prof. Nous ne transmettons ces informations à personne.",
           "Les textes que tu écris — page de prof, séance, avis — sont analysés automatiquement pour repérer un numéro, un email, un lien ou un nom de messagerie. Sur ta page et tes séances, l'enregistrement est refusé et tu peux corriger. Dans un avis, les coordonnées sont retirées et le reste de ton texte est publié tel quel. Nous conservons le TYPE de ce qui a été détecté, jamais le texte détecté lui-même.",
           "En cas de manquement, nous pouvons retirer un contenu, suspendre ou supprimer un compte — sans préavis lorsque la sécurité des utilisateurs, en particulier des mineurs, l'exige.",
@@ -292,6 +293,7 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
           "إرسال سبام ولا إشهار، ولا استعمال تنجّم في حاجة ما عندهاش علاقة بالتعليم.",
         ],
         after: [
+          "الوثائق والفيديوهات اللي تنشرهم يبقاو متاعك، أما إنت تضمن إلّي عندك الحقّ باش تشاركهم. صاحب الحقوق ينجّم يطلب نحّي وثيقة حتى كان ما عندوش حساب عندنا؛ نشوفو الطلب، وكان يكون في محلّو الوثيقة تتنحّى ويتسجّل إنذار على حساب الأستاذ. الإنذارات تتعدّ برك، عمرها ما تتطبّق آليًا — قرار التعليق ياخذو إنسان.",
           "معلومات الاتصال الشخصية تبقى مخبّية من الجهتين. الأستاذ يشوف الإسم الأول متاع تلميذو، عمرو ما يشوف نمرتو ولا إيميلو؛ والتلميذ يشوف الإسم الأول متاع أستاذو. ما نعطيو هالمعلومات لحتّى حد.",
           "النصوص اللي تكتبها — صفحة الأستاذ، الحصة، التقييم — تتفحّص آليًا باش نلقاو نمرة، إيميل، رابط ولا إسم تطبيق مراسلة. في صفحتك وحصصك، التسجيل يترفض وتنجّم تصلّح. في التقييم، معلومات الاتصال تتنحّى والباقي يتنشر كيما هو. نحتفظو بنوع اللي تلقى، عمرنا ما نحتفظو بالنصّ روحو.",
           "في صورة الإخلال، ننجّمو ننحّيو محتوى، نعلّقو ولا نحذفو حساب — وبلا إعلام مسبق كي تكون سلامة المستعملين، وبالخصوص القاصرين، في خطر.",

@@ -19,7 +19,7 @@ import type {
   DashboardData, DashboardBooking, StudentDashboard, ClassItem, TutorVerification, PendingTutor,
   ExploreTutor, TutorReviews, NotificationItem, NotificationKind, DashboardResult,
   StudentLevel, Role, OnboardingState,
-  MessageThreadSummary, MessageThreadDetail,
+  MessageThreadSummary, MessageThreadDetail, MaterialItem,
 } from "@tnajem/shared";
 import { STUDENT_LEVELS, parseStudentProfile } from "@tnajem/shared";
 import type { Me } from "@tnajem/shared";
@@ -466,6 +466,55 @@ export async function createReview(input: { classId: string; rating: number; tex
      started" rule and the insert+recompute transaction all moved together — the
      last caller of the web-side recomputeTutorStats, so that duplicate is gone. */
   return call<ReviewResult>("/reviews", input);
+}
+
+/* ---------- Materials (Step 10) ----------
+   The LIST is filtered per viewer by apps/api, so the mere presence of an item is
+   already the access decision. A client never reproduces the rule and therefore
+   cannot get it wrong. The bytes are fetched through /api/material/[id], a
+   streaming pass-through that also makes no decision of its own.
+
+   getTutorMaterials is SESSION-DEPENDENT, so it is a normal authenticated call
+   and NOT part of the anonymous ISR set. Folding it into the cached storefront
+   payload would serve one student's entitlements to everybody — see rule 3 in
+   lib/api.ts. */
+export async function getTutorMaterials(slug: string): Promise<MaterialItem[]> {
+  if (demoFallback) return [];
+  if (typeof slug !== "string" || !slug.trim()) return [];
+  return call<MaterialItem[]>(`/tutors/${encodeURIComponent(slug)}/materials`, undefined, "GET");
+}
+
+export async function getMyMaterials(): Promise<MaterialItem[] | null> {
+  if (demoFallback) return [];
+  return call<MaterialItem[] | null>("/materials/mine", undefined, "GET");
+}
+
+/** Upload a file OR attach a YouTube video. Multipart, so it uses the passthrough. */
+export async function createMaterial(form: FormData): Promise<ActionResult & { id?: string }> {
+  if (demoFallback) return { ok: true, demo: true };
+  return callMultipart<ActionResult & { id?: string }>("/materials", form);
+}
+
+export async function deleteMaterial(input: { id: string }): Promise<ActionResult> {
+  if (demoFallback) return { ok: true, demo: true };
+  return call<ActionResult>(`/materials/${encodeURIComponent(input.id)}/delete`, {});
+}
+
+/** File a copyright claim. NO ACCOUNT REQUIRED — a rights-holder is almost never
+    a user of this site, and making them sign up to complain is the same as having
+    no process. Nothing is removed by filing; a human decides. */
+export async function requestTakedown(input: {
+  materialId: string;
+  claimantName: string;
+  claimantEmail: string;
+  reason: string;
+}): Promise<ActionResult & { status?: string }> {
+  if (demoFallback) return { ok: true, demo: true };
+  const { materialId, ...body } = input;
+  return call<ActionResult & { status?: string }>(
+    `/materials/${encodeURIComponent(materialId)}/takedown`,
+    body,
+  );
 }
 
 /* ---------- Messaging (Step 8b) ----------

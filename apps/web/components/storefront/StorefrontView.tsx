@@ -13,6 +13,7 @@
    already knows the locale from the URL segment. */
 import { Link } from "@/components/Link";
 import { ShareButton } from "./ShareButton";
+import { MaterialsPanel } from "./MaterialsPanel";
 import { dict, bilingual } from "@/lib/i18n";
 import type { AppLocale } from "@/lib/locale";
 import { Avatar, Verified } from "@/components/ui";
@@ -407,6 +408,12 @@ export function StorefrontView({
                   <li><span className="sf-step-n">3</span><span>{c.how3}</span></li>
                 </ol>
               </div>
+
+              {/* ── Materials (Step 10) — renders nothing when there is none to
+                   show, so a storefront with no library gains no empty heading.
+                   Client-fetched on purpose: the list is per-viewer and this page
+                   is ISR-cached. ── */}
+              <MaterialsPanel slug={data.tutor.slug} />
 
               {/* ── Packs — only when the tutor actually has packs. Demoted to a
                    compact list: nothing here is purchasable (there is no pack

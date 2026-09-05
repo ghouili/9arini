@@ -31,3 +31,4 @@ export * from "./cancellation";
 export * from "./public-profile";
 export * from "./contact-info";
 export * from "./message-text";
+export * from "./uploads";

@@ -63,6 +63,7 @@ const copy = bilingual({
     h3b: "De la main à la main pendant le pilote. Tnajem ne prend aucune commission. Le paiement en ligne arrivera plus tard.",
     shareLabel: "Ton lien de prof",
     editStore: "Modifier ma page",
+    materials: "Mes documents",
     ffTitle: "Première séance offerte",
     ffBody:
       "Si tu l'actives, ta page annonce que la première séance est offerte — et tu peux la réserver classe par classe en créant une séance. Tant que c'est désactivé, Tnajem ne promet rien à ta place.",
@@ -107,6 +108,7 @@ const copy = bilingual({
     h3b: "يد بيد في فترة التجربة. Tnajem ما تاخذ حتى عمولة. الخلاص أونلاين يجي من بعد.",
     shareLabel: "اللينك متاعك متاع أستاذ",
     editStore: "عدّل صفحتي",
+    materials: "وثائقي",
     ffTitle: "الحصة الأولى مجانية",
     ffBody:
       "كان تفعّلها، صفحتك تقول إلّي الحصة الأولى مجانية — وتنجّم تختارها حصة بحصة وقتلي تعمل وحدة. مادامها مطفية، تنجّم ما توعدش في بلاصتك.",
@@ -481,6 +483,11 @@ function SharePanel({ slug, c }: { slug: string; c: CopyDict }) {
             page. The feature existed; the door did not. */}
         <Link href="/onboarding" className="btn btn-ghost btn-sm">
           {c.editStore}
+        </Link>
+        {/* Step 10. Beside the storefront links because that is what a library
+            attaches to — a tutor thinks about it as part of their page. */}
+        <Link href="/dashboard/materials" className="btn btn-ghost btn-sm">
+          {c.materials}
         </Link>
       </div>
     </div>

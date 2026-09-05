@@ -42,6 +42,16 @@ export const docKind = pgEnum("doc_kind", ["id_front", "id_back", "selfie", "dip
    tutor a cancel path); the column exists now so the ledger never has to be
    back-filled with a guess about rows written before the option existed. */
 export const cancelActor = pgEnum("cancel_actor", ["student", "tutor", "system"]);
+/* MATERIALS (Step 10). Closed sets, because these are the columns access control
+   and moderation branch on — a typo in a free-text "visibility" is an access
+   control failure, and Postgres refusing the write is cheaper than discovering it. */
+export const materialKind = pgEnum("material_kind", ["file", "youtube"]);
+/* WHO CAN SEE IT. Ordered least to most restrictive, and the DEFAULT is the
+   middle one, not "public": a tutor uploading a worksheet is far more likely to
+   mean "for my students" than "for the internet", and the safe default is the one
+   that cannot surprise them. */
+export const materialVisibility = pgEnum("material_visibility", ["public", "students", "private"]);
+export const takedownStatus = pgEnum("takedown_status", ["open", "upheld", "rejected"]);
 /* Where the text was written. Not a free string: this is the column a moderator
    filters on, and "review" vs "reviews" vs "Review" would quietly split it. */
 export const leakSurface = pgEnum("leak_surface", [
@@ -366,6 +376,95 @@ export const messageReports = pgTable("message_reports", {
 }, (t) => ({
   // One report per person per message; pressing twice is not two reports.
   uniqReporterMessage: unique().on(t.messageId, t.reporterProfileId),
+}));
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   MATERIALS (Step 10) — worksheets, corrections and videos a tutor attaches.
+
+   FILES NEVER GO IN public/. They land under STORAGE_DIR, exactly like identity
+   documents, and the ONLY reader is an endpoint that makes an access decision
+   first. A static directory cannot ask "did this student book the class?", so
+   putting a "students only" worksheet there would make the visibility column a
+   decoration.
+
+   VIDEOS STORE AN ID, NOT A URL (see parseYouTubeId in @tnajem/shared). A stored
+   URL is a stored redirect that some future surface renders as a link; an id can
+   only ever be embedded, and only through youtube-nocookie.
+   ══════════════════════════════════════════════════════════════════════════════ */
+export const materials = pgTable("materials", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tutorId: uuid("tutor_id").notNull().references(() => tutors.id, { onDelete: "cascade" }),
+  /* Optional. A material can belong to one class ("corrections for Tuesday") or
+     to the tutor's library. set null, not cascade: deleting a finished class must
+     not destroy the worksheet, which is the thing students keep. */
+  classId: uuid("class_id").references(() => classes.id, { onDelete: "set null" }),
+  kind: materialKind("kind").notNull(),
+  visibility: materialVisibility("visibility").notNull().default("students"),
+  title: text("title").notNull(),
+  description: text("description"),
+  /* Files only. POSIX separators always — see storage.ts on why a backslash in
+     here does not resolve on Linux. */
+  storagePath: text("storage_path"),
+  fileName: text("file_name"),
+  /** The SNIFFED type. Never the client's claim: this is served as Content-Type. */
+  mime: text("mime"),
+  sizeBytes: integer("size_bytes"),
+  /** Videos only. 11 characters, validated by parseYouTubeId. */
+  youtubeId: text("youtube_id"),
+  /* TAKEDOWN. Soft removal, not a DELETE: a copyright dispute needs a record that
+     the thing existed and was acted on, and an upheld claim that leaves no trace
+     is indistinguishable from one that was never made. Every read path filters on
+     removedAt IS NULL. */
+  removedAt: timestamp("removed_at", { withTimezone: true }),
+  removedReason: text("removed_reason"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  // "this tutor's library" and "this class's attachments" are the only listings.
+  tutorIdx: index("materials_tutor_id_idx").on(t.tutorId, t.createdAt),
+  classIdx: index("materials_class_id_idx").on(t.classId),
+}));
+
+/* COPYRIGHT TAKEDOWN. Ships WITH the upload, not after it — a platform hosting
+   other people's teaching material without a way to complain about it is one that
+   discovers its process during the first dispute.
+
+   reporter_profile_id is NULLABLE and there is no auth on the write path. A
+   rights-holder is almost never a user of this site, and requiring them to sign
+   up to file a claim is the same as not having a process. */
+export const materialTakedowns = pgTable("material_takedowns", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  materialId: uuid("material_id").notNull().references(() => materials.id, { onDelete: "cascade" }),
+  reporterProfileId: uuid("reporter_profile_id").references(() => profiles.id, { onDelete: "set null" }),
+  /** Who is complaining. Free text — a rights-holder is not a row in our tables. */
+  claimantName: text("claimant_name").notNull(),
+  claimantEmail: text("claimant_email").notNull(),
+  reason: text("reason").notNull(),
+  status: takedownStatus("status").notNull().default("open"),
+  resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+  resolvedBy: uuid("resolved_by").references(() => profiles.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  materialIdx: index("material_takedowns_material_id_idx").on(t.materialId),
+  statusIdx: index("material_takedowns_status_created_at_idx").on(t.status, t.createdAt),
+}));
+
+/* STRIKES. One row per upheld claim, against the TUTOR rather than the file.
+
+   Counted, not enforced automatically. A threshold that suspends an account on
+   its own would be a system nobody can argue with, and a wrong strike would take
+   a livelihood off the platform with no human in the loop. Step 15 builds the
+   moderation surface that acts on these. */
+export const tutorStrikes = pgTable("tutor_strikes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tutorId: uuid("tutor_id").notNull().references(() => tutors.id, { onDelete: "cascade" }),
+  /* One strike per upheld takedown. Without this a moderator refreshing the queue
+     twice doubles a tutor's count — and a count that can be wrong upward is one
+     nobody can act on. */
+  takedownId: uuid("takedown_id").unique().references(() => materialTakedowns.id, { onDelete: "cascade" }),
+  reason: text("reason").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  tutorIdx: index("tutor_strikes_tutor_id_idx").on(t.tutorId, t.createdAt),
 }));
 
 export const payments = pgTable("payments", {

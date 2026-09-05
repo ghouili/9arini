@@ -105,6 +105,7 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
           "Documents d'identité → vérifier qu'un prof est bien la personne qu'il prétend être, avant de l'exposer à des élèves, souvent mineurs (consentement du prof + intérêt légitime de sécurité de la communauté). Un prof qui refuse ne peut pas être vérifié, donc pas listé publiquement.",
           "Réservations → organiser les séances, gérer les places et la règle d'annulation à 48 h et le registre des annulations.",
           "Messages échangés dans une conversation de séance → permettre à un prof et un élève de se parler sans échanger de coordonnées, et traiter les signalements. Les messages sont conservés tant que la réservation existe, puis supprimés avec elle. Un message n'est lu par personne chez Tnajem sauf s'il est signalé. Les coordonnées (numéro, email, lien) en sont retirées automatiquement avant enregistrement — nous conservons le TYPE de ce qui a été détecté, jamais le texte détecté.",
+          "Documents et vidéos partagés par un prof → permettre à ses élèves d'y accéder. Les fichiers sont stockés hors du web public et ne sont servis qu'après vérification de tes droits (public, élève inscrit, ou le prof lui-même) — jamais par une adresse devinable. Une vidéo n'est pas hébergée ici : nous n'enregistrons que son identifiant YouTube et l'affichons sans cookie de suivi.",
           "Journaux et codes hachés → sécurité, lutte contre la fraude et les abus.",
         ],
         after: [
@@ -242,6 +243,7 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
           "وثائق الهوية ← نتثبّتو إلّي الأستاذ هو فعلاً اللي يقول، قبل ما نعرّضوه لتلاميذ، وأغلبهم قاصرين (موافقة الأستاذ + مصلحة مشروعة في سلامة المجموعة). الأستاذ اللي يرفض ما ينجّمش يتوثّق، وبالتالي ما يظهرش للعموم.",
           "الحجوزات ← تنظيم الحصص، الأماكن وقاعدة الإلغاء في 48 ساعة وسجل الإلغاءات.",
           "الرسائل في محادثة الحصة ← باش الأستاذ والتلميذ يتكلّمو بلا ما يتبادلو معلومات اتصال، وباش نعالجو التبليغات. الرسائل تتحفظ ما دام الحجز موجود، ومن بعد يتمسحو معاه. حتى حد في Tnajem ما يقرا رسالة كان ما تتبلّغش. معلومات الاتصال (نمرة، إيميل، رابط) تتنحّى آليًا قبل التسجيل — نحتفظو بنوع اللي تلقى، عمرنا ما نحتفظو بالنصّ.",
+          "الوثائق والفيديوهات اللي ينشرهم الأستاذ ← باش تلامذتو يوصلولهم. الملفات تتخزّن برّة الويب العمومي وما تتقدّمش كان بعد ما نتثبّتو من حقّك (عمومي، تلميذ مسجّل، ولا الأستاذ روحو) — عمرها ما تكون بعنوان يتحزّر. الفيديو ما هوش مستضاف عندنا: نسجّلو برك المعرّف متاعو في يوتيوب ونعرضوه بلا كوكي تتبّع.",
           "السجلاّت والرموز المشفّرة ← الأمان ومقاومة الغشّ والتجاوزات.",
         ],
         after: [
