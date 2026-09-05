@@ -8,9 +8,10 @@ import { useToast } from "@/components/useToast";
 import { SiteShell } from "@/components/SiteShell";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { createPack } from "@/app/actions";
+import { bilingual } from "@/lib/i18n";
 
 /* Page-local copy (never edit lib/i18n.ts from here). FR + Derija, RTL-safe. */
-const copy = {
+const copy = bilingual({
   fr: {
     hintTitle: "Fiches, PDFs, vidéos",
     hintBody: "Décris ton pack, fixe ton prix. Tes élèves le voient sur ta vitrine.",
@@ -38,7 +39,7 @@ const copy = {
     verifNote: "الپاك يتنشر كي يتثبّت حسابك.",
     verifCta: "ثبّت حسابي",
   },
-} as const;
+});
 
 export default function NewPackPage() {
   const { t, locale } = useLocale();

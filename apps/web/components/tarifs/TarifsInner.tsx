@@ -5,6 +5,7 @@ import { SiteShell } from "@/components/SiteShell";
 import { useLocale } from "@/components/LocaleProvider";
 import { Card, CardFooter, Chip } from "@/components/ui";
 import { Check, Shield, Wallet, Star } from "@/components/icons";
+import { bilingual } from "@/lib/i18n";
 
 /* ═══════════════════════════════════════════════════════════════════════════
    /tarifs — the pricing page.
@@ -29,7 +30,7 @@ import { Check, Shield, Wallet, Star } from "@/components/icons";
    same contract with less that can go wrong.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-const copy = {
+const copy = bilingual({
   fr: {
     eyebrow: "Tarifs",
     h1: "Nos tarifs, en clair.",
@@ -202,7 +203,7 @@ const copy = {
     finalMicro: "فابور في فترة التجربة · بلا التزام · تنجم تمسحها وقتلي تحب.",
     backToProfs: "اعرف الكل على Tnajem للأساتذة",
   },
-} as const;
+});
 
 type Copy = (typeof copy)[keyof typeof copy];
 

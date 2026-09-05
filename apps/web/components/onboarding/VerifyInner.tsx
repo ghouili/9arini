@@ -8,12 +8,13 @@ import { SiteShell } from "@/components/SiteShell";
 import { getMyVerification, submitVerification } from "@/app/actions";
 import { OnboardingProgress } from "@/components/OnboardingProgress";
 import type { TutorVerification, Locale, OnboardingState } from "@tnajem/shared";
+import { bilingual } from "@/lib/i18n";
 
 /* ------------------------------------------------------------------ */
 /* Self-contained bilingual copy (FR + Tunisian Derija). Do NOT edit   */
 /* shared i18n — this page owns all its strings.                       */
 /* ------------------------------------------------------------------ */
-const copy = {
+const copy = bilingual({
   fr: {
     eyebrow: "VÉRIFICATION",
     h2: "Vérifie ton compte de prof",
@@ -192,7 +193,7 @@ const copy = {
     reqBody: "تصويرة متاع بطاقة تعريفك (الوجه). الباقي الكل اختياري.",
     reqDone: "بطاقة التعريف تزادت — تنجم تبعث.",
   },
-} as const;
+});
 
 type CopyT = (typeof copy)[Locale];
 

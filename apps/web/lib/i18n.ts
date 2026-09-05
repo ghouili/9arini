@@ -412,3 +412,41 @@ const ar: typeof fr = {
 export const dict = { fr, ar };
 export type Dict = typeof fr;
 export const isRTL = (l: Locale) => l === "ar";
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   bilingual() — the same FR/AR parity guarantee, for copy that lives OUTSIDE
+   this file.
+
+   THE PROBLEM. The dictionary above is compiler-enforced: `const ar: typeof fr`
+   means a key added to fr and forgotten in ar is a build error. But ~17 screens
+   carry their own `const copy = { fr: {…}, ar: {…} }` — a plain object literal,
+   where the two halves are unrelated types and nothing checks anything. That is
+   where most of the free-session, cancellation and pricing copy actually lives,
+   i.e. exactly the strings Stage B is about to rewrite.
+
+   A missing AR key there does not fail the build. It renders `undefined` to an
+   Arabic-speaking user, or throws if the value was called as a function — on a
+   page nobody on the team reads. This closes that hole before new strings land.
+
+   HOW IT WORKS. T is inferred from `fr` ALONE (that is what NoInfer buys) and
+   `ar` is then checked against it:
+
+     • a key in fr but not ar   → "Property 'x' is missing in type"
+     • a key in ar but not fr   → excess-property error on the literal
+     • a plural helper typed (n: number) => string in one and a bare string in
+       the other → type error
+
+   Without NoInfer, TypeScript would infer T from both halves and quietly widen to
+   whatever they have in common — which is precisely the check we want.
+
+   NOTE the absence of a `const` modifier on T. With `const T` every value would
+   infer as a string LITERAL ("Tarifs" rather than string) and each Arabic string
+   would then have to equal its French counterpart. Parity of KEYS is the goal;
+   parity of values is nonsense.
+   ═══════════════════════════════════════════════════════════════════════════════ */
+export function bilingual<T extends Record<string, unknown>>(copy: {
+  fr: T;
+  ar: NoInfer<T>;
+}): { fr: T; ar: T } {
+  return copy;
+}

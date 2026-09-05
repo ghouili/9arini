@@ -29,11 +29,12 @@ import { Link } from "@/components/Link";
 import { SiteShell } from "@/components/SiteShell";
 import { useLocale } from "@/components/LocaleProvider";
 import { Wallet, Video, Share, Shield, Check, Users, Bolt, Forward } from "@/components/icons";
+import { bilingual } from "@/lib/i18n";
 
 /* ═══════════════════════════════════════════════════════════════════════════
    COPY — FR + Tunisian Derija (ar). Warm, tutor-first, structurally parallel.
    ═══════════════════════════════════════════════════════════════════════════ */
-const copy = {
+const copy = bilingual({
   fr: {
     crossTop: "Tu es élève ?",
     eyebrow: "Pour les profs",
@@ -196,7 +197,7 @@ const copy = {
     finalReassure: "فابور في فترة التجربة · بلا التزام · تنجم تمسحها وقتلي تحب.",
     crossBottom: "إنتي تلميذ ؟ لقا أستاذك",
   },
-} as const;
+});
 
 type Copy = (typeof copy)[keyof typeof copy];
 

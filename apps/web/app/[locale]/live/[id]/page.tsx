@@ -9,9 +9,10 @@ import { Back, Video, Bulb, Clock } from "@/components/icons";
 import { ClassTools } from "@/components/teaching/ClassTools";
 import { canJoinClass, getClass, getStudentDashboard, getDashboard } from "@/app/actions";
 import type { ClassItem } from "@tnajem/shared";
+import { bilingual } from "@/lib/i18n";
 
 /* Page-local copy (lib/i18n.ts is shared — don't touch it). */
-const copy = {
+const copy = bilingual({
   fr: {
     liveNow: "EN DIRECT",
     startsAt: "Démarre le",
@@ -34,7 +35,7 @@ const copy = {
     tip: "طفّي الكاميرا كي تدخل للقاعة : تنجم تتابع بصمت وتكتب في الدردشة. الكاميرا والميكرو يتحكم فيهم من داخل القاعة.",
     tutorNote: "إنت الأستاذ متاع هذه الحصة.",
   },
-} as const;
+});
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 

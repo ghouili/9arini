@@ -28,9 +28,10 @@ import { SiteShell } from "@/components/SiteShell";
 import { getExploreTutors } from "@/app/actions";
 import { demoStorefront } from "@/lib/demo";
 import type { ExploreTutor } from "@tnajem/shared";
+import { bilingual } from "@/lib/i18n";
 
 /* ── Page-local copy (FR + Tunisian Derija) ── */
-const copy = {
+const copy = bilingual({
   fr: {
     heroSub: "Des profs tunisiens vérifiés, un par un. Première séance offerte.",
     isNew: "Nouveau",
@@ -66,7 +67,7 @@ const copy = {
     clear: "امسح الفلاتر",
     loading: "قاعدين نلوّجو…",
   },
-} as const;
+});
 
 /* Static preview used ONLY in demo mode (no API_URL). Never rendered when a
    DB is connected — see the `demo` flag below. */

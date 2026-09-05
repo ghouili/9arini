@@ -7,6 +7,7 @@ import { Calendar, Clock, Users, Shield, Gift, Back } from "@/components/icons";
 import { useLocale } from "@/components/LocaleProvider";
 import { getClass, getExploreTutors } from "@/app/actions";
 import type { ClassItem, ExploreTutor } from "@tnajem/shared";
+import { bilingual } from "@/lib/i18n";
 
 /** Month label map FR → AR (short) — same table as the storefront/checkout. */
 const monthAr: Record<string, string> = {
@@ -22,7 +23,7 @@ const monthAr: Record<string, string> = {
    was the last of the bank-card claims, it rendered nowhere, and a dead string
    is one nobody notices has stopped being true.)
      • t.extra.noResults→ "Aucun prof trouvé", which was shown when a CLASS 404s. */
-const copy = {
+const copy = bilingual({
   fr: {
     reassure: "1ère séance gratuite · annulation gratuite jusqu'à 24h avant",
     reassureShort: "Sans engagement",
@@ -55,7 +56,7 @@ const copy = {
     soldOutTitle: "هذه الحصة كاملة",
     soldOutBody: "الأماكن الكل تحجزو. لوّج على حصة أخرى — فما غيرها.",
   },
-} as const;
+});
 
 /* Page-scoped CSS. Lives here (not inline) because the layout has to survive
    320px-wide Arabic strings: media queries, logical properties and the RTL

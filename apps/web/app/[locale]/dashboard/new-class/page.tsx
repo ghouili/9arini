@@ -8,6 +8,7 @@ import { createClass } from "@/app/actions";
 import { useToast } from "@/components/useToast";
 import { SiteShell } from "@/components/SiteShell";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
+import { bilingual } from "@/lib/i18n";
 
 /* A tutor must be verified before publishing (enforced server-side in createClass).
    Without a specific message this failure is opaque and unfixable-looking. */
@@ -17,7 +18,7 @@ const NOT_VERIFIED_MSG = {
 } as const;
 
 /* Page-local copy (lib/i18n.ts is shared/read-only). */
-const copy = {
+const copy = bilingual({
   fr: {
     lead: "Un titre, une date, ton prix. Ta classe apparaît sur ta page, et les élèves réservent en un clic.",
     priceHelp: "Tu fixes ton prix. Tu gardes 100 % — pendant le pilote l'élève te paie directement.",
@@ -32,7 +33,7 @@ const copy = {
     verifCta: "ثبّت حسابي",
     descPh: "مثال: مناهج + امتحانات. نعملو 3 تمارين نموذجية مع بعضنا.",
   },
-} as const;
+});
 
 export default function NewClassPage() {
   const { t, locale } = useLocale();

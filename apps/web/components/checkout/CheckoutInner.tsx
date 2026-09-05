@@ -7,6 +7,7 @@ import { Check, Calendar, Clock, Users, Shield, Back } from "@/components/icons"
 import { Spinner } from "@/components/ui";
 import { getClass, reserveSeat } from "@/app/actions";
 import type { ClassItem } from "@tnajem/shared";
+import { bilingual } from "@/lib/i18n";
 
 /** Month label map FR → AR (short) — same table as the storefront. Class rows
     carry FR short labels, so an Arabic checkout used to read "23 JUIN". */
@@ -26,7 +27,7 @@ const monthAr: Record<string, string> = {
    paid sessions is framed as something arranged with the tutor.
 
    Page-local copy — lib/i18n.ts is shared with other screens. */
-const copy = {
+const copy = bilingual({
   fr: {
     title: "Confirmer ma réservation",
     summary: "Ce que tu réserves",
@@ -122,7 +123,7 @@ const copy = {
     notFound: "الحصة ما تلقاتش",
     notFoundBody: "يمكن الرابط فات وقتو، ولا الأستاذ لغى الحصة.",
   },
-} as const;
+});
 
 /* ---------- confetti ---------- */
 const CONFETTI_COLORS = ["var(--ochre)", "var(--green)", "var(--blue)", "var(--amber)"];

@@ -9,9 +9,10 @@ import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { getDashboard } from "@/app/actions";
 import { WrongRoleNotice } from "@/components/WrongRoleNotice";
 import type { DashboardData, DashboardResult } from "@tnajem/shared";
+import { bilingual } from "@/lib/i18n";
 
 /* Page-local copy (never edit lib/i18n.ts from here). FR + Derija, RTL-safe. */
-const copy = {
+const copy = bilingual({
   fr: {
     signedOutTitle: "Connecte-toi pour voir ton solde",
     signedOutBody: "Ton solde et tes retraits s'affichent ici une fois connecté.",
@@ -40,7 +41,7 @@ const copy = {
     zeroBody: "رصيدك 0. يطلع أوّل ما تلميذ يخلّص حصة متاعك.",
     backDash: "ارجع للوحة",
   },
-} as const;
+});
 
 /* Page-scoped CSS (`qp-`), injected with dangerouslySetInnerHTML and UNLAYERED so
    it wins over globals.css's @layer components.

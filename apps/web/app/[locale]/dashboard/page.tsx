@@ -11,13 +11,14 @@ import { WrongRoleNotice } from "@/components/WrongRoleNotice";
 import { buildTutorSteps, STEP_COPY } from "@/lib/onboarding-steps";
 import type { OnboardingStep, StepState } from "@/lib/onboarding-steps";
 import type { DashboardData, DashboardBooking, NotificationItem, DashboardResult } from "@tnajem/shared";
+import { bilingual } from "@/lib/i18n";
 
 /* Page-local copy (never edit lib/i18n.ts from here). FR + Derija, RTL-safe.
    The shared t.dashboard.s1p/s2p/s3p keys are truthful but generic; this page
    uses its own steps below so the wording can stay specific to what a tutor sees
    here. Whatever it says must remain true of the pilot: Tnajem processes no
    money, so nothing on this screen may describe a charge, a split or a payout. */
-const copy = {
+const copy = bilingual({
   fr: {
     signedOutTitle: "Connecte-toi pour voir ton tableau de bord",
     signedOutBody: "Tes cours, tes élèves inscrits et ton lien s'affichent ici une fois connecté.",
@@ -97,7 +98,7 @@ const copy = {
     h3b: "يد بيد في فترة التجربة. Tnajem ما تاخذ حتى عمولة. الخلاص أونلاين يجي من بعد.",
     shareLabel: "اللينك متاعك متاع أستاذ",
   },
-} as const;
+});
 
 // Union of both locales — copy[locale] is fr-shaped OR ar-shaped (same keys).
 // (Named CopyDict, not Copy: `Copy` is already the clipboard icon import.)

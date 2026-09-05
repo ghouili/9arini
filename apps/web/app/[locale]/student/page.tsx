@@ -7,11 +7,12 @@ import { Play, Video, Star, Clock } from "@/components/icons";
 import { getStudentDashboard, getMe, cancelBooking, createReview } from "@/app/actions";
 import type { StudentClass, StudentDashboard } from "@tnajem/shared";
 import { SiteShell } from "@/components/SiteShell";
+import { bilingual } from "@/lib/i18n";
 
 /* Page-local copy (never lib/i18n.ts — that file is shared).
    Everything on this page comes from getStudentDashboard(): no demo class,
    no fake countdown. Signed out → we say so; no bookings → we say so. */
-const copy = {
+const copy = bilingual({
   fr: {
     upcoming: "Prochains cours",
     startsIn: "Commence dans",
@@ -82,7 +83,7 @@ const copy = {
     signIn: "تسجيل الدخول",
     noReplay: "التسجيل ما زال ما هوش متوفّر",
   },
-} as const;
+});
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const initialsOf = (name: string) => {

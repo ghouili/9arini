@@ -5,6 +5,7 @@ import { SiteShell } from "@/components/SiteShell";
 import { useLocale } from "@/components/LocaleProvider";
 import { Verified } from "@/components/ui";
 import { Shield, Gift, Forward, Search, Video, Wallet, Users } from "@/components/icons";
+import { bilingual } from "@/lib/i18n";
 
 /* =====================================================================
    STUDENT / PARENT LANDING — Tnajem (تنجّم)
@@ -33,7 +34,7 @@ import { Shield, Gift, Forward, Search, Video, Wallet, Users } from "@/component
    the bottom of the scoped <style> block.
    ===================================================================== */
 
-const copy = {
+const copy = bilingual({
   fr: {
     eyebrow: "Cours particuliers en ligne · Tunisie",
     h1a: "Un prof ",
@@ -143,7 +144,7 @@ const copy = {
     profBody: "قرّي مباشرة، حدّد ثمنك، واحتفظ بـ 100 % في فترة التجربة.",
     profCta: "ابدا تقرّي ←",
   },
-} as const;
+});
 
 // Subject chips → /explore?subject=<slug>. Labels per locale, slug shared.
 const SUBJECTS: { slug: string; fr: string; ar: string }[] = [

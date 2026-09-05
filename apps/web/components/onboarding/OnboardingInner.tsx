@@ -34,6 +34,7 @@ import { createTutor } from "@/app/actions";
 import { useToast } from "@/components/useToast";
 import { vSlug } from "@tnajem/shared";
 import type { OnboardingState } from "@tnajem/shared";
+import { bilingual } from "@/lib/i18n";
 
 /* Page-local copy (FR + Tunisian Derija). lib/i18n.ts is shared/read-only, and
    several of its strings cannot be used here:
@@ -44,7 +45,7 @@ import type { OnboardingState } from "@tnajem/shared";
        is `draft` until a human approves their ID, and the panel rendered directly
        under that toast said so. The screen contradicted itself at the exact moment
        a tutor decides whether to trust us. */
-const copy = {
+const copy = bilingual({
   fr: {
     yourName: "Ton nom…",
     fine: "Gratuit pendant le pilote : l'élève te paie en main propre et Tnajem ne prend rien. Plus tard, 10 % sur chaque élève payant via Tnajem, plus un abonnement à partir de 29 TND/mois.",
@@ -113,7 +114,7 @@ const copy = {
     errAuth: "الجلسة متاعك سالات. عاود ادخل.",
     errGeneric: "ما مشاتش. عاود حاول.",
   },
-} as const;
+});
 
 /* Derive a URL slug from a display name.
 

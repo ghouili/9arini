@@ -6,14 +6,15 @@ import { LocaleToggle } from "@/components/LocaleToggle";
 import { useLocale } from "@/components/LocaleProvider";
 import { Phone, User, Forward } from "@/components/icons";
 import { SiteShell } from "@/components/SiteShell";
+import { bilingual } from "@/lib/i18n";
 
 const WA_LINK = "https://wa.me/216XXXXXXXX";
 
 /* Page-local copy (lib/i18n.ts is shared/read-only). */
-const copy = {
+const copy = bilingual({
   fr: { sub: "Ta langue, ton rôle, et comment nous joindre." },
   ar: { sub: "لغتك، دورك، وكيفاش تتصل بينا." },
-} as const;
+});
 
 export default function AccountPage() {
   const { t, locale } = useLocale();

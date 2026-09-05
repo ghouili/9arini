@@ -13,7 +13,7 @@
    already knows the locale from the URL segment. */
 import { Link } from "@/components/Link";
 import { ShareButton } from "./ShareButton";
-import { dict } from "@/lib/i18n";
+import { dict, bilingual } from "@/lib/i18n";
 import type { AppLocale } from "@/lib/locale";
 import { Avatar, Verified } from "@/components/ui";
 import {
@@ -48,7 +48,7 @@ const monthAr: Record<string, string> = {
      • t.common.seats(n) → "${n} places", which reads "1 places" and, at 0, invites
        a click straight into a full class. `seats()` below pluralises and says
        "Complet" / "كامل". */
-const copy = {
+const copy = bilingual({
   fr: {
     students: "élèves",
     isNew: "Nouveau prof",
@@ -134,7 +134,7 @@ const copy = {
     allFullBody:
       "هذا الأستاذ كامل توّا. عاود شوف كي يزيد دواتم جداد — ولا لوّج على أستاذ آخر توّا.",
   },
-} as const;
+});
 
 const EMPTY_REVIEWS: TutorReviews = { items: [], average: 0, count: 0 };
 
