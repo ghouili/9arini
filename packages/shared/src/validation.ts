@@ -330,13 +330,13 @@ export function isValidPhone(p: string): boolean {
    a security boundary, not formatting: it is what keeps a reviewer's full name
    off a public, unauthenticated page. Step 8 tightens it to first-name-only. */
 
-/** "Amine Karoui" -> "Amine K." Never the phone, never the full identity. */
-export function publicName(full: string | null): string | null {
-  if (!full) return null;
-  const parts = full.trim().split(/\s+/);
-  if (parts.length < 2) return parts[0] ?? null;
-  return `${parts[0]} ${parts[parts.length - 1][0].toUpperCase()}.`;
-}
+/* publicName ("Amine K.") WAS HERE. Step 8 replaced it with publicDisplayName in
+   ./public-profile.ts, which returns the first name alone.
+
+   Deleted rather than deprecated. Leaving it would mean two "safe public name"
+   functions with different answers, and the next person to need one would pick
+   whichever they found first — which is precisely how the admin allow-list ended
+   up tested in one place and running in another. */
 
 /** Two-letter monogram for the avatar. No photo exists yet (see Step 13). */
 export function initials(name: string): string {

@@ -79,6 +79,8 @@ const copy = bilingual({
     errNotTutor: "Ton compte n'est pas un compte prof.",
     errAuth: "Ta session a expiré. Reconnecte-toi.",
     errGeneric: "Ça n'a pas marché. Réessaie.",
+    errContactInfo:
+      "Enlève le numéro, l'email ou le lien : les coordonnées ne sont pas autorisées sur ta page. Les élèves te contactent via Tnajem.",
   },
   ar: {
     yourName: "اسمك…",
@@ -113,6 +115,8 @@ const copy = bilingual({
     errNotTutor: "حسابك موش حساب أستاذ.",
     errAuth: "الجلسة متاعك سالات. عاود ادخل.",
     errGeneric: "ما مشاتش. عاود حاول.",
+    errContactInfo:
+      "نحّي النمرة، الإيميل ولا الرابط: معلومات الاتصال موش مسموحة في صفحتك. التلامذة يوصلولك عبر Tnajem.",
   },
 });
 

@@ -17,6 +17,15 @@ const NOT_VERIFIED_MSG = {
   ar: "لازم بروفايلك يتثبّت الأول. أمشي لـ « التثبّت » وابعث وثائقك.",
 } as const;
 
+/* Step 8. A class title and description are PUBLIC storefront copy, so contact
+   details in them are refused rather than masked — the tutor is on the form and
+   can fix it now. The message names the cause; a generic "ça n'a pas marché"
+   would leave them re-submitting the same text. */
+const CONTACT_INFO_MSG = {
+  fr: "Enlève le numéro, l'email ou le lien : les coordonnées ne sont pas autorisées dans une séance. Tes élèves passent par Tnajem.",
+  ar: "نحّي النمرة، الإيميل ولا الرابط: معلومات الاتصال موش مسموحة في الحصة. تلامذتك يعدّو عبر Tnajem.",
+} as const;
+
 /* Page-local copy (lib/i18n.ts is shared/read-only). */
 const copy = bilingual({
   fr: {
@@ -67,7 +76,11 @@ export default function NewClassPage() {
     } else {
       // Server-side validation (past date, negative price, bad URL…) — let them fix it.
       setSubmitted(false);
-      showToast(res.error === "not-verified" ? NOT_VERIFIED_MSG[locale] : t.extra.error);
+      showToast(
+        res.error === "not-verified" ? NOT_VERIFIED_MSG[locale]
+          : res.error === "contact-info-not-allowed" ? CONTACT_INFO_MSG[locale]
+          : t.extra.error,
+      );
     }
   }
   const { toast, showToast } = useToast();

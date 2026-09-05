@@ -25,13 +25,13 @@ const copy = bilingual({
     signIn: "Se connecter",
     hello: "Ton tableau de bord",
     bookings: "Tes élèves inscrits",
-    bookingsSub: "Qui a réservé, et comment le joindre.",
+    bookingsSub: "Qui a réservé ta séance.",
     bookingsEmpty: "Personne n'a encore réservé.",
-    bookingsEmptyBody: "Partage ton lien. Dès qu'un élève réserve, tu vois son nom et son contact ici — tu peux le joindre avant le cours.",
+    bookingsEmptyBody: "Partage ton lien. Dès qu'un élève réserve, tu le vois ici — son prénom, quand il a réservé, et le lien de la séance.",
     signedUp: (n: number) => (n > 1 ? `${n} inscrits` : `${n} inscrit`),
-    call: "Appeler",
-    mail: "Écrire à",
-    noPhone: "Pas de contact",
+    /* Replaces call / mail / noPhone. Those keys are gone with the tel: and
+       mailto: links they labelled — a dead key is a key someone re-renders. */
+    contactClosed: "Coordonnées non partagées",
     anon: "Élève",
     free: "Gratuit",
     paid: "Payé",
@@ -56,7 +56,7 @@ const copy = bilingual({
     h1t: "Tu fixes ton prix",
     h1b: "Classe par classe, sans plafond.",
     h2t: "L'élève réserve",
-    h2b: "Son nom et son numéro arrivent ici, tout de suite.",
+    h2b: "Son prénom et sa réservation arrivent ici, tout de suite.",
     h3t: "Il te paie directement",
     h3b: "De la main à la main pendant le pilote. Tnajem ne prend aucune commission. Le paiement en ligne arrivera plus tard.",
     shareLabel: "Ton lien de prof",
@@ -74,13 +74,11 @@ const copy = bilingual({
     signIn: "دخول",
     hello: "لوحتك",
     bookings: "التلاميذ اللي حجزو",
-    bookingsSub: "شكون حجز، وكيفاش تتصل بيه.",
+    bookingsSub: "شكون حجز في حصتك.",
     bookingsEmpty: "ما زال حتّى حد ما حجز.",
-    bookingsEmptyBody: "شارك رابطك. أوّل ما تلميذ يحجز، تشوف اسمو وكيفاش تتصل بيه هوني — تنجم تكلّمو قبل الحصة.",
+    bookingsEmptyBody: "شارك رابطك. أوّل ما تلميذ يحجز، تشوفو هوني — اسمو، وقتاش حجز، ورابط الحصة.",
     signedUp: (n: number) => `${n} محجوز`,
-    call: "اتصل",
-    mail: "اكتب لـ",
-    noPhone: "ما فماش وسيلة اتصال",
+    contactClosed: "معلومات الاتصال ما تتشاركش",
     anon: "تلميذ",
     free: "فابور",
     paid: "خالص",
@@ -100,7 +98,7 @@ const copy = bilingual({
     h1t: "إنتي تحدّد ثمنك",
     h1b: "حصة بحصة، بلا سقف.",
     h2t: "التلميذ يحجز",
-    h2b: "إسمو ونمرتو يوصلو لهوني في الحين.",
+    h2b: "إسمو الأول والحجز متاعو يوصلو لهوني في الحين.",
     h3t: "يخلّصك مباشرة",
     h3b: "يد بيد في فترة التجربة. Tnajem ما تاخذ حتى عمولة. الخلاص أونلاين يجي من بعد.",
     shareLabel: "اللينك متاعك متاع أستاذ",
@@ -713,40 +711,27 @@ function BookingsPanel({ d }: { d: DashboardData }) {
                   </div>
                 </div>
 
-                {/* Phone first, then email. Since login moved to email the number is
-                    OPTIONAL — collected on /student/welcome, not at signup — so for
-                    most students the address is the only contact that exists. Falling
-                    back to it is what keeps this column from being empty on day one,
-                    and what keeps the panel's own promise ("tu vois son nom et son
-                    numéro") honest. */}
-                {b.studentPhone ? (
-                  <a
-                    href={`tel:${b.studentPhone}`}
-                    className="btn btn-ghost btn-sm qd-tel flex-none ms-auto w-auto max-w-full"
-                    aria-label={`${c.call} ${b.studentName?.trim() || c.anon}`}
-                  >
-                    <Phone className="w-[15px] h-[15px]" />
-                    {b.studentPhone}
-                  </a>
-                ) : b.studentEmail ? (
-                  <a
-                    href={`mailto:${b.studentEmail}`}
-                    className="btn btn-ghost btn-sm qd-tel flex-none ms-auto w-auto max-w-full"
-                    aria-label={`${c.mail} ${b.studentName?.trim() || c.anon}`}
-                  >
-                    <Mail className="w-[15px] h-[15px]" />
-                    {b.studentEmail}
-                  </a>
-                ) : (
-                  <span
-                    style={{
-                      flex: "none", marginInlineStart: "auto", fontSize: 13,
-                      color: "var(--muted)", fontStyle: "italic",
-                    }}
-                  >
-                    {c.noPhone}
-                  </span>
-                )}
+                {/* NO CONTACT DETAILS. Step 8 — zero contact exchange.
+
+                    This block used to render the student's phone as a `tel:`
+                    link and fall back to a `mailto:` with the address as the
+                    visible label. The data no longer reaches this component at
+                    all: apps/api does not select those columns (see the note in
+                    routes/classes.ts), so there is nothing here to render even
+                    by accident.
+
+                    What replaces it is the thing a tutor actually needs before a
+                    class — when the seat was taken and whether it is free —
+                    already shown above, plus a plain statement of the rule so the
+                    absence reads as a policy rather than a bug. Messaging (Step
+                    8b) is the replacement channel; until it ships, saying so is
+                    better than an empty column. */}
+                <span
+                  className="flex-none text-[13px] italic"
+                  style={{ marginInlineStart: "auto", color: "var(--muted)" }}
+                >
+                  {c.contactClosed}
+                </span>
               </div>
             ))}
           </div>

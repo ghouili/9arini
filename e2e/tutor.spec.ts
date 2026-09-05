@@ -169,7 +169,7 @@ test("a tutor with no reviews shows no rating markup", async ({ page }) => {
   expect(html).toContain("Pas encore d");
 });
 
-test("the storefront renders a real review, with the author's name shortened", async ({ browser }) => {
+test("the storefront renders a real review, bylined with the FIRST NAME only", async ({ browser }) => {
   /* getTutorReviews moved to apps/api in the tutors domain and nothing asserted its
      RESULT — the storefront renders fine with an empty feed, so a broken port would
      have been invisible.
@@ -192,11 +192,18 @@ test("the storefront renders a real review, with the author's name shortened", a
   await page.goto(`/fr/${tutor.slug}`);
 
   await expect(page.locator("main")).toContainText("Excellent cours.");
-  // The SHORTENED author name only — publicName() is a security boundary on a
-  // fully public, unauthenticated page, not formatting.
-  await expect(page.locator("main")).toContainText("Amine K.");
+  /* THE FIRST NAME ONLY. This asserted "Amine K." until Step 8 replaced
+     publicName with publicDisplayName: a surname initial alongside a subject and
+     a level narrows a person a long way in a country of twelve million, and buys
+     a reader nothing the first name does not.
+
+     publicDisplayName is a security boundary on a fully public, unauthenticated
+     page — not formatting. The assertion below got STRICTER, not looser: it now
+     also forbids the initial. */
+  await expect(page.locator("main")).toContainText("Amine");
   const main = await page.locator("main").innerHTML();
   expect(main, "the reviewer's full name must never reach a public page").not.toContain("Amine Karoui");
+  expect(main, "not even the surname INITIAL — Step 8 removed it").not.toContain("Amine K.");
 
   await ctx.close();
 });

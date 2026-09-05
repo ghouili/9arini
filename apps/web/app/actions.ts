@@ -453,12 +453,18 @@ export async function getExploreTutors(filters?: { subject?: string; q?: string 
   return callAnonymous<ExploreTutor[]>(`/tutors/explore${suffix}`);
 }
 
-export async function createReview(input: { classId: string; rating: number; text?: string }): Promise<ActionResult> {
+/** A review is MASKED, never rejected, when it carries contact details — losing
+    three paragraphs over one line is worse than publishing them without it. The
+    flag comes back so the UI can say what happened; silently editing someone's
+    words and publishing the result would read as censoring the opinion. */
+export type ReviewResult = ActionResult & { masked?: boolean };
+
+export async function createReview(input: { classId: string; rating: number; text?: string }): Promise<ReviewResult> {
   if (demoFallback) return { ok: true, demo: true };
   /* PORTED to apps/api (POST /reviews). The booking check, the "class must have
      started" rule and the insert+recompute transaction all moved together — the
      last caller of the web-side recomputeTutorStats, so that duplicate is gone. */
-  return call<ActionResult>("/reviews", input);
+  return call<ReviewResult>("/reviews", input);
 }
 
 /** Reviews for a public storefront. Unknown slug → empty (never throws for a 404 page). */

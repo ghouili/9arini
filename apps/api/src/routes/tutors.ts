@@ -6,11 +6,12 @@ import {
 } from "@tnajem/db";
 import {
   vSlug, vText, vOptionalText, vOptionalPhone,
-  normalizePhone, isValidPhone, publicName,
+  normalizePhone, isValidPhone, publicDisplayName,
   type ExploreTutor, type TutorReviews, type Storefront, type PublicTutorRef,
 } from "@tnajem/shared";
 import { db } from "../db";
 import { getSession } from "../lib/session";
+import { assertNoContactInfo, CONTACT_ERROR } from "../lib/contact-guard";
 
 /* tutors — createTutor, and the three PUBLIC reads that feed the cached storefront.
 
@@ -78,6 +79,25 @@ export async function tutorRoutes(app: FastifyInstance): Promise<void> {
        writes the display name. */
     if (session.profile.role !== "tutor") return { ok: false, error: "not-a-tutor" };
     const uid = session.profile.id;
+
+    /* ZERO CONTACT EXCHANGE (Step 8). A storefront is a PUBLIC page: a number in
+       the bio is not a leak to one counterparty, it is a leak to the open internet
+       and every scraper on it. REJECTED rather than masked, because the tutor is
+       looking at the form and can fix it in ten seconds — silently publishing
+       "[masqué]" on their own storefront would be worse.
+
+       AFTER the auth and role gates on purpose: assertNoContactInfo WRITES flag
+       rows, and running it before we know who is calling would let an anonymous
+       caller fill contact_leak_flags with rows attributed to nobody. */
+    if (
+      !(await assertNoContactInfo(uid, [
+        { surface: "tutor_name", value: name.value },
+        { surface: "tutor_subject", value: subject.value },
+        { surface: "tutor_bio", value: bio.value },
+      ]))
+    ) {
+      return { ok: false, error: CONTACT_ERROR };
+    }
 
     const [mine] = await db.select().from(tutors).where(eq(tutors.profileId, uid)).limit(1);
 
@@ -209,7 +229,7 @@ export async function tutorRoutes(app: FastifyInstance): Promise<void> {
        reputation of a rejected tutor to anyone who guesses the slug. */
     if (t.status !== "verified") return empty;
 
-    /* Only the reviewer's SHORTENED name ships ("Amine K." via publicName) — never
+    /* Only the reviewer's FIRST NAME ships (publicDisplayName) — never
        profiles.phone, never the raw full name, never the reviewer's profile id.
        This is a fully public, unauthenticated surface, so the projection below IS
        the security boundary: it selects fullName and nothing else identifying. */
@@ -233,7 +253,10 @@ export async function tutorRoutes(app: FastifyInstance): Promise<void> {
       id: r.id,
       rating: r.rating,
       text: r.text,
-      studentName: publicName(r.studentName), // "Amine K." — no phone, no full identity
+      // Step 8 tightened this from "Amine K." to "Amine": a surname initial plus
+      // a subject and a city narrows a person a long way, and buys the reader
+      // nothing. No phone, no email, no full identity.
+      studentName: publicDisplayName(r.studentName),
       classTitle: r.classTitle ?? null,
       createdAt: new Date(r.createdAt).toISOString(),
     }));

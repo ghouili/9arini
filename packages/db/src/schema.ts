@@ -42,6 +42,21 @@ export const docKind = pgEnum("doc_kind", ["id_front", "id_back", "selfie", "dip
    tutor a cancel path); the column exists now so the ledger never has to be
    back-filled with a guess about rows written before the option existed. */
 export const cancelActor = pgEnum("cancel_actor", ["student", "tutor", "system"]);
+/* Where the text was written. Not a free string: this is the column a moderator
+   filters on, and "review" vs "reviews" vs "Review" would quietly split it. */
+export const leakSurface = pgEnum("leak_surface", [
+  "tutor_bio", "tutor_name", "tutor_subject",
+  "class_title", "class_description",
+  "pack_title", "review", "message",
+]);
+/* What the author's text hit. MIRRORS ContactKind in
+   packages/shared/src/contact-info.ts — add there and here together. */
+export const leakKind = pgEnum("leak_kind", [
+  "phone", "email", "url", "social-handle", "social-platform", "spelled-digits",
+]);
+/* What we did about it. Rejected: the write was refused and the author re-edits.
+   Masked: the text was stored with the details removed. */
+export const leakAction = pgEnum("leak_action", ["rejected", "masked"]);
 
 export const profiles = pgTable("profiles", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -257,6 +272,34 @@ export const cancellations = pgTable("cancellations", {
   classIdx: index("cancellations_class_id_idx").on(t.classId),
   // And the student's own history is per actor.
   actorIdx: index("cancellations_actor_profile_id_idx").on(t.actorProfileId),
+}));
+
+/* CONTACT-LEAK FLAGS — moderation signal, not evidence storage.
+
+   ⚠ THE RAW MATCH IS NEVER STORED. Only the pattern CLASS (phone / email / url /
+   …) and where it happened. The entire point of Step 8 is to stop contact
+   details moving between people; a moderation table that keeps the phone number
+   it caught has copied that number into a second place, made it reachable by
+   every admin, and given the retention job something new to promise about. If
+   you find yourself adding a `matched_text` column, the feature has inverted.
+
+   No unique constraint: repeated attempts are the signal. One flag is a typo,
+   eleven in an evening is a person working around the filter, and that pattern is
+   only visible if every attempt is a row. */
+export const contactLeakFlags = pgTable("contact_leak_flags", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  /* Nullable + set null: Step 15 deletes accounts, and a moderation history must
+     not vanish because the account it describes closed. */
+  profileId: uuid("profile_id").references(() => profiles.id, { onDelete: "set null" }),
+  surface: leakSurface("surface").notNull(),
+  kind: leakKind("kind").notNull(),
+  action: leakAction("action").notNull(),
+  /** How many matches of this kind were in the text. A count, never the text. */
+  hits: integer("hits").notNull().default(1),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  // "show me everything this person tried" — the only query a moderator runs.
+  profileIdx: index("contact_leak_flags_profile_id_created_at_idx").on(t.profileId, t.createdAt),
 }));
 
 export const payments = pgTable("payments", {

@@ -110,13 +110,18 @@ export type DashboardBooking = {
   bookingId: string;
   classId: string;
   classTitle: string;
+  /* FIRST NAME ONLY, via publicProfile(). Step 8: zero contact exchange.
+
+     This field used to be the full name, and it sat beside studentPhone and
+     studentEmail — which the dashboard rendered as a `tel:` link and a `mailto:`
+     link with the address as the visible label. That was the product's largest
+     counterparty-PII surface, and its own copy promised the opposite ("Ton
+     numéro reste privé"). Both contact fields are GONE from this type, not
+     nulled: a type that still declares them invites the next person to fill them
+     back in. */
   studentName: string | null;
-  /* How the tutor reaches this student. The phone is OPTIONAL now (email is the
-     login identity, the number is collected during onboarding), so the email is
-     the one that always exists — render the phone when present, fall back to the
-     address, never show an empty contact cell. */
-  studentPhone: string | null;
-  studentEmail: string | null;
+  /** Monogram from the first name. Never the surname initial. */
+  studentInitials: string;
   bookedAt: string;              // ISO
   classTs: number;               // epoch ms of the class start (sort/upcoming)
   isFree: boolean;

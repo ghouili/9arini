@@ -9,11 +9,14 @@ import {
   MONTHS_FR,
   type ClassItem, type DashboardResult, type DashboardBooking,
   isEffectivelyFreeFirst,
+  publicProfile,
+  publicInitials,
 } from "@tnajem/shared";
 import { paymentsEnabled, tutorBalanceTnd } from "@tnajem/shared/payments";
 import { resolveMeetUrl } from "@tnajem/shared/live";
 import { db } from "../db";
 import { getSession } from "../lib/session";
+import { assertNoContactInfo, CONTACT_ERROR } from "../lib/contact-guard";
 
 /* classes — createClass, createPack, getClass, getDashboard. */
 
@@ -82,6 +85,22 @@ export async function classRoutes(app: FastifyInstance): Promise<void> {
        gets them INTO verification. */
     if (mine.status !== "verified") return { ok: false, error: "not-verified" };
 
+    /* ZERO CONTACT EXCHANGE (Step 8). A class title and description are rendered
+       on the PUBLIC storefront and in the class page's meta description, so a
+       number here reaches the open internet, not just the students who book.
+       Rejected, not masked: the tutor is on the form and can fix it now.
+
+       After the auth and verification gates, because assertNoContactInfo WRITES
+       flag rows and an unauthenticated caller must not be able to fill that table. */
+    if (
+      !(await assertNoContactInfo(session.profile.id, [
+        { surface: "class_title", value: title.value },
+        { surface: "class_description", value: description.value },
+      ]))
+    ) {
+      return { ok: false, error: CONTACT_ERROR };
+    }
+
     // meetUrl stays nullable: lib/live.ts derives a room from the class id when it
     // is empty, so the student's Join button is never dead.
     await db.insert(classes).values({
@@ -126,6 +145,16 @@ export async function classRoutes(app: FastifyInstance): Promise<void> {
     // Same verification gate as createClass — a rejected tutor does not get to
     // keep building a catalogue.
     if (mine.status !== "verified") return { ok: false, error: "not-verified" };
+
+    // A pack title is public storefront copy too. Same rule, same reason.
+    if (
+      !(await assertNoContactInfo(session.profile.id, [
+        { surface: "pack_title", value: title.value },
+        { surface: "pack_title", value: meta.value },
+      ]))
+    ) {
+      return { ok: false, error: CONTACT_ERROR };
+    }
 
     await db.insert(packs).values({
       tutorId: mine.id,
@@ -257,18 +286,16 @@ export async function classRoutes(app: FastifyInstance): Promise<void> {
       price_tnd: Number(p.priceTnd),
     }));
 
-    /* Who actually booked.
+    /* Who actually booked — A FIRST NAME AND NOTHING ELSE.
 
-       ⚠️ STEP 8 WILL CHANGE THIS. studentPhone and studentEmail are the product's
-       largest counterparty-PII surface: the dashboard renders them as a tel: link
-       and a mailto: link with the address as the visible label. Under the
-       zero-contact rule a tutor sees a FIRST NAME and nothing else.
+       Step 8 closed this. It used to select profiles.phone and profiles.email and
+       the dashboard rendered them as a `tel:` link and a `mailto:` link with the
+       address as the visible label: the product's largest counterparty-PII
+       surface, contradicted by its own copy ("Ton numéro reste privé").
 
-       They are ported UNCHANGED here on purpose. Stage A's contract is that
-       behaviour is identical, and quietly closing a leak mid-refactor would make
-       the E2E suite's "no behaviour change" claim untrue and hide the change in a
-       commit about plumbing. Step 8 closes it deliberately, with its own tests and
-       its own copy changes. */
+       THE COLUMNS ARE NOT SELECTED AT ALL. Not selected-then-dropped, not
+       selected-then-nulled — absent from the query, so there is no value in this
+       process to leak through a log line, an error payload or a future field. */
     const bookingRows = await db
       .select({
         bookingId: bookings.id,
@@ -279,8 +306,6 @@ export async function classRoutes(app: FastifyInstance): Promise<void> {
         status: bookings.status,
         bookedAt: bookings.createdAt,
         studentName: profiles.fullName,
-        studentPhone: profiles.phone,
-        studentEmail: profiles.email,
       })
       .from(bookings)
       // Single join, NOT a query per class.
@@ -294,9 +319,10 @@ export async function classRoutes(app: FastifyInstance): Promise<void> {
       bookingId: b.bookingId,
       classId: b.classId,
       classTitle: b.classTitle,
-      studentName: b.studentName,
-      studentPhone: b.studentPhone,
-      studentEmail: b.studentEmail,
+      // publicProfile is the ALLOW-LIST: it builds a new object from named
+      // fields, so a column added to profiles tomorrow cannot ride along.
+      studentName: publicProfile({ fullName: b.studentName }).name,
+      studentInitials: publicInitials(b.studentName),
       bookedAt: new Date(b.bookedAt).toISOString(),
       classTs: new Date(b.scheduledAt).getTime(),
       isFree: Boolean(b.isFree),

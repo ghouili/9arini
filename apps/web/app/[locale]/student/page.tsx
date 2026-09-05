@@ -43,6 +43,11 @@ const copy = bilingual({
     send: "Envoyer mon avis",
     sending: "Envoi…",
     thanks: "Merci ! Ton avis aide les autres élèves à choisir.",
+    /* Step 8: a review is MASKED, not refused — losing three paragraphs over one
+       line is worse than publishing them without it. Saying so matters: seeing
+       "[masqué]" on the storefront with no explanation reads as censorship of
+       the opinion rather than of the phone number. */
+    thanksMasked: "Merci ! Ton avis est publié — on a retiré les coordonnées (numéro, email ou lien), qui ne sont pas autorisées sur une page publique.",
     already: "Tu as déjà noté ce cours.",
     notBooked: "Tu n'étais pas inscrit à ce cours.",
     notStarted: "Ce cours n'a pas encore eu lieu.",
@@ -80,6 +85,7 @@ const copy = bilingual({
     send: "ابعث تقييمي",
     sending: "قاعد يتبعث…",
     thanks: "يعيشك ! تقييمك يعاون التلاميذ الآخرين.",
+    thanksMasked: "يعيشك ! تقييمك تنشر — نحّينا معلومات الاتصال (النمرة، الإيميل ولا الرابط)، علاخاطر موش مسموحة في صفحة عمومية.",
     already: "لقد نقّمت هذه الحصة من قبل.",
     notBooked: "ما كنتش محجوز في هذه الحصة.",
     notStarted: "هذه الحصة ما زالت ما صارتش.",
@@ -148,7 +154,7 @@ function RateBox({ item, onDone }: { item: StudentClass; onDone: () => void }) {
     const res = await createReview({ classId: item.classId, rating, text: text.trim() || undefined });
     setBusy(false);
     if (res.ok) {
-      setMsg({ kind: "ok", text: c.thanks });
+      setMsg({ kind: "ok", text: res.masked ? c.thanksMasked : c.thanks });
       setOpen(false);
       onDone();
       return;

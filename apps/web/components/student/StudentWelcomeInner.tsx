@@ -41,7 +41,7 @@ const COPY = {
 
     name: "Ton prénom et ton nom",
     namePh: "ex. Amine Karoui",
-    nameHelp: "C'est ce que ton prof voit quand tu réserves une séance. Ton numéro reste privé jusque-là.",
+    nameHelp: "Ton prof voit ton prénom quand tu réserves — rien d'autre. Ton numéro et ton email ne lui sont jamais montrés.",
 
     level: "Ton niveau",
     levelPh: "Choisir…",
@@ -72,7 +72,7 @@ const COPY = {
 
     name: "اسمك ولقبك",
     namePh: "مثال: أمين القروي",
-    nameHelp: "هذا اللي يشوفو أستاذك كي تحجز حصة. نمرتك تبقى مخبّية قبل هكّا.",
+    nameHelp: "أستاذك يشوف إسمك الأول كي تحجز — والو أكثر. نمرتك والإيميل متاعك عمرهم ما يتورّاولو.",
 
     level: "مستواك",
     levelPh: "اختر…",

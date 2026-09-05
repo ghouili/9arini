@@ -19,6 +19,7 @@ export default async function globalSetup(): Promise<void> {
   await sql`delete from sessions where profile_id not in (select id from profiles)`;
 
   const warmed = await warmRoutes();
+  await assertApiSharesOurDatabase();
 
   console.log(
     `\n[e2e] run id: ${process.env.E2E_RUN_ID}  ·  storage: ${STORAGE_DIR}  ·  warmed ${warmed} route(s)`,
@@ -77,4 +78,56 @@ async function warmRoutes(): Promise<number> {
     ),
   );
   return results.filter(Boolean).length;
+}
+
+/* IS THE API TALKING TO THE DATABASE WE ARE SEEDING?
+
+   This has now cost two debugging sessions, both identical: a `docker compose`
+   stack left running from an earlier gate holds port 4000, so the suite seeds
+   into the HOST database while every request goes to the CONTAINER's. Nothing
+   errors. Sessions simply do not resolve, every endpoint returns null or
+   not-authenticated, and a dozen specs fail with a dozen different-looking
+   messages that all point away from the real cause.
+
+   The check is direct rather than clever: write a session row HERE, then ask the
+   API who it belongs to THERE. If the API cannot see a row we just committed, it
+   is not on our database, and the only useful thing to do is say so and stop. */
+async function assertApiSharesOurDatabase(): Promise<void> {
+  const apiBase = process.env.E2E_API_URL ?? "http://127.0.0.1:4000";
+  const { randomUUID, randomBytes } = await import("node:crypto");
+  const { sql } = await import("./support/db");
+
+  const id = randomUUID();
+  const email = `e2e-dbcheck-${id.slice(0, 8)}@tnajem.invalid`;
+  const token = randomBytes(32).toString("hex");
+  try {
+    await sql`insert into profiles (id, email, role, locale, full_name, birth_year)
+              values (${id}, ${email}, 'student', 'fr', 'E2E DB Check', 1995)`;
+    await sql`insert into sessions (token, profile_id, expires_at)
+              values (${token}, ${id}, now() + interval '1 hour')`;
+
+    const res = await fetch(`${apiBase}/me`, { headers: { cookie: `tnajem_session=${token}` } });
+    const body = (await res.json().catch(() => null)) as { id?: string } | null;
+    if (body?.id !== id) {
+      throw new Error(
+        [
+          "",
+          `  E2E: the API at ${apiBase} is NOT using the database this suite seeds.`,
+          "  A session row committed here did not resolve there.",
+          "",
+          "  The usual cause is a docker compose stack still running and holding port",
+          "  4000 — it points at the container's Postgres, not yours. Run:",
+          "",
+          "      docker compose -f docker-compose.yml -f docker-compose.e2e.yml down",
+          "",
+          "  ...then re-run. To test the containers on purpose, use:",
+          "      npx playwright test --config=e2e/docker.config.ts",
+          "",
+        ].join("\n"),
+      );
+    }
+  } finally {
+    await sql`delete from sessions where profile_id = ${id}`.catch(() => {});
+    await sql`delete from profiles where id = ${id}`.catch(() => {});
+  }
 }

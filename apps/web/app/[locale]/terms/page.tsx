@@ -127,6 +127,7 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
         h: "8. Règles d'usage",
         p: ["En utilisant Tnajem, tu t'engages à ne pas :"],
         list: [
+          "échanger des coordonnées personnelles (numéro, email, lien, compte de messagerie) avec un prof ou un élève en dehors de Tnajem ;",
           "harceler, insulter, menacer ou discriminer qui que ce soit — élève, parent ou prof ;",
           "publier un contenu illégal, violent, haineux, sexuel, ou inadapté à des mineurs ;",
           "usurper l'identité d'une autre personne, ou mentir sur tes diplômes et ton expérience ;",
@@ -136,6 +137,8 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
           "envoyer du spam, de la publicité, ou détourner Tnajem de son objet éducatif.",
         ],
         after: [
+          "Les coordonnées personnelles restent privées des deux côtés. Un prof voit le prénom de son élève, jamais son numéro ni son email ; un élève voit le prénom de son prof. Nous ne transmettons ces informations à personne.",
+          "Les textes que tu écris — page de prof, séance, avis — sont analysés automatiquement pour repérer un numéro, un email, un lien ou un nom de messagerie. Sur ta page et tes séances, l'enregistrement est refusé et tu peux corriger. Dans un avis, les coordonnées sont retirées et le reste de ton texte est publié tel quel. Nous conservons le TYPE de ce qui a été détecté, jamais le texte détecté lui-même.",
           "En cas de manquement, nous pouvons retirer un contenu, suspendre ou supprimer un compte — sans préavis lorsque la sécurité des utilisateurs, en particulier des mineurs, l'exige.",
         ],
       },
@@ -279,6 +282,7 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
         h: "8. قواعد الاستعمال",
         p: ["كي تستعمل تنجّم، إنت تلتزم ما تعملش:"],
         list: [
+          "تبادل معلومات الاتصال الشخصية (نمرة، إيميل، رابط، حساب مراسلة) مع أستاذ ولا تلميذ برّة تنجّم؛",
           "مضايقة، شتيمة، تهديد ولا تمييز ضدّ أيّ واحد — تلميذ، وليّ ولا أستاذ؛",
           "نشر محتوى غير قانوني، عنيف، فيه كراهية، جنسي، ولا ما يصلحش للقاصرين؛",
           "انتحال شخصية غيرك، ولا الكذب على شهائدك وخبرتك؛",
@@ -288,6 +292,8 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
           "إرسال سبام ولا إشهار، ولا استعمال تنجّم في حاجة ما عندهاش علاقة بالتعليم.",
         ],
         after: [
+          "معلومات الاتصال الشخصية تبقى مخبّية من الجهتين. الأستاذ يشوف الإسم الأول متاع تلميذو، عمرو ما يشوف نمرتو ولا إيميلو؛ والتلميذ يشوف الإسم الأول متاع أستاذو. ما نعطيو هالمعلومات لحتّى حد.",
+          "النصوص اللي تكتبها — صفحة الأستاذ، الحصة، التقييم — تتفحّص آليًا باش نلقاو نمرة، إيميل، رابط ولا إسم تطبيق مراسلة. في صفحتك وحصصك، التسجيل يترفض وتنجّم تصلّح. في التقييم، معلومات الاتصال تتنحّى والباقي يتنشر كيما هو. نحتفظو بنوع اللي تلقى، عمرنا ما نحتفظو بالنصّ روحو.",
           "في صورة الإخلال، ننجّمو ننحّيو محتوى، نعلّقو ولا نحذفو حساب — وبلا إعلام مسبق كي تكون سلامة المستعملين، وبالخصوص القاصرين، في خطر.",
         ],
       },

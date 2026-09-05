@@ -12,6 +12,7 @@ import {
 import { resolveMeetUrl } from "@tnajem/shared/live";
 import { db } from "../db";
 import { getSession } from "../lib/session";
+import { maskAndFlag } from "../lib/contact-guard";
 import { checkRateLimit } from "../lib/rate-limit";
 import { recomputeTutorStats } from "../lib/stats";
 
@@ -75,6 +76,20 @@ export async function miscRoutes(app: FastifyInstance): Promise<void> {
       return { ok: false, error: "class-not-started" };
     }
 
+    /* ZERO CONTACT EXCHANGE (Step 8) — MASKED here, not rejected.
+
+       A review is published on a public storefront, so contact details in one
+       cannot stand. But rejecting the write is the wrong tool: a student who has
+       written three paragraphs about a class and put a number in the last line
+       would lose the three paragraphs, and unlike a tutor editing their own bio
+       they are unlikely to come back and try again. The details go, the argument
+       stays, and a flag is recorded.
+
+       The masking happens BEFORE the transaction on purpose: it does I/O (the
+       flag insert), and holding a write transaction open across it would widen
+       the window on the lost-update race the transaction exists to prevent. */
+    const review = await maskAndFlag(uid, "review", text.value);
+
     /* Insert + stat recompute in ONE transaction. recomputeTutorStats is a single
        UPDATE with the aggregates as subqueries, so two students reviewing the same
        tutor concurrently cannot both read the old average and write it back — the
@@ -86,7 +101,7 @@ export async function miscRoutes(app: FastifyInstance): Promise<void> {
           studentId: uid,
           classId: cls.id,
           rating: rating.value,
-          text: text.value,
+          text: review.text,
         });
         await recomputeTutorStats(cls.tutorId, tx);
       });
@@ -103,7 +118,16 @@ export async function miscRoutes(app: FastifyInstance): Promise<void> {
       .where(eq(tutors.id, cls.tutorId))
       .limit(1);
 
-    return { ok: true, revalidate: tut?.slug ? { tutors: [tut.slug] } : undefined };
+    /* `masked` goes back so the UI can TELL the student what happened. Silently
+       editing someone's words and publishing the result is worse than refusing:
+       they would see "[masqué]" on the storefront and reasonably think the site
+       is broken — or that we censored their opinion rather than their phone
+       number. */
+    return {
+      ok: true,
+      masked: review.masked,
+      revalidate: tut?.slug ? { tutors: [tut.slug] } : undefined,
+    };
   });
 
   /* ── POST /consent ───────────────────────────────────────────────────────── */
