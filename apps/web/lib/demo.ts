@@ -60,6 +60,9 @@ const devStorefront: Storefront = {
     // The dev fixture opts IN, so the audit harness can still walk the badge and
     // the "free" checkout copy. It is dev-only by construction (demoEnabled).
     offers_free_first_session: true,
+    // No fixture photo: the demo tutor is not a real person and must not wear a
+    // real face. The monogram is the honest render.
+    has_photo: false,
   },
   classes: devClasses,
   packs: devPacks,
@@ -76,6 +79,7 @@ const inertStorefront: Storefront = {
     // FALSE in the inert value, like every other field: if a missed code path ever
     // renders this on a real deploy it must not promise a free session.
     offers_free_first_session: false,
+    has_photo: false,
   },
   classes: [],
   packs: [],

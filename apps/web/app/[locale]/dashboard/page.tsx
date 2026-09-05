@@ -9,10 +9,12 @@ import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { getDashboard, getNotifications, markNotificationsRead, setFreeFirstSession } from "@/app/actions";
 import { MessageBookingButton } from "@/components/MessageBookingButton";
 import { ClassActions } from "@/components/dashboard/ClassActions";
+import { AvatarUpload } from "@/components/dashboard/AvatarUpload";
 import { WrongRoleNotice } from "@/components/WrongRoleNotice";
 import { buildTutorSteps, STEP_COPY } from "@/lib/onboarding-steps";
 import type { OnboardingStep, StepState } from "@/lib/onboarding-steps";
 import type { DashboardData, DashboardBooking, NotificationItem, DashboardResult } from "@tnajem/shared";
+import { initials } from "@tnajem/shared";
 import { bilingual } from "@/lib/i18n";
 
 /* Page-local copy (never edit lib/i18n.ts from here). FR + Derija, RTL-safe.
@@ -792,6 +794,17 @@ function RealDashboard(
 
       {/* Share link — the only way students find them */}
       {d.slug && <SharePanel slug={d.slug} c={c} />}
+
+      {/* Step 13. Beside the free-session toggle because both are things a tutor
+          sets ABOUT their public page, and both only make sense once one exists. */}
+      {d.has_storefront && d.slug && (
+        <AvatarUpload
+          slug={d.slug}
+          initials={initials(d.name ?? "")}
+          status={d.avatarStatus}
+          onChanged={onChanged}
+        />
+      )}
 
       {/* Free first session — only once a storefront exists, since it is a claim
           made ON that page and there is nowhere to make it before then. */}

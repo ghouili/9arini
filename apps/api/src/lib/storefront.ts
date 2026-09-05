@@ -41,6 +41,9 @@ export async function getStorefrontData(slug: string): Promise<Storefront | null
     students_count: t.studentsCount ?? 0,
     verified: Boolean(t.verified),
     offers_free_first_session: t.offersFreeFirstSession,
+    /* APPROVED only. A pending photo is unreviewed — it could be anything — and
+       this payload feeds an ISR-cached public page. */
+    has_photo: t.avatarStatus === "approved" && Boolean(t.avatarPath),
   };
 
   const mapClass = (c: (typeof cls)[number]): ClassItem => {

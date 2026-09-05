@@ -6,6 +6,7 @@
    so Button/Card/Chip/Avatar/Spinner/Verified stay usable from server components. */
 import { Children, cloneElement, isValidElement, useId } from "react";
 import type { ReactNode, ReactElement, CSSProperties } from "react";
+import Image from "next/image";
 
 type BtnProps = {
   children: ReactNode;
@@ -71,10 +72,47 @@ export function Chip({ children, kind = "soft", className = "", style }: { child
   return <span className={`chip chip-${kind}${className ? ` ${className}` : ""}`} style={style}>{children}</span>;
 }
 
-export function Avatar({ initials, size = 78, square }: { initials: string; size?: number; square?: boolean }) {
+/* THE MONOGRAM IS THE DEFAULT, and it stays the default. Most tutors will never
+   upload a photo, minors may never have one, and an unreviewed photo renders as
+   initials to everyone but its owner — so `src` is the exception, not the norm.
+
+   `unoptimized`, and the reason is specific rather than lazy. /_next/image
+   fetches the source SERVER-SIDE, without the viewer's cookies, so a tutor
+   previewing their own PENDING photo would get a 404 from an endpoint that
+   correctly refuses an anonymous request. There is also nothing to gain: these
+   are already exactly the three sizes the product renders, re-encoded to WebP at
+   upload (see apps/api/src/lib/avatar.ts). next/image is still the component —
+   width, height and lazy loading, so no layout shift — just not the optimiser. */
+export function Avatar({
+  initials,
+  size = 78,
+  square,
+  src,
+  alt,
+}: {
+  initials: string;
+  size?: number;
+  square?: boolean;
+  src?: string | null;
+  alt?: string;
+}) {
+  const radius = square ? size * 0.28 : 20;
+  if (src) {
+    return (
+      <Image
+        src={src}
+        alt={alt ?? ""}
+        width={size}
+        height={size}
+        unoptimized
+        className={`avatar${square ? " sq" : ""}`}
+        style={{ width: size, height: size, borderRadius: radius, objectFit: "cover" }}
+      />
+    );
+  }
   return (
     <div className={`avatar${square ? " sq" : ""}`}
-      style={{ width: size, height: size, fontSize: size * 0.38, borderRadius: square ? size * 0.28 : 20 }}>
+      style={{ width: size, height: size, fontSize: size * 0.38, borderRadius: radius }}>
       {initials}
     </div>
   );

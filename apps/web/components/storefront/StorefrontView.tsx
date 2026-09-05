@@ -273,7 +273,16 @@ export function StorefrontView({
           <div className="sf-hero">
             {/* Tutor identity */}
             <div className="sf-hero-id">
-              <Avatar initials={tutor.avatar_initials} size={88} />
+              {/* The photo only when it is APPROVED — has_photo already means that
+                  (apps/api/src/lib/storefront.ts), so this component never has to
+                  know about moderation state. `md` is 160px, twice the 88px slot,
+                  so it stays sharp on a retina phone. */}
+              <Avatar
+                initials={tutor.avatar_initials}
+                size={88}
+                src={tutor.has_photo ? `/api/avatar/${tutor.slug}/md` : null}
+                alt={tutor.full_name}
+              />
               <div className="min-w-0">
                 <h1 className="web-h2 sf-name">
                   <span className="sf-name-txt">{tutor.full_name}</span>

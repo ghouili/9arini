@@ -14,6 +14,11 @@ export type Tutor = {
   rating: number;
   students_count: number;
   verified: boolean;
+  /* TRUE only when an APPROVED photo exists on a public tutor. The URL is derived
+     from the slug, so no path or timestamp leaks into a public payload — and a
+     false here means "render the monogram", which is what every avatar slot did
+     before Step 13 and still does for most tutors. */
+  has_photo: boolean;
   /* Opt-in, per tutor, default false. The storefront needs it separately from
      ClassItem.is_free_first because tutor-level copy ("Première séance offerte"
      as a badge on the profile, the JSON-LD Offer) is rendered even when the
@@ -145,6 +150,10 @@ export type DashboardData = {
      feature permanently off for everyone, which is not "opt-in", it is
      "removed". */
   offersFreeFirstSession: boolean;
+  /* The tutor's own photo state, or null when they have none. Only THEY see this
+     — it is on the dashboard payload, not the public storefront, which reports a
+     plain has_photo and only for an approved one. */
+  avatarStatus: "pending" | "approved" | "rejected" | null;
   classes: DashboardClass[];
   packs: DashboardPack[];
   bookings: DashboardBooking[]; // who actually booked (across all their classes)

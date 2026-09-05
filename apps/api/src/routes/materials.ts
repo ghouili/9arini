@@ -10,6 +10,7 @@ import {
 } from "@tnajem/db";
 import {
   isUuid,
+  isMinorBirthYear,
   parseYouTubeId,
   safeFileName,
   vText,
@@ -22,6 +23,7 @@ import {
 import { db } from "../db";
 import { getSession } from "../lib/session";
 import { readUploadPart } from "../lib/uploads";
+import { processAvatar, AVATAR_SIZES } from "../lib/avatar";
 import { assertNoContactInfo, CONTACT_ERROR } from "../lib/contact-guard";
 import { checkRateLimit } from "../lib/rate-limit";
 import { requireAdmin } from "../lib/admin";
@@ -56,6 +58,10 @@ import { requireAdmin } from "../lib/admin";
    Videos store an 11-character id, never a URL — see parseYouTubeId. */
 
 const MAX_MATERIAL_BYTES = 8 * 1024 * 1024;
+/* Smaller than a worksheet on purpose: this is one face, re-encoded to at most
+   320px. Anything larger is a camera original nobody needs us to keep. */
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
+const OK_AVATAR_MIME = /^image\/(png|jpeg|webp|heic)$/;
 const MAX_MATERIALS_PER_TUTOR = 200;
 
 /* Deliberately narrower than the ID-document allow-list: no HEIC. A worksheet is
@@ -377,6 +383,218 @@ export async function materialRoutes(app: FastifyInstance): Promise<void> {
       .where(eq(materials.id, m.id));
 
     return { ok: true, revalidate: { tutors: [mine.slug] } };
+  });
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     PROFILE PHOTOS (Step 13)
+     ══════════════════════════════════════════════════════════════════════════
+
+     THREE RULES, and each closes something specific:
+
+       1. NOTHING IS PUBLISHED ON UPLOAD. Every photo lands `pending` and is
+          visible only to its owner until a human approves it. There is no code
+          path that writes `approved` from this endpoint. A face on a public page
+          in a product used by children is not a "review it later" surface.
+
+       2. THE ORIGINAL IS NEVER STORED. sharp re-encodes to three sizes and drops
+          every metadata block, so the EXIF GPS tag a phone writes — the tutor's
+          home coordinates, usually — never reaches disk. See lib/avatar.ts.
+
+       3. A MINOR GETS A GENERATED AVATAR, NEVER A PHOTOGRAPH. Today this is
+          belt-and-braces: becomeTutor already refuses a minor, so no minor can
+          hold a tutor row. It is written here anyway because the guard that
+          matters is the one at the write site — if students ever get photos, or
+          if the age check is ever relaxed, this is the line that has to already
+          exist rather than the one someone remembers to add. */
+  app.post("/avatar", async (req) => {
+    const session = await getSession(req);
+    if (!session) return { ok: false, error: "not-authenticated" };
+
+    /* RULE 3, and it is checked FIRST — before the file is even read. A minor's
+       photograph should not exist in this process's memory, let alone on disk,
+       for the moments between reading it and refusing it. */
+    if (isMinorBirthYear(session.profile.birthYear)) {
+      return { ok: false, error: "minor-no-photo" };
+    }
+
+    const [mine] = await db
+      .select({ id: tutors.id, slug: tutors.slug, status: tutors.status })
+      .from(tutors)
+      .where(eq(tutors.profileId, session.profile.id))
+      .limit(1);
+    if (!mine) return { ok: false, error: "no-storefront" };
+
+    const rl = await checkRateLimit(`avatar:${session.profile.id}`, 10, 60 * 60_000);
+    if (!rl.ok) return { ok: false, error: "too-many-requests" };
+
+    let original: Buffer | null = null;
+    for await (const part of req.parts()) {
+      if (part.type !== "file") continue;
+      if (part.fieldname !== "photo") {
+        await part.toBuffer(); // drain, or the stream stalls
+        continue;
+      }
+      const read = await readUploadPart(part, {
+        maxBytes: MAX_AVATAR_BYTES,
+        allow: OK_AVATAR_MIME,
+      });
+      if (!read.ok) {
+        if (read.error === "file-required") continue;
+        return { ok: false, error: read.error };
+      }
+      original = read.value.bytes;
+    }
+    if (!original) return { ok: false, error: "file-required" };
+
+    const processed = await processAvatar(original);
+    if (!processed.ok) return { ok: false, error: processed.error };
+
+    const stamp = Date.now();
+    const dir = join(storageBase(), "avatars", mine.id);
+    await mkdir(dir, { recursive: true });
+    for (const out of processed.value) {
+      await writeFile(join(dir, `${stamp}-${out.name}.webp`), out.bytes);
+    }
+
+    /* RULE 1. `pending`, always. If this ever reads anything else, the review
+       step has been removed and photos publish themselves. */
+    await db
+      .update(tutors)
+      .set({
+        avatarPath: ["avatars", mine.id, String(stamp)].join("/"),
+        avatarStatus: "pending",
+        avatarUpdatedAt: raw`now()`,
+      })
+      .where(eq(tutors.id, mine.id));
+
+    /* The storefront is cached and shows the monogram until approval, so nothing
+       changes there yet — but a REPLACEMENT photo un-approves the old one, and
+       that must reach the cached page immediately. */
+    return { ok: true, status: "pending", revalidate: { tutors: [mine.slug] } };
+  });
+
+  /* ── DELETE the photo (POST, to match every other mutation here) ─────────── */
+  app.post("/avatar/delete", async (req) => {
+    const session = await getSession(req);
+    if (!session) return { ok: false, error: "not-authenticated" };
+
+    const [mine] = await db
+      .select({ id: tutors.id, slug: tutors.slug })
+      .from(tutors)
+      .where(eq(tutors.profileId, session.profile.id))
+      .limit(1);
+    if (!mine) return { ok: false, error: "no-storefront" };
+
+    /* The row is cleared; the files are left for the retention job rather than
+       unlinked here. A failed unlink must not leave the database claiming a photo
+       that is gone — the ordering that matters is "stop pointing at it first". */
+    await db
+      .update(tutors)
+      .set({ avatarPath: null, avatarStatus: null, avatarUpdatedAt: raw`now()` })
+      .where(eq(tutors.id, mine.id));
+
+    return { ok: true, revalidate: { tutors: [mine.slug], publicTutors: true } };
+  });
+
+  /* ── GET /tutors/:slug/avatar/:size — the bytes ──────────────────────────── */
+  app.get<{ Params: { slug: string; size: string } }>(
+    "/tutors/:slug/avatar/:size",
+    async (req, reply) => {
+      const size = AVATAR_SIZES.find((s) => s.name === req.params.size);
+      if (!size) return reply.code(404).send({ error: "not-found" });
+
+      const [t] = await db
+        .select({
+          id: tutors.id,
+          profileId: tutors.profileId,
+          status: tutors.status,
+          avatarPath: tutors.avatarPath,
+          avatarStatus: tutors.avatarStatus,
+        })
+        .from(tutors)
+        .where(eq(tutors.slug, req.params.slug))
+        .limit(1);
+      if (!t || !t.avatarPath) return reply.code(404).send({ error: "not-found" });
+
+      /* WHO MAY SEE IT.
+
+         approved + the tutor is public  -> anyone. It is on their storefront.
+         anything else                   -> the OWNER alone.
+
+         A `pending` photo is not merely unpublished, it is unreviewed: it could
+         be anything at all, and the one person entitled to see it before a human
+         does is the person who uploaded it. */
+      const isOwner = t.profileId != null && t.profileId === (await getSession(req))?.profile.id;
+      const isPublic = t.avatarStatus === "approved" && t.status === "verified";
+      if (!isPublic && !isOwner) return reply.code(404).send({ error: "not-found" });
+
+      const abs = resolveDocPath(storageBase(), `${t.avatarPath}-${size.name}.webp`);
+      if (!abs) return reply.code(404).send({ error: "not-found" });
+      try {
+        await stat(abs);
+      } catch {
+        return reply.code(404).send({ error: "not-found" });
+      }
+
+      reply.header("content-type", "image/webp");
+      reply.header("x-content-type-options", "nosniff");
+      /* An APPROVED photo is public and immutable at this URL — the timestamp is
+         part of avatarPath, so a replacement is a different URL. A pending one
+         must never be cached anywhere: it can be revoked in the next minute. */
+      reply.header(
+        "cache-control",
+        isPublic ? "public, max-age=86400, immutable" : "private, no-store",
+      );
+      return reply.send(createReadStream(abs));
+    },
+  );
+
+  /* ── GET /admin/avatars — the review queue ───────────────────────────────── */
+  app.get("/admin/avatars", async (req) => {
+    const session = await requireAdmin(req);
+    if (!session) return [];
+    const rows = await db
+      .select({
+        tutorId: tutors.id,
+        slug: tutors.slug,
+        fullName: tutors.fullName,
+        updatedAt: tutors.avatarUpdatedAt,
+      })
+      .from(tutors)
+      .where(eq(tutors.avatarStatus, "pending"))
+      .orderBy(desc(tutors.avatarUpdatedAt))
+      .limit(200);
+    return rows.map((r) => ({
+      tutorId: r.tutorId,
+      slug: r.slug,
+      fullName: r.fullName,
+      updatedAt: r.updatedAt ? new Date(r.updatedAt).toISOString() : null,
+    }));
+  });
+
+  /* ── POST /admin/avatars/:tutorId — approve or reject ────────────────────── */
+  app.post<{ Params: { tutorId: string } }>("/admin/avatars/:tutorId", async (req, reply) => {
+    const parsed = z.object({ approve: z.boolean() }).safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: "bad-request" });
+
+    const session = await requireAdmin(req);
+    if (!session) return { ok: false, error: "forbidden" };
+    if (!isUuid(req.params.tutorId)) return { ok: false, error: "not-found" };
+
+    const [t] = await db
+      .select({ id: tutors.id, slug: tutors.slug, avatarStatus: tutors.avatarStatus })
+      .from(tutors)
+      .where(eq(tutors.id, req.params.tutorId))
+      .limit(1);
+    if (!t || t.avatarStatus == null) return { ok: false, error: "not-found" };
+
+    await db
+      .update(tutors)
+      .set({ avatarStatus: parsed.data.approve ? "approved" : "rejected" })
+      .where(eq(tutors.id, t.id));
+
+    /* An approval changes a PUBLIC page and the catalogue, so both caches go. */
+    return { ok: true, revalidate: { tutors: [t.slug], publicTutors: true } };
   });
 
   /* ── POST /materials/:id/takedown — a copyright claim, NO AUTH ───────────── */

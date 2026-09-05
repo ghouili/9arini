@@ -468,6 +468,20 @@ export async function createReview(input: { classId: string; rating: number; tex
   return call<ReviewResult>("/reviews", input);
 }
 
+/* ---------- Profile photo (Step 13) ----------
+   Multipart, so it goes through callMultipart. The response says `pending`, never
+   a URL: nothing is published on upload, and a client that received a live URL
+   here would be tempted to render it as though it were. */
+export async function uploadAvatar(form: FormData): Promise<ActionResult & { status?: string }> {
+  if (demoFallback) return { ok: true, demo: true };
+  return callMultipart<ActionResult & { status?: string }>("/avatar", form);
+}
+
+export async function deleteAvatar(): Promise<ActionResult> {
+  if (demoFallback) return { ok: true, demo: true };
+  return call<ActionResult>("/avatar/delete", {});
+}
+
 /* ---------- Tutor-side class lifecycle (Step 11) ----------
    Both are the TUTOR acting on their own class, and both are asymmetric with the
    student's cancel on purpose:

@@ -52,6 +52,10 @@ export const materialKind = pgEnum("material_kind", ["file", "youtube"]);
    that cannot surprise them. */
 export const materialVisibility = pgEnum("material_visibility", ["public", "students", "private"]);
 export const takedownStatus = pgEnum("takedown_status", ["open", "upheld", "rejected"]);
+/* PHOTO MODERATION (Step 13). A face on a public page that children browse is
+   reviewed before anyone but its owner can see it. "pending" is the only state a
+   fresh upload can be in — there is no path that publishes one directly. */
+export const avatarStatus = pgEnum("avatar_status", ["pending", "approved", "rejected"]);
 /* Where the text was written. Not a free string: this is the column a moderator
    filters on, and "review" vs "reviews" vs "Review" would quietly split it. */
 export const leakSurface = pgEnum("leak_surface", [
@@ -101,7 +105,17 @@ export const tutors = pgTable("tutors", {
   subject: text("subject").notNull(),
   level: text("level").default("Bac"),
   bio: text("bio"),
-  avatarUrl: text("avatar_url"),
+  /* THE PHOTO. Renamed from the dead `avatar_url` column, which was declared and
+     never once written or read — a URL is the wrong shape for this: nothing is
+     served statically, and the bytes live under STORAGE_DIR with an endpoint in
+     front. Holding a storage path in a column called "url" would mislead the next
+     reader on the most privacy-sensitive field the table has. */
+  avatarPath: text("avatar_path"),
+  /* Every upload lands as `pending` and stays invisible to everyone but its owner
+     until a human approves it. There is deliberately no "publish immediately"
+     path: this is a photograph, on a public page, in a product used by minors. */
+  avatarStatus: avatarStatus("avatar_status"),
+  avatarUpdatedAt: timestamp("avatar_updated_at", { withTimezone: true }),
   introVideoUrl: text("intro_video_url"),
   rating: numeric("rating", { precision: 2, scale: 1 }).default("0"),
   studentsCount: integer("students_count").default(0),

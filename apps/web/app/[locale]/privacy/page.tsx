@@ -106,6 +106,7 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
           "Réservations → organiser les séances, gérer les places et la règle d'annulation à 48 h et le registre des annulations.",
           "Messages échangés dans une conversation de séance → permettre à un prof et un élève de se parler sans échanger de coordonnées, et traiter les signalements. Les messages sont conservés tant que la réservation existe, puis supprimés avec elle. Un message n'est lu par personne chez Tnajem sauf s'il est signalé. Les coordonnées (numéro, email, lien) en sont retirées automatiquement avant enregistrement — nous conservons le TYPE de ce qui a été détecté, jamais le texte détecté.",
           "Documents et vidéos partagés par un prof → permettre à ses élèves d'y accéder. Les fichiers sont stockés hors du web public et ne sont servis qu'après vérification de tes droits (public, élève inscrit, ou le prof lui-même) — jamais par une adresse devinable. Une vidéo n'est pas hébergée ici : nous n'enregistrons que son identifiant YouTube et l'affichons sans cookie de suivi.",
+          "Photo de profil d'un prof → mettre un visage sur sa page. Elle est vérifiée par une personne avant d'être visible. Nous ne conservons PAS le fichier d'origine : la photo est réencodée en trois tailles et toutes ses données cachées sont effacées, y compris la localisation GPS que ton téléphone y inscrit. Les moins de 18 ans n'ont jamais de photo, seulement leurs initiales.",
           "Journaux et codes hachés → sécurité, lutte contre la fraude et les abus.",
         ],
         after: [
@@ -244,6 +245,7 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
           "الحجوزات ← تنظيم الحصص، الأماكن وقاعدة الإلغاء في 48 ساعة وسجل الإلغاءات.",
           "الرسائل في محادثة الحصة ← باش الأستاذ والتلميذ يتكلّمو بلا ما يتبادلو معلومات اتصال، وباش نعالجو التبليغات. الرسائل تتحفظ ما دام الحجز موجود، ومن بعد يتمسحو معاه. حتى حد في Tnajem ما يقرا رسالة كان ما تتبلّغش. معلومات الاتصال (نمرة، إيميل، رابط) تتنحّى آليًا قبل التسجيل — نحتفظو بنوع اللي تلقى، عمرنا ما نحتفظو بالنصّ.",
           "الوثائق والفيديوهات اللي ينشرهم الأستاذ ← باش تلامذتو يوصلولهم. الملفات تتخزّن برّة الويب العمومي وما تتقدّمش كان بعد ما نتثبّتو من حقّك (عمومي، تلميذ مسجّل، ولا الأستاذ روحو) — عمرها ما تكون بعنوان يتحزّر. الفيديو ما هوش مستضاف عندنا: نسجّلو برك المعرّف متاعو في يوتيوب ونعرضوه بلا كوكي تتبّع.",
+          "تصويرة الأستاذ ← باش يكون فمّا وجه في صفحتو. تتشاف من طرف إنسان قبل ما تظهر. ما نحتفظوش بالملف الأصلي: التصويرة تتعاود ترمّز في ثلاث أحجام وتتمسح المعطيات المخبّية الكل، ومنها موقع الـGPS اللي يكتبو تليفونك. اللي عمرو أقلّ من 18 سنة عمرو ما تكون عندو تصويرة، برك الحروف الأولى.",
           "السجلاّت والرموز المشفّرة ← الأمان ومقاومة الغشّ والتجاوزات.",
         ],
         after: [
