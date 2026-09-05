@@ -20,6 +20,7 @@ import { redirect } from "next/navigation";
 import { StudentWelcomeInner } from "@/components/student/StudentWelcomeInner";
 import { safeNext } from "@tnajem/shared";
 import { pageGuard, localeOf, localePath } from "@/lib/page-guard";
+import { getStudentPrefill } from "@/app/actions";
 import { STUDENT_LEVELS } from "@tnajem/shared";
 import type { StudentLevel, StudentProfile } from "@tnajem/shared";
 
@@ -50,13 +51,18 @@ export default async function StudentWelcomePage({
   const p = guard.profile;
   if (p.role !== "student") redirect(localePath(locale, "/onboarding"));
 
-  const level = STUDENT_LEVELS.includes(p.level as StudentLevel) ? (p.level as StudentLevel) : null;
+  /* The editable fields come from a dedicated self-profile endpoint, not from the
+     page guard: the guard's projection is deliberately minimal (id, role,
+     birthYear, fullName) so contact data never travels a hot path. */
+  const mine = await getStudentPrefill();
+  const rawLevel = mine?.level ?? null;
+  const level = STUDENT_LEVELS.includes(rawLevel as StudentLevel) ? (rawLevel as StudentLevel) : null;
   const initial: StudentProfile = {
-    fullName: p.fullName,
+    fullName: mine?.fullName ?? p.fullName,
     level,
     // Stored comma-joined (the tutors.languages convention) — see schema.ts.
-    subjects: (p.subjects ?? "").split(",").map((s) => s.trim()).filter(Boolean),
-    phone: p.phone,
+    subjects: (mine?.subjects ?? "").split(",").map((s: string) => s.trim()).filter(Boolean),
+    phone: mine?.phone ?? null,
   };
 
   return <StudentWelcomeInner next={next} initial={initial} />;

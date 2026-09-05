@@ -1,7 +1,6 @@
 import "server-only";
 import { callAnonymous } from "./api";
-import { demoFallback } from "./backend";
-import { dbReady } from "@/lib/db";
+import { demoFallback, backendReady } from "./backend";
 import { demoEnabled, demoStorefront } from "@/lib/demo";
 import type { Storefront, Tutor, ClassItem, Pack } from "@tnajem/shared";
 
@@ -10,11 +9,11 @@ import type { Storefront, Tutor, ClassItem, Pack } from "@tnajem/shared";
 
    Two modes, and only two:
 
-     • DEVELOPMENT, no DATABASE_URL → demo fixtures (lib/demo.ts). Genuinely
+     • DEVELOPMENT, no API_URL → demo fixtures (lib/demo.ts). Genuinely
        useful: the whole UI runs with zero setup.
-     • PRODUCTION, no DATABASE_URL  → a hard error. NOT fixtures.
+     • PRODUCTION, no API_URL  → a hard error. NOT fixtures.
 
-   The second rule is the important one. `dbReady` is false whenever DATABASE_URL
+   The second rule is the important one. `backendReady` is false whenever API_URL
    is missing — including on a misconfigured deploy or after a rotated secret. The
    old code returned `demoStorefront` in that case *for any slug*, so a production
    boot without a DB would have served a fabricated "4.9★, 1,240 students,
@@ -29,23 +28,30 @@ import type { Storefront, Tutor, ClassItem, Pack } from "@tnajem/shared";
    ══════════════════════════════════════════════════════════════════════════════ */
 
 /** True only when serving fixtures is allowed: dev, and no database configured. */
-export const demoFallbackActive: boolean = !dbReady && demoEnabled;
+export const demoFallbackActive: boolean = demoFallback;
 
-/** Thrown when production boots without DATABASE_URL. Surfaces as app/error.tsx (500). */
+/** Thrown when production boots with no backend. Surfaces as app/error.tsx (500). */
 export class DatabaseNotConfiguredError extends Error {
   constructor(op: string) {
     super(
-      `[Tnajem] DATABASE_URL is not set — refusing to serve demo data from ${op} in production. ` +
+      `[Tnajem] API_URL is not set — refusing to serve demo data from ${op} in production. ` +
         "Fix the deployment env; the demo fallback is development-only by design.",
     );
     this.name = "DatabaseNotConfiguredError";
   }
 }
 
-/** Single choke point for every "no DB" branch below. */
+/** Single choke point for every "no backend" branch below.
+
+    The condition moved from dbReady to backendReady when apps/web stopped owning
+    the database: the question is no longer "is a database configured?" but "is
+    there an API to call?". The rule it enforces is unchanged and is the important
+    part — a PRODUCTION process with no backend must throw, never fabricate a
+    tutor. A site-wide 404 storm would tell Google to deindex every real tutor
+    page, while a 5xx honestly says "we are broken" and pages someone. */
 function assertNotProdWithoutDb(op: string): void {
-  if (dbReady || demoEnabled) return;
-  console.error(`[Tnajem] FATAL: ${op} called in production with no DATABASE_URL.`);
+  if (backendReady || demoEnabled) return;
+  console.error(`[Tnajem] FATAL: ${op} called in production with no API_URL.`);
   throw new DatabaseNotConfiguredError(op);
 }
 
@@ -65,7 +71,7 @@ export async function getStorefront(slug: string): Promise<Storefront | null> {
 
      This is NOT a server action — it is a direct DB read feeding the ISR-cached
      storefront and the sitemap, which is exactly why GATE 4's grep
-     (`grep -rn "from '@tnajem/db'" apps/web/app apps/web/components`) would have
+     (a grep for the db package under apps/web/app and apps/web/components) would have
      reported success while apps/web/lib still held a Postgres pool for the
      most-trafficked page in the product. Widen the gate to all of apps/web.
 
@@ -82,7 +88,7 @@ export type PublicTutorRef = { slug: string; lastModified: Date };
    pending/rejected tutor 404s, so listing them would feed Google dead URLs.
 
    Never throws: the sitemap is generated at build time, and a build box without
-   DATABASE_URL must still emit the static routes rather than fail the build. The
+   no backend must still emit the static routes rather than fail the build. The
    caller degrades to the static list; it does NOT get fixtures (the demo slug is
    not a real page, and pointing a crawler at it would be exactly the fabrication
    the rest of this file exists to prevent). */

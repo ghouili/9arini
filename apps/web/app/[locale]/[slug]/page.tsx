@@ -142,7 +142,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 // Public tutor storefront (tnajem.tn/<slug>). Server component: fetches from Postgres
-// via the cached data layer (falls back to demo data when no DATABASE_URL is set).
+// via the cached data layer (falls back to demo data when no API_URL is set).
 // Reviews are fetched here (server-side) so the storefront ships them in the first
 // paint — no client round-trip on a 3G phone.
 export default async function StorefrontPage({ params }: Props) {

@@ -1,13 +1,12 @@
 "use server";
-import { dbReady } from "@/lib/db";
+/* Cookies only. Everything that decides identity now lives in apps/api — see the
+   header of lib/auth.ts. */
 import {
-  normalizePhone, isValidPhone, createOtp, verifyOtpCode, otpCooldownRemaining,
-  createSession, destroySession, getSession, setDemoCookie, checkRateLimit, clientIp,
-  setRoleHint, otpChannel, normalizeEmail, isValidEmail,
-  OTP_RESEND_COOLDOWN_SEC, OTP_TTL_SEC, adoptSession,} from "@/lib/auth";
+  destroySession, setDemoCookie, setRoleHint, adoptSession,
+  OTP_RESEND_COOLDOWN_SEC, OTP_TTL_SEC,
+} from "@/lib/auth";
 import { demoClasses, demoEnabled } from "@/lib/demo";
 import { revalidateTutor, revalidatePublicTutors } from "@/lib/cache";
-import { requireAdmin, adminNotifyEmails } from "@/lib/admin";
 import { call, callAnonymous, callMultipart } from "@/lib/api";
 import { demoFallback } from "@/lib/backend";
 import { paymentsEnabled, tutorBalanceTnd } from "@tnajem/shared/payments";
@@ -34,7 +33,7 @@ const DASH_MONTHS = ["JANV", "FÉVR", "MARS", "AVR", "MAI", "JUIN", "JUIL", "AO�
 const CANCEL_WINDOW_MS = 24 * 60 * 60 * 1000; // the UI promises free cancellation up to 24h before
 
 /* Server actions = the write/auth path. Callable from client components.
-   In demo mode (no DATABASE_URL) they degrade gracefully so the UI still works.
+   In demo mode (no API_URL, dev only) they degrade gracefully so the UI still works.
    Every input goes through lib/validation.ts — actions are a public surface. */
 
 export type ActionResult = { ok: boolean; demo?: boolean; slug?: string; error?: string };
@@ -81,11 +80,11 @@ export async function requestOtp(input: { identifier: string; locale?: string })
     resendAfter?: number; expiresIn?: number;
   }> {
   if (demoFallback) {
-    /* Demo mode (no DATABASE_URL) — the UI-audit harness and local preview. The
+    /* Demo mode (no API_URL, dev only) — the UI-audit harness and local preview. The
        sentinel code is still withheld in production: a prod deploy that lost its
-       DATABASE_URL must degrade to "can't sign in", never to "sign in as anyone".
+       backend must degrade to "can't sign in", never to "sign in as anyone".
        Kept on the WEB side because it exists to keep `next build` and the audit
-       harness working without a database; apps/api asserts DATABASE_URL at boot. */
+       harness working without a backend; apps/api asserts its own config at boot. */
     return IS_PROD
       ? { ok: false, error: "send-failed" }
       : { ok: true, demo: true, devCode: "000000", resendAfter: OTP_RESEND_COOLDOWN_SEC, expiresIn: OTP_TTL_SEC };
@@ -138,7 +137,7 @@ export async function logout(): Promise<{ ok: boolean }> {
      cleared cookie with a live row means anyone holding the token is still signed
      in, and a deleted row with a live cookie means the browser keeps sending a
      token that no longer resolves. destroySession() does the cookie half. */
-  if (dbReady) {
+  if (!demoFallback) {
     try {
       await call("/auth/logout");
     } catch {
@@ -235,6 +234,14 @@ export async function createTutor(input: { name: string; subject: string; bio: s
      only works inside a Next request scope, so cache busting cannot move to the
      API. See apps/web/lib/api.ts rule 4. */
   return call<ActionResult>("/tutors", input);
+}
+
+/** The signed-in student's OWN editable profile, for prefilling /student/welcome. */
+export async function getStudentPrefill(): Promise<
+  { fullName: string | null; level: string | null; subjects: string | null; phone: string | null } | null
+> {
+  if (demoFallback) return null;
+  return call("/profile/student/prefill", undefined, "GET");
 }
 
 export async function getOnboardingState(): Promise<OnboardingState | null> {
@@ -391,7 +398,7 @@ export async function rejectTutor(input: { tutorId: string; note?: string }): Pr
 /* ---------- Explore feed (real, verified tutors only) ----------
    rating/review_count come from the reviews table, price_from from the tutor's
    cheapest published class. Filters: `subject` (chip) + `q` (free text over name,
-   subject, level, bio). Demo mode (no DATABASE_URL) → null so the Explore page
+   subject, level, bio). Demo mode (no API_URL) → null so the Explore page
    keeps its static preview; with a DB, an empty catalogue returns [] — we never
    pass demo tutors off as real ones. */
 export async function getExploreTutors(filters?: { subject?: string; q?: string }): Promise<ExploreTutor[] | null> {

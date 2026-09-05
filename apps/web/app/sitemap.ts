@@ -4,11 +4,27 @@ import { LOCALES } from "@/lib/locale";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://tnajem.tn";
 
-/* Regenerate at most once an hour. Without this, /sitemap.xml is a dynamic route
-   (it reads the DB) and every crawler hit runs an unbounded `select ... from tutors
-   where status = 'verified'`. Cached, that scan runs once an hour no matter who asks.
-   Literal on purpose (Next needs a static value); keep equal to SITEMAP_TTL (3600). */
+/* Regenerate at most once an hour. Without this, every crawler hit would run an
+   unbounded scan of verified tutors; cached, it runs once an hour no matter who
+   asks. Literal on purpose (Next needs a static value); keep equal to SITEMAP_TTL.
+
+   The actual caching is done by unstable_cache in lib/cache.ts, which is what
+   bounds the API call. */
 export const revalidate = 3600;
+
+/* GENERATED AT REQUEST TIME, NOT AT BUILD TIME.
+
+   The tutor list now comes from apps/api over HTTP, and there is no API running
+   during `next build` — a container image is built with nothing else up. Left
+   prerendered, the build FAILED with "Error occurred prerendering page
+   /sitemap.xml", which is at least loud; the tempting "fix" of catching the fetch
+   error and returning [] would have been far worse, silently shipping a sitemap
+   with zero tutor pages and taking every storefront out of Google's discovery
+   path. (That exact regression happened once already this refactor.)
+
+   So the sitemap is dynamic and the hourly unstable_cache entry does the work.
+   The first crawler after a deploy pays one API call; nobody else does. */
+export const dynamic = "force-dynamic";
 
 /* Every page exists in both locales (/fr/… and /ar/…). Each sitemap entry carries
    hreflang alternates (Next emits <xhtml:link rel="alternate">), so Google learns

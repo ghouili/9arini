@@ -1,319 +1,65 @@
 import "server-only";
-import { cookies, headers } from "next/headers";
-import { createHash, randomBytes, randomInt, timingSafeEqual } from "crypto";
-import { and, desc, eq, lt, sql } from "@tnajem/db";
-import { db, dbReady } from "./db";
-import { profiles, sessions, otpCodes, rateLimits } from "@tnajem/db";
-// Pure module (no server-only marker), so the CLIENT form can share this exact
-// check — which is the whole reason it does not live in this file.
-import { isValidEmail, normalizeEmail, normalizePhone, isValidPhone } from "@tnajem/shared";
-/* The subpath, NOT the barrel: auth-core imports node:crypto, and the barrel is
-   imported by client components — re-exporting it there breaks the web build with
-   "UnhandledSchemeError: Reading from node:crypto is not handled". */
+import { cookies } from "next/headers";
 import {
   SESSION_COOKIE,
   ROLE_HINT_COOKIE,
   SESSION_DAYS,
-  OTP_TTL_MIN,
-  MAX_ATTEMPTS,
-  OTP_RESEND_COOLDOWN_MS,
   OTP_RESEND_COOLDOWN_SEC,
   OTP_TTL_SEC,
-  hashOtpCode,
-  safeEq,
   warnIfSecretMissing,
 } from "@tnajem/shared/auth-core";
 
-/* Custom OTP + session auth on Postgres (no external auth dep).
+/* COOKIES ONLY.
 
-   The code goes to an EMAIL address by default; OTP_CHANNEL=sms switches it back to
-   a text message (see otpChannel() below — the SMS path is kept live, not commented
-   out). Delivery is pluggable either way: when no provider is configured, requestOtp
-   returns the code so the flow is completable in dev. Sessions are opaque tokens in
-   an HTTP-only cookie, backed by the `sessions` table. */
+   Everything that decides identity — the OTP lifecycle, the session row, the rate
+   limiter, the admin allowlist — now lives in apps/api. What is left here is the
+   half the API cannot do: writing a cookie on the BROWSER. apps/api is talking to
+   this server, not to the user's browser, so it returns the token it minted and
+   this file sets it.
 
-/* The session/OTP agreements live in @tnajem/shared/auth-core so apps/api and
-   this app cannot drift apart. During Step 4 both processes validate the SAME
-   sessions and verify the SAME otp_codes rows concurrently; a hash construction
-   or cookie name that differed even slightly would break login in a way that
-   looks intermittent. Re-exported so every `@/lib/auth` import is untouched. */
+   That is the whole reason this module still exists. It holds no database handle,
+   builds no query, and hashes nothing.
+
+   The constants and the OTP hash live in @tnajem/shared/auth-core so both
+   processes agree byte for byte; they are re-exported here so no call site had to
+   move during the port. */
+
 export { SESSION_COOKIE, ROLE_HINT_COOKIE, OTP_RESEND_COOLDOWN_SEC, OTP_TTL_SEC };
+export type { OtpChannel } from "@tnajem/shared/auth-core";
+export { otpChannel } from "@tnajem/shared/auth-core";
+export {
+  normalizeEmail,
+  normalizePhone,
+  isValidPhone,
+  isValidEmail,
+} from "@tnajem/shared";
 
 warnIfSecretMissing();
 
-/* ══════════════ Rate limiting (dependency-free, in-process) ══════════════
-   A fixed-window counter kept in a module-level Map.
+/* NON-SENSITIVE UI hint, readable by the client. It lets <SiteHeader> render the
+   right nav link WITHOUT a getMe() round-trip on every page load — the request
+   that made every perfectly-cached page drag an uncacheable call behind it.
 
-   LIMITATION — READ BEFORE SCALING OUT: the counters live in the Node process's
-   memory. On a multi-instance deploy each instance keeps its own window, so the
-   effective limit is (instances × limit), and a rolling deploy resets them. That
-   is an acceptable trade for the pilot (single box) because it still shuts down
-   the case we are actually exposed to: one client hammering one endpoint. Before
-   running more than one instance, back these counters with Postgres or Redis.
-
-   It is NOT a substitute for the per-code attempt counter on otp_codes (that one
-   is durable and survives a restart) — the two layers stack on purpose. */
-type Bucket = { count: number; resetAt: number };
-const buckets = new Map<string, Bucket>();
-const MAX_BUCKETS = 20_000; // hard memory bound — an attacker rotating IPs can't grow this forever
-
-export type RateLimitResult = { ok: boolean; retryAfter: number };
-
-export function rateLimit(key: string, limit: number, windowMs: number): RateLimitResult {
-  const now = Date.now();
-
-  // Opportunistic sweep of expired windows; only when the map actually grows large.
-  if (buckets.size >= MAX_BUCKETS) {
-    for (const [k, b] of buckets) if (b.resetAt <= now) buckets.delete(k);
-    // Still full of live windows → we are under a distributed flood. Fail CLOSED:
-    // refusing a few legitimate requests beats letting the limiter be bypassed.
-    if (buckets.size >= MAX_BUCKETS) return { ok: false, retryAfter: 60 };
-  }
-
-  const b = buckets.get(key);
-  if (!b || b.resetAt <= now) {
-    buckets.set(key, { count: 1, resetAt: now + windowMs });
-    return { ok: true, retryAfter: 0 };
-  }
-  if (b.count >= limit) return { ok: false, retryAfter: Math.max(1, Math.ceil((b.resetAt - now) / 1000)) };
-  b.count += 1;
-  return { ok: true, retryAfter: 0 };
-}
-
-/* ══════════════ Durable rate limiting (Postgres-backed) ══════════════
-   The in-process limiter above is per-process and resets on deploy, so on a
-   multi-instance / pm2-cluster deploy the real ceiling is (instances × limit) and
-   a rolling restart wipes every window. That is fine for a single box but is the
-   one thing standing between the pilot and running more than one instance
-   (SCALABILITY.md / the launch brief). This backs the same fixed-window semantics
-   with a shared `rate_limits` row so every instance increments ONE counter.
-
-   The whole check is a single atomic INSERT ... ON CONFLICT DO UPDATE: concurrent
-   requests (on any instance) serialize on the row, so the counter can't be raced.
-     • window still open  → count = count + 1, reset_at unchanged
-     • window elapsed     → count = 1, reset_at = now + window (fresh window)
-   The `<= now()` comparison uses the DATABASE clock, so instances with skewed
-   clocks still agree on when a window ends.
-
-   Semantics match rateLimit(): exactly `limit` requests pass per window; request
-   `limit + 1` is refused with retryAfter = seconds until reset. */
-async function rateLimitDb(key: string, limit: number, windowMs: number): Promise<RateLimitResult> {
-  const resetAt = new Date(Date.now() + windowMs);
-  try {
-    const [row] = await db
-      .insert(rateLimits)
-      .values({ key, count: 1, resetAt })
-      .onConflictDoUpdate({
-        target: rateLimits.key,
-        set: {
-          count: sql`case when ${rateLimits.resetAt} <= now() then 1 else ${rateLimits.count} + 1 end`,
-          /* The fresh window is computed from the DATABASE clock, not from a JS
-             Date bound as a parameter.
-
-             BUG (fixed): this used to interpolate ${resetAt} -- a JS Date -- into
-             the raw sql`` template. Inside sql`` Drizzle applies no column type
-             mapping, so postgres.js received a bare Date and threw
-             ERR_INVALID_ARG_TYPE ("The \"string\" argument must be ... Received an
-             instance of Date") on EVERY upsert. The catch below then swallowed it
-             and fell back to the in-process limiter, so the durable
-             cross-instance limiter this table exists for had never once worked --
-             silently, because the fallback is fail-open by design. It only
-             surfaced when the E2E suite started reading the server log.
-
-             Using now() here is also more correct than the old client-side value:
-             the whole point of the <= now() comparison is that instances with
-             skewed clocks agree on when a window ends. */
-          resetAt: sql`case when ${rateLimits.resetAt} <= now()
-                            then now() + ${windowMs} * interval '1 millisecond'
-                            else ${rateLimits.resetAt} end`,
-        },
-      })
-      .returning({ count: rateLimits.count, resetAt: rateLimits.resetAt });
-
-    const count = row?.count ?? 1;
-    const resetMs = row?.resetAt ? new Date(row.resetAt).getTime() : resetAt.getTime();
-    if (count > limit) return { ok: false, retryAfter: Math.max(1, Math.ceil((resetMs - Date.now()) / 1000)) };
-    return { ok: true, retryAfter: 0 };
-  } catch (e) {
-    /* Fail OPEN to the in-process limiter, never closed. A Postgres outage already
-       fails the surrounding action (every one of them hits the DB), so degrading to
-       per-instance limiting here loses nothing — whereas failing closed would turn a
-       transient limiter-write glitch into a total login/booking outage. The
-       in-process counter still blocks the one-client-hammering-one-endpoint case. */
-    console.error("[Tnajem] rate_limits upsert failed — falling back to in-process limiter", e);
-    return rateLimit(key, limit, windowMs);
-  }
-}
-
-/** The limiter server actions should call. Durable across instances when a DB is
-    configured; in-process in dev/demo (single process, no DB to share). Async
-    because the durable path is a DB round-trip — every caller is already async. */
-export async function checkRateLimit(key: string, limit: number, windowMs: number): Promise<RateLimitResult> {
-  return dbReady ? rateLimitDb(key, limit, windowMs) : rateLimit(key, limit, windowMs);
-}
-
-/** Best-effort client IP for rate-limit keys. Spoofable via X-Forwarded-For unless the
-    platform overwrites it (Vercel/Render do), so it is a throttle key — never an authz input. */
-export function clientIp(): string {
-  try {
-    const h = headers();
-    const fwd = h.get("x-forwarded-for") ?? "";
-    const first = fwd.split(",")[0]?.trim();
-    return first || h.get("x-real-ip")?.trim() || "unknown";
-  } catch {
-    return "unknown"; // headers() outside a request scope
-  }
-}
-
-/* ══════════════ OTP CHANNEL ══════════════
-   Which identity a login code is sent to. Email is the default; `sms` is the
-   revert path and is kept fully live and compiling, not commented out — commented
-   code is invisible to tsc and to the audit gates, so it rots the first time
-   anything around it moves. Flipping OTP_CHANNEL is the entire revert.
-
-   Read on the SERVER only. The auth/signup page shells read it and pass the answer
-   down as a prop, so the switch stays a runtime env var instead of a
-   NEXT_PUBLIC_ value baked in at build time. */
-export type { OtpChannel } from "@tnajem/shared/auth-core";
-export { otpChannel } from "@tnajem/shared/auth-core";
-
-/* The four identity helpers now live in @tnajem/shared so the admin allowlist can
-   import them from a PURE module — this file is `server-only`, which Fastify and
-   tsx cannot load. Re-exported here so every existing call site is untouched. */
-export { normalizeEmail, normalizePhone, isValidPhone, isValidEmail };
-/* hashCode and safeEq come from @tnajem/shared/auth-core — ONE implementation,
-   shared with apps/api, for the reason given at the top of this file. */
-const hashCode = hashOtpCode;
-
-/** Seconds the caller must wait before another code can be sent to this identity
-    (0 = ok now). Derived from the existing row's age (created = expiresAt − TTL),
-    so no schema change. */
-export async function otpCooldownRemaining(identifier: string): Promise<number> {
-  const [row] = await db.select().from(otpCodes).where(eq(otpCodes.identifier, identifier)).limit(1);
-  if (!row) return 0;
-  const createdAtMs = new Date(row.expiresAt).getTime() - OTP_TTL_MIN * 60_000;
-  const remainingMs = OTP_RESEND_COOLDOWN_MS - (Date.now() - createdAtMs);
-  return remainingMs > 0 ? Math.ceil(remainingMs / 1000) : 0;
-}
-
-/* Generate + store a one-time code for an IDENTITY — an email address under
-   OTP_CHANNEL=email, a phone number under =sms. Nothing below depends on which:
-   the identifier is opaque to the lock, the hash and the cooldown alike.
-
-   RACE (fixed): this used to be a bare `delete` followed by an `insert`. Two
-   concurrent requestOtp() calls for the same identity could interleave as
-   delete(A) → delete(B) → insert(A) → insert(B), leaving TWO live rows for it.
-   verifyOtpCode() then read one of them with an arbitrary `limit(1)`, so the code
-   the user actually received was a coin-flip — and, worse, each row carried its own
-   `attempts` counter, doubling the brute-force budget. otp_codes has no unique
-   index on `identifier` (schema is owned elsewhere), so the DB cannot reject the
-   second insert for us.
-
-   Fix: serialize per identity with a transaction-scoped Postgres advisory lock and
-   re-check the resend cooldown INSIDE the lock (the outer check in requestOtp is
-   a fast path and is itself TOCTOU). One writer per identity at a time → exactly
-   one live code row, always.
-
-   Returns the plaintext code, or null when the cooldown is still running (the
-   caller surfaces "too-soon"). */
-export async function createOtp(identifier: string): Promise<string | null> {
-  const code = String(randomInt(100000, 1000000)); // CSPRNG — Math.random() is predictable
-  const expiresAt = new Date(Date.now() + OTP_TTL_MIN * 60_000);
-
-  return db.transaction(async (tx) => {
-    // Serialize every writer for this identity. Released automatically at commit/rollback.
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${identifier}))`);
-
-    const [existing] = await tx.select().from(otpCodes).where(eq(otpCodes.identifier, identifier)).limit(1);
-    if (existing) {
-      const createdMs = new Date(existing.expiresAt).getTime() - OTP_TTL_MIN * 60_000;
-      if (Date.now() - createdMs < OTP_RESEND_COOLDOWN_MS) return null; // still cooling down
-    }
-
-    await tx.delete(otpCodes).where(eq(otpCodes.identifier, identifier));
-    await tx.insert(otpCodes).values({ identifier, codeHash: hashCode(identifier, code), expiresAt });
-    return code;
-  });
-}
-
-/* Verify a code. The per-code attempt budget (MAX_ATTEMPTS) is the durable half of
-   the brute-force defence; app/actions.ts adds a per-IP/per-identity throttle on top,
-   because requesting a fresh code resets `attempts` and would otherwise hand an
-   attacker an unlimited number of 5-shot rounds against a 6-digit space.
-
-   Ordered by createdAt desc + delete-all-for-identity on success so a stray
-   duplicate row (written before the fix above) can never keep a stale code alive. */
-export async function verifyOtpCode(identifier: string, code: string): Promise<boolean> {
-  const [row] = await db
-    .select()
-    .from(otpCodes)
-    .where(eq(otpCodes.identifier, identifier))
-    .orderBy(desc(otpCodes.createdAt))
-    .limit(1);
-  if (!row) return false;
-  if (new Date(row.expiresAt) < new Date()) return false;
-  if ((row.attempts ?? 0) >= MAX_ATTEMPTS) return false;
-
-  const ok = safeEq(row.codeHash, hashCode(identifier, code));
-  if (!ok) {
-    // Increment in SQL, not from the value we read — two concurrent wrong guesses
-    // would otherwise both write attempts = n+1 and only cost the attacker one try.
-    await db
-      .update(otpCodes)
-      .set({ attempts: sql`coalesce(${otpCodes.attempts}, 0) + 1` })
-      .where(eq(otpCodes.id, row.id));
-    return false;
-  }
-  await db.delete(otpCodes).where(eq(otpCodes.identifier, identifier));
-  return true;
-}
-
-export async function createSession(profileId: string, role?: string): Promise<void> {
-  // Session fixation: a fresh 256-bit token is minted on every successful login and
-  // the cookie is overwritten, so a token an attacker planted pre-login is never the
-  // one that ends up authenticated.
-  const token = randomBytes(32).toString("hex");
-  const expiresAt = new Date(Date.now() + SESSION_DAYS * 86_400_000);
-  await db.insert(sessions).values({ token, profileId, expiresAt });
-
-  // Opportunistic GC of this profile's expired rows — the sessions table otherwise
-  // grows forever (every login on every device leaves a row behind). Best-effort:
-  // a failed cleanup must not fail the login.
-  try {
-    await db.delete(sessions).where(and(eq(sessions.profileId, profileId), lt(sessions.expiresAt, new Date())));
-  } catch (e) {
-    console.error("[Tnajem] session cleanup failed", e);
-  }
-
-  cookies().set(SESSION_COOKIE, token, {
-    httpOnly: true,
+   It is NOT a credential: readable, forgeable, holds only the coarse role, and
+   only ever decides which link renders. Every server-side check re-derives
+   identity from the httpOnly session cookie, so forging this buys nothing but a
+   nav link that bounces you to /auth. The API never sees it. */
+export function setRoleHint(role: string, expires?: Date): void {
+  cookies().set(ROLE_HINT_COOKIE, role, {
+    httpOnly: false,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    expires: expiresAt,
+    expires: expires ?? new Date(Date.now() + SESSION_DAYS * 86_400_000),
   });
-
-  if (role) setRoleHint(role, expiresAt);
 }
 
-/* Write the readable UI hint (see ROLE_HINT_COOKIE) — NOT httpOnly on purpose, so
-   <SiteHeader> can read it without a network round-trip.
+/** Adopt a session apps/api just minted.
 
-   EXTRACTED so it has a SECOND caller. The cookie used to be written in exactly one
-   place — the login above — which meant any later change to profiles.role left the
-   header rendering the OLD role for the rest of the session's 30 days. becomeTutor()
-   changes the role mid-session, so it has to be able to refresh this. Any future
-   writer of profiles.role must call this too. */
-/* Adopt a session the API just minted.
-
-   After the auth-write port the DB row is created by apps/api, which cannot set a
-   cookie on the browser — it is talking to the web server, not to the user. So it
-   returns the token and this writes the cookie.
-
-   The attributes are the SAME ones createSession() uses, and they stay defined in
-   exactly one place on purpose: a mismatch on sameSite, path or secure between two
-   writers produces two cookies with one name and an intermittently logged-out
-   user, which is miserable to diagnose. */
+    The attributes below are the ONLY definition of this cookie on the web side.
+    A second writer with a different sameSite, path or secure would produce two
+    cookies with one name and an intermittently logged-out user — miserable to
+    diagnose, so there is exactly one. */
 export function adoptSession(token: string, expiresAt: Date, role?: string): void {
   cookies().set(SESSION_COOKIE, token, {
     httpOnly: true,
@@ -325,60 +71,26 @@ export function adoptSession(token: string, expiresAt: Date, role?: string): voi
   if (role) setRoleHint(role, expiresAt);
 }
 
-export function setRoleHint(role: string, expires?: Date): void {
-  cookies().set(ROLE_HINT_COOKIE, role, {
-    httpOnly: false,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    // No expiry given (a mid-session role change) → ride the session cookie's own
-    // 30-day window rather than becoming a session cookie that dies on browser close.
-    expires: expires ?? new Date(Date.now() + SESSION_DAYS * 86_400_000),
-  });
-}
-
-/** Read-only — safe in server components. Returns the signed-in profile or null. */
-export async function getSession() {
-  if (!dbReady) return null;
-  const token = cookies().get(SESSION_COOKIE)?.value;
-  if (!token) return null;
-  const [row] = await db
-    .select({ s: sessions, p: profiles })
-    .from(sessions)
-    .innerJoin(profiles, eq(sessions.profileId, profiles.id))
-    .where(eq(sessions.token, token))
-    .limit(1);
-  if (!row) return null;
-  if (new Date(row.s.expiresAt) < new Date()) {
-    await db.delete(sessions).where(eq(sessions.token, token));
-    return null;
-  }
-  return { profile: row.p };
-}
-
+/** Clear both cookies. The API deletes the session ROW; this is the other half.
+    Both matter: a cleared cookie with a live row leaves anyone holding the token
+    signed in, and a deleted row with a live cookie keeps the browser sending a
+    token that no longer resolves. */
 export async function destroySession(): Promise<void> {
-  const token = cookies().get(SESSION_COOKIE)?.value;
-  if (token && dbReady) await db.delete(sessions).where(eq(sessions.token, token));
   cookies().delete(SESSION_COOKIE);
-  cookies().delete(ROLE_HINT_COOKIE); // clear the UI hint too, or the header lags a logout
+  cookies().delete(ROLE_HINT_COOKIE);
 }
 
-/* Demo mode (no DB): set a non-DB cookie so the route guard + flow still work.
-
-   This is NOT a session and cannot be turned into one: getSession() short-circuits
-   on `!dbReady`, and with a DB configured the literal string "demo" is not a valid
-   session token (tokens are 64 hex chars from a random 32-byte draw), so it matches
-   no row. Forging `tnajem_session=demo` therefore buys an attacker exactly what
-   forging any other junk value buys: passage through middleware's presence check
-   and nothing else. middleware.ts additionally rejects the literal value in prod. */
+/* Demo mode only, and it refuses to run in production. The sentinel is not a
+   session: apps/api matches it against the sessions table and finds nothing. It
+   exists so the ui-audit harness can walk signed-in screens with no backend. */
 export function setDemoCookie(role?: string): void {
-  if (process.env.NODE_ENV === "production") return; // never mint a demo cookie on a real deploy
+  if (process.env.NODE_ENV === "production") return;
   cookies().set(SESSION_COOKIE, "demo", {
     httpOnly: true,
     sameSite: "lax",
-    secure: false, // dev only (http://localhost)
+    secure: false,
     path: "/",
+    expires: new Date(Date.now() + SESSION_DAYS * 86_400_000),
   });
-  // Match the real login path so the header shows the right nav in demo mode too.
-  if (role) cookies().set(ROLE_HINT_COOKIE, role, { httpOnly: false, sameSite: "lax", secure: false, path: "/" });
+  if (role) setRoleHint(role);
 }

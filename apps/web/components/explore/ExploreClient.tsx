@@ -9,7 +9,7 @@
    island then owns the interactive filtering (subject chips + search).
 
    `initial` mirrors getExploreTutors()'s contract:
-     null → demo mode (no DATABASE_URL): clearly-badged static preview (never 404s,
+     null → demo mode (no API_URL): clearly-badged static preview (never 404s,
             since getStorefront() resolves any slug in demo mode).
      []   → real DB, no verified tutor yet: honest empty state + CTA.
      [..] → results. Rating/review_count come from the reviews table; 0 reviews →
@@ -68,7 +68,7 @@ const copy = {
   },
 } as const;
 
-/* Static preview used ONLY in demo mode (no DATABASE_URL). Never rendered when a
+/* Static preview used ONLY in demo mode (no API_URL). Never rendered when a
    DB is connected — see the `demo` flag below. */
 const DEMO_PREVIEW: ExploreTutor[] = [
   {

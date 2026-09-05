@@ -1,40 +1,47 @@
 import "server-only";
-import { getSession } from "./auth";
-import { dbReady } from "./db";
+import { call } from "./api";
+import { backendReady } from "./backend";
 import { isLocale, DEFAULT_LOCALE } from "./locale";
 import type { AppLocale } from "./locale";
 
-/* Session lookup for SERVER page guards.
+/* Server-side page guards.
 
-   Role guards live in server components and server actions — never in
-   middleware.ts. The edge cannot reach Postgres, and the only role-ish thing it
-   can see is ROLE_HINT_COOKIE, which is documented as a forgeable display hint
-   (lib/auth.ts). Putting a role check there would turn a deliberately
-   non-authoritative cookie into an authorization input.
+   THE `inert` CASE IS LOAD-BEARING, not a convenience. It is what lets `next
+   build` prerender these pages and lets the ui-audit harness walk them with no
+   backend: a guard written as `if (!session) redirect(...)` would send every
+   build-time render to /auth and the page would never be captured.
 
-   THE `inert` CASE IS LOAD-BEARING, not a convenience. getSession() short-circuits
-   to null whenever DATABASE_URL is unset, and the UI audit harness drives every
-   logged-in screen with the dev sentinel `tnajem_session=demo` and no database
-   (tools/ui-audit/routes.mjs). A guard written as `if (!session) redirect(...)`
-   would therefore bounce /onboarding, /onboarding/verify and /student/welcome out
-   of `npm run ui:audit` and out of local demo mode entirely — the screens would
-   stop being measured by the very harness that exists to measure them. Every
-   action in app/actions.ts already degrades the same way (`if (!dbReady) return`);
-   guards do too. */
+   The session now comes from apps/api (GET /session), which returns the MINIMAL
+   projection a guard needs — id, role, birthYear, fullName. No e-mail, no phone:
+   a guard never needs contact details, and the cheapest way to keep PII off a
+   surface is for it never to be in the response. */
 
-export type SessionProfile = NonNullable<Awaited<ReturnType<typeof getSession>>>["profile"];
+export type SessionProfile = {
+  id: string;
+  role: string;
+  birthYear: number | null;
+  fullName: string | null;
+};
 
 export type PageGuard =
-  /** No DB — demo mode / the UI audit harness. Render the page; guards do not apply. */
+  /** No backend configured — build time, or the audit harness. */
   | { kind: "inert" }
-  /** A database is configured but there is no valid session. */
+  /** A backend is configured but there is no valid session. */
   | { kind: "guest" }
   | { kind: "user"; profile: SessionProfile };
 
 export async function pageGuard(): Promise<PageGuard> {
-  if (!dbReady) return { kind: "inert" };
-  const session = await getSession();
-  return session ? { kind: "user", profile: session.profile } : { kind: "guest" };
+  if (!backendReady) return { kind: "inert" };
+  try {
+    const profile = await call<SessionProfile | null>("/session", undefined, "GET");
+    return profile ? { kind: "user", profile } : { kind: "guest" };
+  } catch {
+    /* The API is unreachable. Treat it as INERT rather than guest: bouncing a
+       signed-in user to /auth because the backend blinked would look like being
+       logged out, and they would then fail to log in too. Inert renders the page
+       in its neutral state. */
+    return { kind: "inert" };
+  }
 }
 
 /** Validate the `[locale]` route param. Server pages need it to build redirect

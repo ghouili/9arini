@@ -95,6 +95,31 @@ export async function profileRoutes(app: FastifyInstance): Promise<void> {
     return { ok: true };
   });
 
+  /* ── GET /profile/student/prefill ────────────────────────────────────────
+     The student's OWN editable profile, for prefilling /student/welcome.
+
+     A separate endpoint rather than widening GET /session, which page guards call
+     on several routes on every request. A guard only needs "who is this, what
+     role, are they a minor?" — giving it phone and level would push contact data
+     through a hot path for no reason, right before Step 8 closes contact
+     exchange. This is unambiguously SELF data: it returns the caller's own row
+     and nobody else's. */
+  app.get("/profile/student/prefill", async (req) => {
+    const session = await getSession(req);
+    if (!session) return null;
+    const [p] = await db
+      .select({
+        fullName: profiles.fullName,
+        level: profiles.level,
+        subjects: profiles.subjects,
+        phone: profiles.phone,
+      })
+      .from(profiles)
+      .where(eq(profiles.id, session.profile.id))
+      .limit(1);
+    return p ?? null;
+  });
+
   /* ── GET /profile/onboarding ────────────────────────────────────────────── */
   app.get("/profile/onboarding", async (req): Promise<OnboardingState | null> => {
     const session = await getSession(req);

@@ -7,7 +7,7 @@ import type { Storefront, ClassItem, Pack } from "@tnajem/shared";
 
    Why: these fixtures describe a *verified* tutor with a 4.9★ rating and 1,240
    students. None of that is real. The old contract was "fixtures are safe because
-   DATABASE_URL is always set in prod" — which is a deployment assumption, not a
+   the backend is always configured in prod" — which is a deployment assumption, not a
    guarantee. A rotated secret, a typo'd env var or a fresh box with a missing
    .env.local flips `dbReady` to false in production, and the fallback would then
    serve that fake 4.9★ tutor at every URL on the public site. That is a
