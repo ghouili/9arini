@@ -103,7 +103,7 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
           "Année de naissance → déclencher l'accord parental obligatoire pour les moins de 18 ans (obligation légale et protection des mineurs).",
           "Nom et téléphone du parent → recueillir et prouver son consentement (consentement).",
           "Documents d'identité → vérifier qu'un prof est bien la personne qu'il prétend être, avant de l'exposer à des élèves, souvent mineurs (consentement du prof + intérêt légitime de sécurité de la communauté). Un prof qui refuse ne peut pas être vérifié, donc pas listé publiquement.",
-          "Réservations → organiser les séances, gérer les places et la règle d'annulation à 24 h.",
+          "Réservations → organiser les séances, gérer les places et la règle d'annulation à 48 h et le registre des annulations.",
           "Journaux et codes hachés → sécurité, lutte contre la fraude et les abus.",
         ],
         after: [
@@ -239,7 +239,7 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
           "سنة الميلاد ← نفعّلو موافقة الوليّ الإجبارية لأقلّ من 18 سنة (واجب قانوني وحماية للقاصرين).",
           "اسم ورقم الوليّ ← نجمعو موافقتو ونثبّتوها (الموافقة).",
           "وثائق الهوية ← نتثبّتو إلّي الأستاذ هو فعلاً اللي يقول، قبل ما نعرّضوه لتلاميذ، وأغلبهم قاصرين (موافقة الأستاذ + مصلحة مشروعة في سلامة المجموعة). الأستاذ اللي يرفض ما ينجّمش يتوثّق، وبالتالي ما يظهرش للعموم.",
-          "الحجوزات ← تنظيم الحصص، الأماكن وقاعدة الإلغاء في 24 ساعة.",
+          "الحجوزات ← تنظيم الحصص، الأماكن وقاعدة الإلغاء في 48 ساعة وسجل الإلغاءات.",
           "السجلاّت والرموز المشفّرة ← الأمان ومقاومة الغشّ والتجاوزات.",
         ],
         after: [

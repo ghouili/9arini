@@ -53,7 +53,10 @@ const copy = bilingual({
     next1: "Ta place est bloquée tout de suite.",
     next2: "Le lien de la séance apparaît dans « Mes cours ».",
     next3: "Tu te connectes à l'heure — c'est tout.",
-    cancelRule: "Annulation gratuite jusqu'à 24h avant le cours, depuis « Mes cours ».",
+    cancelRule:
+      "Annulation gratuite jusqu'à 48h avant le cours, depuis « Mes cours ». "
+      + "Plus tard, tu peux encore annuler — 40 % de la place est alors noté comme "
+      + "retenu pour le prof, et rien n'est prélevé pendant le pilote.",
 
     confirm: "Confirmer ma place",
     confirming: "On réserve ta place…",
@@ -99,7 +102,10 @@ const copy = bilingual({
     next1: "بلاصتك تتحجز في الحين.",
     next2: "رابط الحصة يبان في « حصصي ».",
     next3: "تدخل في الوقت — وهذا الكل.",
-    cancelRule: "الإلغاء مجاني حتى 24 ساعة قبل الحصة، من « حصصي ».",
+    cancelRule:
+      "الإلغاء مجاني حتى 48 ساعة قبل الحصة، من « حصصي ». "
+      + "من بعد تنجّم برك تلغي — وقتها 40 % من البلاصة يتسجّل كمستحق "
+      + "للأستاذ، وما يتخصم حتى مليم في فترة التجربة.",
 
     confirm: "أكّد مكاني",
     confirming: "قاعدين نحجزو بلاصتك…",
@@ -448,7 +454,7 @@ export default function CheckoutInner() {
         </ol>
       </div>
 
-      {/* The one rule that actually binds: 24h cancellation */}
+      {/* The one rule that actually binds: 48h free, 40% retained after */}
       <div className="ck-cancel">
         <Calendar />
         <span>{c.cancelRule}</span>

@@ -30,7 +30,6 @@ type DocKind = "id_front" | "id_back" | "selfie" | "diploma" | "certificate" | "
 const IS_PROD = process.env.NODE_ENV === "production";
 
 const DASH_MONTHS = ["JANV", "FÉVR", "MARS", "AVR", "MAI", "JUIN", "JUIL", "AOÛT", "SEPT", "OCT", "NOV", "DÉC"];
-const CANCEL_WINDOW_MS = 24 * 60 * 60 * 1000; // the UI promises free cancellation up to 24h before
 
 /* Server actions = the write/auth path. Callable from client components.
    In demo mode (no API_URL, dev only) they degrade gracefully so the UI still works.
@@ -312,15 +311,34 @@ export async function reserveSeat(input: { classId: string }):
 }
 
 /* ---------- Cancellation (student) ----------
-   The UI promises "annulation gratuite jusqu'à 24h avant" — enforce it here, not
-   just in copy. Frees the seat back up and tells the tutor. */
-export async function cancelBooking(input: { bookingId: string }): Promise<ActionResult> {
-  if (demoFallback) return { ok: true, demo: true };
-  /* PORTED to apps/api (POST /bookings/cancel). The 24h window is enforced against
-     SERVER time there, the seat release is atomic (status flip as the WHERE guard,
-     so only one writer can decrement), and the IDOR check on booking ownership
-     moved with it. */
-  return call<ActionResult>("/bookings/cancel", input);
+   48 HOURS FREE, 40% RETAINED AFTER THAT. The rule lives in
+   @tnajem/shared/cancellation.ts and is enforced against SERVER time in
+   apps/api; this is the proxy.
+
+   A LATE CANCELLATION NOW SUCCEEDS. The old rule refused inside 24h ("too-late")
+   and the seat stayed locked to someone who was not coming, so the tutor could
+   not resell it. The seat is released either way now; what changes is that 40%
+   of the seat's value is RECORDED as retained.
+
+   ⚠ RECORDED, NOT CHARGED. Payments are off. `retainedTnd` is what would be
+   retained, and `paymentsEnabled` comes back false so the UI can say so without
+   guessing. Never render a retained amount without the "nothing is taken during
+   the pilot" line beside it. */
+export type CancelResult = ActionResult & {
+  late?: boolean;
+  amountTnd?: number;
+  retainedTnd?: number;
+  retainedPct?: number;
+  paymentsEnabled?: boolean;
+};
+
+export async function cancelBooking(input: { bookingId: string }): Promise<CancelResult> {
+  if (demoFallback) return { ok: true, demo: true, late: false, retainedTnd: 0, paymentsEnabled: false };
+  /* PORTED to apps/api (POST /bookings/cancel). The window, the seat release
+     (atomic — the status flip is the WHERE guard, so only one writer can
+     decrement), the ledger insert in the same transaction, and the IDOR check on
+     booking ownership all live there. */
+  return call<CancelResult>("/bookings/cancel", input);
 }
 
 /* ---------- Student dashboard (real reservations) ----------

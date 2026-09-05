@@ -68,7 +68,7 @@ const COPY = {
     studentPerks: [
       "Le tarif est affiché avant que tu réserves",
       "Uniquement des profs vérifiés à la main",
-      "Annulation gratuite jusqu'à 24h avant",
+      "Annulation gratuite jusqu'à 48h avant",
     ],
 
     byLabel: "Année de naissance de l'élève",
@@ -127,7 +127,7 @@ const COPY = {
     studentPerks: [
       "الثمن يبان قبل ما تحجز",
       "كان أساتذة متثبّت منهم بيدينا",
-      "الإلغاء مجاني حتى 24 ساعة قبل",
+      "الإلغاء مجاني حتى 48 ساعة قبل",
     ],
 
     byLabel: "سنة ولادة التلميذ",

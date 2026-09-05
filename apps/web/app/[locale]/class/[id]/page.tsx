@@ -25,10 +25,10 @@ const monthAr: Record<string, string> = {
      • t.extra.noResults→ "Aucun prof trouvé", which was shown when a CLASS 404s. */
 const copy = bilingual({
   fr: {
-    reassure: "1ère séance gratuite · annulation gratuite jusqu'à 24h avant",
+    reassure: "1ère séance gratuite · annulation gratuite jusqu'à 48h avant",
     /* Shown when THIS class is not a free first session — the common case since
        the free session became a per-tutor opt-in (Step 6). */
-    reassurePaid: "Annulation gratuite jusqu'à 24h avant",
+    reassurePaid: "Annulation gratuite jusqu'à 48h avant",
     reassureShort: "Sans engagement",
     bookShort: "Réserver",
     loading: "On charge la séance…",
@@ -44,8 +44,8 @@ const copy = bilingual({
     soldOutBody: "Toutes les places sont prises. Trouve une autre séance — il y en a d'autres.",
   },
   ar: {
-    reassure: "الحصة الأولى مجانية · إلغاء مجاني حتى 24 ساعة قبل",
-    reassurePaid: "إلغاء مجاني حتى 24 ساعة قبل",
+    reassure: "الحصة الأولى مجانية · إلغاء مجاني حتى 48 ساعة قبل",
+    reassurePaid: "إلغاء مجاني حتى 48 ساعة قبل",
     reassureShort: "بلا التزام",
     bookShort: "احجز",
     loading: "قاعدين نحمّلو الحصة…",

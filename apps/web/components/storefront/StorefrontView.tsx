@@ -80,7 +80,7 @@ const copy = bilingual({
     // ── Trust (true for the pilot: no rail, no card, nothing charged here) ──
     freeFirst: "1ère séance gratuite",
     noCard: "Sans engagement",
-    cancel24: "Annulation gratuite 24h avant",
+    cancel24: "Annulation gratuite 48h avant",
     payDirect:
       "Tnajem ne prend aucun paiement. Tu règles les séances directement avec ton prof, au tarif affiché ci-dessus.",
 
@@ -121,7 +121,7 @@ const copy = bilingual({
 
     freeFirst: "الحصة الأولى مجانية",
     noCard: "بلا التزام",
-    cancel24: "إلغاء مجاني 24 ساعة قبل",
+    cancel24: "إلغاء مجاني 48 ساعة قبل",
     payDirect:
       "Tnajem ما تاخذ حتى خلاص. تخلّص الحصص مباشرة مع أستاذك، بالثمن المبيّن فوق.",
 

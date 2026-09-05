@@ -38,6 +38,10 @@ export const payStatus = pgEnum("pay_status", ["pending", "paid", "failed", "ref
 export const payoutMethod = pgEnum("payout_method", ["flouci_wallet", "bank_rib"]);
 export const tutorStatus = pgEnum("tutor_status", ["draft", "pending", "verified", "rejected"]);
 export const docKind = pgEnum("doc_kind", ["id_front", "id_back", "selfie", "diploma", "certificate", "role_proof", "other"]);
+/* Who cancelled. "tutor" and "system" are not reachable yet (Step 11 gives the
+   tutor a cancel path); the column exists now so the ledger never has to be
+   back-filled with a guess about rows written before the option existed. */
+export const cancelActor = pgEnum("cancel_actor", ["student", "tutor", "system"]);
 
 export const profiles = pgTable("profiles", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -205,6 +209,54 @@ export const bookings = pgTable("bookings", {
      getStudentDashboard does `where student_id = ? and status <> 'cancelled'`.
      status rides along so the cancelled rows are filtered in the index. */
   studentStatusIdx: index("bookings_student_id_status_idx").on(t.studentId, t.status),
+}));
+
+/* THE CANCELLATION LEDGER.
+
+   One row per cancellation, written in the SAME transaction as the status change
+   and the seat release. Not a log: it is the record of what each party is owed
+   under the 48h/40% rule, and it is what a dispute gets settled from.
+
+   NOTHING IS CHARGED TODAY. Payments are off, so retained_tnd is what WOULD be
+   retained. payments_enabled records the state at write time precisely so a
+   future reader can tell a "would have been" row from a real one — without it,
+   the day payments open, every historical row becomes indistinguishable from a
+   real debit. Do not drop that column.
+
+   retained_pct is stored per row rather than read from the constant. If the rate
+   ever changes, history must keep the rate that was actually applied; a ledger
+   that recomputes itself from today's constant is not a ledger. */
+export const cancellations = pgTable("cancellations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  /* UNIQUE. A booking is cancelled once. The endpoint is idempotent and the
+     status flip is atomic, but two concurrent cancels racing past the ledger
+     insert would otherwise write two rows and double the retained amount — the
+     same class of bug as the missing unique index on bookings (see 0007). */
+  bookingId: uuid("booking_id").notNull().unique().references(() => bookings.id, { onDelete: "cascade" }),
+  classId: uuid("class_id").notNull().references(() => classes.id, { onDelete: "cascade" }),
+  /* Nullable + set null: a deleted account must not take the tutor's record of
+     what happened with it, and Step 15 deletes accounts. */
+  actorProfileId: uuid("actor_profile_id").references(() => profiles.id, { onDelete: "set null" }),
+  actor: cancelActor("actor").notNull(),
+  cancelledAt: timestamp("cancelled_at", { withTimezone: true }).notNull().defaultNow(),
+  /** Class start minus cancellation time. Signed — negative means it had started. */
+  hoursBeforeStart: numeric("hours_before_start", { precision: 10, scale: 2 }).notNull(),
+  late: boolean("late").notNull(),
+  /* numeric(7,2) throughout, matching classes.price_tnd exactly. Money in a float
+     column is how ledgers stop balancing. */
+  amountTnd: numeric("amount_tnd", { precision: 7, scale: 2 }).notNull().default("0"),
+  retainedTnd: numeric("retained_tnd", { precision: 7, scale: 2 }).notNull().default("0"),
+  releasedTnd: numeric("released_tnd", { precision: 7, scale: 2 }).notNull().default("0"),
+  retainedPct: numeric("retained_pct", { precision: 4, scale: 3 }).notNull().default("0"),
+  /** False for every row written during the pilot. See the note above. */
+  paymentsEnabled: boolean("payments_enabled").notNull().default(false),
+  reason: text("reason"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  // The tutor's "what do I get for the no-shows" view is per class.
+  classIdx: index("cancellations_class_id_idx").on(t.classId),
+  // And the student's own history is per actor.
+  actorIdx: index("cancellations_actor_profile_id_idx").on(t.actorProfileId),
 }));
 
 export const payments = pgTable("payments", {

@@ -2,15 +2,18 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {
   and, desc, eq, ne, sql as raw,
-  bookings, classes, consents, tutors,
+  bookings, cancellations, classes, consents, tutors,
   notify,
 } from "@tnajem/db";
 import {
   vUuid, isMinorBirthYear, MONTHS_FR,
   type StudentDashboard,
   isEffectivelyFreeFirst,
+  cancellationOutcome,
+  CANCEL_FREE_WINDOW_HOURS,
 } from "@tnajem/shared";
 import { resolveMeetUrl } from "@tnajem/shared/live";
+import { paymentsEnabled } from "@tnajem/shared/payments";
 import { db } from "../db";
 import { getSession } from "../lib/session";
 import { checkRateLimit } from "../lib/rate-limit";
@@ -35,7 +38,11 @@ const cancelBody = z.object({ bookingId: z.string() });
 
 /** The UI promises free cancellation up to 24h before — enforced here, not in copy.
     Step 7 replaces this with 48h/40%; until then the rule is unchanged. */
-const CANCEL_WINDOW_MS = 24 * 60 * 60 * 1000;
+/* The 24h window is gone. The rule is 48h free / 40% retained after that, and it
+   lives in ONE place — @tnajem/shared/cancellation.ts — because a deadline
+   implemented twice is a deadline that eventually disagrees with the copy that
+   promises it. apps/web's own copy of this constant was already dead and is
+   deleted in the same commit. */
 
 export async function bookingRoutes(app: FastifyInstance): Promise<void> {
   /* ── POST /bookings ──────────────────────────────────────────────────────── */
@@ -216,9 +223,33 @@ export async function bookingRoutes(app: FastifyInstance): Promise<void> {
     const [cls] = await db.select().from(classes).where(eq(classes.id, bk.classId)).limit(1);
     if (!cls) return { ok: false, error: "not-found" };
 
-    // Server time, never the client's.
-    const startsInMs = new Date(cls.scheduledAt).getTime() - Date.now();
-    if (startsInMs < CANCEL_WINDOW_MS) return { ok: false, error: "too-late" };
+    /* Server time, never the client's. A cancellation deadline that trusts the
+       caller's clock is not a deadline. */
+    const now = Date.now();
+
+    /* A class that has ALREADY STARTED cannot be cancelled.
+
+       This check is NEW, and it is here because removing the 24-hour refusal
+       removed the thing that was accidentally enforcing it. Under the old code
+       `startsInMs < 24h` also caught every past class; drop that line without
+       replacing it and a student could "cancel" last month's session, free a seat
+       on a class that already ran, and mint a ledger row for it. Tightening this
+       one case is not a policy change — nobody was ever able to do it. */
+    if (new Date(cls.scheduledAt).getTime() <= now) {
+      return { ok: false, error: "already-started" };
+    }
+
+    /* THE RULE: free up to 48h before, 40% retained after that.
+
+       The seat's value is what the STUDENT was liable for, so a free first
+       session is worth 0 and retains 0 — 40% of nothing. Reading the price off
+       the class row rather than the booking is deliberate: booking.isFree is the
+       authoritative "was this seat free", and the class holds the amount. */
+    const outcome = cancellationOutcome({
+      scheduledAt: cls.scheduledAt,
+      amountTnd: bk.isFree ? 0 : Number(cls.priceTnd ?? 0),
+      now,
+    });
 
     const [tut] = await db.select().from(tutors).where(eq(tutors.id, cls.tutorId)).limit(1);
 
@@ -247,6 +278,37 @@ export async function bookingRoutes(app: FastifyInstance): Promise<void> {
         .set({ seatsTaken: raw`greatest(coalesce(${classes.seatsTaken}, 0) - 1, 0)` })
         .where(eq(classes.id, cls.id));
 
+      /* THE LEDGER, in the SAME transaction as the status flip and the seat
+         release. All three are one fact. A ledger written afterwards, outside the
+         transaction, is a ledger that silently disagrees with reality the first
+         time the process dies between the two writes — and this is the record a
+         money dispute would be settled from.
+
+         onConflictDoNothing on the unique booking_id: two concurrent cancels are
+         already impossible past the atomic status flip above, so reaching this
+         conflict means something upstream changed. Doing nothing is right either
+         way — the first row is the true one, and a second would double the
+         retained amount. */
+      await tx
+        .insert(cancellations)
+        .values({
+          bookingId: bookingId.value,
+          classId: cls.id,
+          actorProfileId: uid,
+          actor: "student",
+          hoursBeforeStart: (outcome.msBeforeStart / 3_600_000).toFixed(2),
+          late: outcome.late,
+          amountTnd: outcome.amountTnd.toFixed(2),
+          retainedTnd: outcome.retainedTnd.toFixed(2),
+          releasedTnd: outcome.releasedTnd.toFixed(2),
+          retainedPct: outcome.retainedPct.toFixed(3),
+          /* What was true WHEN THIS ROW WAS WRITTEN. False for every pilot row.
+             Without it, the day payments open, no reader can tell a "would have
+             been retained" row from a real debit. */
+          paymentsEnabled: paymentsEnabled(),
+        })
+        .onConflictDoNothing();
+
       await recomputeTutorStats(cls.tutorId, tx);
       return true;
     });
@@ -258,15 +320,36 @@ export async function bookingRoutes(app: FastifyInstance): Promise<void> {
       const whenLabel = when.toLocaleString("fr-FR", {
         day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
       });
+      /* The tutor is told WHEN it happened relative to the deadline, because that
+         is the whole difference between a cancellation they can refill and one
+         they cannot. It says nothing about a payment: nothing is charged, and a
+         notification implying otherwise would be the exact false money claim the
+         ledger's payments_enabled column exists to keep straight. */
+      const lateNote = outcome.late
+        ? ` Annulation tardive (moins de ${CANCEL_FREE_WINDOW_HOURS}h avant).`
+        : "";
       await notify(db, tut.profileId, {
         kind: "booking_cancelled",
         title: "Annulation",
-        body: `${session.profile.fullName ?? "Un élève"} a annulé sa place pour « ${cls.title} » (${whenLabel}). La place est de nouveau libre.`,
+        body: `${session.profile.fullName ?? "Un élève"} a annulé sa place pour « ${cls.title} » (${whenLabel}). La place est de nouveau libre.${lateNote}`,
         href: "/dashboard",
       });
     }
 
-    return { ok: true, revalidate: tut?.slug ? { tutors: [tut.slug] } : undefined };
+    /* The outcome goes back to the UI so the confirmation can be SPECIFIC — "you
+       cancelled in time" vs "this was a late cancellation, 40% is recorded" —
+       instead of one vague success toast. paymentsEnabled rides along so the
+       client never has to assume: while it is false the UI must say plainly that
+       no money is taken, and it cannot say that honestly without being told. */
+    return {
+      ok: true,
+      late: outcome.late,
+      amountTnd: outcome.amountTnd,
+      retainedTnd: outcome.retainedTnd,
+      retainedPct: outcome.retainedPct,
+      paymentsEnabled: paymentsEnabled(),
+      revalidate: tut?.slug ? { tutors: [tut.slug] } : undefined,
+    };
   });
 
   /* ── GET /student/dashboard ──────────────────────────────────────────────

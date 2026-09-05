@@ -26,3 +26,4 @@ export * from "./admin";
 export * from "./profile-input";
 /* Pure predicates, no node builtins — safe in the barrel, unlike auth-core/mail. */
 export * from "./free-first";
+export * from "./cancellation";

@@ -5,9 +5,15 @@
    Non-200 is reserved for TRANSPORT and SHAPE failures only.
    ══════════════════════════════════════════════════════════════════════════════
 
-   So: "full", "needs-consent", "too-late", "forbidden", "not-found", "own-class",
-   "unavailable", "no-account", "invalid-code", "too-many-attempts" — all 200.
-   Not 403, not 404, not 409.
+   So: "full", "needs-consent", "already-started", "forbidden", "not-found",
+   "own-class", "unavailable", "no-account", "invalid-code", "too-many-attempts"
+   — all 200. Not 403, not 404, not 409.
+
+   "too-late" is GONE, and its removal is a behaviour change worth naming here:
+   cancelBooking used to refuse inside 24 hours with that code. Under the 48h/40%
+   rule a late cancellation succeeds, so the only refusal left on that path is
+   "already-started" — a class that has already begun. Any client still branching
+   on "too-late" is branching on a case the server can no longer produce.
 
    WHY, and why this has to be written down: the action's contract is a VALUE, not
    a status. Client components branch on `res.error === "needs-consent"` today

@@ -6,6 +6,10 @@ import { Avatar, Button, Chip, Spinner } from "@/components/ui";
 import { Play, Video, Star, Clock } from "@/components/icons";
 import { getStudentDashboard, getMe, cancelBooking, createReview } from "@/app/actions";
 import type { StudentClass, StudentDashboard } from "@tnajem/shared";
+/* The 48h window and the 40% rate come from the ONE place that defines them.
+   A component hardcoding 0.4 is a component that disagrees with the server the
+   first time the rate moves — and this one renders the number to a student. */
+import { CANCEL_FREE_WINDOW_MS, CANCEL_FREE_WINDOW_HOURS, LATE_CANCEL_RETAINED_PCT } from "@tnajem/shared";
 import { SiteShell } from "@/components/SiteShell";
 import { bilingual } from "@/lib/i18n";
 
@@ -22,11 +26,16 @@ const copy = bilingual({
     cancelSure: "Annuler cette réservation ?",
     cancelYes: "Oui, annuler",
     cancelNo: "Garder ma place",
-    cancelRule: "Annulation gratuite jusqu'à 24h avant le cours.",
-    cancelLocked: "Moins de 24h avant le cours : l'annulation en ligne est fermée. Préviens ton prof, il s'arrangera avec toi.",
-    tooLate: "Le cours est dans moins de 24h — on ne peut plus annuler en ligne. Écris à ton prof, il gardera ta place pour une autre séance.",
+    cancelRule: `Annulation gratuite jusqu'à ${CANCEL_FREE_WINDOW_HOURS}h avant le cours.`,
+    cancelLocked: "Le cours a commencé — l'annulation en ligne est fermée. Préviens ton prof, il s'arrangera avec toi.",
+    /* Shown INSIDE the window, in the confirm box, BEFORE the student commits.
+       The last sentence is not optional: nothing is charged today, and a bare
+       percentage on screen reads as a debit. */
+    cancelLateWarn: `Le cours est dans moins de ${CANCEL_FREE_WINDOW_HOURS}h. Tu peux quand même annuler, et ta place repart tout de suite — ${Math.round(LATE_CANCEL_RETAINED_PCT * 100)} % du prix de la place est noté comme retenu pour ton prof. Aucun montant n'est prélevé pendant le pilote.`,
+    alreadyStarted: "Le cours a déjà commencé, on ne peut plus l'annuler en ligne. Écris à ton prof.",
     cancelErr: "L'annulation n'a pas marché. Réessaie.",
     cancelled: "Réservation annulée. La place est de nouveau libre.",
+    cancelledLate: `Réservation annulée, la place est de nouveau libre. C'était à moins de ${CANCEL_FREE_WINDOW_HOURS}h : ${Math.round(LATE_CANCEL_RETAINED_PCT * 100)} % est noté comme retenu pour ton prof. Rien n'est prélevé pendant le pilote.`,
     free: "Gratuit",
     rate: "Noter mon prof",
     rateWith: (n: string) => `Comment était le cours avec ${n} ?`,
@@ -57,11 +66,13 @@ const copy = bilingual({
     cancelSure: "تحب تلغي هذا الحجز ؟",
     cancelYes: "إيه، ألغي",
     cancelNo: "نحافظ على مكاني",
-    cancelRule: "الإلغاء مجاني حتى 24 ساعة قبل الحصة.",
-    cancelLocked: "أقل من 24 ساعة قبل الحصة: الإلغاء أونلاين مسكّر. اعلم أستاذك وهو يتفاهم معاك.",
-    tooLate: "الحصة أقل من 24 ساعة — ما عادش تنجم تلغي أونلاين. اكتب لأستاذك، يحافظلك على مكانك في حصة أخرى.",
+    cancelRule: `الإلغاء مجاني حتى ${CANCEL_FREE_WINDOW_HOURS} ساعة قبل الحصة.`,
+    cancelLocked: "الحصة بدات — الإلغاء أونلاين مسكّر. اعلم أستاذك وهو يتفاهم معاك.",
+    cancelLateWarn: `الحصة في أقل من ${CANCEL_FREE_WINDOW_HOURS} ساعة. تنجّم برك تلغي، ومكانك يرجع متوفّر على طول — ${Math.round(LATE_CANCEL_RETAINED_PCT * 100)} % من ثمن البلاصة يتسجّل كمستحق لأستاذك. ما يتخصم حتى مليم في فترة التجربة.`,
+    alreadyStarted: "الحصة بدات قبل، ما عادش تنجم تلغي أونلاين. اكتب لأستاذك.",
     cancelErr: "الإلغاء ما مشاش. عاود حاول.",
     cancelled: "الحجز تلغى. المكان ولّى متوفّر.",
+    cancelledLate: `الحجز تلغى، والمكان ولّى متوفّر. كان في أقل من ${CANCEL_FREE_WINDOW_HOURS} ساعة: ${Math.round(LATE_CANCEL_RETAINED_PCT * 100)} % يتسجّل كمستحق لأستاذك. ما يتخصم حتى مليم في فترة التجربة.`,
     free: "مجاني",
     rate: "نقّم أستاذي",
     rateWith: (n: string) => `كيفاش كانت الحصة مع ${n} ؟`,
@@ -224,7 +235,11 @@ function RateBox({ item, onDone }: { item: StudentClass; onDone: () => void }) {
 }
 
 /* ---------- one upcoming booking ---------- */
-function UpcomingCard({ item, hero, onChanged }: { item: StudentClass; hero: boolean; onChanged: () => void }) {
+/* onChanged carries WHETHER IT WAS LATE, so the flash message can be specific
+   rather than a single vague "cancelled" toast. A student who has just had 40%
+   recorded against them should be told so on the same screen — and told, in the
+   same breath, that nothing is taken during the pilot. */
+function UpcomingCard({ item, hero, onChanged }: { item: StudentClass; hero: boolean; onChanged: (late: boolean) => void }) {
   const { t, locale } = useLocale();
   const c = copy[locale];
   const [confirming, setConfirming] = useState(false);
@@ -239,8 +254,18 @@ function UpcomingCard({ item, hero, onChanged }: { item: StudentClass; hero: boo
 
   const startsIn = item.ts - now;
   const live = startsIn <= 0;
+  /* DAY_MS is a COUNTDOWN threshold ("starting soon"), not the cancellation
+     policy. They used to be the same 24 hours and were easy to confuse; they are
+     deliberately separate now. Do not re-merge them. */
   const withinDay = startsIn < DAY_MS;
-  const cancellable = startsIn >= DAY_MS;
+
+  /* CANCELLABLE UNTIL IT STARTS. This used to be `startsIn >= DAY_MS`, so the
+     button vanished 24h out and the student's only option was to message their
+     tutor — leaving the seat locked to someone who was not coming, which the
+     tutor could not resell. Under the 48h/40% rule a late cancellation is
+     allowed; what changes inside the window is the warning below, not access. */
+  const cancellable = startsIn > 0;
+  const lateCancel = cancellable && startsIn < CANCEL_FREE_WINDOW_MS;
 
   async function doCancel() {
     setBusy(true);
@@ -248,8 +273,12 @@ function UpcomingCard({ item, hero, onChanged }: { item: StudentClass; hero: boo
     const res = await cancelBooking({ bookingId: item.bookingId });
     setBusy(false);
     setConfirming(false);
-    if (res.ok) { onChanged(); return; }
-    setErr(res.error === "too-late" ? c.tooLate : c.cancelErr);
+    /* The SERVER decides whether it was late — its clock is the one that counts,
+       and by the time this resolves the browser's `now` may have drifted past a
+       boundary the server evaluated differently. Fall back to the local guess
+       only if the field is missing. */
+    if (res.ok) { onChanged(res.late ?? lateCancel); return; }
+    setErr(res.error === "already-started" ? c.alreadyStarted : c.cancelErr);
   }
 
   return (
@@ -312,7 +341,9 @@ function UpcomingCard({ item, hero, onChanged }: { item: StudentClass; hero: boo
       {confirming && (
         <div style={{ marginTop: 12, padding: 12, borderRadius: 14, background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.14)" }}>
           <div className="text-[13px] font-bold mb-1">{c.cancelSure}</div>
-          <div className="text-[13px] text-on-dark mb-2.5 leading-[1.5]">{c.cancelRule}</div>
+          <div className="text-[13px] text-on-dark mb-2.5 leading-[1.5]">
+            {lateCancel ? c.cancelLateWarn : c.cancelRule}
+          </div>
           <div className="flex gap-2 flex-wrap">
             <button
               onClick={doCancel}
@@ -441,7 +472,7 @@ export default function StudentPage() {
                     key={item.bookingId}
                     item={item}
                     hero={i === 0}
-                    onChanged={() => { setFlash(c.cancelled); load(); }}
+                    onChanged={(late) => { setFlash(late ? c.cancelledLate : c.cancelled); load(); }}
                   />
                 ))}
               </div>

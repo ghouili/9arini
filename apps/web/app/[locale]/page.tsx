@@ -84,7 +84,7 @@ const copy = bilingual({
 
     finalTitle: "Choisis ton prof. Le tarif est affiché avant de réserver.",
     finalCta: "Trouve ton prof",
-    finalMicro: "Sans engagement · tu paies ton prof directement · annulation libre jusqu'à 24h avant.",
+    finalMicro: "Sans engagement · tu paies ton prof directement · annulation libre jusqu'à 48h avant.",
 
     profTitle: "Tu es prof ?",
     profBody: "Donne tes cours en direct, fixe ton tarif, et garde 100 % pendant le pilote.",
@@ -138,7 +138,7 @@ const copy = bilingual({
 
     finalTitle: "اختار أستاذك. الثمن يبان قبل ما تحجز.",
     finalCta: "لقّي أستاذك",
-    finalMicro: "بلا التزام · تخلّص أستاذك مباشرة · تنجّم تلغي حتى 24 ساعة قبل.",
+    finalMicro: "بلا التزام · تخلّص أستاذك مباشرة · تنجّم تلغي حتى 48 ساعة قبل.",
 
     profTitle: "إنتي أستاذ؟",
     profBody: "قرّي مباشرة، حدّد ثمنك، واحتفظ بـ 100 % في فترة التجربة.",
