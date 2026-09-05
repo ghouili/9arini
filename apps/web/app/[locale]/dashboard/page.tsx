@@ -62,6 +62,7 @@ const copy = bilingual({
     h3t: "Il te paie directement",
     h3b: "De la main à la main pendant le pilote. Tnajem ne prend aucune commission. Le paiement en ligne arrivera plus tard.",
     shareLabel: "Ton lien de prof",
+    editStore: "Modifier ma page",
     ffTitle: "Première séance offerte",
     ffBody:
       "Si tu l'actives, ta page annonce que la première séance est offerte — et tu peux la réserver classe par classe en créant une séance. Tant que c'est désactivé, Tnajem ne promet rien à ta place.",
@@ -105,6 +106,7 @@ const copy = bilingual({
     h3t: "يخلّصك مباشرة",
     h3b: "يد بيد في فترة التجربة. Tnajem ما تاخذ حتى عمولة. الخلاص أونلاين يجي من بعد.",
     shareLabel: "اللينك متاعك متاع أستاذ",
+    editStore: "عدّل صفحتي",
     ffTitle: "الحصة الأولى مجانية",
     ffBody:
       "كان تفعّلها، صفحتك تقول إلّي الحصة الأولى مجانية — وتنجّم تختارها حصة بحصة وقتلي تعمل وحدة. مادامها مطفية، تنجّم ما توعدش في بلاصتك.",
@@ -468,10 +470,17 @@ function SharePanel({ slug, c }: { slug: string; c: CopyDict }) {
       </div>
       <p className="text-[13px] text-muted leading-[1.6] mb-3">{t.dashboard.shareBody}</p>
       <StoreLinkBox slug={slug} />
-      <div className="mt-3">
+      <div className="mt-3 flex gap-2 flex-wrap">
         <Link href={`/${slug}`} className="btn btn-ink btn-sm">
           <Eye />
           {t.dashboard.viewStore}
+        </Link>
+        {/* STEP 9. /onboarding has always updated in place and opened pre-filled,
+            but it was linked ONLY from the no-storefront state — so a tutor who
+            finished onboarding had no route back to fix a typo in their own public
+            page. The feature existed; the door did not. */}
+        <Link href="/onboarding" className="btn btn-ghost btn-sm">
+          {c.editStore}
         </Link>
       </div>
     </div>

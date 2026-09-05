@@ -146,19 +146,27 @@ export async function tutorRoutes(app: FastifyInstance): Promise<void> {
     }
 
     /* revalidateTutor CANNOT run here — revalidateTag only works inside a Next
-       request scope. The web replays it from this envelope. Only one slug can ever
-       need busting now that renames are impossible, and NOT publicTutors: a tutor
-       here is still `draft`, so nothing about the public set changed. */
-    return { ok: true, slug: effectiveSlug, revalidate: { tutors: [effectiveSlug] } };
+       request scope. The web replays it from this envelope.
+
+       publicTutors IS busted when the tutor is already VERIFIED, and that is a fix
+       Step 9 forced. This used to say "not publicTutors: a tutor here is still
+       draft", which was true while this endpoint only ever ran at CREATION. It is
+       an EDIT endpoint too, and /explore renders a verified tutor's name and
+       subject — so a verified tutor correcting their subject would have kept the
+       old one on the catalogue for the rest of the cache window, with no way to
+       tell why. Only one slug ever needs busting, because renames are impossible. */
+    const wasPublic = mine?.status === "verified";
+    return {
+      ok: true,
+      slug: effectiveSlug,
+      revalidate: { tutors: [effectiveSlug], ...(wasPublic ? { publicTutors: true } : {}) },
+    };
   });
 
   /* ── POST /tutors/free-first-session ─────────────────────────────────────
      The tutor's own opt-in for the free first session.
 
-     A DEDICATED endpoint rather than a field on POST /tutors, for two reasons.
-     POST /tutors is create-or-update-your-storefront and is reachable only from
-     onboarding; a tutor who finished onboarding months ago has no route back to
-     it (storefront editing is not built yet — Step 9). And this one flag is a
+     A DEDICATED endpoint rather than a field on POST /tutors: this one flag is a
      PROMISE ABOUT MONEY to a student, so it deserves its own auditable call
      rather than riding along in a form that also rewrites bio and subject.
 
