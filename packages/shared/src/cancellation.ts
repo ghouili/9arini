@@ -72,6 +72,21 @@ export function cancellationOutcome(input: {
   scheduledAt: Date | string | number;
   amountTnd: number;
   now?: number;
+  /* WAIVED: retain nothing, whatever the clock says.
+
+     Two cases, both Step 11, and both are "the student did not choose this":
+       • the TUTOR cancelled the class — 100% release, always. Retaining a share
+         of a seat the student still wanted would be charging them for someone
+         else's decision.
+       • the tutor MOVED the class after they booked. The student agreed to a
+         time that no longer exists, so the 48h window measured against the NEW
+         time is meaningless to them.
+
+     `late` is still reported truthfully. The ledger records "this happened three
+     hours out AND nothing was retained, because it was waived" rather than
+     pretending it was an early cancellation — a ledger that rewrites the facts to
+     justify the number is not a ledger. */
+  waived?: boolean;
 }): CancellationOutcome {
   const startsAt = new Date(input.scheduledAt).getTime();
   const now = input.now ?? Date.now();
@@ -85,7 +100,7 @@ export function cancellationOutcome(input: {
      recording a negative retention. */
   const amountTnd = Number.isFinite(input.amountTnd) ? Math.max(0, toCentimes(input.amountTnd)) : 0;
 
-  const retainedPct = late ? LATE_CANCEL_RETAINED_PCT : 0;
+  const retainedPct = late && !input.waived ? LATE_CANCEL_RETAINED_PCT : 0;
   const retainedTnd = toCentimes(amountTnd * retainedPct);
   /* released is the REMAINDER.
 

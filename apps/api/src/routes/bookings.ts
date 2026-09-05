@@ -245,10 +245,22 @@ export async function bookingRoutes(app: FastifyInstance): Promise<void> {
        session is worth 0 and retains 0 — 40% of nothing. Reading the price off
        the class row rather than the booking is deliberate: booking.isFree is the
        authoritative "was this seat free", and the class holds the amount. */
+    /* WAIVED IF THE TUTOR MOVED THE CLASS AFTER THIS STUDENT BOOKED (Step 11).
+
+       They agreed to a time that no longer exists, so a 48h window measured
+       against the NEW time is a deadline for an appointment they never made.
+       Comparing the booking's creation to classes.rescheduled_at is the whole
+       rule — a student who booked AFTER the move chose the new time and is held
+       to the normal window like anyone else. */
+    const movedAfterBooking =
+      cls.rescheduledAt != null &&
+      new Date(bk.createdAt).getTime() < new Date(cls.rescheduledAt).getTime();
+
     const outcome = cancellationOutcome({
       scheduledAt: cls.scheduledAt,
       amountTnd: bk.isFree ? 0 : Number(cls.priceTnd ?? 0),
       now,
+      waived: movedAfterBooking,
     });
 
     const [tut] = await db.select().from(tutors).where(eq(tutors.id, cls.tutorId)).limit(1);
@@ -306,6 +318,10 @@ export async function bookingRoutes(app: FastifyInstance): Promise<void> {
              Without it, the day payments open, no reader can tell a "would have
              been retained" row from a real debit. */
           paymentsEnabled: paymentsEnabled(),
+          /* WHY the number is what it is. A ledger row reading "late, nothing
+             retained" with no explanation is one a future reader has to guess at,
+             and the guess would be "a bug". */
+          reason: movedAfterBooking ? "class-rescheduled-waiver" : null,
         })
         .onConflictDoNothing();
 

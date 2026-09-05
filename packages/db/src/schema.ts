@@ -183,6 +183,14 @@ export const classes = pgTable("classes", {
      false in 0008 — the old default made the platform promise a free session on
      behalf of every tutor who never touched the checkbox. */
   isFreeFirst: boolean("is_free_first").notNull().default(false),
+  /* WHEN THE TUTOR LAST MOVED THIS CLASS (Step 11), or null.
+
+     A student who booked BEFORE this timestamp agreed to a time that no longer
+     exists, so they may cancel free whatever the 48h window says — the window is
+     measured against a time they never chose. Comparing bookings.created_at to
+     this is the whole rule; a per-booking flag would need writing to every row on
+     every reschedule and would drift the first time one write failed. */
+  rescheduledAt: timestamp("rescheduled_at", { withTimezone: true }),
   meetUrl: text("meet_url"),
   whiteboardUrl: text("whiteboard_url"),
   quizUrl: text("quiz_url"),

@@ -468,6 +468,35 @@ export async function createReview(input: { classId: string; rating: number; tex
   return call<ReviewResult>("/reviews", input);
 }
 
+/* ---------- Tutor-side class lifecycle (Step 11) ----------
+   Both are the TUTOR acting on their own class, and both are asymmetric with the
+   student's cancel on purpose:
+
+   cancelClass    100% release, always. The student owes nothing for a decision
+                  they did not make, and every seat is freed in one transaction.
+   rescheduleClass  does NOT cancel anyone. It moves the time and WAIVES the 48h
+                  window for everyone who booked the old one — they agreed to an
+                  appointment that no longer exists. */
+export async function cancelClass(input: { classId: string; reason?: string }): Promise<
+  ActionResult & { cancelled?: number; already?: boolean }
+> {
+  if (demoFallback) return { ok: true, demo: true };
+  return call<ActionResult & { cancelled?: number; already?: boolean }>(
+    `/classes/${encodeURIComponent(input.classId)}/cancel`,
+    { reason: input.reason },
+  );
+}
+
+export async function rescheduleClass(input: { classId: string; scheduledAt: string }): Promise<
+  ActionResult & { notified?: number }
+> {
+  if (demoFallback) return { ok: true, demo: true };
+  return call<ActionResult & { notified?: number }>(
+    `/classes/${encodeURIComponent(input.classId)}/reschedule`,
+    { scheduledAt: input.scheduledAt },
+  );
+}
+
 /* ---------- Materials (Step 10) ----------
    The LIST is filtered per viewer by apps/api, so the mere presence of an item is
    already the access decision. A client never reproduces the rule and therefore

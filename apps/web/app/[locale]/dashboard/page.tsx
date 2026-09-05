@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { Link } from "@/components/Link";
 import { Button, Spinner } from "@/components/ui";
 import { useLocale } from "@/components/LocaleProvider";
@@ -8,6 +8,7 @@ import { SiteShell } from "@/components/SiteShell";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { getDashboard, getNotifications, markNotificationsRead, setFreeFirstSession } from "@/app/actions";
 import { MessageBookingButton } from "@/components/MessageBookingButton";
+import { ClassActions } from "@/components/dashboard/ClassActions";
 import { WrongRoleNotice } from "@/components/WrongRoleNotice";
 import { buildTutorSteps, STEP_COPY } from "@/lib/onboarding-steps";
 import type { OnboardingStep, StepState } from "@/lib/onboarding-steps";
@@ -767,7 +768,9 @@ function BookingsPanel({ d }: { d: DashboardData }) {
 }
 
 // ── Real: tutor with a live storefront ──────────────────────────────────────
-function RealDashboard({ d, steps }: { d: DashboardData; steps: OnboardingStep[] }) {
+function RealDashboard(
+  { d, steps, onChanged }: { d: DashboardData; steps: OnboardingStep[]; onChanged: () => void },
+) {
   const { t, locale } = useLocale();
   const c = copy[locale];
   const stats = [
@@ -799,25 +802,36 @@ function RealDashboard({ d, steps }: { d: DashboardData; steps: OnboardingStep[]
         <div className="panel panel-pad mb-[clamp(14px,2vw,22px)]">
           <h2 className="font-display text-[16px] font-bold mb-3.5">{t.dashboard.myClasses}</h2>
           {d.classes.map((cl) => (
-            <Link
-              key={cl.id}
-              href={`/class/${cl.id}`}
-              style={{ display: "flex", gap: 12, alignItems: "center", padding: "13px 0", borderBottom: "1px solid var(--line)", color: "inherit" }}
-            >
-              <div aria-hidden="true" className="w-10 h-10 rounded-[12px] grid place-items-center flex-none bg-blue50 text-blue">
-                <Video />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div style={{ fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{cl.title}</div>
-                <div className="text-[13px] text-muted mt-0.5">{cl.day} {cl.month} · {cl.time}</div>
-              </div>
-              <div className="text-end flex-none ms-auto">
-                <div className="qd-num font-display font-bold text-ink">{cl.price_tnd} TND</div>
-                <div className="qd-num text-[13px] text-muted flex items-center gap-1 justify-end mt-0.5">
-                  <Users className="w-3 h-3" />{cl.seats_left}/{cl.seats}
+            /* The row is a WRAPPER, not the link itself. ClassActions renders
+               <button>s, and a button nested inside an <a> is invalid HTML whose
+               click both navigates and acts — the worst possible behaviour for a
+               control that cancels a class. */
+            <div key={cl.id} style={{ padding: "13px 0", borderBottom: "1px solid var(--line)" }}>
+              <Link
+                href={`/class/${cl.id}`}
+                style={{ display: "flex", gap: 12, alignItems: "center", color: "inherit" }}
+              >
+                <div aria-hidden="true" className="w-10 h-10 rounded-[12px] grid place-items-center flex-none bg-blue50 text-blue">
+                  <Video />
                 </div>
-              </div>
-            </Link>
+                <div className="flex-1 min-w-0">
+                  <div style={{ fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{cl.title}</div>
+                  <div className="text-[13px] text-muted mt-0.5">{cl.day} {cl.month} · {cl.time}</div>
+                </div>
+                <div className="text-end flex-none ms-auto">
+                  <div className="qd-num font-display font-bold text-ink">{cl.price_tnd} TND</div>
+                  <div className="qd-num text-[13px] text-muted flex items-center gap-1 justify-end mt-0.5">
+                    <Users className="w-3 h-3" />{cl.seats_left}/{cl.seats}
+                  </div>
+                </div>
+              </Link>
+              {/* Only for a class that can still be acted on. Offering "cancel"
+                  on one that already ran is a button whose only outcome is an
+                  error message. */}
+              {cl.status === "scheduled" && (
+                <ClassActions classId={cl.id} onChanged={onChanged} />
+              )}
+            </div>
           ))}
         </div>
       )}
@@ -998,6 +1012,16 @@ export default function DashboardPage() {
      as the OTHER role · object = real tutor data */
   const [result, setResult] = useState<DashboardResult | undefined>(undefined);
 
+  /* Reusable, because Step 11 gave the tutor two actions that CHANGE this data:
+     cancelling a class and moving one. Re-fetching is the honest way to reflect
+     that — patching the local array would drift from what the server actually
+     did the first time one of those calls half-succeeded. */
+  const reload = useCallback(() => {
+    getDashboard()
+      .then((d) => setResult(d))
+      .catch(() => setResult(null));
+  }, []);
+
   useEffect(() => {
     let alive = true;
     getDashboard()
@@ -1059,7 +1083,9 @@ export default function DashboardPage() {
         }
       />
     );
-    body = <RealDashboard d={data} steps={buildTutorSteps(progressOf(data), locale)} />;
+    body = (
+      <RealDashboard d={data} steps={buildTutorSteps(progressOf(data), locale)} onChanged={reload} />
+    );
   }
 
   return (
