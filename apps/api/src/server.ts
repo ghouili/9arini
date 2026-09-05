@@ -27,6 +27,7 @@ import { adminRoutes } from "./routes/admin";
 import { cronRoutes } from "./routes/cron";
 import { messageRoutes } from "./routes/messages";
 import { materialRoutes } from "./routes/materials";
+import { guardianRoutes } from "./routes/guardian";
 
 export async function buildServer(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -79,6 +80,7 @@ export async function buildServer(): Promise<FastifyInstance> {
   await app.register(adminRoutes);
   await app.register(messageRoutes);
   await app.register(materialRoutes);
+  await app.register(guardianRoutes);
   await app.register(cronRoutes);
 
   app.get("/health", async (req) => {

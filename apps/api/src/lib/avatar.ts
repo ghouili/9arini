@@ -1,5 +1,35 @@
 import sharp from "sharp";
 
+/* ══════════════════════════════════════════════════════════════════════════════
+   BOUND LIBVIPS BEFORE ANYTHING ELSE. This is not tuning; it is what stops the
+   process dying.
+   ══════════════════════════════════════════════════════════════════════════════
+   Found by the Docker E2E run, which failed with `ENOMEM: not enough memory,
+   read` — and failed on a DIFFERENT test each time, which is what a
+   memory-pressure problem looks like from the outside and why it reads as a
+   flake until you check the API log.
+
+   sharp's defaults assume a machine with room to spare:
+
+     cache        libvips keeps decoded images, file handles and operation
+                  results in memory indefinitely. Every avatar processed adds to
+                  it and nothing evicts. Across a run of uploads the resident set
+                  climbs until an unrelated read() is the call that happens to
+                  fail.
+
+     concurrency  one worker thread PER CPU by default, and each holds its own
+                  buffers. On the 2-core VPS this deploys to (DEPLOY.md) that is
+                  already the wrong trade: avatar processing is a rare,
+                  latency-tolerant operation on the same box that serves every
+                  page. Spending cores and memory to make it faster is paying in
+                  the currency the storefront needs under a WhatsApp storm.
+
+   cache(false) rather than a smaller cache: there is nothing to reuse here. Each
+   upload is a different image, processed once, never seen again. A cache with a
+   0% hit rate is pure resident memory. */
+sharp.cache(false);
+sharp.concurrency(1);
+
 /* PROFILE PHOTO PROCESSING (Step 13).
 
    ══════════════════════════════════════════════════════════════════════════════

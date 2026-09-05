@@ -42,8 +42,13 @@ const copy = bilingual({
     reported: "Signalé",
     reportDone: "Merci. Ce message a été signalé à Tnajem.",
     privacy: "Les coordonnées (numéro, email, lien) sont retirées automatiquement des messages.",
+    /* Updated in Step 14, when parent accounts made this TRUE. Step 8b said
+       explicitly that guardian access was not built; saying it now that it is
+       matters most to the CHILD — a monitored conversation nobody disclosed is
+       surveillance, and a fifteen-year-old is owed this sentence before they
+       type, not after. */
     minorNotice:
-      "Cet élève a moins de 18 ans. Cette conversation est conservée et Tnajem peut la consulter si un message est signalé.",
+      "Cet élève a moins de 18 ans. Son parent ou tuteur peut lire cette conversation depuis son propre compte. Elle est conservée, et Tnajem peut la consulter si un message est signalé.",
     withTutor: "avec ton prof",
     withStudent: "avec ton élève",
   },
@@ -68,7 +73,7 @@ const copy = bilingual({
     reportDone: "يعيشك. الرسالة هاذي تبلّغت لـ Tnajem.",
     privacy: "معلومات الاتصال (النمرة، الإيميل، الرابط) تتنحّى آليًا من الرسائل.",
     minorNotice:
-      "التلميذ هذا عمرو أقلّ من 18 سنة. المحادثة هاذي تتحفظ وTnajem تنجّم تشوفها كان رسالة تتبلّغ.",
+      "التلميذ هذا عمرو أقلّ من 18 سنة. الولي متاعو ينجّم يقرا المحادثة هاذي من الحساب متاعو. وهي تتحفظ، وTnajem تنجّم تشوفها كان رسالة تتبلّغ.",
     withTutor: "مع أستاذك",
     withStudent: "مع تلميذك",
   },

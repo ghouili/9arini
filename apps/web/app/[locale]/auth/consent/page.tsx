@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { useLocalizedRouter } from "@/components/Link";
 import { Button, Field, Spinner } from "@/components/ui";
 import { useLocale } from "@/components/LocaleProvider";
-import { Shield, Phone, User } from "@/components/icons";
+import { Shield, Phone, User, Mail } from "@/components/icons";
 import { saveConsent } from "@/app/actions";
 import { SiteShell } from "@/components/SiteShell";
 import { safeNext } from "@tnajem/shared";
@@ -56,17 +56,21 @@ function ConsentInner() {
 
   const [gName, setGName] = useState("");
   const [gPhone, setGPhone] = useState("");
+  /* Step 14: the parent's own login identity. Login is e-mail OTP, so this is
+     the only field on this form that can ever resolve to an account — the
+     phone never could. */
+  const [gEmail, setGEmail] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit() {
-    if (!agreed || !gName.trim() || !gPhone.trim()) return;
+    if (!agreed || !gName.trim() || !gPhone.trim() || !gEmail.trim()) return;
     setLoading(true);
     setError(null);
     let res: Awaited<ReturnType<typeof saveConsent>>;
     try {
-      res = await saveConsent({ guardianName: gName, guardianPhone: gPhone });
+      res = await saveConsent({ guardianName: gName, guardianPhone: gPhone, guardianEmail: gEmail });
     } catch {
       // Network hiccup on 3G — never leave a legal consent silently un-saved.
       setLoading(false);
@@ -77,11 +81,18 @@ function ConsentInner() {
     // Consent signed → resume whatever the student was doing (a /checkout?class=x
     // they were bounced out of), else the student home. `next` is already
     // validated by safeNext(): a relative, same-origin path.
-    if (res.ok) router.push(next ?? "/student");
-    else setError(t.extra.error);
+    if (res.ok) { router.push(next ?? "/student"); return; }
+    /* Name the two cases the parent can actually fix. A generic failure on a
+       legal consent form is where people give up. */
+    setError(
+      res.error === "invalid-guardian-email" ? t.consent.errGEmail
+        : res.error === "guardian-is-self" ? t.consent.errGSelf
+        : t.extra.error,
+    );
   }
 
-  const canSubmit = agreed && gName.trim().length > 0 && gPhone.trim().length > 0 && !loading;
+  const canSubmit =
+    agreed && gName.trim().length > 0 && gPhone.trim().length > 0 && gEmail.trim().length > 0 && !loading;
 
   return (
     <SiteShell>
@@ -175,6 +186,26 @@ function ConsentInner() {
                   onChange={(e) => setGPhone(e.target.value)}
                   inputMode="tel"
                   autoComplete="tel"
+                  style={{ minWidth: 0 }}
+                />
+              </div>
+            </Field>
+
+            {/* Guardian e-mail — the parent's OWN login identity (Step 14). The
+                help text says why it is asked for: without it the field reads as
+                one more thing to hand over, when it is actually what gives them
+                an account of their own. */}
+            <Field label={t.consent.gEmail} help={t.consent.gEmailHelp}>
+              <div className="inp">
+                <Mail />
+                <input
+                  type="email"
+                  dir="ltr"
+                  placeholder="parent@example.com"
+                  value={gEmail}
+                  onChange={(e) => setGEmail(e.target.value)}
+                  inputMode="email"
+                  autoComplete="email"
                   style={{ minWidth: 0 }}
                 />
               </div>

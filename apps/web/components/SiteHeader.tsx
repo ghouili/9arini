@@ -32,6 +32,7 @@ const NAV = {
     myClasses: "Mes cours",
     dashboard: "Tableau de bord",
     messages: "Messages",
+    guardianArea: "Espace parent",
     account: "Mon profil",
     becomeTutor: "Devenir prof",
     menu: "Menu",
@@ -48,6 +49,7 @@ const NAV = {
     myClasses: "حصصي",
     dashboard: "لوحتي",
     messages: "الرسائل",
+    guardianArea: "فضاء الولي",
     account: "حسابي",
     becomeTutor: "ولّي أستاذ",
     menu: "القائمة",
@@ -235,6 +237,13 @@ export function SiteHeader() {
               booking, and both sides of a booking need to reach it. Not shown to
               signed-out visitors: there is nothing behind it for them. */}
           {role && <Link href="/messages" aria-current={cur("/messages")}>{c.messages}</Link>}
+          {/* Step 14. Shown to a GUARDIAN role only. The page itself is harmless
+              to anyone else — it lists your children, and a non-parent has none —
+              but offering it in the nav to every student would be an invitation
+              to a screen that is permanently empty for them. */}
+          {role === "guardian" && (
+            <Link href="/guardian" aria-current={cur("/guardian")}>{c.guardianArea}</Link>
+          )}
           {role
             ? <Link href="/account" aria-current={cur("/account")}>{c.account}</Link>
             : <Link href="/auth" aria-current={cur("/auth")}>{c.signIn}</Link>}

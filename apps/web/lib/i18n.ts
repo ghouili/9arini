@@ -145,6 +145,13 @@ const fr = {
     title: "Accord du parent / tuteur",
     body: "Pour un élève de moins de 18 ans, la loi tunisienne (INPDP) exige l'accord d'un parent ou tuteur. Renseigne ses informations pour activer le compte.",
     gName: "Nom du parent / tuteur", gPhone: "Téléphone du parent / tuteur",
+    gEmail: "E-mail du parent / tuteur",
+    /* Says WHY the address is asked for. Without this the field reads as one
+       more thing to hand over; with it, it is the parent's own account. */
+    gEmailHelp:
+      "C'est avec cette adresse que le parent se connecte à son propre compte, pour voir les séances réservées et lire les conversations de son enfant.",
+    errGEmail: "Cette adresse e-mail n'est pas valide.",
+    errGSelf: "Utilise l'adresse du parent, pas la tienne.",
     agree: "Je confirme être le parent/tuteur et j'accepte la politique de confidentialité.",
     submit: "Activer le compte",
   },
@@ -334,6 +341,11 @@ const ar: typeof fr = {
     title: "موافقة الولي",
     body: "للتلميذ تحت 18 سنة، القانون التونسي (INPDP) يستوجب موافقة الولي. عمّر معلوماته باش يتفعّل الحساب.",
     gName: "اسم الولي", gPhone: "هاتف الولي",
+    gEmail: "إيميل الولي",
+    gEmailHelp:
+      "بالإيميل هذا الولي يدخل للحساب متاعو، باش يشوف الحصص المحجوزة ويقرا محادثات ولدو.",
+    errGEmail: "الإيميل هذا موش صحيح.",
+    errGSelf: "استعمل إيميل الولي، موش متاعك.",
     agree: "نأكّد أني الولي ونقبل سياسة الخصوصية.",
     submit: "فعّل الحساب",
   },

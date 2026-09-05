@@ -489,6 +489,42 @@ export const tutorStrikes = pgTable("tutor_strikes", {
   tutorIdx: index("tutor_strikes_tutor_id_idx").on(t.tutorId, t.createdAt),
 }));
 
+/* ══════════════════════════════════════════════════════════════════════════════
+   GUARDIAN LINKS (Step 14) — a parent's real account, not a name on a form.
+
+   Before this, "the guardian" was two denormalised strings on a consent row:
+   guardian_name and guardian_phone. That is a legal record, and it stays one, but
+   it is not a person who can sign in, see what their child booked, or read a
+   conversation with an adult stranger.
+
+   HOW A LINK IS MADE, and why it is not an invitation. The consent form collects
+   the parent's e-mail. Nothing is created on their behalf and no invitation is
+   sent — an e-mail we cannot guarantee arrives is not a foundation for a
+   safeguarding feature. Instead, when someone signs in with that address, the
+   link resolves: login is e-mail OTP, so controlling the inbox already proves
+   control of the address to exactly the standard the rest of the product uses.
+
+   ⚠ A GUARDIAN IS NOT A CONTACT BRIDGE. Step 8 applies to them identically: they
+   see a tutor's first name and nothing else. The point of this table is oversight
+   of their own child, never a second route to an adult's phone number.
+   ══════════════════════════════════════════════════════════════════════════════ */
+export const guardianLinks = pgTable("guardian_links", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  guardianProfileId: uuid("guardian_profile_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
+  minorProfileId: uuid("minor_profile_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
+  /* The consent this link came from. set null so revoking or re-signing a consent
+     does not silently drop a parent's oversight mid-term. */
+  consentId: uuid("consent_id").references(() => consents.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  /* One link per (guardian, child). The resolve-on-login path runs on EVERY
+     login, so without this a parent of two children would accumulate a row per
+     sign-in. */
+  uniqPair: unique().on(t.guardianProfileId, t.minorProfileId),
+  guardianIdx: index("guardian_links_guardian_profile_id_idx").on(t.guardianProfileId),
+  minorIdx: index("guardian_links_minor_profile_id_idx").on(t.minorProfileId),
+}));
+
 export const payments = pgTable("payments", {
   id: uuid("id").primaryKey().defaultRandom(),
   bookingId: uuid("booking_id").references(() => bookings.id, { onDelete: "set null" }),
@@ -525,6 +561,14 @@ export const consents = pgTable("consents", {
   minorId: uuid("minor_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
   guardianName: text("guardian_name").notNull(),
   guardianPhone: text("guardian_phone").notNull(),
+  /* THE GUARDIAN'S E-MAIL, and it is what turns this row from a record INTO a
+     link (Step 14). Login is e-mail OTP, so an address is the only identifier
+     that can ever resolve to an account; the phone never could.
+
+     Nullable, because every consent signed before Step 14 has none and back-filling
+     a guessed address would be worse than an empty column — those parents simply
+     have no linked account until the consent is re-signed. */
+  guardianEmail: text("guardian_email"),
   consentText: text("consent_text").notNull(),
   signedAt: timestamp("signed_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({

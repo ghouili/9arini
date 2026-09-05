@@ -8,6 +8,7 @@ import {
   vRating, vOptionalText, vUuid, vText, vPhone, isUuid,
   normalizePhone, isValidPhone,
   type NotificationItem, type NotificationKind,
+  normalizeEmail, isValidEmail,
 } from "@tnajem/shared";
 import { resolveMeetUrl } from "@tnajem/shared/live";
 import { db } from "../db";
@@ -30,6 +31,11 @@ const reviewBody = z.object({
 const consentBody = z.object({
   guardianName: z.string(),
   guardianPhone: z.string(),
+  /* Step 14. Optional in the SCHEMA so a client that predates parent accounts
+     still works, required by the handler below — the two are different questions
+     and conflating them would return a 400 shape error where a domain code
+     belongs. */
+  guardianEmail: z.string().optional(),
 });
 
 const markReadBody = z.object({ ids: z.array(z.string()).optional() }).optional();
@@ -147,6 +153,25 @@ export async function miscRoutes(app: FastifyInstance): Promise<void> {
     const normalized = normalizePhone(phone.value);
     if (!isValidPhone(normalized)) return { ok: false, error: "invalid-phone" };
 
+    /* THE PARENT'S E-MAIL is what turns this legal record into a real linked
+       account (Step 14) — login is e-mail OTP, so an address is the only
+       identifier that can ever resolve to one. The phone never could.
+
+       REQUIRED, because a consent without it produces a parent who can sign a
+       form and then see nothing: no bookings, and no access to the conversations
+       their child is having with adult strangers. That gap is the thing Step 14
+       exists to close, and making the field optional would leave it open by
+       default. */
+    const guardianEmail = normalizeEmail(input.guardianEmail ?? "");
+    if (!isValidEmail(guardianEmail)) return { ok: false, error: "invalid-guardian-email" };
+
+    /* A child cannot be their own guardian. One typo — a minor entering their own
+       address — would otherwise hand them "oversight" of themselves and a second
+       role in the audit trail. */
+    if (guardianEmail === (session.profile.email ?? "").toLowerCase()) {
+      return { ok: false, error: "guardian-is-self" };
+    }
+
     /* `consents` has no unique key on minor_id and this had no dedupe, so a client
        could POST it in a loop and write unbounded rows against one profile —
        storage burn, and a legal record with no single answer to "who consented?".
@@ -160,6 +185,7 @@ export async function miscRoutes(app: FastifyInstance): Promise<void> {
     const values = {
       guardianName: name.value,
       guardianPhone: normalized,
+      guardianEmail,
       consentText: "Consentement du parent/tuteur pour un compte de moins de 18 ans (INPDP).",
     };
 

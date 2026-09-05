@@ -19,7 +19,7 @@ import type {
   DashboardData, DashboardBooking, StudentDashboard, ClassItem, TutorVerification, PendingTutor,
   ExploreTutor, TutorReviews, NotificationItem, NotificationKind, DashboardResult,
   StudentLevel, Role, OnboardingState,
-  MessageThreadSummary, MessageThreadDetail, MaterialItem,
+  MessageThreadSummary, MessageThreadDetail, MaterialItem, GuardianChild,
 } from "@tnajem/shared";
 import { STUDENT_LEVELS, parseStudentProfile } from "@tnajem/shared";
 import type { Me } from "@tnajem/shared";
@@ -150,7 +150,14 @@ export async function logout(): Promise<{ ok: boolean }> {
   return { ok: true };
 }
 
-export async function saveConsent(input: { guardianName: string; guardianPhone: string }): Promise<ActionResult> {
+export async function saveConsent(input: {
+  guardianName: string;
+  guardianPhone: string;
+  /* Step 14: the parent's OWN login identity, and what turns this legal record
+     into a linked account. Login is e-mail OTP, so an address is the only
+     identifier that can ever resolve to one — the phone never could. */
+  guardianEmail: string;
+}): Promise<ActionResult> {
   if (demoFallback) return { ok: true, demo: true };
   // PORTED to apps/api (POST /consent). One consent row per minor, updated in place.
   return call<ActionResult>("/consent", input);
@@ -466,6 +473,39 @@ export async function createReview(input: { classId: string; rating: number; tex
      started" rule and the insert+recompute transaction all moved together — the
      last caller of the web-side recomputeTutorStats, so that duplicate is gone. */
   return call<ReviewResult>("/reviews", input);
+}
+
+/* ---------- Parent accounts (Step 14) ----------
+   READ-ONLY, and there is deliberately no send/book/cancel here. A guardian
+   acting AS their child would put words or money in a minor's name from an
+   account the minor does not control, and the audit trail would say the child did
+   it. Oversight is not impersonation.
+
+   The link resolves server-side on every read — no invitation, no callback — so
+   a parent's first visit already shows their child. */
+export async function getMyChildren(): Promise<GuardianChild[] | null> {
+  if (demoFallback) return [];
+  return call<GuardianChild[] | null>("/guardian/children", undefined, "GET");
+}
+
+export async function getChildThreads(childId: string): Promise<MessageThreadSummary[] | null> {
+  if (demoFallback) return [];
+  if (typeof childId !== "string" || !childId.trim()) return null;
+  return call<MessageThreadSummary[] | null>(
+    `/guardian/children/${encodeURIComponent(childId)}/threads`,
+    undefined,
+    "GET",
+  );
+}
+
+export async function getChildThread(threadId: string): Promise<MessageThreadDetail | null> {
+  if (demoFallback) return null;
+  if (typeof threadId !== "string" || !threadId.trim()) return null;
+  return call<MessageThreadDetail | null>(
+    `/guardian/threads/${encodeURIComponent(threadId)}`,
+    undefined,
+    "GET",
+  );
 }
 
 /* ---------- Profile photo (Step 13) ----------

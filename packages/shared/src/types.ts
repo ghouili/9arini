@@ -181,6 +181,26 @@ export type StudentDashboard = {
   past: StudentClass[];
 };
 
+/* ---- Parent accounts (Step 14) ----
+   A guardian's view of THEIR OWN child. The child's full name is theirs to see —
+   this is not a counterparty surface. Every TUTOR name in here is
+   publicDisplayName'd like everywhere else: a guardian is not a contact bridge. */
+export type GuardianChild = {
+  id: string;
+  name: string | null;
+  isMinor: boolean;
+  /** How many conversations exist, so the parent knows there is something to read. */
+  threadCount: number;
+  upcoming: {
+    classId: string;
+    title: string;
+    day: string;
+    month: string;
+    time: string;
+    tutorName: string | null;   // first name only
+  }[];
+};
+
 /* ---- Materials (Step 10) ----
    A material the CURRENT VIEWER is allowed to see. The API filters the list per
    viewer, so the mere presence of an item is already the access decision — a
@@ -213,12 +233,17 @@ export type MessageThreadSummary = {
   withName: string | null;      // first name only
   lastMessageAt: string | null; // ISO, null until someone writes
   studentIsMinor: boolean;
-  iAm: "tutor" | "student";
+  iAm: "tutor" | "student" | "guardian";
 };
 
 export type MessageItem = {
   id: string;
   mine: boolean;
+  /* Guardian view only (Step 14): whose message this is, so a parent can follow
+     a conversation they are not in. `mine` is false for every message there —
+     none of them are the guardian's — which is exactly why this second flag is
+     needed rather than reusing it. */
+  fromChild?: boolean;
   /** PLAIN TEXT. Never render through dangerouslySetInnerHTML. */
   body: string;
   /** True when contact details were removed from it before storage. */
@@ -230,7 +255,10 @@ export type MessageThreadDetail = {
   id: string;
   classTitle: string;
   withName: string | null;
-  iAm: "tutor" | "student";
+  /* "guardian" is a READER, not a participant. The UI hides the composer on it:
+     a read-only view that still renders a text box invites a feature that does
+     not exist, and a guardian must never be able to write as their child. */
+  iAm: "tutor" | "student" | "guardian";
   studentIsMinor: boolean;
   messages: MessageItem[];
 };
