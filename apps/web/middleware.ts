@@ -17,7 +17,7 @@ import { DEFAULT_LOCALE, isLocale, localeFromPath, stripLocale, LOCALE_HEADER } 
 const SESSION_COOKIE = "tnajem_session";
 
 /* Path prefixes (locale-stripped) that require a session. Mirrors the old matcher. */
-const PROTECTED = ["/dashboard", "/onboarding", "/account", "/student", "/checkout", "/live", "/admin"];
+const PROTECTED = ["/dashboard", "/onboarding", "/account", "/student", "/checkout", "/live", "/admin", "/messages"];
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;

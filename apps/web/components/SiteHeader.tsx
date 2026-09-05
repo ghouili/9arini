@@ -31,6 +31,7 @@ const NAV = {
     createPage: "Créer ma page",
     myClasses: "Mes cours",
     dashboard: "Tableau de bord",
+    messages: "Messages",
     account: "Mon profil",
     becomeTutor: "Devenir prof",
     menu: "Menu",
@@ -46,6 +47,7 @@ const NAV = {
     createPage: "اعمل صفحتك",
     myClasses: "حصصي",
     dashboard: "لوحتي",
+    messages: "الرسائل",
     account: "حسابي",
     becomeTutor: "ولّي أستاذ",
     menu: "القائمة",
@@ -229,6 +231,10 @@ export function SiteHeader() {
           )}
 
           <div className="qh-sep" />
+          {/* Step 8b. One entry point for BOTH roles — a thread belongs to a
+              booking, and both sides of a booking need to reach it. Not shown to
+              signed-out visitors: there is nothing behind it for them. */}
+          {role && <Link href="/messages" aria-current={cur("/messages")}>{c.messages}</Link>}
           {role
             ? <Link href="/account" aria-current={cur("/account")}>{c.account}</Link>
             : <Link href="/auth" aria-current={cur("/auth")}>{c.signIn}</Link>}

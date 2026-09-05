@@ -25,6 +25,7 @@ import { bookingRoutes } from "./routes/bookings";
 import { miscRoutes } from "./routes/misc";
 import { adminRoutes } from "./routes/admin";
 import { cronRoutes } from "./routes/cron";
+import { messageRoutes } from "./routes/messages";
 
 export async function buildServer(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -75,6 +76,7 @@ export async function buildServer(): Promise<FastifyInstance> {
   await app.register(bookingRoutes);
   await app.register(miscRoutes);
   await app.register(adminRoutes);
+  await app.register(messageRoutes);
   await app.register(cronRoutes);
 
   app.get("/health", async (req) => {

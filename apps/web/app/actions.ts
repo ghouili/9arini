@@ -19,6 +19,7 @@ import type {
   DashboardData, DashboardBooking, StudentDashboard, ClassItem, TutorVerification, PendingTutor,
   ExploreTutor, TutorReviews, NotificationItem, NotificationKind, DashboardResult,
   StudentLevel, Role, OnboardingState,
+  MessageThreadSummary, MessageThreadDetail,
 } from "@tnajem/shared";
 import { STUDENT_LEVELS, parseStudentProfile } from "@tnajem/shared";
 import type { Me } from "@tnajem/shared";
@@ -465,6 +466,49 @@ export async function createReview(input: { classId: string; rating: number; tex
      started" rule and the insert+recompute transaction all moved together — the
      last caller of the web-side recomputeTutorStats, so that duplicate is gone. */
   return call<ReviewResult>("/reviews", input);
+}
+
+/* ---------- Messaging (Step 8b) ----------
+   The replacement channel for the contact details Step 8 closed. Every thread is
+   a BOOKING: there are no cold DMs, and that rule is enforced in apps/api against
+   a UNIQUE NOT NULL booking_id, not here.
+
+   Message bodies come back as PLAIN TEXT — markup is stripped server-side before
+   storage. Render them as text. Never dangerouslySetInnerHTML: this is the one
+   user-authored string in the product that is shown to a DIFFERENT user. */
+export async function openThread(input: { bookingId: string }): Promise<ActionResult & { threadId?: string }> {
+  if (demoFallback) return { ok: true, demo: true };
+  return call<ActionResult & { threadId?: string }>("/threads", input);
+}
+
+export async function getThreads(): Promise<MessageThreadSummary[] | null> {
+  if (demoFallback) return [];
+  return call<MessageThreadSummary[] | null>("/threads", undefined, "GET");
+}
+
+export async function getThread(threadId: string): Promise<MessageThreadDetail | null> {
+  if (demoFallback) return null;
+  if (typeof threadId !== "string" || !threadId.trim()) return null;
+  return call<MessageThreadDetail | null>(`/threads/${encodeURIComponent(threadId)}`, undefined, "GET");
+}
+
+export type SendMessageResult = ActionResult & {
+  id?: string;
+  body?: string;
+  at?: string;
+  /** True when contact details were removed. The UI must SAY so — silently
+      editing someone's words and delivering the result is a trust problem. */
+  masked?: boolean;
+};
+
+export async function sendMessage(input: { threadId: string; body: string }): Promise<SendMessageResult> {
+  if (demoFallback) return { ok: true, demo: true };
+  return call<SendMessageResult>(`/threads/${encodeURIComponent(input.threadId)}/messages`, { body: input.body });
+}
+
+export async function reportMessage(input: { messageId: string; reason?: string }): Promise<ActionResult> {
+  if (demoFallback) return { ok: true, demo: true };
+  return call<ActionResult>(`/messages/${encodeURIComponent(input.messageId)}/report`, { reason: input.reason });
 }
 
 /** Reviews for a public storefront. Unknown slug → empty (never throws for a 404 page). */

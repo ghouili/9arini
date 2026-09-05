@@ -11,6 +11,7 @@ import type { StudentClass, StudentDashboard } from "@tnajem/shared";
    first time the rate moves — and this one renders the number to a student. */
 import { CANCEL_FREE_WINDOW_MS, CANCEL_FREE_WINDOW_HOURS, LATE_CANCEL_RETAINED_PCT } from "@tnajem/shared";
 import { SiteShell } from "@/components/SiteShell";
+import { MessageBookingButton } from "@/components/MessageBookingButton";
 import { bilingual } from "@/lib/i18n";
 
 /* Page-local copy (never lib/i18n.ts — that file is shared).
@@ -34,6 +35,7 @@ const copy = bilingual({
     cancelLateWarn: `Le cours est dans moins de ${CANCEL_FREE_WINDOW_HOURS}h. Tu peux quand même annuler, et ta place repart tout de suite — ${Math.round(LATE_CANCEL_RETAINED_PCT * 100)} % du prix de la place est noté comme retenu pour ton prof. Aucun montant n'est prélevé pendant le pilote.`,
     alreadyStarted: "Le cours a déjà commencé, on ne peut plus l'annuler en ligne. Écris à ton prof.",
     cancelErr: "L'annulation n'a pas marché. Réessaie.",
+    messageTutor: "Écrire à",
     cancelled: "Réservation annulée. La place est de nouveau libre.",
     cancelledLate: `Réservation annulée, la place est de nouveau libre. C'était à moins de ${CANCEL_FREE_WINDOW_HOURS}h : ${Math.round(LATE_CANCEL_RETAINED_PCT * 100)} % est noté comme retenu pour ton prof. Rien n'est prélevé pendant le pilote.`,
     free: "Gratuit",
@@ -76,6 +78,7 @@ const copy = bilingual({
     cancelLateWarn: `الحصة في أقل من ${CANCEL_FREE_WINDOW_HOURS} ساعة. تنجّم برك تلغي، ومكانك يرجع متوفّر على طول — ${Math.round(LATE_CANCEL_RETAINED_PCT * 100)} % من ثمن البلاصة يتسجّل كمستحق لأستاذك. ما يتخصم حتى مليم في فترة التجربة.`,
     alreadyStarted: "الحصة بدات قبل، ما عادش تنجم تلغي أونلاين. اكتب لأستاذك.",
     cancelErr: "الإلغاء ما مشاش. عاود حاول.",
+    messageTutor: "راسل",
     cancelled: "الحجز تلغى. المكان ولّى متوفّر.",
     cancelledLate: `الحجز تلغى، والمكان ولّى متوفّر. كان في أقل من ${CANCEL_FREE_WINDOW_HOURS} ساعة: ${Math.round(LATE_CANCEL_RETAINED_PCT * 100)} % يتسجّل كمستحق لأستاذك. ما يتخصم حتى مليم في فترة التجربة.`,
     free: "مجاني",
@@ -330,6 +333,19 @@ function UpcomingCard({ item, hero, onChanged }: { item: StudentClass; hero: boo
             <Video /> {t.student.join}
           </Button>
         </Link>
+
+        {/* Step 8b. The student's side of the same channel: the tutor's phone
+            number was never shown to them either, and a question before a class
+            has to go somewhere. Same visual weight as Cancel — secondary to
+            Join, which is what this card is for. */}
+        <MessageBookingButton
+          bookingId={item.bookingId}
+          style={{
+            border: "1px solid rgba(255,255,255,.28)", background: "transparent", color: "var(--on-dark)",
+            fontWeight: 700, fontSize: 13, padding: "12px 16px", borderRadius: 999, cursor: "pointer", minHeight: 44,
+          }}
+          ariaLabel={`${c.messageTutor} ${item.tutorName}`}
+        />
 
         {cancellable && !confirming && (
           <button

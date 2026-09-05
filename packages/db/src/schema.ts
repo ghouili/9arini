@@ -302,6 +302,72 @@ export const contactLeakFlags = pgTable("contact_leak_flags", {
   profileIdx: index("contact_leak_flags_profile_id_created_at_idx").on(t.profileId, t.createdAt),
 }));
 
+/* ══════════════════════════════════════════════════════════════════════════════
+   MESSAGING (Step 8b) — the replacement channel for the contact details Step 8
+   closed. Without it, "we removed the phone number" is just a removal.
+
+   SCOPED TO A BOOKING. There are no cold DMs and no way to address a stranger:
+   a thread exists only where a student has actually taken a seat in that tutor's
+   class. That single rule removes the entire class of abuse a marketplace inbox
+   normally invites, and it is enforced by the UNIQUE booking_id below rather than
+   by a check somebody can forget.
+   ══════════════════════════════════════════════════════════════════════════════ */
+export const messageThreads = pgTable("message_threads", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  /* ONE THREAD PER BOOKING, enforced by the database. The alternative — a thread
+     per (tutor, student) pair — would silently outlive the booking that justified
+     it, so a single cancelled seat would leave a permanent channel to a minor. */
+  bookingId: uuid("booking_id").notNull().unique().references(() => bookings.id, { onDelete: "cascade" }),
+  classId: uuid("class_id").notNull().references(() => classes.id, { onDelete: "cascade" }),
+  tutorProfileId: uuid("tutor_profile_id").references(() => profiles.id, { onDelete: "set null" }),
+  studentProfileId: uuid("student_profile_id").references(() => profiles.id, { onDelete: "set null" }),
+  /* Snapshotted at creation, not recomputed. A thread that started with a minor
+     stays a minor's thread for its whole retention life even after they turn 18 —
+     the messages in it were still written to a child. */
+  studentIsMinor: boolean("student_is_minor").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  /** Denormalised so the thread LIST does not need a per-row subquery. */
+  lastMessageAt: timestamp("last_message_at", { withTimezone: true }),
+}, (t) => ({
+  // "my conversations, most recent first" — the only list query there is.
+  tutorIdx: index("message_threads_tutor_profile_id_idx").on(t.tutorProfileId, t.lastMessageAt),
+  studentIdx: index("message_threads_student_profile_id_idx").on(t.studentProfileId, t.lastMessageAt),
+}));
+
+export const messages = pgTable("messages", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  threadId: uuid("thread_id").notNull().references(() => messageThreads.id, { onDelete: "cascade" }),
+  /* set null, not cascade: deleting an account must not silently rewrite the
+     other side's conversation into a monologue. Step 15 anonymises rather than
+     erases, for the same reason it anonymises reviews. */
+  senderProfileId: uuid("sender_profile_id").references(() => profiles.id, { onDelete: "set null" }),
+  /* PLAIN TEXT, always. Stripped of markup on the way IN (apps/api) and escaped
+     by React on the way OUT. This column is the product's only stored-XSS
+     surface: it is user-authored, rendered to another user, and persisted. It
+     must never be fed to dangerouslySetInnerHTML. */
+  body: text("body").notNull(),
+  /** True when detectContactInfo found something and it was masked out. */
+  masked: boolean("masked").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  threadIdx: index("messages_thread_id_created_at_idx").on(t.threadId, t.createdAt),
+}));
+
+/* Reports. Deliberately minimal here — Step 15 builds the moderation queue this
+   feeds. What matters now is that the button exists and the row is durable: a
+   Report button that does nothing is worse than none, because it teaches people
+   that reporting does not work. */
+export const messageReports = pgTable("message_reports", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  messageId: uuid("message_id").notNull().references(() => messages.id, { onDelete: "cascade" }),
+  reporterProfileId: uuid("reporter_profile_id").references(() => profiles.id, { onDelete: "set null" }),
+  reason: text("reason"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  // One report per person per message; pressing twice is not two reports.
+  uniqReporterMessage: unique().on(t.messageId, t.reporterProfileId),
+}));
+
 export const payments = pgTable("payments", {
   id: uuid("id").primaryKey().defaultRandom(),
   bookingId: uuid("booking_id").references(() => bookings.id, { onDelete: "set null" }),
@@ -377,7 +443,11 @@ export const reviews = pgTable("reviews", {
 export const notifications = pgTable("notifications", {
   id: uuid("id").primaryKey().defaultRandom(),
   profileId: uuid("profile_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
-  kind: text("kind").notNull(), // booking_confirmed | booking_cancelled | class_reminder | verification_approved | verification_rejected | new_booking
+  /* Free text, not an enum, so a new kind needs no migration. The closed set
+     lives in NotificationKind (@tnajem/shared) and is what the UI switches on:
+     booking_confirmed | booking_cancelled | class_reminder |
+     verification_approved | verification_rejected | new_booking | message */
+  kind: text("kind").notNull(),
   title: text("title").notNull(),
   body: text("body").notNull(),
   href: text("href"),

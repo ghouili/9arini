@@ -7,6 +7,7 @@ import { Gear, Bell, Wallet, Share, Copy, Video, Plus, Bulb, Users, Eye, Book, S
 import { SiteShell } from "@/components/SiteShell";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { getDashboard, getNotifications, markNotificationsRead, setFreeFirstSession } from "@/app/actions";
+import { MessageBookingButton } from "@/components/MessageBookingButton";
 import { WrongRoleNotice } from "@/components/WrongRoleNotice";
 import { buildTutorSteps, STEP_COPY } from "@/lib/onboarding-steps";
 import type { OnboardingStep, StepState } from "@/lib/onboarding-steps";
@@ -32,6 +33,7 @@ const copy = bilingual({
     /* Replaces call / mail / noPhone. Those keys are gone with the tel: and
        mailto: links they labelled — a dead key is a key someone re-renders. */
     contactClosed: "Coordonnées non partagées",
+    messageStudent: "Écrire à",
     anon: "Élève",
     free: "Gratuit",
     paid: "Payé",
@@ -79,6 +81,7 @@ const copy = bilingual({
     bookingsEmptyBody: "شارك رابطك. أوّل ما تلميذ يحجز، تشوفو هوني — اسمو، وقتاش حجز، ورابط الحصة.",
     signedUp: (n: number) => `${n} محجوز`,
     contactClosed: "معلومات الاتصال ما تتشاركش",
+    messageStudent: "راسل",
     anon: "تلميذ",
     free: "فابور",
     paid: "خالص",
@@ -726,12 +729,18 @@ function BookingsPanel({ d }: { d: DashboardData }) {
                     absence reads as a policy rather than a bug. Messaging (Step
                     8b) is the replacement channel; until it ships, saying so is
                     better than an empty column. */}
-                <span
-                  className="flex-none text-[13px] italic"
-                  style={{ marginInlineStart: "auto", color: "var(--muted)" }}
-                >
-                  {c.contactClosed}
-                </span>
+                <div className="flex-none flex items-center gap-2 flex-wrap" style={{ marginInlineStart: "auto" }}>
+                  <span className="text-[13px] italic" style={{ color: "var(--muted)" }}>
+                    {c.contactClosed}
+                  </span>
+                  {/* THE REPLACEMENT, in the same place as the thing removed.
+                      Without it a tutor experiences Step 8 as a capability taken
+                      away rather than a channel moved. */}
+                  <MessageBookingButton
+                    bookingId={b.bookingId}
+                    ariaLabel={`${c.messageStudent} ${b.studentName ?? ""}`.trim()}
+                  />
+                </div>
               </div>
             ))}
           </div>

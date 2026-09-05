@@ -30,3 +30,4 @@ export * from "./cancellation";
 /* Zero contact exchange: the allow-list and the text scanner. Both pure. */
 export * from "./public-profile";
 export * from "./contact-info";
+export * from "./message-text";

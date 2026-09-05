@@ -172,6 +172,40 @@ export type StudentDashboard = {
   past: StudentClass[];
 };
 
+/* ---- Messaging (Step 8b) ----
+   The counterparty name is ALREADY publicDisplayName'd by the API. A thread list
+   is a counterparty surface like any other, and Step 8's allow-list does not stop
+   applying because this feature is new. */
+export type MessageThreadSummary = {
+  id: string;
+  classId: string;
+  classTitle: string;
+  classTs: number;              // epoch ms of the class start
+  withName: string | null;      // first name only
+  lastMessageAt: string | null; // ISO, null until someone writes
+  studentIsMinor: boolean;
+  iAm: "tutor" | "student";
+};
+
+export type MessageItem = {
+  id: string;
+  mine: boolean;
+  /** PLAIN TEXT. Never render through dangerouslySetInnerHTML. */
+  body: string;
+  /** True when contact details were removed from it before storage. */
+  masked: boolean;
+  at: string;                   // ISO
+};
+
+export type MessageThreadDetail = {
+  id: string;
+  classTitle: string;
+  withName: string | null;
+  iAm: "tutor" | "student";
+  studentIsMinor: boolean;
+  messages: MessageItem[];
+};
+
 /* ---- Wrong-role result ----
    /dashboard serves tutors and /student serves students, but nothing stopped a
    signed-in student loading /dashboard (they got the tutor shell with a "create
@@ -286,7 +320,8 @@ export type NotificationKind =
   | "verification_approved"
   | "verification_rejected"
   | "new_booking"
-  | "booking_cancelled";   // student pulled out — the tutor needs to know a seat freed up
+  | "booking_cancelled"   // student pulled out — the tutor needs to know a seat freed up
+  | "message";            // Step 8b: someone wrote in a booking thread
 
 export type NotificationItem = {
   id: string;
