@@ -95,6 +95,28 @@ test("a student signs up with a real OTP and lands signed in", async ({ page }) 
     return s.n;
   }, { timeout: 20_000, message: "no session row — the token never came back from the API" }).toBeGreaterThan(0);
 
+  /* WAIT FOR THE NAVIGATION BEFORE READING THE COOKIE JAR.
+
+     The three polls above are all SERVER-side signals — rows in Postgres. The
+     assertion below is a BROWSER-side one, and the two are not simultaneous: the
+     session row exists the moment verifyOtp commits, while the Set-Cookie is
+     still travelling back to Chromium. Reading the jar straight after the row
+     appeared is therefore a race the product never promised to win, and it lost
+     it once in four full runs against containers, where the extra hop widens the
+     window. On a green run this wait returns immediately.
+
+     SignupInner calls router.push(postAuthDestination(...)) once verifyOtp
+     resolves, so leaving /signup/eleve is the real readiness signal — and it
+     necessarily happens AFTER the response that carried the cookie.
+
+     Deliberately "any path but this one", not the specific destination:
+     postAuthDestination is a five-rung priority list and pinning the exact
+     landing page here would couple this spec to logic it is not testing.
+
+     The cookie assertion itself is UNCHANGED — still "must be on the browser",
+     still "must be httpOnly". This adds a wait; it does not lower a bar. */
+  await page.waitForURL((u) => !u.pathname.includes("/signup/eleve"), { timeout: 20_000 });
+
   // And the cookie actually reached the browser: adoptSession() ran on the web side.
   const cookies = await page.context().cookies();
   const session = cookies.find((c) => c.name === "tnajem_session");
