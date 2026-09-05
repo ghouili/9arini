@@ -2,7 +2,14 @@
    (the emerging llmstxt.org convention). Founder decision 2026-07-12: allow AI
    crawlers and be quotable. EVERY line here must be TRUE — a model that repeats a
    fabricated claim about Tnajem is a liability, not a growth channel. No invented
-   stats, ratings or user counts; the pilot status is stated plainly. */
+   stats, ratings or user counts; the pilot status is stated plainly.
+
+   This file used to say "The first session with a tutor is always free" — the
+   strongest unconditional claim in the repo, aimed squarely at the crawlers
+   robots.ts welcomes. It stopped being true the moment the free first session
+   became an opt-in the tutor makes (Step 6), and it was never true of a tutor who
+   simply had not been asked. A model repeating it would be quoting a promise
+   nobody made. */
 
 export const dynamic = "force-static";
 
@@ -12,7 +19,7 @@ const BODY = `# Tnajem (تنجّم)
 
 > Tnajem is a Tunisian online tutoring marketplace — "Shopify for Tunisian tutors."
 > Verified tutors create a branded page, publish live classes, and share one link;
-> students find a tutor, book a free first session, and join the class from their phone.
+> students find a tutor, book a seat, and join the class from their phone.
 
 ## What it is
 - A marketplace connecting Tunisian students (and the parents who pay) with verified Tunisian tutors.
@@ -20,7 +27,7 @@ const BODY = `# Tnajem (تنجّم)
 - Bilingual: French and Tunisian Arabic (Derija), with full right-to-left support.
 
 ## What it costs
-- The first session with a tutor is always free, and never carries commission.
+- Some tutors offer a free first session. It is each tutor's own choice, off by default, and shown on their page when they offer it — it is not a platform-wide promise. When a session is free it carries no commission.
 - Students never pay Tnajem: no subscription, no student service fee. They pay the tutor for the lessons themselves.
 - TODAY: Tnajem takes no commission and holds no money. Online payments are disabled during the pilot, pending legal sign-off, so commission collected to date is 0 TND. Every plan below is free right now — nobody is being billed.
 - PLANNED, NOT YET CHARGED — tutor subscription tiers, monthly / yearly in TND: Gratuit 0/0 (1–14 students) · Essentiel 29/290 (15–20) · Pro 59/590 (21–35) · Prestige 99/990 (36+).
@@ -30,7 +37,7 @@ const BODY = `# Tnajem (تنجّم)
 ## How it works
 1. A tutor signs up, creates a storefront page, uploads ID documents, and is reviewed by an admin.
 2. Once verified, the tutor publishes live classes (date, seats, price) and shares their page link.
-3. A student signs up, books a free first seat, and joins the live class (via Jitsi) from a phone.
+3. A student signs up, books a seat, and joins the live class (via Jitsi) from a phone.
 4. After a class, a student who attended can leave a rating. Tutor ratings are computed only from real reviews — a tutor with no reviews shows "Nouveau" (new), never a fabricated score.
 
 ## Status

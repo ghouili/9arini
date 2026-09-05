@@ -99,7 +99,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   /* "paiement en dinar" promised a checkout that does not exist: payments are OFF
      for the pilot (lib/payments.ts), the storefront takes no card, and the link
      preview is the first thing a WhatsApp reader sees. Promise what we deliver. */
-  const pitch = "Réserve un cours en direct — 1ère séance offerte, sans engagement.";
+  /* CONDITIONAL since Step 6. This string is the WhatsApp link preview and the
+     Google snippet — the first thing a stranger reads about this tutor — and it
+     used to promise a free first session for every one of them. It can be
+     conditional here, unlike the site-wide description, precisely because we know
+     WHICH tutor this is. */
+  const pitch = tutor.offers_free_first_session
+    ? "Réserve un cours en direct — 1ère séance offerte, sans engagement."
+    : "Réserve un cours en direct — tarif affiché, sans engagement.";
   const description = tutor.bio ? `${clamp(tutor.bio, 120)} · ${pitch}` : `${tutor.subject}. ${pitch}`;
   const ogTitle = `${title} · Tnajem`;
   const alt = `${tutor.full_name} sur Tnajem — ${tutor.subject}`;
@@ -177,6 +184,13 @@ export default async function StorefrontPage({ params }: Props) {
      that does not exist is structured-data spam and draws a Google manual action,
      and it is exactly the fabricated social proof the truth rule forbids. A new
      tutor ships Person + Service + BreadcrumbList and NO rating markup. */
+  /* Real prices, from classes that can actually be booked. A cancelled or
+     finished class is not an offer. */
+  const offerPrices = data.classes
+    .filter((c) => (c.status ?? "scheduled") === "scheduled")
+    .map((c) => c.price_tnd)
+    .filter((p) => Number.isFinite(p) && p >= 0);
+
   const jsonLd: object[] = [
     {
       "@context": "https://schema.org",
@@ -208,7 +222,34 @@ export default async function StorefrontPage({ params }: Props) {
       areaServed: { "@type": "Country", name: "Tunisia" },
       availableLanguage: ["fr", "ar"],
       description: tutor.bio || tutor.subject,
-      offers: { "@type": "Offer", price: "0", priceCurrency: "TND", description: "Première séance offerte" },
+      /* WAS: { "@type": "Offer", price: "0", priceCurrency: "TND",
+                 description: "Première séance offerte" }
+         — emitted for EVERY tutor, including ones with no class at all, and
+         French-only on Arabic pages.
+
+         Two separate untruths in one line. It told Google this tutor's service
+         costs zero dinars when their classes cost 15-20, and it made a
+         free-first-session claim on behalf of a tutor who had never been asked
+         (that was the platform default, not their choice — see
+         packages/db/sql/0008). Fabricated structured data is what draws a manual
+         action, and it is the same rule that already keeps AggregateRating off a
+         tutor with no reviews, twenty lines above.
+
+         NOW: a real AggregateOffer built from the prices of actually-published
+         classes, and nothing at all when there are none. The free-session claim
+         is not structured data — it is marketing copy, and it now lives only in
+         the visible page, gated on the tutor's own opt-in. */
+      ...(offerPrices.length
+        ? {
+            offers: {
+              "@type": "AggregateOffer",
+              priceCurrency: "TND",
+              lowPrice: String(Math.min(...offerPrices)),
+              highPrice: String(Math.max(...offerPrices)),
+              offerCount: offerPrices.length,
+            },
+          }
+        : {}),
     },
     {
       "@context": "https://schema.org",

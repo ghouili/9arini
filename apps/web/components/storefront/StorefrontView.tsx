@@ -58,8 +58,11 @@ const copy = bilingual({
     noReviewsTitle: "Pas encore d'avis",
     noReviewsBody: "Ce prof vient d'arriver. Après ta séance, tu pourras laisser le premier avis.",
     anon: "Élève",
-    // Fallback CTA when the first class is NOT the free session — t.storefront.cta
-    // hardcodes "1ère séance gratuite", so it would be a false promise here.
+    /* Fallback CTA when the first class is NOT the free session — t.storefront.cta
+       hardcodes "1ère séance gratuite", so it would be a false promise here.
+       Since Step 6 this fallback is the COMMON case, not the exception:
+       is_free_first is now the EFFECTIVE value (the tutor's opt-in AND the class
+       flag), and it is false for every tutor who has not opted in. */
     book: "Réserver la séance",
     bookShort: "Réserver",
     noClassesTitle: "Ce prof n'a pas encore publié de séance",
@@ -79,13 +82,13 @@ const copy = bilingual({
     noCard: "Sans engagement",
     cancel24: "Annulation gratuite 24h avant",
     payDirect:
-      "Tnajem ne prend aucun paiement. La 1ère séance est offerte ; les suivantes, tu les règles directement avec ton prof.",
+      "Tnajem ne prend aucun paiement. Tu règles les séances directement avec ton prof, au tarif affiché ci-dessus.",
 
     // ── How it works ──
     howTitle: "Comment ça se passe",
     how1: "Tu réserves ta place — sans engagement.",
     how2: "Tu reçois le lien de la séance dans « Mes cours ».",
-    how3: "1ère séance offerte. Ensuite tu payes ton prof directement, s'il te convient.",
+    how3: "Tu payes ton prof directement, au tarif affiché — rien ne passe par Tnajem.",
 
     nextSession: "Prochaine séance",
     classesAria: "Séances en direct de ce prof",
@@ -120,12 +123,12 @@ const copy = bilingual({
     noCard: "بلا التزام",
     cancel24: "إلغاء مجاني 24 ساعة قبل",
     payDirect:
-      "Tnajem ما تاخذ حتى خلاص. الحصة الأولى مجانية ؛ الحصص الموالية تخلّصهم مباشرة مع أستاذك.",
+      "Tnajem ما تاخذ حتى خلاص. تخلّص الحصص مباشرة مع أستاذك، بالثمن المبيّن فوق.",
 
     howTitle: "كيفاش تمشي الحكاية",
     how1: "تحجز بلاصتك — بلا التزام.",
     how2: "يوصلك رابط الحصة في « حصصي ».",
-    how3: "الحصة الأولى مجانية. من بعد تخلّص أستاذك مباشرة، كان عجبك.",
+    how3: "تخلّص أستاذك مباشرة بالثمن المبيّن — ما يعدّي شي من Tnajem.",
 
     nextSession: "الحصة الجاية",
     classesAria: "الحصص المباشرة متاع الأستاذ",

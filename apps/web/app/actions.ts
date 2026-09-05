@@ -236,6 +236,22 @@ export async function createTutor(input: { name: string; subject: string; bio: s
   return call<ActionResult>("/tutors", input);
 }
 
+/** The tutor's own opt-in for the free first session.
+
+    Off by default and off for every tutor today — see
+    packages/db/sql/0008_free_first_session_optin.sql. Until this exists nobody
+    can turn it back on, which would make the policy change "removed" rather than
+    "opt-in".
+
+    call() replays the `revalidate` envelope, which matters more here than
+    anywhere else in this file: the flag decides whether an ISR-cached public page
+    says "Première séance offerte". Without the bust, turning it OFF leaves the
+    claim up for the rest of the cache window. */
+export async function setFreeFirstSession(enabled: boolean): Promise<ActionResult & { enabled?: boolean }> {
+  if (demoFallback) return { ok: true, demo: true, enabled };
+  return call<ActionResult & { enabled?: boolean }>("/tutors/free-first-session", { enabled });
+}
+
 /** The signed-in student's OWN editable profile, for prefilling /student/welcome. */
 export async function getStudentPrefill(): Promise<
   { fullName: string | null; level: string | null; subjects: string | null; phone: string | null } | null

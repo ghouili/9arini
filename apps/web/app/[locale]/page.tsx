@@ -40,17 +40,17 @@ const copy = bilingual({
     h1a: "Un prof ",
     h1Hi: "vérifié",
     h1b: ", en ligne, du primaire au Bac.",
-    sub: "Choisis ta matière, réserve une séance en vidéo. La 1ère est offerte.",
+    sub: "Choisis ta matière, réserve une séance en vidéo. Le tarif est affiché avant que tu réserves.",
     ctaPrimary: "Trouve ton prof",
     ctaSecondary: "Comment ça marche ?",
     heroMicro:
-      "Sans engagement. Tu paies juste avant chaque séance — ou au mois, si tu préfères. La 1ʳᵉ séance est toujours offerte.",
+      "Sans engagement. Tu paies ton prof directement, juste avant chaque séance — ou au mois, si tu préfères. Tnajem ne prend rien pendant le pilote.",
 
     // hero illustration (NOT a real listing — generic on purpose)
     heroAria:
-      "Illustration : une recherche « Maths · Bac » qui affiche des profs vérifiés, avec la 1ère séance à 0 TND.",
+      "Illustration : une recherche « Maths · Bac » qui affiche des profs vérifiés, chacun avec un lien vers sa page.",
     heroSearch: "Maths · Bac",
-    cardFirstLabel: "1ère séance",
+    cardCta: "Voir la page",
 
     subjectsLabel: "Choisis ta matière",
     seeAll: "Toutes les matières",
@@ -59,7 +59,7 @@ const copy = bilingual({
     howTitle: "Du premier clic au cours en direct, en 4 étapes.",
     steps: [
       { t: "Cherche ton prof", p: "Par matière et par niveau, du primaire au Bac." },
-      { t: "Réserve ta 1ère séance", p: "0 TND. Tu choisis l'horaire." },
+      { t: "Réserve ta séance", p: "Tu vois le tarif, tu choisis l'horaire." },
       { t: "Suis le cours en direct", p: "En vidéo, depuis ton téléphone ou ton PC." },
       { t: "Continue si ça te plaît", p: "Le prof affiche son tarif — tu le règles directement avec lui." },
     ],
@@ -67,8 +67,8 @@ const copy = bilingual({
     knowTitle: "3 choses à savoir avant de réserver.",
     know: [
       {
-        t: "La 1ère séance est offerte",
-        p: "0 TND, sans engagement. Si le prof ne te convient pas, tu n'as rien perdu.",
+        t: "Tu sais ce que tu paies, avant de réserver",
+        p: "Le prof affiche son tarif sur sa page. Certains offrent la 1ʳᵉ séance — c'est leur choix, et c'est écrit chez eux.",
       },
       {
         t: "Chaque prof est vérifié à la main",
@@ -82,9 +82,9 @@ const copy = bilingual({
     honestNote:
       "Tnajem vient d'ouvrir : aucune séance n'a encore eu lieu, donc aucun avis n'est affiché. Ceux qui viendront sortiront de vraies séances — on n'en inventera aucun.",
 
-    finalTitle: "Choisis ton prof. La 1ère séance est offerte.",
+    finalTitle: "Choisis ton prof. Le tarif est affiché avant de réserver.",
     finalCta: "Trouve ton prof",
-    finalMicro: "0 TND pour commencer · sans engagement · annulation libre jusqu'à 24h avant.",
+    finalMicro: "Sans engagement · tu paies ton prof directement · annulation libre jusqu'à 24h avant.",
 
     profTitle: "Tu es prof ?",
     profBody: "Donne tes cours en direct, fixe ton tarif, et garde 100 % pendant le pilote.",
@@ -96,15 +96,15 @@ const copy = bilingual({
     h1a: "أستاذ ",
     h1Hi: "متثبّت منّو",
     h1b: "، أونلاين، من الابتدائي للباك.",
-    sub: "اختار المادة، واحجز حصة بالفيديو. الأولى بلاش.",
+    sub: "اختار المادة، واحجز حصة بالفيديو. الثمن يبان قبل ما تحجز.",
     ctaPrimary: "لقّي أستاذك",
     ctaSecondary: "كيفاش يخدم؟",
-    heroMicro: "بلا التزام. تخلّص قبل كل حصة — ولا بالشهر، كيف ما تحب. أول حصة ديما بلاش.",
+    heroMicro: "بلا التزام. تخلّص أستاذك مباشرة قبل كل حصة — ولا بالشهر، كيف ما تحب. Tnajem ما تاخذ والو في فترة التجربة.",
 
     // الرسم التوضيحي متاع الهيرو (موش أساتذة حقيقيين)
-    heroAria: "رسم توضيحي: بحث «رياضيات · باك» يورّي أساتذة متثبّت منهم، وأول حصة بـ 0 دينار.",
+    heroAria: "رسم توضيحي: بحث «رياضيات · باك» يورّي أساتذة متثبّت منهم، وكل واحد فيهم عندو رابط لصفحتو.",
     heroSearch: "رياضيات · باك",
-    cardFirstLabel: "أول حصة",
+    cardCta: "شوف الصفحة",
 
     subjectsLabel: "اختار المادة",
     seeAll: "المواد الكل",
@@ -113,7 +113,7 @@ const copy = bilingual({
     howTitle: "من أول كليك للدرس المباشر، في 4 مراحل.",
     steps: [
       { t: "لوّج على أستاذك", p: "حسب المادة والمستوى، من الابتدائي للباك." },
-      { t: "احجز أول حصة", p: "0 دينار. وإنتي تختار الوقت." },
+      { t: "احجز حصتك", p: "تشوف الثمن، وإنتي تختار الوقت." },
       { t: "احضر الدرس مباشرة", p: "بالفيديو، من تليفونك ولا من الكمبيوتر." },
       { t: "كمّل كان عجبك", p: "الأستاذ يبيّن ثمنو — وتخلّصو مباشرة معاه." },
     ],
@@ -121,8 +121,8 @@ const copy = bilingual({
     knowTitle: "3 حاجات لازم تعرفهم قبل ما تحجز.",
     know: [
       {
-        t: "أول حصة بلاش",
-        p: "0 دينار، وبلا التزام. كان الأستاذ ما عجبكش، ما خسّرت والو.",
+        t: "تعرف شنوة باش تخلّص، قبل ما تحجز",
+        p: "الأستاذ يبيّن ثمنو في صفحتو. فمّا اللي يعطي الحصة الأولى بلاش — هذا اختيارو هو، ومكتوب عندو.",
       },
       {
         t: "كل أستاذ متثبّت منّو بيدينا",
@@ -136,9 +136,9 @@ const copy = bilingual({
     honestNote:
       "Tnajem كيف ما تحلّت: حتى حصة ما صارت لتوّا، وعلى هكّاكا ما فماش آراء. الآراء اللي باش تجي تكون من حصص حقيقية — ما نخترعو حتى وحدة.",
 
-    finalTitle: "اختار أستاذك. أول حصة بلاش.",
+    finalTitle: "اختار أستاذك. الثمن يبان قبل ما تحجز.",
     finalCta: "لقّي أستاذك",
-    finalMicro: "0 دينار باش تبدا · بلا التزام · تنجّم تلغي حتى 24 ساعة قبل.",
+    finalMicro: "بلا التزام · تخلّص أستاذك مباشرة · تنجّم تلغي حتى 24 ساعة قبل.",
 
     profTitle: "إنتي أستاذ؟",
     profBody: "قرّي مباشرة، حدّد ثمنك، واحتفظ بـ 100 % في فترة التجربة.",
@@ -386,11 +386,15 @@ export default function HomePage() {
                           {isAr ? card.arMeta : card.frMeta}
                         </div>
                       </div>
+                      {/* WAS a hardcoded "0 TND / 1ère séance" on all three cards.
+                          Two problems, and the illustration disclaimer did not
+                          cover either: it priced a fictional listing at zero, and
+                          it made the free-first-session claim that Step 6 turned
+                          into a per-tutor opt-in. Replaced with the affordance
+                          the card actually leads to — no number, nothing to be
+                          wrong about. */}
                       <div className="flex-none text-end">
-                        <div className="lp-t text-[16px] leading-none text-green-ink">
-                          0 <span className="text-[13px] text-muted">TND</span>
-                        </div>
-                        <div className="mt-1 text-[13px] text-muted">{c.cardFirstLabel}</div>
+                        <div className="text-[13px] text-muted">{c.cardCta}</div>
                       </div>
                     </div>
                   ))}

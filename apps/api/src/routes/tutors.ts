@@ -132,6 +132,52 @@ export async function tutorRoutes(app: FastifyInstance): Promise<void> {
     return { ok: true, slug: effectiveSlug, revalidate: { tutors: [effectiveSlug] } };
   });
 
+  /* ── POST /tutors/free-first-session ─────────────────────────────────────
+     The tutor's own opt-in for the free first session.
+
+     A DEDICATED endpoint rather than a field on POST /tutors, for two reasons.
+     POST /tutors is create-or-update-your-storefront and is reachable only from
+     onboarding; a tutor who finished onboarding months ago has no route back to
+     it (storefront editing is not built yet — Step 9). And this one flag is a
+     PROMISE ABOUT MONEY to a student, so it deserves its own auditable call
+     rather than riding along in a form that also rewrites bio and subject.
+
+     It changes what a PUBLIC, ISR-cached page says, so it reports its slug for
+     revalidation. Forgetting that would leave "Première séance offerte" on a
+     cached storefront for up to an hour after the tutor turned it off — the
+     precise failure this whole step exists to prevent.
+
+     publicTutors is included too, and that is a deliberate over-invalidation
+     rather than an oversight: /explore does not render the badge TODAY, but it
+     is the obvious place to add one, and the cost of busting a list cache on a
+     rare write is nothing next to the cost of a stale money claim. */
+  app.post("/tutors/free-first-session", async (req, reply) => {
+    const parsed = z.object({ enabled: z.boolean() }).safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: "bad-request" });
+
+    const session = await getSession(req);
+    if (!session) return { ok: false, error: "not-authenticated" };
+    if (session.profile.role !== "tutor") return { ok: false, error: "not-a-tutor" };
+
+    const [mine] = await db
+      .select({ id: tutors.id, slug: tutors.slug })
+      .from(tutors)
+      .where(eq(tutors.profileId, session.profile.id))
+      .limit(1);
+    if (!mine) return { ok: false, error: "no-storefront" };
+
+    await db
+      .update(tutors)
+      .set({ offersFreeFirstSession: parsed.data.enabled })
+      .where(eq(tutors.id, mine.id));
+
+    return {
+      ok: true,
+      enabled: parsed.data.enabled,
+      revalidate: { tutors: mine.slug ? [mine.slug] : [], publicTutors: true },
+    };
+  });
+
   /* ── GET /tutors/:slug/storefront — PUBLIC, anonymous ────────────────────── */
   app.get<{ Params: { slug: string } }>("/tutors/:slug/storefront", async (req): Promise<Storefront | null> => {
     const { getStorefrontData } = await import("../lib/storefront");

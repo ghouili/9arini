@@ -6,10 +6,21 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
+/* TWO roots, because the Step 1 monorepo move split them and this file silently
+   kept answering the old question.
+
+   ROOT was `<repo>` for both, so readTokens() defaulted to `<repo>/app/globals.css`
+   — a path that stopped existing when the app moved to apps/web. `npm run ui:audit`
+   died with ENOENT and `npm run brand:build` could not even resolve this module.
+   Neither is covered by a gate, which is how both stayed broken.
+
+   ROOT      the repository root — where the harness writes its own artefacts.
+   WEB_ROOT  apps/web — what the harness actually AUDITS. */
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+export const WEB_ROOT = resolve(ROOT, "apps", "web");
 
 /** Parse every `--name:#hex` / `--name:rgb(...)` declaration out of globals.css `:root{}`. */
-export function readTokens(cssPath = resolve(ROOT, "app/globals.css")) {
+export function readTokens(cssPath = resolve(WEB_ROOT, "app/globals.css")) {
   const css = readFileSync(cssPath, "utf8");
   const root = css.match(/:root\s*\{([\s\S]*?)\n\}/);
   if (!root) throw new Error("could not find :root{} in " + cssPath);

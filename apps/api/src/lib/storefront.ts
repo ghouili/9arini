@@ -1,5 +1,13 @@
 import { eq, classes as classesT, packs as packsT, tutors } from "@tnajem/db";
-import { initials, MONTHS_FR, type Storefront, type Tutor, type ClassItem, type Pack } from "@tnajem/shared";
+import {
+  initials,
+  MONTHS_FR,
+  isEffectivelyFreeFirst,
+  type Storefront,
+  type Tutor,
+  type ClassItem,
+  type Pack,
+} from "@tnajem/shared";
 import { db } from "../db";
 
 /* The public storefront read, ported from apps/web/lib/data.ts::getStorefront.
@@ -32,6 +40,7 @@ export async function getStorefrontData(slug: string): Promise<Storefront | null
     rating: Number(t.rating ?? 0),
     students_count: t.studentsCount ?? 0,
     verified: Boolean(t.verified),
+    offers_free_first_session: t.offersFreeFirstSession,
   };
 
   const mapClass = (c: (typeof cls)[number]): ClassItem => {
@@ -49,7 +58,8 @@ export async function getStorefrontData(slug: string): Promise<Storefront | null
       price_tnd: Number(c.priceTnd),
       seats: c.seats ?? 0,
       seats_left: Math.max(0, (c.seats ?? 0) - (c.seatsTaken ?? 0)),
-      is_free_first: Boolean(c.isFreeFirst),
+      // EFFECTIVE. The tutor's opt-in is the master switch — see isEffectivelyFreeFirst.
+      is_free_first: isEffectivelyFreeFirst(t.offersFreeFirstSession, c.isFreeFirst),
       meet_url: c.meetUrl ?? undefined,
       whiteboard_url: c.whiteboardUrl ?? undefined,
       quiz_url: c.quizUrl ?? undefined,

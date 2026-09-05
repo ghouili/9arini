@@ -66,7 +66,7 @@ const COPY = {
     alreadySent: "Un code t'a déjà été envoyé et il est encore valable — saisis-le ci-dessous.",
     haveCode: "J'ai déjà un code",
     studentPerks: [
-      "La 1ʳᵉ séance est offerte",
+      "Le tarif est affiché avant que tu réserves",
       "Uniquement des profs vérifiés à la main",
       "Annulation gratuite jusqu'à 24h avant",
     ],
@@ -125,7 +125,7 @@ const COPY = {
     alreadySent: "فما كود تبعثلك وما زال صالح — حطّو تحت.",
     haveCode: "عندي كود",
     studentPerks: [
-      "الحصة الأولى فابور",
+      "الثمن يبان قبل ما تحجز",
       "كان أساتذة متثبّت منهم بيدينا",
       "الإلغاء مجاني حتى 24 ساعة قبل",
     ],

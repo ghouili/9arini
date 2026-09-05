@@ -57,6 +57,9 @@ const devStorefront: Storefront = {
     subject: "Prof de Maths · Bac", level: "Bac",
     bio: "« Spécialiste révisions Bac. On révise les dérivées, intégrales et annales — en darija, à ton rythme. 1ère séance offerte. »",
     avatar_initials: "YK", rating: 4.9, students_count: 1240, verified: true,
+    // The dev fixture opts IN, so the audit harness can still walk the badge and
+    // the "free" checkout copy. It is dev-only by construction (demoEnabled).
+    offers_free_first_session: true,
   },
   classes: devClasses,
   packs: devPacks,
@@ -70,6 +73,9 @@ const inertStorefront: Storefront = {
   tutor: {
     id: "", slug: "", full_name: "", subject: "", level: "",
     bio: "", avatar_initials: "", rating: 0, students_count: 0, verified: false,
+    // FALSE in the inert value, like every other field: if a missed code path ever
+    // renders this on a real deploy it must not promise a free session.
+    offers_free_first_session: false,
   },
   classes: [],
   packs: [],

@@ -32,10 +32,16 @@ const arabicFont = IBM_Plex_Sans_Arabic({ subsets: ["arabic"], weight: ["400", "
 const arabicMark = IBM_Plex_Sans_Arabic({ subsets: ["arabic"], weight: ["400"], variable: "--font-ar" });
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://tnajem.tn";
+/* NO FREE-SESSION CLAIM HERE. This is the SITE-WIDE description — it lands on
+   every page Google indexes, including the storefronts of tutors who do not offer
+   a free first session (which, since Step 6, is all of them until they opt in).
+   A promise about money cannot live on a surface that has no idea which tutor it
+   is describing. The verification claim stays: that one IS true of every tutor
+   who is public. */
 const DESCRIPTION =
-  "Trouve un prof en direct, du primaire au Bac — toutes les matières, avec des profs tunisiens vérifiés. Première séance offerte. Paie en dinar.";
+  "Trouve un prof en direct, du primaire au Bac — toutes les matières, avec des profs tunisiens vérifiés un par un. Paie en dinar.";
 const DESCRIPTION_AR =
-  "لقّي أستاذ في المباشر، من الابتدائي للباك — كل المواد، مع أساتذة توانسة مؤكّدين. الحصة الأولى مجانية. خلّص بالدينار.";
+  "لقّي أستاذ في المباشر، من الابتدائي للباك — كل المواد، مع أساتذة توانسة مؤكّدين واحد واحد. خلّص بالدينار.";
 
 /* Pre-render both locale roots (/fr, /ar) at build time; sub-pages inherit the param. */
 export function generateStaticParams() {

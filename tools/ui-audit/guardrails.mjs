@@ -26,7 +26,7 @@
 import { readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { readdirSync, statSync } from "node:fs";
-import { ROOT } from "./lib-color.mjs";
+import { ROOT, WEB_ROOT } from "./lib-color.mjs";
 
 /* ── file walk ─────────────────────────────────────────────────────────────── */
 function walk(dir, out = []) {
@@ -39,8 +39,11 @@ function walk(dir, out = []) {
   }
   return out;
 }
-const FILES = [join(ROOT, "app"), join(ROOT, "components")].flatMap((d) => walk(d));
+// The SOURCE being audited lives in apps/web, not at the repo root (Step 1).
+const FILES = [join(WEB_ROOT, "app"), join(WEB_ROOT, "components")].flatMap((d) => walk(d));
 const rel = (p) => relative(ROOT, p).replace(/\\/g, "/");
+/** The one file where raw hex is correct: it is where the tokens are declared. */
+const TOKENS_FILE = join(WEB_ROOT, "app", "globals.css");
 
 let fails = 0;
 const section = (title) => console.log(`\n  ── ${title} ──`);
@@ -211,7 +214,13 @@ const ALLOWED = /^#(fff|ffffff|000|000000)$/i;
 const ALLOWED_LINE = /themeColor/;
 let hexHits = 0;
 for (const f of FILES) {
-  if (rel(f) === "app/globals.css") continue;
+  /* globals.css is the TOKEN SOURCE — raw hex is what belongs there, and nowhere
+     else. This was `rel(f) === "app/globals.css"`, a bare string compare against
+     a repo-relative path; the Step 1 move made rel() return
+     "apps/web/app/globals.css" and the exclusion silently stopped matching,
+     turning the token definitions themselves into 43 failures. Comparing
+     RESOLVED PATHS instead means the layout can move again without this lying. */
+  if (f === TOKENS_FILE) continue;
   const src = stripComments(readFileSync(f, "utf8"));
   src.split("\n").forEach((line, i) => {
     if (ALLOWED_LINE.test(line)) return;
@@ -222,7 +231,7 @@ for (const f of FILES) {
     }
   });
 }
-if (!hexHits) console.log("  ok    0 raw hex colours outside app/globals.css");
+if (!hexHits) console.log(`  ok    0 raw hex colours outside ${rel(TOKENS_FILE)}`);
 
 console.log(`\n  ${fails} guardrail violation(s)\n`);
 if (fails) process.exit(1);

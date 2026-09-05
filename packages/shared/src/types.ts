@@ -14,6 +14,12 @@ export type Tutor = {
   rating: number;
   students_count: number;
   verified: boolean;
+  /* Opt-in, per tutor, default false. The storefront needs it separately from
+     ClassItem.is_free_first because tutor-level copy ("Première séance offerte"
+     as a badge on the profile, the JSON-LD Offer) is rendered even when the
+     tutor has published no class at all — which is exactly how a claim ended up
+     on every storefront in the catalogue. */
+  offers_free_first_session: boolean;
 };
 
 export type ClassItem = {
@@ -29,6 +35,11 @@ export type ClassItem = {
   price_tnd: number;
   seats: number;
   seats_left: number;
+  /* EFFECTIVE, not raw. This is already
+     tutors.offers_free_first_session AND classes.is_free_first — see
+     isEffectivelyFreeFirst(). Every producer of a ClassItem applies it, so no
+     consumer has to remember to, and a UI that renders this alone cannot
+     over-promise. */
   is_free_first: boolean;
   meet_url?: string;        // Jitsi/Meet room
   whiteboard_url?: string;  // Bitpaper / Excalidraw
@@ -124,6 +135,11 @@ export type DashboardData = {
   rating: number;
   reviewCount: number;       // how many reviews back that rating
   status: TutorVerifStatus;   // verification state (draft until submitted)
+  /* The tutor's own opt-in for the free first session. Surfaced on the dashboard
+     so they can turn it on — without it the policy change would leave the
+     feature permanently off for everyone, which is not "opt-in", it is
+     "removed". */
+  offersFreeFirstSession: boolean;
   classes: DashboardClass[];
   packs: DashboardPack[];
   bookings: DashboardBooking[]; // who actually booked (across all their classes)

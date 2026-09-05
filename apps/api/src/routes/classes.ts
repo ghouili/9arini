@@ -8,6 +8,7 @@ import {
   vText, vOptionalText, vFutureDate, vInt, vPrice, vOptionalUrl, isUuid,
   MONTHS_FR,
   type ClassItem, type DashboardResult, type DashboardBooking,
+  isEffectivelyFreeFirst,
 } from "@tnajem/shared";
 import { paymentsEnabled, tutorBalanceTnd } from "@tnajem/shared/payments";
 import { resolveMeetUrl } from "@tnajem/shared/live";
@@ -185,7 +186,8 @@ export async function classRoutes(app: FastifyInstance): Promise<void> {
       price_tnd: Number(c.priceTnd),
       seats: c.seats ?? 0,
       seats_left: Math.max(0, (c.seats ?? 0) - (c.seatsTaken ?? 0)),
-      is_free_first: Boolean(c.isFreeFirst),
+      // EFFECTIVE: the tutor's opt-in gates the per-class flag.
+      is_free_first: isEffectivelyFreeFirst(tut?.offersFreeFirstSession, c.isFreeFirst),
       meet_url: entitled ? resolveMeetUrl(c) : undefined,
       whiteboard_url: entitled ? (c.whiteboardUrl ?? undefined) : undefined,
       quiz_url: entitled ? (c.quizUrl ?? undefined) : undefined,
@@ -214,6 +216,7 @@ export async function classRoutes(app: FastifyInstance): Promise<void> {
         rating: 0,
         reviewCount: 0,
         status: "draft",
+        offersFreeFirstSession: false,
         classes: [],
         packs: [],
         bookings: [],
@@ -319,6 +322,7 @@ export async function classRoutes(app: FastifyInstance): Promise<void> {
       rating: Number(mine.rating ?? 0),
       reviewCount: revAgg?.n ?? 0,
       status: mine.status,
+      offersFreeFirstSession: mine.offersFreeFirstSession,
       classes: mapped,
       packs: mappedPacks,
       bookings: mappedBookings,

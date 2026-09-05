@@ -93,6 +93,17 @@ export const tutors = pgTable("tutors", {
   reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
   reviewNote: text("review_note"),
   payoutMethod: payoutMethod("payout_method"),
+  /* THE FREE FIRST SESSION IS OPT-IN, PER TUTOR, AND DEFAULT OFF.
+     notNull + default false, both deliberate:
+       • nullable would make "not set" and "declined" indistinguishable, and every
+         read site would have to pick a meaning for null — which is how
+         classes.is_free_first ended up nullable-with-default-true, i.e. a claim
+         nobody chose to make.
+       • default FALSE because this is a promise to a student about money. A
+         default that promises on the tutor's behalf is the thing being fixed.
+     Terms §5 already says a tutor "peut choisir"; until now the product did not
+     let them. */
+  offersFreeFirstSession: boolean("offers_free_first_session").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
   /* /explore: `where status = 'verified' order by rating desc` (getExploreTutors),
@@ -137,7 +148,12 @@ export const classes = pgTable("classes", {
   priceTnd: numeric("price_tnd", { precision: 7, scale: 2 }).notNull().default("0"),
   seats: integer("seats").default(20),
   seatsTaken: integer("seats_taken").default(0),
-  isFreeFirst: boolean("is_free_first").default(true),
+  /* Per-class, and it is only ever HALF the answer: the effective rule is
+     tutors.offers_free_first_session AND classes.is_free_first. See
+     isEffectivelyFreeFirst() in @tnajem/shared. Default flipped from true to
+     false in 0008 — the old default made the platform promise a free session on
+     behalf of every tutor who never touched the checkbox. */
+  isFreeFirst: boolean("is_free_first").notNull().default(false),
   meetUrl: text("meet_url"),
   whiteboardUrl: text("whiteboard_url"),
   quizUrl: text("quiz_url"),

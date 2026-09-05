@@ -35,7 +35,7 @@ import { ROOT } from "./lib-color.mjs";
    before a refactor and compared against afterwards with diff.mjs. That is what
    makes "this change is visually neutral" a measurement instead of a claim. */
 const outArg = process.argv.find((a) => a.startsWith("--out="))?.slice(6);
-const OUT = resolve(ROOT, "scripts/ui-audit", outArg || "shots");
+const OUT = resolve(ROOT, "tools/ui-audit", outArg || "shots");
 const only = process.argv.find((a) => a.startsWith("--only="))?.slice(7);
 const keep = process.argv.includes("--keep");
 

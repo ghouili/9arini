@@ -38,7 +38,6 @@ const NAV = {
     nav: "Navigation principale",
     gStudents: "Élèves & parents",
     gTutors: "Profs",
-    free: "1ʳᵉ séance offerte",
   },
   ar: {
     findTutor: "لقّي أستاذ",
@@ -54,7 +53,6 @@ const NAV = {
     nav: "التنقّل الرئيسي",
     gStudents: "تلامذة وأولياء",
     gTutors: "أساتذة",
-    free: "أول حصة فابور",
   },
 } as const;
 

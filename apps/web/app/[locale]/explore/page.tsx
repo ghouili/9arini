@@ -41,9 +41,12 @@ export async function generateMetadata({ params }: { params: { locale: string } 
   const ar = locale === "ar";
   const canonical = `/${locale}/explore`;
   const title = ar ? "استكشف الأساتذة المؤكّدين" : "Explorer les profs vérifiés";
+  /* The free-session claim is gone from here too, and for a sharper reason than
+     on the site description: /explore lists MANY tutors, so no single answer to
+     "is the first session free?" is true of the page. It is per tutor now. */
   const description = ar
-    ? "تصفّح الأساتذة التوانسة المؤكّدين على Tnajem — رياضيات، فيزياء، فرنسية، إنقليزية وأكثر، من الابتدائي للباك. الحصة الأولى مجانية، الخلاص بالدينار."
-    : "Parcours les profs particuliers tunisiens vérifiés sur Tnajem — maths, physique, français, anglais et plus, du primaire au Bac. Première séance offerte, paiement en dinar.";
+    ? "تصفّح الأساتذة التوانسة المؤكّدين على Tnajem — رياضيات، فيزياء، فرنسية، إنقليزية وأكثر، من الابتدائي للباك. الخلاص بالدينار."
+    : "Parcours les profs particuliers tunisiens vérifiés sur Tnajem — maths, physique, français, anglais et plus, du primaire au Bac. Paiement en dinar.";
   return {
     title,
     description,

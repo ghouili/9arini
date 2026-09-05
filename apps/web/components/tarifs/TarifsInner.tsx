@@ -104,7 +104,7 @@ const copy = bilingual({
     cmpTitle: "Ce que prennent les autres",
     cmpLead: "Taux publiés par les plateformes elles-mêmes, relevés en août 2026. Les modèles diffèrent — à toi de juger.",
     cmpUs: "Tnajem",
-    cmpUsBody: "10 %, uniquement sur les paiements traités par Tnajem. 1ʳᵉ séance offerte, sans commission.",
+    cmpUsBody: "10 %, uniquement sur les paiements traités par Tnajem. Rien sur ce que l'élève te règle en main propre.",
     cmpRows: [
       { name: "Preply", body: "18 à 33 % selon le nombre d'heures enseignées, et 100 % de chaque séance d'essai avec un nouvel élève." },
       { name: "Wyzant", body: "25 % de commission — le prof garde 75 % — plus 9 % de frais de service sur chaque séance." },
@@ -190,7 +190,7 @@ const copy = bilingual({
     cmpTitle: "شنوّة ياخذو الآخرين",
     cmpLead: "نسب نشروها المنصّات بأنفسهم، مأخوذة في أوت 2026. النماذج تختلف — وإنتي احكم.",
     cmpUs: "Tnajem",
-    cmpUsBody: "10 %، كان على الخلاص اللي يعدّي من Tnajem. أول حصة فابور، وبلا عمولة.",
+    cmpUsBody: "10 %، كان على الخلاص اللي يعدّي من Tnajem. والو على اللي يخلّصك بيه في يدك.",
     cmpRows: [
       { name: "Preply", body: "من 18 لـ 33 % حسب عدد الساعات اللي قرّيتها، و 100 % من كل حصة تجريبية مع تلميذ جديد." },
       { name: "Wyzant", body: "25 % عمولة — الأستاذ يحتفظ بـ 75 % — وزيد 9 % فريسي خدمة على كل حصة." },

@@ -19,7 +19,7 @@ import { ROOT } from "./lib-color.mjs";
 
 const dirArg = (i, dflt) => {
   const a = process.argv[i];
-  return resolve(ROOT, "scripts/ui-audit", a || dflt);
+  return resolve(ROOT, "tools/ui-audit", a || dflt);
 };
 const A = dirArg(2, "shots-baseline");
 const B = dirArg(3, "shots");

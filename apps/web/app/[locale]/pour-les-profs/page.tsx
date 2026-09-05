@@ -54,7 +54,6 @@ const copy = bilingual({
     live: "EN DIRECT",
     sessionTitle: "Intégrales — révision express",
     sessionMeta: "Sam 14h · 90 min",
-    free1st: "1er cours offert",
     priceExample: "20 TND",
     shareLinkLabel: "Ton lien",
     shareLinkExample: "tnajem.tn/ta-page",
@@ -82,7 +81,7 @@ const copy = bilingual({
     s2t: "Fais-toi vérifier",
     s2b: "Envoie ta pièce d'identité. On vérifie à la main, puis ta page est publique.",
     s3t: "Partage et enseigne",
-    s3b: "Poste ton lien, publie ton cours. La 1ʳᵉ séance est offerte à l'élève, ensuite il te paie directement.",
+    s3b: "Poste ton lien, publie ton cours. L'élève te paie directement, au tarif que tu affiches. Tu veux offrir la 1ʳᵉ séance ? Tu l'actives depuis ton tableau de bord — c'est ton choix, pas une règle Tnajem.",
 
     // l'exemple chiffré
     incomeEyebrow: "Combien tu peux gagner",
@@ -107,7 +106,7 @@ const copy = bilingual({
     faqEyebrow: "Avant de te lancer",
     faqTitle: "Les questions qu'on nous pose",
     q1: "Combien Tnajem prend ?",
-    a1: "Rien, aujourd'hui. Pendant le pilote, tu gardes 100 % : l'élève te paie directement, Tnajem ne touche pas à l'argent. Plus tard, il y aura deux choses, et jamais l'une sans l'autre : 10 % sur chaque élève payant, uniquement sur les paiements traités par Tnajem, plus un abonnement à partir de 29 TND/mois. Rien sur ce qu'on te règle en main propre, et rien sur la 1ʳᵉ séance, qui reste offerte. On te préviendra avant.",
+    a1: "Rien, aujourd'hui. Pendant le pilote, tu gardes 100 % : l'élève te paie directement, Tnajem ne touche pas à l'argent. Plus tard, il y aura deux choses, et jamais l'une sans l'autre : 10 % sur chaque élève payant, uniquement sur les paiements traités par Tnajem, plus un abonnement à partir de 29 TND/mois. Rien sur ce qu'on te règle en main propre, et rien sur une séance que tu as choisi d'offrir. On te préviendra avant.",
     q2: "Faut-il un diplôme ?",
     a2: "Non. Maîtrise ta matière, une bonne connexion, et tu démarres aujourd'hui. On vérifie ton identité à la main avant que ta page soit publiée.",
     q3: "Si un élève ne vient pas ?",
@@ -137,7 +136,6 @@ const copy = bilingual({
     live: "مباشر",
     sessionTitle: "التكامل — مراجعة سريعة",
     sessionMeta: "السبت 14س · 90 دقيقة",
-    free1st: "أول درس فابور",
     priceExample: "20 دينار",
     shareLinkLabel: "اللينك متاعك",
     shareLinkExample: "tnajem.tn/صفحتك",
@@ -163,7 +161,7 @@ const copy = bilingual({
     s2t: "تثبّت من هويتك",
     s2b: "ابعث بطاقة تعريفك. نتثبّتو بيدينا، ومن بعد صفحتك تولّي ظاهرة للناس.",
     s3t: "شارك وقرّي",
-    s3b: "انشر لينكك، وانشر درسك. أول حصة فابور للتلميذ، ومن بعد يخلّصك مباشرة.",
+    s3b: "انشر لينكك، وانشر درسك. التلميذ يخلّصك مباشرة بالثمن اللي تبيّنو. وكان تحب تعطي الحصة الأولى بلاش، تفعّلها من لوحتك — هذا اختيارك إنتي، موش قاعدة متاع Tnajem.",
 
     incomeEyebrow: "قداش تنجم تربح",
     incomeTitle: "حدّد تعريفتك. اليوم، تحتفظ بالكل.",
@@ -186,7 +184,7 @@ const copy = bilingual({
     faqEyebrow: "قبل ما تبدا",
     faqTitle: "الأسئلة اللي يسقسيونا عليها",
     q1: "قدّاش تاخذ Tnajem ؟",
-    a1: "والو، اليوم. في فترة التجربة تحتفظ بـ 100 % : التلميذ يخلّصك مباشرة، وTnajem ما تلمسش الفلوس. من بعد باش يوليو زوز حاجات، وعمرها وحدة بلا لأخرى : 10 % على كل تلميذ خلّص، كان على الخلاص اللي يعدّي من Tnajem، زائد اشتراك من 29 دينار في الشهر. والو على اللي يخلّصك بيه في يدك، ووالو على أول حصة اللي تبقى فابور. ونعلموك قبل.",
+    a1: "والو، اليوم. في فترة التجربة تحتفظ بـ 100 % : التلميذ يخلّصك مباشرة، وTnajem ما تلمسش الفلوس. من بعد باش يوليو زوز حاجات، وعمرها وحدة بلا لأخرى : 10 % على كل تلميذ خلّص، كان على الخلاص اللي يعدّي من Tnajem، زائد اشتراك من 29 دينار في الشهر. والو على اللي يخلّصك بيه في يدك، ووالو على حصة إنتي اخترت تعطيها بلاش. ونعلموك قبل.",
     q2: "يلزم شهادة ؟",
     a2: "لا. اتقن مادتك، كنكسيون مليحة، وتبدا اليوم. نتثبّتو من هويتك بيدينا قبل ما تتنشر صفحتك.",
     q3: "كان التلميذ ما جاش ؟",
@@ -364,9 +362,6 @@ function HeroScene({ c }: { c: Copy }) {
                 <span className="chip lpp-live bg-green-btn text-white gap-[5px]">
                   <span className="lpp-live-dot" />
                   {c.live}
-                </span>
-                <span className="chip bg-ochre-btn text-white">
-                  {c.free1st}
                 </span>
                 <span className="lpp-mini">
                   <Users className="w-3 h-3" /> {c.classFilling}

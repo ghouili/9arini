@@ -42,14 +42,21 @@ export async function seedTutor(opts: {
   profileId?: string;
   status?: "draft" | "pending" | "verified" | "rejected";
   fullName?: string;
+  /* Defaults to FALSE, matching the column default and the policy: the free first
+     session is opt-in per tutor. A spec that wants the free path has to say so,
+     which is the point — a test fixture that silently opts in would hide exactly
+     the regression free-first.spec.ts exists to catch. */
+  offersFreeFirstSession?: boolean;
 }): Promise<{ id: string; slug: string; profileId: string | null }> {
   const t = tag();
   const [row] = await sql`
-    insert into tutors (id, profile_id, slug, full_name, subject, level, bio, status, verified)
+    insert into tutors (id, profile_id, slug, full_name, subject, level, bio, status, verified,
+                        offers_free_first_session)
     values (${randomUUID()}, ${opts.profileId ?? null}, ${t},
             ${opts.fullName ?? `E2E Tutor ${t}`}, 'Mathématiques', 'Bac',
             ${"Seeded by the E2E suite."}, ${opts.status ?? "verified"},
-            ${(opts.status ?? "verified") === "verified"})
+            ${(opts.status ?? "verified") === "verified"},
+            ${opts.offersFreeFirstSession ?? false})
     returning id, slug, profile_id as "profileId"`;
   return row as { id: string; slug: string; profileId: string | null };
 }

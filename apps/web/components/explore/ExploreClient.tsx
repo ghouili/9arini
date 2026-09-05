@@ -33,7 +33,7 @@ import { bilingual } from "@/lib/i18n";
 /* ── Page-local copy (FR + Tunisian Derija) ── */
 const copy = bilingual({
   fr: {
-    heroSub: "Des profs tunisiens vérifiés, un par un. Première séance offerte.",
+    heroSub: "Des profs tunisiens vérifiés, un par un. Chacun fixe ses tarifs.",
     isNew: "Nouveau",
     reviews: (n: number) => (n === 1 ? "1 avis" : `${n} avis`),
     students: "élèves",
@@ -51,7 +51,7 @@ const copy = bilingual({
     loading: "On cherche…",
   },
   ar: {
-    heroSub: "أساتذة توانسة، منقّحين واحد واحد. الحصة الأولى مجانية.",
+    heroSub: "أساتذة توانسة، منقّحين واحد واحد. كل واحد يحدد أسعارو.",
     isNew: "جديد",
     reviews: (n: number) => (n === 1 ? "تقييم واحد" : `${n} تقييم`),
     students: "تلميذ",

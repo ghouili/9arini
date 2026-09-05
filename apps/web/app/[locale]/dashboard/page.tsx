@@ -6,7 +6,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { Gear, Bell, Wallet, Share, Copy, Video, Plus, Bulb, Users, Eye, Book, Shield, Check, Phone, Clock, Mail } from "@/components/icons";
 import { SiteShell } from "@/components/SiteShell";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
-import { getDashboard, getNotifications, markNotificationsRead } from "@/app/actions";
+import { getDashboard, getNotifications, markNotificationsRead, setFreeFirstSession } from "@/app/actions";
 import { WrongRoleNotice } from "@/components/WrongRoleNotice";
 import { buildTutorSteps, STEP_COPY } from "@/lib/onboarding-steps";
 import type { OnboardingStep, StepState } from "@/lib/onboarding-steps";
@@ -60,6 +60,13 @@ const copy = bilingual({
     h3t: "Il te paie directement",
     h3b: "De la main à la main pendant le pilote. Tnajem ne prend aucune commission. Le paiement en ligne arrivera plus tard.",
     shareLabel: "Ton lien de prof",
+    ffTitle: "Première séance offerte",
+    ffBody:
+      "Si tu l'actives, ta page annonce que la première séance est offerte — et tu peux la réserver classe par classe en créant une séance. Tant que c'est désactivé, Tnajem ne promet rien à ta place.",
+    ffOn: "Activée",
+    ffOff: "Désactivée",
+    ffSaving: "Enregistrement…",
+    ffError: "Ça n'a pas marché. Réessaie.",
   },
   ar: {
     signedOutTitle: "ادخل لحسابك باش تشوف لوحتك",
@@ -97,6 +104,13 @@ const copy = bilingual({
     h3t: "يخلّصك مباشرة",
     h3b: "يد بيد في فترة التجربة. Tnajem ما تاخذ حتى عمولة. الخلاص أونلاين يجي من بعد.",
     shareLabel: "اللينك متاعك متاع أستاذ",
+    ffTitle: "الحصة الأولى مجانية",
+    ffBody:
+      "كان تفعّلها، صفحتك تقول إلّي الحصة الأولى مجانية — وتنجّم تختارها حصة بحصة وقتلي تعمل وحدة. مادامها مطفية، تنجّم ما توعدش في بلاصتك.",
+    ffOn: "مفعّلة",
+    ffOff: "مطفية",
+    ffSaving: "قاعد يتسجّل…",
+    ffError: "ما مشاتش. عاود حاول.",
   },
 });
 
@@ -463,6 +477,97 @@ function SharePanel({ slug, c }: { slug: string; c: CopyDict }) {
   );
 }
 
+/* ── Free first session — the tutor's own opt-in ─────────────────────────────
+
+   Before Step 6 the platform said "Première séance offerte" on every storefront,
+   in the JSON-LD Offer and in llms.txt, on behalf of every tutor — because
+   classes.is_free_first defaulted to true and nobody had ever been asked. Terms
+   §5 has always said a tutor "peut choisir". This is where they choose.
+
+   OPTIMISTIC, then reconciled. The switch flips immediately because a toggle that
+   waits on a network round trip over Tunisian 3G feels broken; if the call fails
+   it snaps BACK and says so, rather than leaving the UI claiming a state the
+   server never accepted. That direction matters: the failure mode to avoid is a
+   tutor believing they turned it off when they did not. */
+function FreeFirstPanel({ d, c }: { d: DashboardData; c: CopyDict }) {
+  const [on, setOn] = useState(d.offersFreeFirstSession);
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  async function toggle() {
+    if (busy) return;
+    const next = !on;
+    setOn(next);
+    setBusy(true);
+    setFailed(false);
+    try {
+      const res = await setFreeFirstSession(next);
+      if (!res.ok) {
+        setOn(!next);
+        setFailed(true);
+      }
+    } catch {
+      setOn(!next);
+      setFailed(true);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="panel panel-pad mb-[clamp(14px,2vw,22px)]">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div className="min-w-0 flex-1">
+          <h2 className="font-display text-[16px] font-bold mb-1">{c.ffTitle}</h2>
+          <p className="text-[13px] text-muted leading-[1.6]">{c.ffBody}</p>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={on}
+          aria-label={c.ffTitle}
+          onClick={toggle}
+          disabled={busy}
+          className="flex items-center gap-2.5 flex-none rounded-[12px] px-3 py-2 text-[14px] font-semibold"
+          style={{
+            border: on ? "2px solid var(--green)" : "1px solid var(--line)",
+            background: on ? "var(--green50)" : "var(--paper)",
+            color: "inherit",
+            cursor: busy ? "default" : "pointer",
+            opacity: busy ? 0.65 : 1,
+          }}
+        >
+          <span
+            aria-hidden="true"
+            className="w-[22px] h-[22px] rounded-[7px] grid place-items-center flex-none"
+            style={{
+              border: on ? "none" : "2px solid var(--line)",
+              background: on ? "var(--green)" : "transparent",
+              transition: ".15s",
+            }}
+          >
+            {/* Inline, with an explicit white stroke, exactly as new-class/page.tsx
+                does it: the shared <Check /> inherits currentColor, which on a
+                --green fill is dark-on-dark. globals.css says --green is a BRAND
+                fill, not a text colour, for the same contrast reason. */}
+            {on && (
+              <svg viewBox="0 0 24 24" width="14" height="14" stroke="#fff" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="5 13 10 18 19 7" />
+              </svg>
+            )}
+          </span>
+          {busy ? c.ffSaving : on ? c.ffOn : c.ffOff}
+        </button>
+      </div>
+      {failed && (
+        <p role="alert" className="text-[13px] mt-2.5" style={{ color: "var(--rose)" }}>
+          {c.ffError}
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ── Balance card — always the REAL balance (0 while payments are off) ────────
 function BalanceCard({ d }: { d: DashboardData }) {
   const { t, locale } = useLocale();
@@ -674,6 +779,10 @@ function RealDashboard({ d, steps }: { d: DashboardData; steps: OnboardingStep[]
 
       {/* Share link — the only way students find them */}
       {d.slug && <SharePanel slug={d.slug} c={c} />}
+
+      {/* Free first session — only once a storefront exists, since it is a claim
+          made ON that page and there is nowhere to make it before then. */}
+      {d.has_storefront && <FreeFirstPanel d={d} c={c} />}
 
       {/* My classes */}
       {d.classes.length > 0 && (

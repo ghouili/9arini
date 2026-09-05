@@ -74,9 +74,7 @@ const fr = {
      the money. It does not — the student settles with the tutor directly. */
   checkout: {
     title: "Confirmer ta réservation",
-    trial: "Séance d'essai (1ère gratuite)",
     nextSessions: "Séances suivantes",
-    pay: "Réserver ma séance gratuite",
     payPaid: (p: number) => `Réserver — ${p} TND à régler au prof`,
     noCharge: "Aucun paiement en ligne. Tu règles ton prof directement.",
     okTitle: "C'est réservé !",
@@ -93,7 +91,7 @@ const fr = {
     balance: "Solde disponible",
     emptyNote: "Pas encore de revenus — ça commence avec ton premier élève.",
     shareTitle: "Partage ton lien, remplis tes cours",
-    shareBody: "Ton lien, c'est ta vitrine. Poste-le sur TikTok, Insta ou ton groupe WhatsApp. Chaque élève qui clique voit ta 1ère séance gratuite.",
+    shareBody: "Ton lien, c'est ta vitrine. Poste-le sur TikTok, Insta ou ton groupe WhatsApp. Chaque élève qui clique voit tes séances, tes tarifs et tes avis.",
     shareBtn: "Partager mon lien",
     how: "Comment ça marche",
     s1t: "Partage ton lien", s1p: "À tes élèves actuels et à ton audience.",
@@ -130,7 +128,6 @@ const fr = {
     title: "Mes cours", soon: "DÉMARRE BIENTÔT", with: "avec",
     hours: "heures", mins: "min", secs: "sec",
     join: "Rejoindre le direct", past: "Séances passées", replay: "Revoir",
-    inviteTitle: "Invite un ami", inviteBody: "Vous gagnez chacun une séance gratuite.", inviteBtn: "Inviter",
     empty: "Pas encore de cours — explore les profs pour commencer.",
   },
   live: {
@@ -273,9 +270,7 @@ const ar: typeof fr = {
   classDetail: { with: "مع", about: "الوصف", when: "الوقت", price: "السعر", book: "احجز هذه الحصة", freeFirst: "الحصة الأولى مجانية" },
   checkout: {
     title: "أكّد حجزك",
-    trial: "حصة تجريبية (الأولى مجانية)",
     nextSessions: "الحصص الموالية",
-    pay: "احجز حصتي المجانية",
     payPaid: (p: number) => `احجز — ${p} د.ت تخلّصهم للأستاذ`,
     noCharge: "ما فماش خلاص أونلاين. تخلّص أستاذك مباشرة.",
     okTitle: "تم الحجز!",
@@ -292,7 +287,7 @@ const ar: typeof fr = {
     balance: "الرصيد المتوفّر",
     emptyNote: "ما زال ما عندكش مداخيل — تبدا مع أول تلميذ.",
     shareTitle: "شارك رابطك، عمّر حصصك",
-    shareBody: "رابطك هو واجهتك. انشره في تيك توك، انستغرام أو قروب واتساب. كل تلميذ ينقر يشوف حصتك الأولى مجانا.",
+    shareBody: "رابطك هو واجهتك. انشره في تيك توك، انستغرام أو قروب واتساب. كل تلميذ ينقر يشوف حصصك، أسعارك والآراء.",
     shareBtn: "شارك رابطي",
     how: "كيفاش يخدم",
     s1t: "شارك رابطك", s1p: "لتلاميذك الحاليين ولجمهورك.",
@@ -323,7 +318,6 @@ const ar: typeof fr = {
     title: "حصصي", soon: "تبدأ قريبا", with: "مع",
     hours: "ساعات", mins: "دقيقة", secs: "ثانية",
     join: "انضمّ للمباشر", past: "حصص سابقة", replay: "إعادة",
-    inviteTitle: "ادعُ صديق", inviteBody: "كل واحد ياخذ حصة مجانية.", inviteBtn: "ادعُ",
     empty: "ما زال ما عندكش حصص — اكتشف الأساتذة باش تبدا.",
   },
   live: {

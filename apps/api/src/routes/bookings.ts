@@ -8,6 +8,7 @@ import {
 import {
   vUuid, isMinorBirthYear, MONTHS_FR,
   type StudentDashboard,
+  isEffectivelyFreeFirst,
 } from "@tnajem/shared";
 import { resolveMeetUrl } from "@tnajem/shared/live";
 import { db } from "../db";
@@ -137,7 +138,14 @@ export async function bookingRoutes(app: FastifyInstance): Promise<void> {
           await tx.insert(bookings).values({
             classId: classId.value,
             studentId: uid,
-            isFree: Boolean(cls.isFreeFirst),
+            /* THE ENFORCEMENT POINT for the opt-in free first session.
+               Not Boolean(cls.isFreeFirst): that trusted a per-class flag alone,
+               so a tutor who never opted in — or who opted OUT — could still have
+               a booking written against them marked free, by a crafted request or
+               simply by a class row left over from when the column defaulted to
+               true. is_free on a booking is what decides whether money is owed;
+               it does not get to be a UI detail. */
+            isFree: isEffectivelyFreeFirst(tut.offersFreeFirstSession, cls.isFreeFirst),
             status: "reserved",
           });
         }

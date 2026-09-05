@@ -1,4 +1,12 @@
 #!/usr/bin/env node
+/* NOTE: the social preview card used to read "1ère séance offerte" in the
+   subtitle AND in two chips, one per locale. That claim became a per-tutor
+   opt-in in Step 6, and a claim baked into a PNG cannot be made conditional —
+   which is exactly why it had to come out rather than be gated. Replaced with
+   hand verification, which is true of every tutor who is public.
+   REGENERATE public/og.png after editing this file: `npm run brand:build`
+   (needs Python for the raster step). The committed PNG is what social
+   platforms actually read; editing this file alone changes nothing. */
 /* Build public/og.png — the WhatsApp / Twitter / Facebook link preview.
  *
  *     node scripts/brand/build-og.mjs
@@ -20,7 +28,8 @@
 import { chromium } from "playwright";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { readTokens, ROOT } from "../ui-audit/lib-color.mjs";
+// The harness moved to tools/ui-audit in Step 1; WEB_ROOT is apps/web.
+import { readTokens, WEB_ROOT as ROOT } from "../../../../tools/ui-audit/lib-color.mjs";
 
 const T = readTokens();
 const OUT = resolve(ROOT, "public/og.png");
@@ -75,11 +84,11 @@ const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8">
   </div>
   <div>
     <h1>Ton prof, en direct.<br><em>Réserve, apprends, réussis.</em></h1>
-    <p class="sub">Profs tunisiens vérifiés · du primaire au Bac · 1ère séance offerte</p>
+    <p class="sub">Profs tunisiens vérifiés un par un · du primaire au Bac · cours en direct</p>
   </div>
   <div class="chips">
-    <span class="chip c-free">1ère séance gratuite</span>
-    <span class="chip c-ar">الحصة الأولى مجانية</span>
+    <span class="chip c-free">Profs vérifiés</span>
+    <span class="chip c-ar">أساتذة متثبّت منهم</span>
     <span class="chip c-url">tnajem.tn</span>
   </div>
   <div class="bar"></div>

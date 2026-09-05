@@ -26,6 +26,9 @@ const monthAr: Record<string, string> = {
 const copy = bilingual({
   fr: {
     reassure: "1ère séance gratuite · annulation gratuite jusqu'à 24h avant",
+    /* Shown when THIS class is not a free first session — the common case since
+       the free session became a per-tutor opt-in (Step 6). */
+    reassurePaid: "Annulation gratuite jusqu'à 24h avant",
     reassureShort: "Sans engagement",
     bookShort: "Réserver",
     loading: "On charge la séance…",
@@ -42,6 +45,7 @@ const copy = bilingual({
   },
   ar: {
     reassure: "الحصة الأولى مجانية · إلغاء مجاني حتى 24 ساعة قبل",
+    reassurePaid: "إلغاء مجاني حتى 24 ساعة قبل",
     reassureShort: "بلا التزام",
     bookShort: "احجز",
     loading: "قاعدين نحمّلو الحصة…",
@@ -411,7 +415,7 @@ export default function ClassDetailPage({ params }: { params: { id: string } }) 
                     {/* Trust micro-copy */}
                     <div className="cd-note">
                       <Shield />
-                      <span>{c.reassure}</span>
+                      <span>{cls.is_free_first ? c.reassure : c.reassurePaid}</span>
                     </div>
                   </>
                 )}
