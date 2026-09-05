@@ -11,15 +11,18 @@
 
    Accuracy notes for whoever maintains this page — keep the copy in sync with
    the code:
-   • ID documents are written to a private server directory (STORAGE_DIR, default
-     `.storage/`, OUTSIDE /public) — see app/actions.ts + packages/db/src/schema.ts
-     (verification_docs).
-   • They are only ever served through app/api/admin/doc/[id]/route.ts, which
-     requires a valid session whose phone is in ADMIN_PHONES, and responds with
-     Cache-Control: private, no-store.
-   • Retention promises below (90 days after the review decision) are a POLICY —
-     they require a purge job. Don't ship this page publicly claiming automatic
-     deletion until that job exists.
+   • ID documents are written to a private server directory (STORAGE_DIR, OUTSIDE
+     /public) by apps/api — see apps/api/src/routes/admin.ts (POST /verification) +
+     packages/db/src/schema.ts (verification_docs). apps/web never touches them.
+   • They are only ever served through app/api/admin/doc/[id]/route.ts, which is a
+     STREAMING PASS-THROUGH that makes no access decision of its own: apps/api
+     decides, using the ADMIN_EMAILS allow-list (packages/shared/src/admin.ts).
+     Not ADMIN_PHONES — login is e-mail OTP and most admin profiles have no phone
+     at all. The response carries Cache-Control: private, no-store.
+   • Retention promises below (90 days after the review decision) are a POLICY, and
+     the job that keeps it is apps/api/src/routes/cron.ts (GET/POST /cron/purge,
+     bearer CRON_SECRET). If that job stops being scheduled, this page starts
+     lying — treat a silent purge as a legal problem, not an ops one.
 
    Design system: SiteShell + .panel + .container-narrow. RTL-safe (logical
    properties). Page CSS prefixed `lg-`, injected via dangerouslySetInnerHTML.

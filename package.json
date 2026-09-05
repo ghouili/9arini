@@ -16,6 +16,7 @@
     "typecheck": "npm run typecheck --workspaces --if-present && tsc --noEmit -p e2e",
     "test": "npm run test -w @tnajem/api && playwright test",
     "test:e2e": "playwright test",
+    "test:e2e:docker": "playwright test --config=e2e/docker.config.ts",
     "db:sql": "npm run db:sql -w @tnajem/db --",
     "db:purge": "npm run db:purge -w @tnajem/db --",
     "db:seed": "npm run db:seed -w @tnajem/db --",

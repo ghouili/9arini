@@ -77,14 +77,28 @@ export async function buildServer(): Promise<FastifyInstance> {
   await app.register(adminRoutes);
   await app.register(cronRoutes);
 
-  app.get("/health", async () => {
+  app.get("/health", async (req) => {
     let dbOk = false;
     try {
       await db.execute(rawSql`select 1`);
       dbOk = true;
-    } catch {
+    } catch (err) {
+      /* LOG IT. The bare `catch {}` this replaces cost real time: the container
+         reported `db:false` forever and there was no way, from inside or outside,
+         to learn that the cause was `ssl: "require"` against a Postgres with no
+         TLS. A health check that can say "down" but never "why" is the operational
+         equivalent of a silent failure.
+
+         The message goes to the LOG, never to the response body: /health is
+         unauthenticated, and a connection error can carry the host, port and user
+         from the URL. */
+      req.log.error({ err }, "health: database unreachable");
       dbOk = false;
     }
+    /* Still 200 when the database is down, deliberately. The body is the signal
+       (Docker's HEALTHCHECK reads .db, see apps/api/Dockerfile) and a 503 with an
+       empty body would tell an operator strictly less than a 200 that says
+       db:false. Anything routing on this must read the JSON. */
     return { ok: true, db: dbOk, version: VERSION };
   });
 

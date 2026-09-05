@@ -1,0 +1,139 @@
+# Tnajem — web + api + postgres.
+#
+# `docker compose up -d --build` then:
+#   curl -sf localhost:3000/fr        the web app
+#   curl -sf localhost:4000/health    the API
+#
+# The web app has NO database credentials. That is the point of Stage A: it holds
+# no DATABASE_URL, no drizzle, no pool. Only the API and the migration job do.
+
+services:
+  db:
+    # Pinned, not floating. The database in use is 18.1 and every migration in
+    # packages/db/sql was written against PG18's catalog behaviour — the same
+    # behaviour that makes drizzle-kit 0.28 unsafe here (see the db:push block).
+    image: postgres:18.1-alpine
+    environment:
+      POSTGRES_USER: tnajem
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tnajem-local-dev}
+      POSTGRES_DB: tnajem
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      # Published so the E2E suite can seed and assert from the host. Do NOT do
+      # this in a production compose file.
+      #
+      # NOT 5432 on the host, and configurable. A developer running this repo has
+      # Postgres 18.1 installed natively on 5432 — that is what .env points at —
+      # so publishing 5432 either fails to bind or, worse, succeeds and leaves you
+      # unsure which database a psql went to. 5433 is no better: it is the
+      # conventional "second postgres" port and was already taken here by an
+      # unrelated project's container. Hence an unlikely port AND an override,
+      # because the next collision is somebody else's machine, not this one.
+      # Keep it BELOW 49152: Windows/Hyper-V reserves large blocks of the dynamic
+      # range, and binding inside one fails with a permissions error that reads
+      # like a Docker fault ("socket ... forbidden by its access permissions").
+      # The container still listens on 5432 internally; only the published port moves.
+      - "${DB_PUBLISHED_PORT:-15432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tnajem -d tnajem"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # Migrations run ONCE, as their own service — never on API boot. Two API
+  # replicas racing `db:sql` is wrong even though each file is transactional.
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: migrate
+    environment:
+      DATABASE_URL: postgresql://tnajem:${POSTGRES_PASSWORD:-tnajem-local-dev}@db:5432/tnajem
+      # Same private link as the api service — see the long note there. This one
+      # currently works only by ACCIDENT (the migrate target inherits the build
+      # stage, where NODE_ENV is unset, so the auto-TLS rule never fires). Setting
+      # it explicitly means adding NODE_ENV=production to that stage later cannot
+      # silently break every migration.
+      DB_SSL: ${DB_SSL:-0}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://tnajem:${POSTGRES_PASSWORD:-tnajem-local-dev}@db:5432/tnajem
+      # TLS TO POSTGRES: OFF HERE, AND ONLY HERE.
+      #
+      # packages/db/src/client.ts auto-enables `ssl: "require"` whenever NODE_ENV
+      # is production and the database host is not loopback. That default is
+      # right and must not be weakened: a remote database without TLS sends the
+      # password and every row — including national ID metadata — in the clear.
+      #
+      # But "not loopback" cannot tell a database across the internet from one on
+      # a private compose bridge, and postgres:18.1-alpine ships with TLS off. So
+      # the API came up, answered /health with 200, reported db:false, and gave
+      # no reason at all (ECONNRESET during the TLS handshake). The migrate
+      # service did NOT hit this — it runs from the build stage, where NODE_ENV
+      # is unset — which is exactly the asymmetry that makes it hard to spot.
+      #
+      # Turning it off is a statement about THIS link: api -> db never leaves the
+      # compose network. Point DATABASE_URL at a database on another host and you
+      # must delete this line, or add sslmode= to the URL.
+      DB_SSL: ${DB_SSL:-0}
+      AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET is required — openssl rand -hex 32}
+      CRON_SECRET: ${CRON_SECRET:-}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      OTP_CHANNEL: ${OTP_CHANNEL:-email}
+      # EXACT allow-list. Never "*", never a reflected Origin — credentials here
+      # are cookies, and reflecting the origin hands any site on the internet the
+      # ability to make authenticated requests as the logged-in user.
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      # Trust ONLY the web container for X-Forwarded-For. `true` would make the
+      # header attacker-controlled and the per-IP OTP limiter bypassable by
+      # rotating it — strictly worse than not splitting at all.
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
+      STORAGE_DIR: /data/storage
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: ${MAIL_PORT:-}
+      MAIL_USER: ${MAIL_USER:-}
+      MAIL_PASS: ${MAIL_PASS:-}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Tnajem}
+    volumes:
+      # Identity documents. A NAMED VOLUME, not a bind mount and not the image:
+      # every ID scan vanishes on redeploy otherwise, and /privacy promises they
+      # are kept for 90 days and then deleted — not deleted whenever we ship.
+      - storage:/data/storage
+    ports:
+      - "4000:4000"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    environment:
+      # Server-side only. NOT NEXT_PUBLIC_: that would bake an internal compose
+      # hostname into the client bundle, where a browser cannot resolve it.
+      API_URL: http://api:4000
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
+      # No DATABASE_URL. Deliberately. If you find yourself adding one here,
+      # something has been ported backwards.
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  storage:

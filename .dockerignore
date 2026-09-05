@@ -1,0 +1,31 @@
+# Build output and local state — never copied into an image layer.
+node_modules
+**/node_modules
+.next
+**/.next
+dist
+**/dist
+out
+**/out
+
+# Local data. .storage holds NATIONAL ID SCANS; it must never enter an image.
+.storage
+**/.storage
+.e2e-storage
+
+# SECRETS. Once a file enters a layer it is in that layer forever, even if a
+# later step deletes it. .env carries a real MAIL_PASS.
+.env
+.env.*
+!.env.example
+
+# Test and audit artifacts
+e2e
+test-results
+playwright-report
+tools/ui-audit/shots
+tools/ui-audit/shots-*
+
+.git
+.github
+*.md

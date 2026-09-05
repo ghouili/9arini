@@ -19,6 +19,21 @@ import { isLocale, DEFAULT_LOCALE, type AppLocale } from "@/lib/locale";
    (the canonical, indexable page is the full list). */
 export const revalidate = 60;
 
+/* REQUEST-TIME, NOT BUILD-TIME.
+
+   The catalogue now comes from apps/api over HTTP, and a container image is built
+   with no API running — prerendering this died with ECONNREFUSED on 127.0.0.1:4000.
+   The sitemap had the identical problem and the identical fix.
+
+   Making it dynamic also matches what this route ALREADY did. It was labelled
+   "(SSG)" in the build output and a comment here claimed calling getExploreTutors
+   from the server component "keeps the route static+ISR", but measurement said
+   otherwise: a tutor seeded after the build appeared on the very next request, and
+   .next/server/app/[locale]/explore contained only page.js with no prerendered
+   HTML. So this is not a caching regression — it is the label finally matching the
+   behaviour. e2e/isr.spec.ts records the measurement. */
+export const dynamic = "force-dynamic";
+
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://tnajem.tn";
 
 export async function generateMetadata({ params }: { params: { locale: string } }): Promise<Metadata> {

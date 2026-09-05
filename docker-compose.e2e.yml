@@ -1,0 +1,68 @@
+# E2E OVERLAY — `docker compose -f docker-compose.yml -f docker-compose.e2e.yml up -d`
+#
+# Gate 5 runs the Stage A suite against the CONTAINERS rather than against two
+# processes on the host. Three things have to change for that to be possible, and
+# all three are test-only — which is exactly why they live here and not in
+# docker-compose.yml.
+services:
+  api:
+    environment:
+      # The suite signs in as this identity in admin.spec.ts. Pinned so the run
+      # does not depend on whoever happens to be in the developer's .env.
+      ADMIN_EMAILS: e2e-admin@tnajem.invalid
+      # A LOCAL SMTP SINK — not blank, and not the developer's real account.
+      #
+      # MAIL_* are set in .env, so leaving them alone would open a live SMTP
+      # connection from a real sending account to @tnajem.invalid addresses that
+      # can never be delivered: slow, and a good way to burn a sending reputation.
+      #
+      # But blanking them does not work either, and finding out why was the
+      # point. These containers run NODE_ENV=production, and requestOtp FAILS
+      # CLOSED with no provider configured in production — deliberately: gating
+      # the on-screen code on mailEnabled() alone once made a MAIL_*-less deploy
+      # an account-takeover oracle (type a stranger's address, read their login
+      # code). So auth.spec.ts failed at the code field, correctly.
+      #
+      # Pointing at mailpit keeps NODE_ENV=production AND exercises the real
+      # nodemailer send path, which no other run covers: the host suite reaches
+      # requestOtp's dev branch and never sends anything at all. The suite still
+      # recovers the code from the DB hash (e2e/support/otp.ts), so nothing reads
+      # the mailbox — what is being proved is that a production-mode send
+      # succeeds.
+      MAIL_HOST: mail
+      MAIL_PORT: "1025"
+      MAIL_SECURE: "false"
+      MAIL_USER: e2e
+      MAIL_PASS: e2e
+      MAIL_FROM_ADDRESS: no-reply@tnajem.invalid
+      MAIL_FROM_NAME: Tnajem E2E
+    depends_on:
+      mail:
+        condition: service_started
+    volumes:
+      # A BIND MOUNT, replacing the named volume.
+      #
+      # admin.spec.ts seeds a verification_docs row AND the real file behind it,
+      # then asserts an admin gets 200 and a non-admin gets 403. The seeder runs
+      # on the host; the reader is inside the container. With the named volume the
+      # file the host writes is simply not visible to the API, and the 200 case
+      # fails on a missing file — which would look like a broken access check.
+      #
+      # This is the ONLY place the two filesystems need to meet, and it is why the
+      # production compose file keeps a named volume: ID scans must survive a
+      # redeploy, and a bind mount to a working copy would not.
+      - ./.e2e-storage:/data/storage
+
+  # Catches every OTP mail so nothing leaves this machine. Pinned, like the
+  # database: a floating tag in a gate is a gate that can change under you.
+  mail:
+    image: axllent/mailpit:v1.21
+    # --smtp-auth-accept-any + --smtp-auth-allow-insecure: mailEnabled() requires
+    # MAIL_USER and MAIL_PASS to be non-empty, so the transport WILL authenticate,
+    # and this link has no TLS. Both flags are safe here for the same reason
+    # DB_SSL=0 is: nothing on this network leaves the machine.
+    command: ["--smtp-auth-accept-any", "--smtp-auth-allow-insecure"]
+    # Web UI on http://localhost:8026 if you ever need to LOOK at what was sent.
+    # 8026, because 8025 is what half the other mailpit instances on a dev box use.
+    ports:
+      - "${MAILPIT_UI_PORT:-8026}:8025"

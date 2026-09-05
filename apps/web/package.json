@@ -12,12 +12,13 @@
     "brand:build": "python scripts/brand/build-raster.py && node scripts/brand/build-og.mjs"
   },
   "dependencies": {
+    "@tnajem/shared": "*",
     "next": "^14.2.5",
     "nodemailer": "^9.0.6",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "server-only": "^0.0.1",
-    "@tnajem/shared": "*"
+    "sharp": "^0.33.5"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",

@@ -18,7 +18,7 @@ const copy = {
     loading: "Chargement des demandes…",
     deniedTitle: "Accès réservé",
     deniedNote:
-      "Cette page est réservée aux administrateurs. Les numéros admin sont configurés via la variable ADMIN_PHONES.",
+      "Cette page est réservée aux administrateurs. Si tu penses que c'est une erreur, contacte l'équipe.",
     signIn: "Se connecter",
     empty: "Aucune demande en attente ✓",
     emptyNote: "Toutes les candidatures ont été traitées.",
@@ -48,7 +48,7 @@ const copy = {
     loading: "قاعدين نحمّلو الطلبات…",
     deniedTitle: "الدخول محجوز",
     deniedNote:
-      "الصفحة هاذي محجوزة للأدمين برك. أرقام الأدمين تتعمّل عبر المتغيّر ADMIN_PHONES.",
+      "الصفحة هاذي محجوزة للأدمين برك. كان تحسب فمّا غلطة، اتصل بالفريق.",
     signIn: "ادخل",
     empty: "ما فمّاش طلبات تستنّى ✓",
     emptyNote: "الطلبات الكل تعالجو.",
