@@ -21,10 +21,32 @@ type BtnProps = {
   className?: string;
   "aria-label"?: string;
 };
+/* ── LITERAL CLASS NAMES, NEVER `btn-${variant}` ──────────────────────────────
+   Tailwind purges anything in `@layer components` whose selector it cannot find
+   in the scanned source, and it scans TEXT — it never sees a class name built at
+   runtime. `btn-${variant}` meant `.btn-green` appeared nowhere in the source but
+   its own definition, so the emitted stylesheet HAD NO .btn-green AT ALL and four
+   shipped buttons rendered with no fill: approve-a-tutor on the admin queue, the
+   guardian consent submit, the dashboard's primary action and the payout button.
+
+   They were still readable, which is why nothing caught it — axe passed,
+   contrast.mjs passed (it checks the token pair, not whether the rule survives),
+   and the screenshots that would have shown it were of screens the harness was
+   auditing in their empty or denied state. Found by looking at the pictures.
+
+   A map, so every class name exists as a literal string. Do not "simplify" it
+   back into a template. */
+const BTN_VARIANT = {
+  primary: "btn-primary",
+  ink: "btn-ink",
+  green: "btn-green",
+  ghost: "btn-ghost",
+} as const;
+
 export function Button({ children, variant = "primary", sm, onClick, type = "button", disabled, style, className = "", "aria-label": ariaLabel }: BtnProps) {
   return (
     <button type={type} onClick={onClick} disabled={disabled} style={style} aria-label={ariaLabel}
-      className={`btn btn-${variant}${sm ? " btn-sm" : ""}${className ? ` ${className}` : ""}`}>
+      className={`btn ${BTN_VARIANT[variant]}${sm ? " btn-sm" : ""}${className ? ` ${className}` : ""}`}>
       {children}
     </button>
   );
@@ -68,8 +90,18 @@ export function CardFooter({ children, className = "", style }: { children: Reac
   return <div className={`u-card-foot ${className}`} style={style}>{children}</div>;
 }
 
+/* Same rule as BTN_VARIANT above, and the same bug: `.chip-free` was purged out
+   of the stylesheet entirely, so the "Gratuit" badge on a student's booked class
+   — the label that says the session costs them nothing — rendered with no fill. */
+const CHIP_KIND = {
+  free: "chip-free",
+  soft: "chip-soft",
+  sand: "chip-sand",
+  rose: "chip-rose",
+} as const;
+
 export function Chip({ children, kind = "soft", className = "", style }: { children: ReactNode; kind?: "free" | "soft" | "sand" | "rose"; className?: string; style?: CSSProperties }) {
-  return <span className={`chip chip-${kind}${className ? ` ${className}` : ""}`} style={style}>{children}</span>;
+  return <span className={`chip ${CHIP_KIND[kind]}${className ? ` ${className}` : ""}`} style={style}>{children}</span>;
 }
 
 /* THE MONOGRAM IS THE DEFAULT, and it stays the default. Most tutors will never

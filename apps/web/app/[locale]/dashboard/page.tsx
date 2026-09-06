@@ -625,7 +625,10 @@ function FreeFirstPanel({ d, c }: { d: DashboardData; c: CopyDict }) {
           aria-label={c.ffTitle}
           onClick={toggle}
           disabled={busy}
-          className="flex items-center gap-2.5 flex-none rounded-[12px] px-3 py-2 text-[14px] font-semibold"
+          /* min-h-11: py-2 around 14px text gave a 40px switch. It is a
+             role="switch" that turns a public promise about money on and off —
+             the last control on this page that should be easy to mis-tap. */
+          className="flex items-center gap-2.5 flex-none rounded-[12px] px-3 py-2 text-[14px] font-semibold min-h-11"
           style={{
             border: on ? "2px solid var(--green)" : "1px solid var(--line)",
             background: on ? "var(--green50)" : "var(--paper)",

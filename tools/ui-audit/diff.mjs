@@ -8,7 +8,7 @@
    "look at these two files", which is the whole point — it names exactly which
    route and width to open.
 
-   Usage:  node scripts/ui-audit/diff.mjs <baselineDir> [<currentDir>]
+   Usage:  node tools/ui-audit/diff.mjs <baselineDir> [<currentDir>]
    Exit 1 if anything differs, so it can gate a conversion commit.
    ══════════════════════════════════════════════════════════════════════════════ */
 
@@ -26,7 +26,7 @@ const B = dirArg(3, "shots");
 
 for (const d of [A, B]) {
   if (!existsSync(d)) {
-    console.error(`\n  x ${d} does not exist.\n    Capture one with:  node scripts/ui-audit/shots.mjs --out=${d.split(/[\/]/).pop()}\n`);
+    console.error(`\n  x ${d} does not exist.\n    Capture one with:  node tools/ui-audit/shots.mjs --out=${d.split(/[\/]/).pop()}\n`);
     process.exit(1);
   }
 }

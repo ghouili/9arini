@@ -233,6 +233,42 @@ for (const f of FILES) {
 }
 if (!hexHits) console.log(`  ok    0 raw hex colours outside ${rel(TOKENS_FILE)}`);
 
+/* -- 5. every declared button/chip variant survives the production purge ----- */
+section("variant classes survive the Tailwind purge");
+{
+  const cssDir = join(WEB_ROOT, ".next", "static", "css");
+  let built = "";
+  try {
+    for (const f of readdirSync(cssDir)) {
+      if (f.endsWith(".css")) built += readFileSync(join(cssDir, f), "utf8");
+    }
+  } catch {
+    /* Left empty on purpose: the failure is reported below, once. */
+  }
+  if (!built) {
+    /* A gate that cannot check is not a pass. In dev Tailwind purges nothing, so
+       this question is only answerable against a PRODUCTION build. */
+    fail("no production stylesheet under apps/web/.next/static/css - run `npm run build -w @tnajem/web` first");
+  } else {
+    const tokens = readFileSync(TOKENS_FILE, "utf8");
+    /* Only the two families whose class name is assembled at runtime in
+       components/ui.tsx. Scoped deliberately: a broader sweep would turn genuinely
+       dead CSS into a build failure, which is a different and much weaker claim. */
+    const declared = [...new Set(
+      [...tokens.matchAll(/^\s*\.((?:btn|chip)-[a-z0-9-]+)\s*\{/gm)].map((m) => m[1]),
+    )];
+    const missing = declared.filter((c) => !new RegExp("\." + c + "[{,:\s]").test(built));
+    if (missing.length) {
+      for (const c of missing) {
+        fail("." + c + " is declared in " + rel(TOKENS_FILE) + " but PURGED from the built CSS - write the class name as a literal (see BTN_VARIANT / CHIP_KIND in components/ui.tsx)");
+      }
+    } else {
+      console.log("  ok    " + declared.length + " btn/chip variant(s) present in the shipped stylesheet");
+    }
+  }
+}
+
+
 console.log(`\n  ${fails} guardrail violation(s)\n`);
 if (fails) process.exit(1);
 console.log("  OK — RTL logical-only, FR/AR parity exact, no hardcoded French, no untokenised colour.\n");

@@ -422,9 +422,11 @@ admin allow-list to a test identity, and points mail at a local sink.
 
 ---
 
-## 7. Retention purge (ID documents + expired auth rows) — **SCHEDULE THIS** ⚠️
+## 7. Retention purge (documents, auth rows, closed accounts, expired plans) — **SCHEDULE THIS** ⚠️
 
-One daily job, **two things purged**:
+One daily job, **four independent things swept**. Independent is the operative
+word: each runs whether or not the others succeeded, because an expired grace
+period must be honoured even if the document purge fails, and vice versa.
 
 1. **ID documents past the 90-day window.** `/privacy` tells every tutor their
    identity documents are **deleted at most 90 days after the verification
@@ -437,8 +439,18 @@ One daily job, **two things purged**:
    out or invalidate a usable code: the auth layer already treats them as dead.
    (Indexed via `sessions_expires_at_idx` / `otp_codes_expires_at_idx`.)
 
-`packages/db/src/retention.ts` implements both; the CLI and the HTTP route each run
-**both**, and both are idempotent, so overlapping runs are harmless. Pick **one**.
+3. **Accounts whose 30-day deletion grace has expired** (Step 15). Closing an
+   account is a *request*, reversible for 30 days; this is the job that finally
+   honours it. Without it, "supprimer mon compte" never deletes anything.
+4. **Subscriptions past their expiry date** (Step 16). Bookkeeping only — the
+   entitlement resolver already treats a past expiry as dead, so a night this does
+   not run costs nobody an entitlement and gives nobody one. It flips the row's
+   status so the one-active-grant index frees up and an admin is not shown an
+   "active" plan that ran out in March.
+
+`packages/db/src/retention.ts` implements the first two; `routes/moderation.ts` and
+`lib/entitlements.ts` the last two. The CLI and the HTTP route each run **all
+four**, and all four are idempotent, so overlapping runs are harmless. Pick **one**.
 
 > **The endpoint moved.** It used to be `POST /api/cron/purge` on the *web* app.
 > That route no longer exists — the web app owns no database. It is now
@@ -514,6 +526,12 @@ that silently fails is indistinguishable from one you never wrote.
   PG18-safe (see §4).
 - **Only verified tutors are public** (`/explore`, `/<slug>`, sitemap). Approve them
   at `/admin/verifications` — access is limited to the addresses in `ADMIN_EMAILS`.
+- **Plans are granted by hand at `/admin/plans`**, same allowlist. There is no
+  checkout: payments are off, so a grant hands out entitlements and bills nobody.
+  While `PAYMENTS_ENABLED` is unset every tutor is on the `pilot` plan (no limits);
+  **the day you set it, ungranted tutors drop to `gratuit` — one open class.**
+  Move the tutors you mean to keep unlimited onto plans *before* flipping it.
+  Every grant and revoke is written to `admin_actions`.
 - An unverified tutor's storefront returns **200 with a branded not-found body and
   `robots: noindex`**, not a 404. Do not "fix" this: the 404 path renders
   client-side only in Next 14 and shipped a 6-byte body.

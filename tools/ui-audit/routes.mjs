@@ -38,6 +38,21 @@ const AUDIT_IDS = {
 };
 const SENTINEL = { name: "tnajem_session", value: "demo", url: BASE };
 
+/* THE ADMIN IDENTITY IS NOT A FIXED ADDRESS, because the allowlist decides who is
+   an admin and the allowlist is ADMIN_EMAILS. A hardcoded audit-admin@ would
+   render the "Accès réservé" panel on every admin screen — a shot of the refusal
+   page, filed under the name of the queue, which is worse than no shot at all.
+
+   So the harness signs in AS the first allowlisted address. That is picking an
+   identity, not re-implementing the gate: requireAdmin() in apps/api is still the
+   only thing that decides, and if this picks wrong the screenshot shows the denied
+   panel and says so. Get-or-create, and the localhost-only rail above still
+   applies — an audit must never seed accounts into a real database. */
+function adminEmail() {
+  const first = (process.env.ADMIN_EMAILS ?? "").split(",")[0]?.trim().toLowerCase();
+  return first || null;
+}
+
 /* .env.local has to be loaded BEFORE we look for DATABASE_URL — the runners are
    plain node scripts, not the Next runtime, so nothing has loaded it for us.
 
@@ -79,7 +94,7 @@ const cache = new Map();
 
 /** A cookie descriptor carrying a REAL session for `role`, or the sentinel. */
 export async function sessionCookie(role = "tutor") {
-  const key = role === "student" ? "student" : "tutor";
+  const key = role === "student" || role === "admin" ? role : "tutor";
   if (!cache.has(key)) cache.set(key, mintSession(key));
   return cache.get(key);
 }
@@ -97,16 +112,47 @@ async function mintSession(key) {
 
   const sql = postgres(url, { max: 1 });
   try {
-    const { email, phone } = AUDIT_IDS[key];
+    /* The admin rides a real allowlisted address; the other two are synthetic
+       .invalid identities that can never receive mail. */
+    const { email, phone } =
+      key === "admin" ? { email: adminEmail(), phone: null } : AUDIT_IDS[key];
+    if (!email) {
+      console.warn("  ! ADMIN_EMAILS is empty — admin routes will audit their DENIED state");
+      return SENTINEL;
+    }
     let [p] = await sql`select id from profiles where email = ${email}`;
     if (!p) {
       // birth_year: a comfortable adult, so the minor-consent gate never fires and
       // the student screens audit their normal state rather than the consent detour.
       [p] = await sql`insert into profiles (email, phone, role, locale, full_name, birth_year)
-                      values (${email}, ${phone}, ${key}, 'fr', 'Audit Harness', 1990) returning id`;
-    } else {
+                      values (${email}, ${phone}, ${key === "admin" ? "tutor" : key}, 'fr',
+                              'Audit Harness', 1990) returning id`;
+    } else if (key !== "admin") {
+      /* The admin row is a REAL account (it is the developer's own address in the
+         allowlist). Never rewrite its role or its phone to fit the harness. */
       await sql`update profiles set role = ${key}, phone = ${phone} where id = ${p.id}`;
     }
+    /* THE TUTOR NEEDS A STOREFRONT, or /dashboard renders its "create your page"
+       empty state and the populated dashboard — the main screen of the product
+       for a tutor, and the one carrying the plan panel, the free-session toggle,
+       the class list and the bookings table — is never screenshotted at any
+       width. It was not, until the final verification pass looked at the shot and
+       found an empty panel where the plan card should be.
+
+       status 'draft' deliberately: /explore, the sitemap and every public read
+       filter on 'verified', so this row can never surface as a real tutor. It is
+       enough to make has_storefront true, which is all the dashboard branches on. */
+    if (key === "tutor") {
+      const [t] = await sql`select id from tutors where profile_id = ${p.id}`;
+      if (!t) {
+        await sql`insert into tutors (profile_id, slug, full_name, subject, level, bio, status, verified)
+                  values (${p.id}, 'audit-harness', 'Audit Harness',
+                          'Prof de Maths · Lycée & Bac', 'Bac',
+                          'Seeded by the UI audit harness. Never verified, never public.',
+                          'draft', false)`;
+      }
+    }
+
     const token = randomBytes(32).toString("hex");
     await sql`insert into sessions (token, profile_id, expires_at)
               values (${token}, ${p.id}, now() + interval '1 day')`;
@@ -123,7 +169,9 @@ async function mintSession(key) {
     `auth: true` (or anything else) picks the tutor. Call it per route: the two
     roles cannot share one cookie, and the runners loop over both. */
 export async function applySession(ctx, route) {
-  await ctx.addCookies([await sessionCookie(route?.auth === "student" ? "student" : "tutor")]);
+  const role =
+    route?.auth === "student" ? "student" : route?.auth === "admin" ? "admin" : "tutor";
+  await ctx.addCookies([await sessionCookie(role)]);
 }
 
 /* `nojs: true`  → must render h1 + sub + CTA with JavaScript disabled.
@@ -170,7 +218,24 @@ export const ROUTES = [
      real screens, and both were touched by the Tailwind conversion — leaving
      them out of the harness would mean converting code nothing measures. */
   { path: "/live/c1", name: "live", auth: true },
-  { path: "/admin/verifications", name: "admin-verifications", auth: true },
+  { path: "/admin/verifications", name: "admin-verifications", auth: "admin" },
+  /* Step 16. The plan grant surface. `admin`, or the shot would be the "Accès
+     réservé" panel filed under the name of the screen it is refusing. */
+  { path: "/admin/plans", name: "admin-plans", auth: "admin" },
+
+  /* ── Stage C screens that shipped with no audit coverage at all ─────────────
+     Found by the final verification pass: four real, reachable screens had never
+     been screenshotted at any width, never run through axe, never keyboard-walked.
+     Adding a page to the product and not to this list is how a screen silently
+     stops being measured.
+
+     All four are client components with no server redirect, so they render for
+     the identity given and show their EMPTY state when the harness account has no
+     data — which is the state most people see on their first visit, and the one
+     worth getting right. */
+  { path: "/messages", name: "messages", auth: true },
+  { path: "/dashboard/materials", name: "dashboard-materials", auth: true },
+  { path: "/guardian", name: "guardian", auth: "student" },
 ];
 
 /** Expand the bare routes across both locales. */

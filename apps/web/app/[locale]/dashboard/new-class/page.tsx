@@ -237,6 +237,8 @@ export default function NewClassPage() {
                         <input
                           type="url"
                           inputMode="url"
+                          /* dir="ltr" — a Latin URL in an RTL field renders mirrored. */
+                          dir="ltr"
                           placeholder="https://meet.jit.si/…"
                           value={videoUrl}
                           onChange={(e) => setVideoUrl(e.target.value)}
@@ -250,6 +252,8 @@ export default function NewClassPage() {
                         <input
                           type="url"
                           inputMode="url"
+                          /* dir="ltr" — a Latin URL in an RTL field renders mirrored. */
+                          dir="ltr"
                           placeholder="https://bitpaper.io/…"
                           value={whiteboardUrl}
                           onChange={(e) => setWhiteboardUrl(e.target.value)}
@@ -263,6 +267,8 @@ export default function NewClassPage() {
                         <input
                           type="url"
                           inputMode="url"
+                          /* dir="ltr" — a Latin URL in an RTL field renders mirrored. */
+                          dir="ltr"
                           placeholder="https://wooclap.com/…"
                           value={quizUrl}
                           onChange={(e) => setQuizUrl(e.target.value)}

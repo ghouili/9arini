@@ -166,11 +166,18 @@ route yet.
 
 ## Routes
 
-`/` landing · `/pour-les-profs` tutor landing · `/explore` marketplace · `/<slug>`
-storefront · `/class/[id]` · `/checkout?class=<id>` · `/live/[id]` · `/dashboard`
-(+ `new-class`, `new-pack`, `payout`) · `/student` · `/onboarding` (+ `/verify`) ·
-`/admin/verifications` · `/account` · `/auth` (+ `/consent`) · `/terms` ·
-`/privacy`
+`/` landing · `/pour-les-profs` tutor landing · `/tarifs` pricing · `/explore`
+marketplace · `/<slug>` storefront · `/class/[id]` · `/checkout?class=<id>` ·
+`/live/[id]` · `/signup/prof` · `/signup/eleve` · `/dashboard` (+ `new-class`,
+`new-pack`, `payout`, `materials`) · `/messages` (+ `/[id]`) · `/student`
+(+ `/welcome`) · `/guardian` (+ `/threads/[id]`) · `/onboarding` (+ `/verify`,
+`/upgrade`) · `/admin/verifications` · `/admin/plans` · `/account` · `/auth`
+(+ `/consent`) · `/terms` · `/privacy`
+
+Every one of these is in `tools/ui-audit/routes.mjs`, which is what puts it under
+screenshots at four widths, axe, and a keyboard walk in both locales. **Adding a
+page to the product without adding it there is how a screen silently stops being
+measured** — four Stage C screens had shipped that way before the final pass.
 
 ## Scripts
 

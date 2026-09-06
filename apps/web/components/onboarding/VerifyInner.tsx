@@ -804,8 +804,17 @@ function FileDrop({
         />
         {/* Thumbnail once an image is chosen: the filename alone never told a tutor
             whether they had picked the sharp photo or the blurry one — and a blurry
-            scan is the most common reason a review comes back rejected. */}
+            scan is the most common reason a review comes back rejected.
+
+            THE ONE RAW <img> IN THE PRODUCT, and it stays raw. `preview` is a
+            URL.createObjectURL blob that exists only in this tab; /_next/image
+            fetches its source server-side and cannot see it, so next/image would
+            render a broken box. It would also be wrong in principle — this is an
+            identity document, and it must not travel to an image optimiser to be
+            shown back to the person who just picked it. Nothing is uploaded yet.
+            Every other image in the app goes through next/image. */}
         {preview ? (
+          // eslint-disable-next-line @next/next/no-img-element -- see above: local blob, never fetched
           <img src={preview} alt="" className="dz-thumb" />
         ) : (
           <span className="dz-ic">
@@ -877,7 +886,9 @@ function UrlField({ id, label, ph, def }: { id: string; label: string; ph: strin
     <div className="field mb-0">
       <label className="field-label" htmlFor={id}>{label}</label>
       <div className="inp">
-        <input id={id} name={id} type="url" inputMode="url" placeholder={ph} defaultValue={def ?? undefined} />
+        {/* dir="ltr" — these are LinkedIn/Instagram/site URLs, and a Latin URL
+            typed into an RTL field renders with its punctuation mirrored. */}
+        <input id={id} name={id} type="url" inputMode="url" dir="ltr" placeholder={ph} defaultValue={def ?? undefined} />
       </div>
     </div>
   );

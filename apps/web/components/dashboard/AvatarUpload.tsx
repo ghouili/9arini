@@ -178,7 +178,10 @@ export function AvatarUpload({
         </div>
       </div>
 
-      <p className="text-[12px] text-muted leading-[1.6] mt-3">{c.privacy}</p>
+      {/* 13px, the floor this product ships. This paragraph is the one that tells
+          a tutor their photo's GPS data is stripped and the original is not kept —
+          the last text on the page to set below the readable minimum. */}
+      <p className="text-[13px] text-muted leading-[1.6] mt-3">{c.privacy}</p>
 
       {msg && (
         <p

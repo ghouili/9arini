@@ -16,9 +16,9 @@
    proves nothing — so we fail loudly instead of producing green nonsense.
 
      npm run dev -- -p 3111
-     node scripts/ui-audit/flow.mjs
+     node tools/ui-audit/flow.mjs
 
-   Output: scripts/ui-audit/shots/flow-<locale>-<width>-<NN>-<step>.png
+   Output: tools/ui-audit/shots/flow-<locale>-<width>-<NN>-<step>.png
 
    Dev tooling only. Never imported by the app. */
 
@@ -212,7 +212,7 @@ async function main() {
   }
   await browser.close();
 
-  console.log(`  ${shotIndex} screenshots -> scripts/ui-audit/shots/`);
+  console.log(`  ${shotIndex} screenshots -> tools/ui-audit/shots/`);
   if (failures) {
     console.log(`\n  ${failures} walk(s) failed.\n`);
     process.exit(1);

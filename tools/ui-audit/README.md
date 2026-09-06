@@ -17,8 +17,25 @@ not a report you can talk yourself out of.
 ```bash
 npm run dev -- -p 3111      # then, in another shell:
 npm run ui:audit            # contrast + nojs + a11y
-node scripts/ui-audit/shots.mjs
+node tools/ui-audit/shots.mjs
 ```
+
+Against the REAL production server — what the harness was built for, since
+`next start` does not serve an `output: "standalone"` build:
+
+```bash
+npm run build -w @tnajem/web
+bash tools/ui-audit/_restart-prod.sh        # standalone on :3222
+npm run dev:api                             # the pages proxy to it
+UI_AUDIT_BASE=http://localhost:3222 npm run ui:audit
+UI_AUDIT_BASE=http://localhost:3222 node tools/ui-audit/shots.mjs
+```
+
+> **KILL THE SERVER BEFORE YOU REBUILD.** On Windows a running server holds an
+> open handle on `.next`, and `next build` does not fail — it hangs, indefinitely,
+> having already emptied the output directory. It looks exactly like a slow
+> machine. `_restart-prod.sh` kills :3222 on its way in, so the safe loop is
+> **kill -> build -> restart**, never build-while-serving.
 
 `UI_AUDIT_BASE` points the browser runners somewhere else (default
 `http://localhost:3111`).

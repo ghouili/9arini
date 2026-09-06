@@ -113,8 +113,13 @@ test.describe("zero contact exchange", () => {
     const token = await mintSession(tutorProfile.id);
     const forbidden = forbiddenStrings(studentPhone, studentEmail);
 
-    /* COUNTERPARTY payloads: the full check, shape included. */
-    for (const path of ["/dashboard", "/notifications"]) {
+    /* COUNTERPARTY payloads: the full check, shape included.
+
+       /plans (Step 16) is in the list even though it is a static price catalogue
+       with nothing personal in it today. That is the point: the crawl is a
+       DURABILITY check, and it fails for fields written after it — the day a plan
+       row grows a `contactEmail` or a `salesPhone`, this is what says so. */
+    for (const path of ["/dashboard", "/notifications", "/plans"]) {
       assertClean(`tutor GET ${path}`, await get(path, token), forbidden);
     }
     /* SELF payloads: they carry the CALLER's own phone and email by design, so

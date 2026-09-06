@@ -3,7 +3,7 @@
    lighthouse.mjs — Lighthouse mobile, simulated 3G, against a PRODUCTION build.
 
    Run it against `next dev` and the numbers are fiction: dev ships unminified
-   bundles, no ISR, and a webpack HMR client. `scripts/ui-audit/_build.sh` +
+   bundles, no ISR, and a webpack HMR client. `tools/ui-audit/_build.sh` +
    `_restart-prod.sh` put the real thing on :3222.
 
    Default target is the tutor storefront — the URL a tutor pastes into WhatsApp,

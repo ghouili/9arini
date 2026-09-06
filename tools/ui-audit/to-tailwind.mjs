@@ -21,9 +21,9 @@
    logical properties only, so marginLeft/paddingRight/textAlign:left must never
    be introduced, not even faithfully.
 
-   Verify with:  node scripts/ui-audit/shots.mjs --out=shots-baseline
-                 node scripts/ui-audit/to-tailwind.mjs <file>
-                 node scripts/ui-audit/shots.mjs && node scripts/ui-audit/diff.mjs
+   Verify with:  node tools/ui-audit/shots.mjs --out=shots-baseline
+                 node tools/ui-audit/to-tailwind.mjs <file>
+                 node tools/ui-audit/shots.mjs && node tools/ui-audit/diff.mjs
    ══════════════════════════════════════════════════════════════════════════════ */
 
 import { readFileSync, writeFileSync } from "node:fs";
@@ -236,7 +236,7 @@ function findClose(src, open) {
 const files = process.argv.slice(2).filter((a) => !a.startsWith("--"));
 const dry = process.argv.includes("--dry");
 if (!files.length) {
-  console.error("usage: node scripts/ui-audit/to-tailwind.mjs <file...> [--dry]");
+  console.error("usage: node tools/ui-audit/to-tailwind.mjs <file...> [--dry]");
   process.exit(1);
 }
 

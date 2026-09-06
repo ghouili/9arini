@@ -253,7 +253,12 @@ export default function AdminVerificationsPage() {
                     <header className="av-card-head">
                       <Avatar initials={initials(t.name)} size={56} square />
                       <div className="min-w-0">
-                        <h3 className="av-name">{t.name}</h3>
+                        {/* h2, not h3. The two h2s above belong to the EMPTY and
+                            DENIED states, which never render at the same time as
+                            this list — so in the DOM a screen reader actually
+                            walks, this jumped h1 -> h3 and every applicant name
+                            was announced at a level with no parent. */}
+                        <h2 className="av-name">{t.name}</h2>
                         <div className="av-sub">
                           <span className="chip chip-soft">{t.subject}</span>
                           <span className="av-slug">tnajem.tn/{t.slug}</span>
@@ -424,7 +429,10 @@ html[dir="rtl"] .av-pitch{border-radius:var(--r-s) 0 0 var(--r-s)}
 .av-block{display:flex;flex-direction:column;gap:8px}
 .av-block-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .av-docs{display:flex;flex-wrap:wrap;gap:8px}
-.av-doc{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:700;padding:8px 12px;border-radius:11px;background:var(--blue50);color:var(--blue);border:1px solid transparent;transition:.15s}
+/* min-height 44px: 8px of padding around 13px text gave a 34px target, and this
+     is the control that opens somebody's ID document — the one thing on this page
+     an admin must not mis-tap. */
+  .av-doc{display:inline-flex;align-items:center;gap:7px;min-height:44px;font-size:13px;font-weight:700;padding:8px 12px;border-radius:11px;background:var(--blue50);color:var(--blue);border:1px solid transparent;transition:.15s}
 .av-doc:hover{border-color:var(--blue)}
 .av-doc-req{background:var(--sand);color:var(--ink2)}
 .av-links{display:flex;flex-wrap:wrap;gap:8px}

@@ -178,7 +178,9 @@ export default function MaterialsPage() {
     <SiteShell>
       <section className="web-section">
         <div className="container container-narrow max-w-[760px]">
-          <Link href="/dashboard" className="text-[13px] text-muted inline-flex items-center gap-1.5 mb-3">
+          {/* min-h-11 (44px): the label is 16px tall, so without it the whole
+              back-navigation target on this page was a 16px strip. */}
+          <Link href="/dashboard" className="text-[13px] text-muted inline-flex items-center gap-1.5 mb-3 min-h-11">
             <Forward className="w-3 h-3 rotate-180" aria-hidden="true" />
             {c.back}
           </Link>
@@ -208,7 +210,7 @@ export default function MaterialsPage() {
             <input
               id="m-title" name="title" required minLength={3} maxLength={120}
               placeholder={c.fTitlePh}
-              className="w-full text-[14px] rounded-[12px] p-3 mb-3"
+              className="w-full text-[14px] rounded-[12px] p-3 mb-3 min-h-[46px]"
               style={{ border: "1px solid var(--line)", background: "var(--paper)" }}
             />
 
@@ -216,7 +218,7 @@ export default function MaterialsPage() {
             <input
               id="m-desc" name="description" maxLength={1000}
               placeholder={c.fDescPh}
-              className="w-full text-[14px] rounded-[12px] p-3 mb-3"
+              className="w-full text-[14px] rounded-[12px] p-3 mb-3 min-h-[46px]"
               style={{ border: "1px solid var(--line)", background: "var(--paper)" }}
             />
 
@@ -224,30 +226,38 @@ export default function MaterialsPage() {
             <input
               id="m-file" name="file" type="file"
               accept="application/pdf,image/png,image/jpeg,image/webp"
-              className="w-full text-[13px] mb-3"
+              /* A native file input is ~21px tall on its own. The 46px matches
+                 .inp so this form has one field height, and gives the control a
+                 real hit box on a phone. */
+              className="w-full text-[13px] mb-3 min-h-[46px] py-2.5"
             />
 
             <div className="text-[13px] text-muted mb-1">{c.fOr}</div>
             <label htmlFor="m-yt" className="block text-[13px] font-semibold mb-1">{c.fYoutube}</label>
             <input
               id="m-yt" name="youtubeUrl" type="url" inputMode="url"
+              /* dir="ltr": a Latin URL inside an RTL field renders with its
+                 punctuation mirrored — the placeholder read
+                 "…=v?https://www.youtube.com/watch" on the Arabic page. Same rule
+                 the phone, e-mail and OTP fields already follow. */
+              dir="ltr"
               placeholder={c.fYoutubePh}
-              className="w-full text-[14px] rounded-[12px] p-3"
+              className="w-full text-[14px] rounded-[12px] p-3 min-h-[46px]"
               style={{ border: "1px solid var(--line)", background: "var(--paper)" }}
             />
-            <p className="text-[12px] text-muted mt-1 mb-3 leading-[1.6]">{c.fYoutubeHelp}</p>
+            <p className="text-[13px] text-muted mt-1 mb-3 leading-[1.6]">{c.fYoutubeHelp}</p>
 
             <label htmlFor="m-vis" className="block text-[13px] font-semibold mb-1">{c.fVis}</label>
             <select
               id="m-vis" name="visibility" defaultValue="students"
-              className="w-full text-[14px] rounded-[12px] p-3"
+              className="w-full text-[14px] rounded-[12px] p-3 min-h-[46px]"
               style={{ border: "1px solid var(--line)", background: "var(--paper)" }}
             >
               <option value="students">{c.visStudents}</option>
               <option value="public">{c.visPublic}</option>
               <option value="private">{c.visPrivate}</option>
             </select>
-            <p className="text-[12px] text-muted mt-1 mb-3.5 leading-[1.6]">{c.visHelp}</p>
+            <p className="text-[13px] text-muted mt-1 mb-3.5 leading-[1.6]">{c.visHelp}</p>
 
             <Button type="submit" disabled={busy}>{busy ? c.submitting : c.submit}</Button>
           </form>

@@ -54,8 +54,18 @@ const copy = bilingual({
     noExpiry: "sans date de fin",
 
     grant: "Attribuer",
+    planField: "Offre",
+    /* The verification state, shown because it changes the decision: granting
+       Prestige to a tutor we have not verified — or have rejected — puts a paid
+       placement behind a page that is not public. The row already carried
+       `status` and nothing rendered it. */
+    statusLabels: { draft: "Brouillon", pending: "En attente", verified: "Vérifié", rejected: "Refusé" } as Record<string, string>,
     revoke: "Retirer",
     months: "Mois (vide = sans fin)",
+    /* The currency reads in the reader's script. TND is the ISO code and is
+       correct everywhere, but the rest of the Arabic UI says دينار, and an admin
+       screen is not the place to start mixing. */
+    priceUnit: (n: number) => `${n} TND`,
     notePh: "Motif (optionnel)",
     ok: "Offre mise à jour ✓",
     removed: "Offre retirée",
@@ -92,8 +102,11 @@ const copy = bilingual({
     noExpiry: "بلا تاريخ نهاية",
 
     grant: "أعطي",
+    planField: "العرض",
+    statusLabels: { draft: "مسوّدة", pending: "تستنّى", verified: "مؤكّد", rejected: "مرفوض" } as Record<string, string>,
     revoke: "نحّي",
     months: "شهور (فارغ = بلا نهاية)",
+    priceUnit: (n: number) => `${n} دينار`,
     notePh: "السبب (اختياري)",
     ok: "العرض تبدّل ✓",
     removed: "العرض تنحّى",
@@ -241,7 +254,7 @@ export default function AdminPlansPage() {
                     <li key={p.code} className="flex items-baseline gap-2 flex-wrap text-[13px]">
                       <b className="font-display">{p.code}</b>
                       <span className="text-muted">
-                        {tnd(p.monthlyMillimes)} TND {c.perMonth}
+                        {c.priceUnit(tnd(p.monthlyMillimes))} {c.perMonth}
                       </span>
                       <span className="text-muted">· {classLimitLabel(p.maxClasses, locale)}</span>
                       {p.exploreBoost > 0 && <Chip kind="sand">{c.boost}</Chip>}
@@ -269,6 +282,9 @@ export default function AdminPlansPage() {
                               <Chip kind={row.granted ? "soft" : "sand"}>
                                 {row.granted ? row.planCode : c.onPilot}
                               </Chip>
+                              <Chip kind={row.status === "verified" ? "free" : "sand"}>
+                                {c.statusLabels[row.status] ?? row.status}
+                              </Chip>
                             </div>
                             <p className="text-[13px] text-muted mt-1">
                               {c.openClasses(row.openClasses)}{" "}
@@ -282,8 +298,17 @@ export default function AdminPlansPage() {
                         </div>
 
                         <div className="flex gap-2 flex-wrap items-end">
-                          <label className="flex flex-col gap-1 text-[12px] text-muted">
-                            <span className="sr-only">{c.grant}</span>
+                          {/* No sr-only twin: the select already carries
+                              aria-label, and the hidden span only existed to
+                              name a control that was already named. Its 12px
+                              (inherited from the wrapper) also tripped the text
+                              floor for a string nobody can see. */}
+                          <label className="flex flex-col gap-1 text-[13px] text-muted">
+                            {/* A VISIBLE label, not just aria-label. The control
+                                rendered as a bare "—" dropdown with nothing next
+                                to it, and the "Mois" label beside it read as if
+                                it belonged to this one. */}
+                            {c.planField}
                             <select
                               className="inp"
                               value={choice[row.tutorId] ?? ""}
@@ -300,7 +325,10 @@ export default function AdminPlansPage() {
                               ))}
                             </select>
                           </label>
-                          <label className="flex flex-col gap-1 text-[12px] text-muted">
+                          {/* 13px is the floor the harness enforces and the
+                              smallest size this product ships — a form label on
+                              a 320px screen is exactly where it matters. */}
+                          <label className="flex flex-col gap-1 text-[13px] text-muted">
                             {c.months}
                             <input
                               className="inp"

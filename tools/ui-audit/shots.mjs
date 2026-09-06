@@ -19,7 +19,7 @@
                hidden and no ellipsis/line-clamp is in play — i.e. a string
                silently cut off mid-word rather than deliberately truncated.
 
-   Screenshots land in scripts/ui-audit/shots/ and are meant to be READ, not just
+   Screenshots land in tools/ui-audit/shots/ and are meant to be READ, not just
    generated. Pass --only=<substr> to re-shoot one route while iterating.
 
    Exit code 1 if any route overflows its viewport.
@@ -159,7 +159,7 @@ for (const width of WIDTHS) {
 
 await browser.close();
 
-console.log(`\n  ${shots} screenshots -> scripts/ui-audit/shots/`);
+console.log(`\n  ${shots} screenshots -> tools/ui-audit/shots/`);
 console.log(`  ${overflows} viewport overflow(s), ${clips} clipped text run(s)\n`);
 if (overflows) {
   console.error("  x Horizontal overflow detected — the page scrolls sideways on a phone.\n");
