@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {
   and, desc, eq, ilike, inArray, or, sql as raw,
-  classes, profiles, reviews, tutors,
+  classes, profiles, reviews, subscriptions, tutors,
 } from "@tnajem/db";
 import {
   vSlug, vText, vOptionalText, vOptionalPhone,
@@ -12,6 +12,7 @@ import {
 import { db } from "../db";
 import { getSession } from "../lib/session";
 import { assertNoContactInfo, CONTACT_ERROR } from "../lib/contact-guard";
+import { exploreBoostSql, subscriptionIsLiveSql } from "../lib/entitlements";
 
 /* tutors — createTutor, and the three PUBLIC reads that feed the cached storefront.
 
@@ -320,11 +321,44 @@ export async function tutorRoutes(app: FastifyInstance): Promise<void> {
          grows linearly with the catalogue and /explore calls it on every filter
          change. 60 cards is far more than the grid shows; the filters are the real
          navigation. */
+      /* ── PAID PLACEMENT (Step 16) ─────────────────────────────────────────
+
+         Pro and Prestige buy a higher position, which is what /tarifs sells as
+         "Mis en avant dans Explorer" and "Placement prioritaire". Two things
+         make that acceptable rather than deceptive, and both are load-bearing:
+
+           1. The boost is DISCLOSED. Every boosted card carries `featured:true`
+              and the UI marks it, with a line on /explore saying so. A ranking
+              somebody paid for and the reader cannot see is an advertisement
+              disguised as a recommendation.
+           2. It orders, it does not FILTER. A tutor on no plan is never hidden,
+              and rating still breaks the tie inside each tier — money moves you
+              up the list, it does not buy you a rating.
+
+         The weight is projected into SQL from the shared catalogue rather than
+         written out here, so adding a boosted plan cannot leave the ranking
+         behind. During the pilot every tutor resolves to 0 and the ordering is
+         exactly what it was.
+
+         The boost has to be in the ORDER BY, not applied after the fetch: the
+         LIMIT is applied by Postgres, so a boosted tutor sitting 61st by rating
+         would never reach a JavaScript sort. */
+      const boost = exploreBoostSql();
       const rows = await db
-        .select()
+        .select({
+          id: tutors.id,
+          slug: tutors.slug,
+          fullName: tutors.fullName,
+          subject: tutors.subject,
+          level: tutors.level,
+          bio: tutors.bio,
+          studentsCount: tutors.studentsCount,
+          boost,
+        })
         .from(tutors)
+        .leftJoin(subscriptions, and(eq(subscriptions.tutorId, tutors.id), subscriptionIsLiveSql))
         .where(and(...conds))
-        .orderBy(desc(tutors.rating))
+        .orderBy(desc(boost), desc(tutors.rating))
         .limit(60);
       if (rows.length === 0) return [];
       const ids = rows.map((t) => t.id);
@@ -350,7 +384,9 @@ export async function tutorRoutes(app: FastifyInstance): Promise<void> {
       const priceByTutor = new Map(priceAgg.map((r) => [r.tutorId, r.min]));
 
       const { toExploreTutor } = await import("../lib/explore-map");
-      return rows.map((t) => toExploreTutor(t, byTutor.get(t.id), priceByTutor.get(t.id)));
+      return rows.map((t) =>
+        toExploreTutor(t, byTutor.get(t.id), priceByTutor.get(t.id), (t.boost ?? 0) > 0),
+      );
     },
   );
 }

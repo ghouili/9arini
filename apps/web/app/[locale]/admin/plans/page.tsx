@@ -1,0 +1,348 @@
+"use client";
+import { useEffect, useState } from "react";
+import { Link } from "@/components/Link";
+import { Button, Spinner, Chip } from "@/components/ui";
+import { useLocale } from "@/components/LocaleProvider";
+import { useToast } from "@/components/useToast";
+import { SiteShell } from "@/components/SiteShell";
+import { Shield, Users } from "@/components/icons";
+import { getAdminPlans, grantPlan, revokePlan, type AdminPlanRow } from "@/app/actions";
+import { PLANS, classLimitLabel, tnd } from "@tnajem/shared";
+import { bilingual } from "@/lib/i18n";
+
+/* ADMIN — PLANS AND GRANTS (Step 16).
+
+   EVERY GRANT HERE IS FREE, and the page says so twice: payments are off, there
+   is no checkout, and nothing on this screen bills anybody or creates a debt.
+   An admin surface that looks like a billing tool while no billing exists is how
+   somebody ends up telling a tutor they have been charged.
+
+   Read-only for the plan DEFINITIONS. What each offer gives you lives in
+   packages/shared/src/plans.ts and ships with the deploy — see its header. This
+   page grants and revokes, nothing else. */
+
+const copy = bilingual({
+  fr: {
+    eyebrow: "ADMIN",
+    title: "Offres des profs",
+    count: (n: number) => (n === 1 ? "1 prof" : `${n} profs`),
+    loading: "Chargement…",
+    deniedTitle: "Accès réservé",
+    deniedNote:
+      "Cette page est réservée aux administrateurs. Si tu penses que c'est une erreur, contacte l'équipe.",
+    signIn: "Se connecter",
+    empty: "Aucun prof pour l'instant",
+    emptyNote: "Les offres apparaîtront ici dès qu'un prof aura créé sa page.",
+
+    pilotBanner:
+      "Les paiements sont désactivés. Aucune offre attribuée ici n'est facturée et aucun prof ne doit quoi que ce soit — c'est une attribution de droits, pas une vente.",
+    liveBanner:
+      "Les paiements sont actifs. Une offre attribuée ici donne les droits correspondants ; la facturation, elle, ne passe pas par cette page.",
+
+    catalogue: "Le catalogue",
+    catalogueNote:
+      "Ce que donne chaque offre est défini dans le code et déployé avec l'application — ça ne se modifie pas ici.",
+    perMonth: "/ mois",
+    boost: "Mis en avant dans Explorer",
+
+    onPilot: "Pilote (par défaut)",
+    granted: "Attribuée",
+    openClasses: (n: number) => (n === 1 ? "1 cours à venir" : `${n} cours à venir`),
+    limitOf: (max: number) => `sur ${max}`,
+    unlimited: "illimités",
+    until: (d: string) => `jusqu'au ${d}`,
+    noExpiry: "sans date de fin",
+
+    grant: "Attribuer",
+    revoke: "Retirer",
+    months: "Mois (vide = sans fin)",
+    notePh: "Motif (optionnel)",
+    ok: "Offre mise à jour ✓",
+    removed: "Offre retirée",
+    error: "Ça n'a pas marché. Réessaie.",
+    profile: "Voir la page",
+  },
+  ar: {
+    eyebrow: "أدمين",
+    title: "عروض الأساتذة",
+    count: (n: number) => (n === 1 ? "أستاذ واحد" : `${n} أساتذة`),
+    loading: "قاعد يحمّل…",
+    deniedTitle: "الدخول محجوز",
+    deniedNote: "الصفحة هاذي محجوزة للأدمين برك. كان تحسب فمّا غلطة، اتصل بالفريق.",
+    signIn: "ادخل",
+    empty: "ما فمّاش أساتذة توّا",
+    emptyNote: "العروض تبان هوني كي أستاذ يعمل صفحتو.",
+
+    pilotBanner:
+      "الخلاص مطفي. حتى عرض تعطيه من هوني ما يتفوترش وحتى أستاذ ما يوفّي شي — هاذي إعطاء حقوق، موش بيعة.",
+    liveBanner:
+      "الخلاص خدّام. العرض اللي تعطيه من هوني يعطي الحقوق متاعو ؛ أمّا الفاتورة ما تعدّيش من الصفحة هاذي.",
+
+    catalogue: "الكاتالوڨ",
+    catalogueNote: "شنوّة يعطي كل عرض محدّد في الكود ويتنشر مع التطبيق — ما يتبدّلش من هوني.",
+    perMonth: "/ في الشهر",
+    boost: "يتقدّم في «اكتشف»",
+
+    onPilot: "تجربة (الافتراضي)",
+    granted: "معطى",
+    openClasses: (n: number) => (n === 1 ? "درس جاي واحد" : `${n} دروس جايّة`),
+    limitOf: (max: number) => `من ${max}`,
+    unlimited: "بلا حدّ",
+    until: (d: string) => `حتى ${d}`,
+    noExpiry: "بلا تاريخ نهاية",
+
+    grant: "أعطي",
+    revoke: "نحّي",
+    months: "شهور (فارغ = بلا نهاية)",
+    notePh: "السبب (اختياري)",
+    ok: "العرض تبدّل ✓",
+    removed: "العرض تنحّى",
+    error: "ما مشاتش. عاود حاول.",
+    profile: "شوف الصفحة",
+  },
+});
+
+/* Only what an admin can actually hand out. `pilot` is the default everybody is
+   already on, and the API refuses to grant it explicitly — see the note in
+   routes/subscriptions.ts. */
+const GRANTABLE = PLANS.filter((p) => p.listed);
+
+function formatDate(iso: string | null, locale: "fr" | "ar"): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return null;
+  return new Intl.DateTimeFormat(locale === "ar" ? "ar-TN" : "fr-FR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(d);
+}
+
+export default function AdminPlansPage() {
+  const { locale } = useLocale();
+  const c = copy[locale];
+  const { toast, showToast } = useToast();
+
+  const [loading, setLoading] = useState(true);
+  const [admin, setAdmin] = useState(false);
+  const [paymentsOn, setPaymentsOn] = useState(false);
+  const [items, setItems] = useState<AdminPlanRow[]>([]);
+  const [busy, setBusy] = useState<Record<string, boolean>>({});
+  const [choice, setChoice] = useState<Record<string, string>>({});
+  const [months, setMonths] = useState<Record<string, string>>({});
+  const [notes, setNotes] = useState<Record<string, string>>({});
+
+  async function load() {
+    try {
+      const res = await getAdminPlans();
+      setAdmin(res.ok && res.admin);
+      setPaymentsOn(Boolean(res.paymentsEnabled));
+      setItems(res.items ?? []);
+    } catch {
+      setAdmin(false);
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => {
+    void load();
+  }, []);
+
+  async function handleGrant(row: AdminPlanRow) {
+    const planCode = choice[row.tutorId] ?? "";
+    if (!planCode) return;
+    setBusy((b) => ({ ...b, [row.tutorId]: true }));
+    const raw = (months[row.tutorId] ?? "").trim();
+    const res = await grantPlan({
+      tutorId: row.tutorId,
+      planCode,
+      months: raw ? Number(raw) : undefined,
+      note: notes[row.tutorId]?.trim() || undefined,
+    });
+    setBusy((b) => ({ ...b, [row.tutorId]: false }));
+    if (!res.ok) {
+      showToast(c.error);
+      return;
+    }
+    showToast(c.ok);
+    /* Reload rather than patch the row in place: the effective plan is resolved
+       server-side (a grant can supersede another, and an expiry can already have
+       passed), so re-reading is the only way this list stays true. */
+    await load();
+  }
+
+  async function handleRevoke(row: AdminPlanRow) {
+    setBusy((b) => ({ ...b, [row.tutorId]: true }));
+    const res = await revokePlan({
+      tutorId: row.tutorId,
+      note: notes[row.tutorId]?.trim() || undefined,
+    });
+    setBusy((b) => ({ ...b, [row.tutorId]: false }));
+    if (!res.ok) {
+      showToast(c.error);
+      return;
+    }
+    showToast(c.removed);
+    await load();
+  }
+
+  return (
+    <SiteShell>
+      <section className="web-section tight">
+        <div className="container container-narrow">
+          <div className="mb-5">
+            <span className="web-eyebrow flex items-center gap-1.5 mb-2">
+              <Shield className="w-4 h-4" />
+              {c.eyebrow}
+            </span>
+            <h1 className="web-h2">{c.title}</h1>
+            {!loading && admin && (
+              <div className="flex items-center gap-1.5 text-[13px] text-muted mt-1.5">
+                <Users className="w-[15px] h-[15px]" />
+                {c.count(items.length)}
+              </div>
+            )}
+          </div>
+
+          {loading && (
+            <div className="panel panel-pad grid place-items-center min-h-[140px]">
+              <Spinner />
+              <p className="text-[13px] text-muted mt-1">{c.loading}</p>
+            </div>
+          )}
+
+          {!loading && !admin && (
+            <div className="panel panel-pad text-center">
+              <h2 className="font-display text-[20px] mb-2">{c.deniedTitle}</h2>
+              <p className="text-[13px] text-muted leading-[1.6] mb-4">{c.deniedNote}</p>
+              <Link href="/auth" className="w-auto">
+                <Button variant="ink" sm>
+                  {c.signIn}
+                </Button>
+              </Link>
+            </div>
+          )}
+
+          {!loading && admin && (
+            <>
+              {/* THE BANNER, driven by the real switch — the same flag /tarifs
+                  reads, so this page cannot claim billing is off after it is on. */}
+              <div className="trust mb-5">
+                <Shield />
+                <p>{paymentsOn ? c.liveBanner : c.pilotBanner}</p>
+              </div>
+
+              {/* The catalogue, read-only. */}
+              <div className="panel panel-pad mb-5">
+                <h2 className="font-display text-[16px] font-bold mb-1">{c.catalogue}</h2>
+                <p className="text-[13px] text-muted leading-[1.6] mb-3">{c.catalogueNote}</p>
+                <ul className="flex flex-col gap-2">
+                  {GRANTABLE.map((p) => (
+                    <li key={p.code} className="flex items-baseline gap-2 flex-wrap text-[13px]">
+                      <b className="font-display">{p.code}</b>
+                      <span className="text-muted">
+                        {tnd(p.monthlyMillimes)} TND {c.perMonth}
+                      </span>
+                      <span className="text-muted">· {classLimitLabel(p.maxClasses, locale)}</span>
+                      {p.exploreBoost > 0 && <Chip kind="sand">{c.boost}</Chip>}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {items.length === 0 ? (
+                <div className="panel panel-pad text-center">
+                  <h2 className="font-display text-[18px] mb-1">{c.empty}</h2>
+                  <p className="text-[13px] text-muted">{c.emptyNote}</p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {items.map((row) => {
+                    const until = formatDate(row.expiresAt, locale);
+                    const working = Boolean(busy[row.tutorId]);
+                    return (
+                      <div key={row.tutorId} className="panel panel-pad">
+                        <div className="flex items-start justify-between gap-3 flex-wrap mb-2">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <b className="font-display text-[15px]">{row.fullName}</b>
+                              <Chip kind={row.granted ? "soft" : "sand"}>
+                                {row.granted ? row.planCode : c.onPilot}
+                              </Chip>
+                            </div>
+                            <p className="text-[13px] text-muted mt-1">
+                              {c.openClasses(row.openClasses)}{" "}
+                              {row.maxClasses === null ? `(${c.unlimited})` : `(${c.limitOf(row.maxClasses)})`}
+                              {row.granted ? ` · ${until ? c.until(until) : c.noExpiry}` : ""}
+                            </p>
+                          </div>
+                          <Link href={`/${row.slug}`} className="btn btn-ghost btn-sm flex-none">
+                            {c.profile}
+                          </Link>
+                        </div>
+
+                        <div className="flex gap-2 flex-wrap items-end">
+                          <label className="flex flex-col gap-1 text-[12px] text-muted">
+                            <span className="sr-only">{c.grant}</span>
+                            <select
+                              className="inp"
+                              value={choice[row.tutorId] ?? ""}
+                              onChange={(e) =>
+                                setChoice((v) => ({ ...v, [row.tutorId]: e.target.value }))
+                              }
+                              aria-label={c.grant}
+                            >
+                              <option value="">—</option>
+                              {GRANTABLE.map((p) => (
+                                <option key={p.code} value={p.code}>
+                                  {p.code}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <label className="flex flex-col gap-1 text-[12px] text-muted">
+                            {c.months}
+                            <input
+                              className="inp"
+                              inputMode="numeric"
+                              value={months[row.tutorId] ?? ""}
+                              onChange={(e) =>
+                                setMonths((v) => ({ ...v, [row.tutorId]: e.target.value }))
+                              }
+                            />
+                          </label>
+                          <input
+                            className="inp flex-1 min-w-[160px]"
+                            placeholder={c.notePh}
+                            value={notes[row.tutorId] ?? ""}
+                            onChange={(e) =>
+                              setNotes((v) => ({ ...v, [row.tutorId]: e.target.value }))
+                            }
+                          />
+                          <Button
+                            sm
+                            variant="ink"
+                            onClick={() => handleGrant(row)}
+                            disabled={working || !(choice[row.tutorId] ?? "")}
+                          >
+                            {c.grant}
+                          </Button>
+                          {row.granted && (
+                            <Button sm variant="ghost" onClick={() => handleRevoke(row)} disabled={working}>
+                              {c.revoke}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </section>
+      {toast}
+    </SiteShell>
+  );
+}

@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { Link } from "@/components/Link";
-import { Button, Spinner } from "@/components/ui";
+import { Button, Spinner, Chip } from "@/components/ui";
 import { useLocale } from "@/components/LocaleProvider";
 import { Gear, Bell, Wallet, Share, Copy, Video, Plus, Bulb, Users, Eye, Book, Shield, Check, Phone, Clock, Mail } from "@/components/icons";
 import { SiteShell } from "@/components/SiteShell";
@@ -74,6 +74,20 @@ const copy = bilingual({
     ffOff: "Désactivée",
     ffSaving: "Enregistrement…",
     ffError: "Ça n'a pas marché. Réessaie.",
+
+    /* TON OFFRE (Step 16). A limit a tutor cannot see is a limit they discover
+       by hitting it, halfway through creating a class. */
+    planTitle: "Ton offre",
+    planPilot: "Pilote",
+    planPilotBody:
+      "Pendant le pilote, tous les profs ont l'offre complète : cours illimités, et rien n'est facturé. On te préviendra avant que ça change.",
+    planGrantedBody: "Offre activée par l'équipe Tnajem. Rien ne t'est facturé.",
+    planUnlimited: "Cours en ligne : illimités",
+    planUsage: (used: number, max: number) => `Cours en ligne : ${used} sur ${max}`,
+    planUsageNote:
+      "On compte les cours à venir. Un cours annulé ou déjà passé libère la place.",
+    planUntil: (d: string) => `Jusqu'au ${d}.`,
+    planSeeTarifs: "Voir les offres",
   },
   ar: {
     signedOutTitle: "ادخل لحسابك باش تشوف لوحتك",
@@ -119,6 +133,17 @@ const copy = bilingual({
     ffOff: "مطفية",
     ffSaving: "قاعد يتسجّل…",
     ffError: "ما مشاتش. عاود حاول.",
+
+    planTitle: "العرض متاعك",
+    planPilot: "تجربة",
+    planPilotBody:
+      "في فترة التجربة، الأساتذة الكل عندهم العرض الكامل : دروس بلا حدّ، وما فمّا حتى فاتورة. باش نعلموك قبل ما يتبدّل الحال.",
+    planGrantedBody: "العرض فعّلو فريق Tnajem. ما تتفوترش حتى مليم.",
+    planUnlimited: "دروس أونلاين : بلا حدّ",
+    planUsage: (used: number, max: number) => `دروس أونلاين : ${used} من ${max}`,
+    planUsageNote: "نحسبو الدروس الجايّة برك. درس تلغى ولا فات يرجّعلك البلاصة.",
+    planUntil: (d: string) => `حتى لـ ${d}.`,
+    planSeeTarifs: "شوف العروض",
   },
 });
 
@@ -509,6 +534,58 @@ function SharePanel({ slug, c }: { slug: string; c: CopyDict }) {
    it snaps BACK and says so, rather than leaving the UI claiming a state the
    server never accepted. That direction matters: the failure mode to avoid is a
    tutor believing they turned it off when they did not. */
+/* TON OFFRE — the tutor's own plan, and what it lets them do.
+
+   READ-ONLY, and that is the honest shape today: there is no checkout, so a
+   button here would either lead nowhere or imply a purchase that cannot happen.
+   It links to /tarifs, which is where the offers are described and labelled as
+   future.
+
+   The usage line is the point. "Cours en ligne : 3 sur 5" is the number the API
+   enforces in POST /classes, so a tutor meets the limit here — on a calm screen
+   — instead of at the end of a form they have just filled in. */
+function PlanPanel({ d, c, locale }: { d: DashboardData; c: CopyDict; locale: "fr" | "ar" }) {
+  const p = d.plan;
+  const until =
+    p.expiresAt
+      ? new Date(p.expiresAt).toLocaleDateString(locale === "ar" ? "ar-TN" : "fr-FR", {
+          day: "2-digit",
+          month: "long",
+          year: "numeric",
+        })
+      : null;
+
+  return (
+    <div className="panel panel-pad mb-[clamp(14px,2vw,22px)]">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            <h2 className="font-display text-[16px] font-bold">{c.planTitle}</h2>
+            <Chip kind="soft">{p.isPilot ? c.planPilot : p.code}</Chip>
+          </div>
+          {/* Two different true sentences, never one that covers both: "you are on
+              the pilot and nothing is billed" is not the same statement as "an
+              admin put you on this offer and nothing is billed". */}
+          <p className="text-[13px] text-muted leading-[1.6]">
+            {p.isPilot ? c.planPilotBody : c.planGrantedBody}
+          </p>
+          {until && <p className="text-[13px] text-muted leading-[1.6] mt-1">{c.planUntil(until)}</p>}
+        </div>
+        <Link href="/tarifs" className="btn btn-ghost btn-sm flex-none">
+          {c.planSeeTarifs}
+        </Link>
+      </div>
+
+      <p className="text-[13px] font-bold mt-3">
+        {p.maxClasses === null ? c.planUnlimited : c.planUsage(p.openClasses, p.maxClasses)}
+      </p>
+      {p.maxClasses !== null && (
+        <p className="text-[13px] text-muted leading-[1.6] mt-1">{c.planUsageNote}</p>
+      )}
+    </div>
+  );
+}
+
 function FreeFirstPanel({ d, c }: { d: DashboardData; c: CopyDict }) {
   const [on, setOn] = useState(d.offersFreeFirstSession);
   const [busy, setBusy] = useState(false);
@@ -808,6 +885,7 @@ function RealDashboard(
 
       {/* Free first session — only once a storefront exists, since it is a claim
           made ON that page and there is nowhere to make it before then. */}
+      {d.has_storefront && <PlanPanel d={d} c={c} locale={locale} />}
       {d.has_storefront && <FreeFirstPanel d={d} c={c} />}
 
       {/* My classes */}

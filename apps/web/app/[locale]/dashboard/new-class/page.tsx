@@ -26,6 +26,19 @@ const CONTACT_INFO_MSG = {
   ar: "نحّي النمرة، الإيميل ولا الرابط: معلومات الاتصال موش مسموحة في الحصة. تلامذتك يعدّو عبر Tnajem.",
 } as const;
 
+/* Step 16. The plan limit refusal NAMES THE NUMBER, because the API sends it
+   back. "Tu as atteint la limite de ton offre" with no figure is a dead end for
+   the person who would happily move up an offer if they knew what they had hit —
+   and the limit counts UPCOMING classes, which is not guessable from the word
+   "limite". Nobody sees this during the pilot: every tutor is on `pilot`, which
+   has no class limit. */
+const PLAN_LIMIT_MSG = {
+  fr: (n: number) =>
+    `Ton offre te permet ${n === 1 ? "1 cours en ligne" : `${n} cours en ligne`} à la fois. Annule ou attends la fin d'un cours à venir, ou passe à une offre supérieure.`,
+  ar: (n: number) =>
+    `عرضك يسمحلك بـ ${n === 1 ? "درس واحد أونلاين" : `${n} دروس أونلاين`} في نفس الوقت. ألغي ولا استنّى درس جاي يكمّل، ولا اطلع لعرض أكبر.`,
+} as const;
+
 /* Page-local copy (lib/i18n.ts is shared/read-only). */
 const copy = bilingual({
   fr: {
@@ -79,6 +92,8 @@ export default function NewClassPage() {
       showToast(
         res.error === "not-verified" ? NOT_VERIFIED_MSG[locale]
           : res.error === "contact-info-not-allowed" ? CONTACT_INFO_MSG[locale]
+          : res.error === "plan-limit-classes" && typeof res.limit === "number"
+            ? PLAN_LIMIT_MSG[locale](res.limit)
           : t.extra.error,
       );
     }

@@ -6,6 +6,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { Card, CardFooter, Chip } from "@/components/ui";
 import { Check, Shield, Wallet, Star } from "@/components/icons";
 import { bilingual } from "@/lib/i18n";
+import { planByCode, classLimitLabel, monthsOffered, tnd } from "@tnajem/shared";
 
 /* ═══════════════════════════════════════════════════════════════════════════
    /tarifs — the pricing page.
@@ -20,6 +21,12 @@ import { bilingual } from "@/lib/i18n";
      a charge that is happening now.
    • Equally, nothing here promises 0 % forever. The 0 % is a property of the
      pilot and is labelled as such.
+   • THE NUMBERS ARE NOT WRITTEN HERE. Since Step 16 the price, the annual price
+     and the class-limit bullet are derived from PLANS in @tnajem/shared — the
+     same catalogue the API enforces. They used to be strings in the copy object
+     below, which meant this page could advertise "jusqu'à 5 cours" while the
+     server allowed three, and nothing would have caught it. The one number a
+     tutor would litigate is now impossible to state wrongly here.
    • Competitor rates are quoted ONLY where the platform publishes them itself.
      GoStudent does not publish a tutor commission, so no number is given for it
      — an invented one would be exactly the kind of claim this page exists to
@@ -52,40 +59,37 @@ const copy = bilingual({
     recommended: "Recommandé",
     perMonth: "/ mois",
     planCta: "Commencer gratuitement",
+    /* Derived-number formatting. The VALUES come from the shared catalogue; only
+       the words are copy. */
+    priceUnit: (n: number) => `${n} TND`,
+    yearLine: (n: number) => `${n} TND / an`,
+    monthsFree: (n: number) => ` — ${n} ${n === 1 ? "mois offert" : "mois offerts"}`,
 
     plans: [
       {
         id: "gratuit",
         name: "Gratuit",
-        price: "0 TND",
-        year: "0 TND / an",
         who: "1 à 14 élèves",
         billed: false,
-        features: ["Ta page de prof et ton lien", "1 cours en ligne", "Réservations et avis", "Paiement en main propre"],
+        features: ["Ta page de prof et ton lien", "Réservations et avis", "Paiement en main propre"],
       },
       {
         id: "essentiel",
         name: "Essentiel",
-        price: "29 TND",
-        year: "290 TND / an — 2 mois offerts",
         who: "15 à 20 élèves",
         billed: true,
-        features: ["Jusqu'à 5 cours", "Rappels SMS et WhatsApp", "Statistiques de base", "Tout ce qu'il y a dans Gratuit"],
+        features: ["Rappels SMS et WhatsApp", "Statistiques de base", "Tout ce qu'il y a dans Gratuit"],
       },
       {
         id: "pro",
         name: "Pro",
-        price: "59 TND",
-        year: "590 TND / an",
         who: "21 à 35 élèves",
         billed: true,
-        features: ["Cours illimités", "Mis en avant dans Explorer", "Vends tes fiches et enregistrements", "Statistiques complètes"],
+        features: ["Mis en avant dans Explorer", "Vends tes fiches et enregistrements", "Statistiques complètes"],
       },
       {
         id: "prestige",
         name: "Prestige",
-        price: "99 TND",
-        year: "990 TND / an",
         who: "36 élèves et plus",
         billed: true,
         features: ["Placement prioritaire", "Replays de tes séances", "Vérification prioritaire (48 h)", "Support prioritaire"],
@@ -138,40 +142,37 @@ const copy = bilingual({
     recommended: "ننصحو بيها",
     perMonth: "/ في الشهر",
     planCta: "ابدا فابور",
+    priceUnit: (n: number) => `${n} دينار`,
+    yearLine: (n: number) => `${n} دينار / في العام`,
+    /* Arabic has a dual. "شهرين" is two months; anything else takes a number. */
+    monthsFree: (n: number) =>
+      ` — ${n === 1 ? "شهر" : n === 2 ? "شهرين" : `${n} أشهر`} فابور`,
 
     plans: [
       {
         id: "gratuit",
         name: "فابور",
-        price: "0 دينار",
-        year: "0 دينار / في العام",
         who: "من 1 لـ 14 تلميذ",
         billed: false,
-        features: ["صفحتك ولينكك", "درس واحد أونلاين", "الحجوزات والآراء", "الخلاص في يدك"],
+        features: ["صفحتك ولينكك", "الحجوزات والآراء", "الخلاص في يدك"],
       },
       {
         id: "essentiel",
         name: "الأساسي",
-        price: "29 دينار",
-        year: "290 دينار / في العام — شهرين فابور",
         who: "من 15 لـ 20 تلميذ",
         billed: true,
-        features: ["حتى لـ 5 دروس", "تذكير بالـ SMS والواتساب", "إحصائيات أساسية", "كل اللي في فابور"],
+        features: ["تذكير بالـ SMS والواتساب", "إحصائيات أساسية", "كل اللي في فابور"],
       },
       {
         id: "pro",
         name: "برو",
-        price: "59 دينار",
-        year: "590 دينار / في العام",
         who: "من 21 لـ 35 تلميذ",
         billed: true,
-        features: ["دروس بلا حدّ", "تبان في «اكتشف»", "بيع الفيشات والتسجيلات", "إحصائيات كاملة"],
+        features: ["تبان في «اكتشف»", "بيع الفيشات والتسجيلات", "إحصائيات كاملة"],
       },
       {
         id: "prestige",
         name: "بريستيج",
-        price: "99 دينار",
-        year: "990 دينار / في العام",
         who: "36 تلميذ وأكثر",
         billed: true,
         features: ["مركز أول في العرض", "تسجيلات حصصك", "تثبّت بالأولوية (48 ساعة)", "دعم بالأولوية"],
@@ -242,8 +243,25 @@ html[dir="rtl"] .tf-cmp-name{font-family:var(--fa)}
 .tf-comm .ic{width:19px;height:19px;flex:none;color:var(--blue);margin-block-start:1px}
 `;
 
-function PlanCard({ plan, c, paymentsEnabled }: { plan: Copy["plans"][number]; c: Copy; paymentsEnabled: boolean }) {
+function PlanCard({
+  plan,
+  c,
+  locale,
+  paymentsEnabled,
+}: {
+  plan: Copy["plans"][number];
+  c: Copy;
+  locale: "fr" | "ar";
+  paymentsEnabled: boolean;
+}) {
   const highlighted = plan.id === "pro";
+  /* THE NUMBERS COME FROM THE CATALOGUE, not from the copy above. A card whose
+     plan is missing from PLANS renders nothing rather than a price with no
+     entitlements behind it — a plan the server does not know is not a plan we
+     may sell. */
+  const spec = planByCode(plan.id);
+  if (!spec) return null;
+  const free = monthsOffered(spec);
   return (
     <Card className={highlighted ? "tf-hi" : ""}>
       <div className="flex items-center gap-2 flex-wrap mb-2">
@@ -256,10 +274,15 @@ function PlanCard({ plan, c, paymentsEnabled }: { plan: Copy["plans"][number]; c
       <div className="tf-who mb-3">{plan.who}</div>
 
       <div className="flex items-baseline gap-1.5 flex-wrap">
-        <span className="tf-price">{plan.price}</span>
+        <span className="tf-price">{c.priceUnit(tnd(spec.monthlyMillimes))}</span>
         <span className="tf-per">{c.perMonth}</span>
       </div>
-      <div className="tf-year mt-1">{plan.year}</div>
+      {/* "2 mois offerts" is DERIVED from the two prices, so it cannot survive a
+          price change that makes it untrue. */}
+      <div className="tf-year mt-1">
+        {c.yearLine(tnd(spec.yearlyMillimes))}
+        {free > 0 ? c.monthsFree(free) : ""}
+      </div>
 
       {/* §2.2: a price is never shown without the commission that comes with it.
           A tutor who reads only the card and meets the 10 % later has been misled
@@ -281,6 +304,14 @@ function PlanCard({ plan, c, paymentsEnabled }: { plan: Copy["plans"][number]; c
       )}
 
       <ul className="tf-feats">
+        {/* THE CLASS LIMIT, first and derived. This is the entitlement the API
+            actually enforces (POST /classes), and the only bullet on this page a
+            tutor could hold us to. It is generated from the same number, so the
+            page and the server cannot say different things. */}
+        <li>
+          <Check />
+          <span className="min-w-0">{classLimitLabel(spec.maxClasses, locale)}</span>
+        </li>
         {plan.features.map((f) => (
           <li key={f}>
             <Check />
@@ -343,7 +374,7 @@ export function TarifsInner({ paymentsEnabled }: { paymentsEnabled: boolean }) {
           <p className="web-lead mb-6 max-w-[680px]">{c.plansLead}</p>
           <div className="grid-auto">
             {c.plans.map((p) => (
-              <PlanCard key={p.id} plan={p} c={c} paymentsEnabled={paymentsEnabled} />
+              <PlanCard key={p.id} plan={p} c={c} locale={locale} paymentsEnabled={paymentsEnabled} />
             ))}
           </div>
         </div>

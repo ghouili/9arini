@@ -65,6 +65,11 @@ export const reportStatus = pgEnum("report_status", ["open", "actioned", "dismis
    `purged` is terminal. There is no "deleting" state, because the row either
    still exists or it does not. */
 export const deletionStatus = pgEnum("deletion_status", ["requested", "cancelled", "purged"]);
+/* PLANS (Step 16). `expired` is set by the nightly sweep when expires_at passes;
+   `cancelled` is an admin revoking a grant. Both mean the same thing to the
+   resolver — not live — but they are different events and a log that cannot tell
+   "it ran out" from "we took it away" is not worth keeping. */
+export const subscriptionStatus = pgEnum("subscription_status", ["active", "expired", "cancelled"]);
 /* Where the text was written. Not a free string: this is the column a moderator
    filters on, and "review" vs "reviews" vs "Review" would quietly split it. */
 export const leakSurface = pgEnum("leak_surface", [
@@ -611,6 +616,66 @@ export const adminActions = pgTable("admin_actions", {
 }, (t) => ({
   adminIdx: index("admin_actions_admin_profile_id_created_at_idx").on(t.adminProfileId, t.createdAt),
   subjectIdx: index("admin_actions_subject_kind_subject_id_idx").on(t.subjectKind, t.subjectId),
+}));
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   PLANS (Step 16) — the catalogue of record.
+
+   THE ROW IS NOT WHAT THE SERVER ENFORCES. packages/shared/src/plans.ts is; see
+   its header for why. This table exists for two concrete reasons:
+
+     1. It is the FK target for subscriptions.plan_code, so granting "pr0" is
+        refused by Postgres instead of silently resolving to the default plan —
+        i.e. instead of quietly giving a tutor LESS than the admin intended.
+     2. Anyone reading the database can see what the plans are and cost without
+        reading TypeScript.
+
+   A test compares every row here against the shared catalogue, so (2) can never
+   drift into a lie.
+   ══════════════════════════════════════════════════════════════════════════════ */
+export const plans = pgTable("plans", {
+  /** "pilot" | "gratuit" | "essentiel" | "pro" | "prestige". */
+  code: text("code").primaryKey(),
+  /* MILLIMES, integer. Not numeric(10,3) and never a float: these are prices,
+     and the only safe representation of money is an integer count of the
+     smallest unit. 1 TND = 1000 millimes. */
+  monthlyMillimes: integer("monthly_millimes").notNull(),
+  yearlyMillimes: integer("yearly_millimes").notNull(),
+  /** NULL = unlimited. Not 0 and not -1: "no limit" is the absence of a limit. */
+  maxClasses: integer("max_classes"),
+  exploreBoost: integer("explore_boost").notNull().default(0),
+  /** false for `pilot` — it is what everyone is on, not something anyone buys. */
+  listed: boolean("listed").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/* SUBSCRIPTIONS (Step 16) — which plan a tutor is on, and who put them there.
+
+   EVERY ROW IS AN ADMIN GRANT TODAY. There is no checkout: payments are off, so
+   nothing here was ever paid for and no row implies a debt. `granted_by` and
+   `note` exist because a plan handed out by hand needs the same answerability as
+   any other privileged action — the grant is also written to admin_actions. */
+export const subscriptions = pgTable("subscriptions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tutorId: uuid("tutor_id").notNull().references(() => tutors.id, { onDelete: "cascade" }),
+  planCode: text("plan_code").notNull().references(() => plans.code),
+  status: subscriptionStatus("status").notNull().default("active"),
+  /* set null: the grant outlives the admin who made it, for the same reason
+     admin_actions.admin_profile_id does. */
+  grantedBy: uuid("granted_by").references(() => profiles.id, { onDelete: "set null" }),
+  note: text("note"),
+  startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+  /** NULL = open-ended. The resolver treats a past date as not live immediately,
+      without waiting for the nightly sweep to flip the status. */
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  /* Reads are "the live grant for this tutor" and the /explore join. The partial
+     UNIQUE that makes at most one row active per tutor is a WHERE-clause index
+     drizzle cannot express, so it lives in the SQL migration — see 0017. Without
+     it "which plan am I on?" would be answered by whichever row the planner
+     happened to return first. */
+  tutorIdx: index("subscriptions_tutor_id_status_idx").on(t.tutorId, t.status),
 }));
 
 export const payments = pgTable("payments", {

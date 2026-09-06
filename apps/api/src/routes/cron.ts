@@ -3,6 +3,7 @@ import { timingSafeEqual } from "node:crypto";
 import { purgeExpiredVerificationDocs, purgeExpiredAuthRows } from "@tnajem/db";
 import { db } from "../db";
 import { purgeDeletedAccounts } from "./moderation";
+import { expireSubscriptions } from "../lib/entitlements";
 
 /* The retention purge, moved from apps/web/app/api/cron/purge.
 
@@ -50,6 +51,13 @@ export async function cronRoutes(app: FastifyInstance): Promise<void> {
        whose 30-day grace has expired must be erased even if the document purge
        fails, and vice versa. */
     const accounts = await purgeDeletedAccounts(db, { dryRun });
+    /* Step 16. FOURTH independent job. It is bookkeeping, not enforcement: the
+       entitlement resolver already treats a past expiry as dead, so a night this
+       does not run costs nobody an entitlement they paid for and gives nobody one
+       they did not. What it settles is the table — freeing the partial unique
+       index and keeping an admin from being shown an "active" row that ran out
+       in March. */
+    const subs = await expireSubscriptions(db, { dryRun });
 
     /* COUNTS ONLY in the response body. docs.removed[] carries tutor and document
        ids; that stays in the server log and never crosses the wire — this
@@ -67,6 +75,7 @@ export async function cronRoutes(app: FastifyInstance): Promise<void> {
       },
       auth: authRows,
       accounts,
+      subscriptions: subs,
     };
     return reply.code(docs.errors.length ? 500 : 200).send(body);
   };

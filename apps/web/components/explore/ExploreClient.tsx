@@ -22,7 +22,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@/components/Link";
 import { useLocale } from "@/components/LocaleProvider";
-import { Verified } from "@/components/ui";
+import { Verified, Chip } from "@/components/ui";
 import { Search, Star, Users, Bolt } from "@/components/icons";
 import { SiteShell } from "@/components/SiteShell";
 import { getExploreTutors } from "@/app/actions";
@@ -42,6 +42,14 @@ const copy = bilingual({
     verifiedOnly: "Profs vérifiés",
     /* Screen-reader name for the blue tick — the badge carried meaning no AT could read. */
     verifiedBadge: "Prof vérifié",
+    /* PAID PLACEMENT, SAID OUT LOUD (Step 16). A tutor on the Pro or Prestige
+       offer is ordered above the rest. The mark and this note only ever appear
+       when a card on screen actually is one — a disclosure of something that is
+       not happening is noise, and a boost with no disclosure is an advert
+       pretending to be a recommendation. */
+    featuredBadge: "Mis en avant",
+    featuredNote:
+      "« Mis en avant » : ce prof est sur une offre payante, ce qui le place plus haut dans la liste. Ça ne change ni sa note ni ses avis — ils viennent uniquement de ses élèves.",
     emptyTitle: "Aucun prof pour l'instant",
     emptyBody:
       "On vérifie chaque prof à la main, un par un. Les premiers arrivent bientôt. Tu es prof ? Ouvre ta page en 5 minutes — c'est gratuit.",
@@ -59,6 +67,9 @@ const copy = bilingual({
     tnd: "د.ت",
     verifiedOnly: "أساتذة مؤكّدين",
     verifiedBadge: "أستاذ مؤكّد",
+    featuredBadge: "مقدّم",
+    featuredNote:
+      "« مقدّم » : الأستاذ هذا عندو اشتراك مدفوع، وعلى هكّاكا يتقدّم في القائمة. هذا ما يبدّل لا نقطتو لا آراء تلامذتو — هاذوكم يجيو من التلامذة برك.",
     emptyTitle: "ما فماش أساتذة توّا",
     emptyBody:
       "نأكّدو في كل أستاذ بيدينا، واحد واحد. الأوّلين جايين قريب. إنت أستاذ؟ اعمل صفحتك في 5 دقايق — بلاش.",
@@ -83,6 +94,9 @@ const DEMO_PREVIEW: ExploreTutor[] = [
     review_count: 37,
     students_count: demoStorefront.tutor.students_count,
     price_from_tnd: 15,
+    /* Demo mode only. NEVER featured: the preview must not model paid
+       placement, and no demo tutor has ever paid for anything. */
+    featured: false,
   },
   {
     slug: "sonia-physique",
@@ -95,6 +109,9 @@ const DEMO_PREVIEW: ExploreTutor[] = [
     review_count: 12,
     students_count: 640,
     price_from_tnd: 18,
+    /* Demo mode only. NEVER featured: the preview must not model paid
+       placement, and no demo tutor has ever paid for anything. */
+    featured: false,
   },
   {
     slug: "leila-primaire",
@@ -107,6 +124,9 @@ const DEMO_PREVIEW: ExploreTutor[] = [
     review_count: 0,
     students_count: 0,
     price_from_tnd: 12,
+    /* Demo mode only. NEVER featured: the preview must not model paid
+       placement, and no demo tutor has ever paid for anything. */
+    featured: false,
   },
 ];
 
@@ -384,6 +404,14 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
                               the truncated name instead of squashing to an ellipse. */}
                           <Verified label={c.verifiedBadge} />
                         </div>
+                        {/* In flow under the name, not floated over the card:
+                            the label has to be readable at 320px, and a mark the
+                            layout hides at narrow widths is not a disclosure. */}
+                        {tutor.featured && (
+                          <div className="mt-1.5">
+                            <Chip kind="sand">{c.featuredBadge}</Chip>
+                          </div>
+                        )}
                         {/* line-clamp-2, not truncate: "Prof de Maths · Lycée & Bac"
                             (and its longer AR form) needs two lines at 284px. */}
                         <div className="mt-1 line-clamp-2 text-[13px] leading-snug text-muted">
@@ -440,6 +468,15 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
                 );
               })}
             </div>
+          )}
+
+          {/* THE DISCLOSURE. Rendered only when a card on this screen actually
+              carries the mark, so the page never explains a thing that is not
+              happening — and never leaves it unexplained when it is. */}
+          {visible.some((tu) => tu.featured) && (
+            <p className="mt-6 max-w-[640px] text-[13px] leading-relaxed text-muted">
+              {c.featuredNote}
+            </p>
           )}
         </div>
       </section>

@@ -277,11 +277,14 @@ export async function createClass(input: {
   title: string; description?: string; scheduledAt: string;
   durationMin: number; priceTnd: number; seats: number; isFreeFirst: boolean;
   meetUrl?: string; whiteboardUrl?: string; quizUrl?: string;
-}): Promise<ActionResult> {
+}): Promise<ActionResult & { limit?: number; planCode?: string }> {
   if (demoFallback) return { ok: true, demo: true };
   /* PORTED to apps/api (POST /classes). The validators, the verification gate and
-     the insert all live there; call() replays the revalidate envelope. */
-  return call<ActionResult>("/classes", input);
+     the insert all live there; call() replays the revalidate envelope.
+
+     Step 16: `plan-limit-classes` comes back with the LIMIT attached so the form
+     can name the number instead of saying "not allowed". */
+  return call<ActionResult & { limit?: number; planCode?: string }>("/classes", input);
 }
 
 export async function createPack(input: { title: string; meta?: string; priceTnd: number }): Promise<ActionResult> {
@@ -435,6 +438,53 @@ export async function rejectTutor(input: { tutorId: string; note?: string }): Pr
      nicety: without it the page of a tutor we have just rejected keeps being
      served for up to 60s and advertised in the sitemap for up to an hour. */
   return call<{ ok: boolean; error?: string }>("/admin/verifications/reject", input);
+}
+
+/* ---------- Plans and entitlements (Step 16) ----------
+
+   The GRANT is manual and admin-only, because payments are off: there is no
+   checkout to proxy. These forward the cookie like every other action; the
+   allowlist check, the audit line and the transaction all live in apps/api. */
+export type AdminPlanRow = {
+  tutorId: string;
+  slug: string;
+  fullName: string;
+  status: string;
+  planCode: string;
+  maxClasses: number | null;
+  exploreBoost: number;
+  granted: boolean;
+  expiresAt: string | null;
+  note: string | null;
+  openClasses: number;
+};
+
+export async function getAdminPlans():
+  Promise<{ ok: boolean; admin: boolean; paymentsEnabled?: boolean; items: AdminPlanRow[] }> {
+  if (demoFallback) return { ok: false, admin: false, items: [] };
+  return call<{ ok: boolean; admin: boolean; paymentsEnabled?: boolean; items: AdminPlanRow[] }>(
+    "/admin/plans",
+    undefined,
+    "GET",
+  );
+}
+
+export async function grantPlan(input: {
+  tutorId: string; planCode: string; months?: number; note?: string;
+}): Promise<ActionResult & { planCode?: string; expiresAt?: string | null }> {
+  if (demoFallback) return { ok: false, error: "forbidden" };
+  /* The revalidate envelope replayed by call() matters here: a granted plan
+     changes /explore ordering and the tutor's cached storefront. A grant that
+     does not show up for an hour reads as a grant that did not work. */
+  return call<ActionResult & { planCode?: string; expiresAt?: string | null }>(
+    "/admin/subscriptions",
+    input,
+  );
+}
+
+export async function revokePlan(input: { tutorId: string; note?: string }): Promise<ActionResult> {
+  if (demoFallback) return { ok: false, error: "forbidden" };
+  return call<ActionResult>("/admin/subscriptions/revoke", input);
 }
 
 /* ---------- Explore feed (real, verified tutors only) ----------

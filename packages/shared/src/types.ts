@@ -134,6 +134,20 @@ export type DashboardBooking = {
 };
 
 // Real dashboard payload for the signed-in tutor (see getDashboard in app/actions.ts).
+export type DashboardPlan = {
+  code: string;
+  /** null = unlimited. */
+  maxClasses: number | null;
+  /** Upcoming, non-cancelled classes — what the limit actually counts. */
+  openClasses: number;
+  /** true while payments are off and the tutor has no explicit grant. */
+  isPilot: boolean;
+  /** true when an admin has granted this plan, rather than it being the default. */
+  granted: boolean;
+  /** ISO, or null for an open-ended grant / the default plan. */
+  expiresAt: string | null;
+};
+
 export type DashboardData = {
   name: string | null;       // tutor display name (for the greeting)
   slug: string | null;       // storefront slug; null until they publish a page
@@ -154,6 +168,12 @@ export type DashboardData = {
      — it is on the dashboard payload, not the public storefront, which reports a
      plain has_photo and only for an approved one. */
   avatarStatus: "pending" | "approved" | "rejected" | null;
+  /* THE TUTOR'S OWN PLAN (Step 16). On the dashboard because a limit a person
+     cannot see is a limit they hit by surprise, at the moment they are trying to
+     do something. `openClasses` is what counts against `maxClasses`, and
+     `isPilot` is what lets the UI say the true thing today: everyone has the
+     full offer and nothing is billed. */
+  plan: DashboardPlan;
   classes: DashboardClass[];
   packs: DashboardPack[];
   bookings: DashboardBooking[]; // who actually booked (across all their classes)
@@ -352,6 +372,11 @@ export type ExploreTutor = {
   review_count: number;
   students_count: number;
   price_from_tnd: number | null; // cheapest upcoming class; null if none published
+  /* Step 16. This tutor is on a plan that buys a higher position in the list.
+     The card MUST mark it: an ordering somebody paid for and the reader cannot
+     see is an advertisement disguised as a recommendation. False for everyone
+     during the pilot. */
+  featured: boolean;
 };
 
 // ---- Reviews ----

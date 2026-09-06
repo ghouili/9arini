@@ -51,6 +51,19 @@ services:
       # This is the ONLY place the two filesystems need to meet, and it is why the
       # production compose file keeps a named volume: ID scans must survive a
       # redeploy, and a bind mount to a working copy would not.
+      #
+      # ── IF A DIFFERENT TEST FAILS EVERY RUN, READ THIS BEFORE DEBUGGING ──────
+      # `docker compose logs api | grep ENOMEM`. On a memory-tight Docker VM the
+      # API's reads from THIS bind mount fail with "ENOMEM: not enough memory,
+      # read", and the tests that break are whichever ones happened to serve a
+      # file — avatar.spec and materials.spec — so it reads as a flaky access
+      # check rather than as an environment limit.
+      #
+      # It is the host file-sharing path, not the application: the same specs fail
+      # at the same rate run in isolation, the API process itself sits at ~85 MB,
+      # and nothing in the Node heap is involved. Give the VM more memory (Docker
+      # Desktop → Resources, or .wslconfig on Windows) rather than changing code.
+      # Production is unaffected — it uses a named volume inside the VM.
       - ./.e2e-storage:/data/storage
 
   # Catches every OTP mail so nothing leaves this machine. Pinned, like the

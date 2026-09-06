@@ -10,6 +10,8 @@ import {
   MONTHS_FR,
   type ClassItem, type DashboardResult, type DashboardBooking,
   isEffectivelyFreeFirst,
+  canOpenAnotherClass,
+  effectivePlan,
   cancellationOutcome,
   publicProfile,
   publicInitials,
@@ -20,6 +22,7 @@ import { db } from "../db";
 import { getSession } from "../lib/session";
 import { recomputeTutorStats } from "../lib/stats";
 import { assertNoContactInfo, CONTACT_ERROR } from "../lib/contact-guard";
+import { planForTutor, openClassCount, planStateForTutor } from "../lib/entitlements";
 
 /* classes — createClass, createPack, getClass, getDashboard. */
 
@@ -87,6 +90,29 @@ export async function classRoutes(app: FastifyInstance): Promise<void> {
        moment it exists. Creating the storefront stays open: that is the step that
        gets them INTO verification. */
     if (mine.status !== "verified") return { ok: false, error: "not-verified" };
+
+    /* ── THE PLAN LIMIT (Step 16) ─────────────────────────────────────────────
+
+       ENFORCED HERE, not in the form. /tarifs sells "1 cours en ligne" on the
+       free plan and "jusqu'à 5" on Essentiel; a limit that lives only in the UI
+       is not a limit, it is a suggestion that a crafted POST ignores — the same
+       hole Step 6 closed for the free first session.
+
+       Counts OPEN listings (upcoming, not cancelled), so cancelling or letting a
+       class run frees the slot back up. During the pilot every tutor is on
+       `pilot`, whose maxClasses is null, so this refuses nobody today — it binds
+       the moment an admin grants a limited plan, or the day payments go live and
+       the default drops to Gratuit. */
+    const plan = await planForTutor(mine.id);
+    if (plan.maxClasses !== null) {
+      const open = await openClassCount(mine.id);
+      if (!canOpenAnotherClass(plan, open)) {
+        /* The limit travels with the refusal so the dashboard can name the
+           number. "Not allowed" with no number is a dead end for the person who
+           would happily upgrade if they knew what they had hit. */
+        return { ok: false, error: "plan-limit-classes", planCode: plan.code, limit: plan.maxClasses };
+      }
+    }
 
     /* ZERO CONTACT EXCHANGE (Step 8). A class title and description are rendered
        on the PUBLIC storefront and in the class page's meta description, so a
@@ -445,6 +471,17 @@ export async function classRoutes(app: FastifyInstance): Promise<void> {
         status: "draft",
         offersFreeFirstSession: false,
         avatarStatus: null,
+        /* No storefront means no tutor row, so there is nothing to resolve a
+           grant against — report the DEFAULT plan rather than inventing one.
+           effectivePlan(null, …) is the same function the real branch uses. */
+        plan: {
+          code: effectivePlan(null, paymentsEnabled()).code,
+          maxClasses: effectivePlan(null, paymentsEnabled()).maxClasses,
+          openClasses: 0,
+          isPilot: !paymentsEnabled(),
+          granted: false,
+          expiresAt: null,
+        },
         classes: [],
         packs: [],
         bookings: [],
@@ -535,6 +572,7 @@ export async function classRoutes(app: FastifyInstance): Promise<void> {
 
     // Real balance from payments.ts — 0 while payments are hard-disabled. Never fabricated.
     const balance = await tutorBalanceTnd(mine.id);
+    const planState = await planStateForTutor(mine.id);
 
     return {
       name: mine.fullName ?? session.profile.fullName,
@@ -549,6 +587,17 @@ export async function classRoutes(app: FastifyInstance): Promise<void> {
       status: mine.status,
       offersFreeFirstSession: mine.offersFreeFirstSession,
       avatarStatus: mine.avatarStatus ?? null,
+      plan: {
+        code: planState.plan.code,
+        maxClasses: planState.plan.maxClasses,
+        openClasses: planState.openClasses,
+        /* PILOT means "no grant, and payments are off" — i.e. the tutor has the
+           full offer because billing has not started, which is a different
+           sentence from "you are on the Gratuit plan". */
+        isPilot: !paymentsEnabled() && !planState.granted,
+        granted: planState.granted,
+        expiresAt: planState.expiresAt ? new Date(planState.expiresAt).toISOString() : null,
+      },
       classes: mapped,
       packs: mappedPacks,
       bookings: mappedBookings,
