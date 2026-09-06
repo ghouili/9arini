@@ -23,8 +23,32 @@ LOG="${1:-/tmp/prod.log}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 WEB="$ROOT/apps/web"
 
+# ── NEVER KILL A PID YOU HAVE NOT IDENTIFIED ─────────────────────────────────
+# "netstat | awk | taskkill" is the shape that took this project's Docker engine
+# down TWICE: the PID listening on a port is often Docker Desktop's own
+# port-forwarding process, and killing it stops the engine, not your server.
+# So confirm the listener is node.exe before killing it — Docker's forwarder is
+# not node — and if it is anything else, stop. A port conflict is fixed by moving
+# the port, never by shooting a stranger.
+#
+# tasklist, not `Get-CimInstance ... CommandLine`: the CIM query is a richer check
+# and it also hung for minutes under load, which turned a safety rail into a
+# stall. 150ms and native beats thorough and unusable.
 PID=$(netstat -ano | grep ':3222 .*LISTENING' | head -1 | awk '{print $5}' || true)
-[ -n "$PID" ] && taskkill //PID "$PID" //F >/dev/null 2>&1 || true
+if [ -n "$PID" ]; then
+  IMAGE=$(tasklist //FI "PID eq $PID" //FO CSV //NH 2>/dev/null | head -1 | cut -d'"' -f2)
+  case "$IMAGE" in
+    node.exe)
+      taskkill //PID "$PID" //F >/dev/null 2>&1 || true
+      ;;
+    *)
+      echo "port 3222 is held by pid $PID (${IMAGE:-unidentified}), which is not one of our servers."
+      echo "Refusing to kill it — that is how the Docker engine went down here twice."
+      echo "Move the port instead."
+      exit 1
+      ;;
+  esac
+fi
 sleep 2
 
 [ -d "$WEB/.next/standalone" ] || { echo "No .next/standalone — run \`npm run build -w @tnajem/web\` first."; exit 1; }

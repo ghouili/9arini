@@ -3,6 +3,13 @@
    Every path here is LOCALE-BARE — the runners expand it across /fr and /ar, so a
    route can never be audited in one language and forgotten in the other. */
 
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+/* The repo root, resolved from THIS FILE rather than from cwd. Everything below
+   that touches the filesystem or the env goes through it. */
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+
 export const BASE = process.env.UI_AUDIT_BASE || "http://localhost:3111";
 export const LOCALES = ["fr", "ar"];
 export const WIDTHS = [320, 380, 768, 1280];
@@ -68,8 +75,14 @@ function loadEnv() {
       /* Match Next.js precedence: .env holds the shared config, .env.local overrides it.
          Loading only .env.local left these scripts blind to CRON_SECRET, ADMIN_EMAILS,
          OTP_CHANNEL and MAIL_* — so the CLI and the running app disagreed. */
-      config({ path: ".env" });
-      config({ path: ".env.local", override: true }); // .env.local still wins over a stray shell var
+      /* From ROOT (lib-color.mjs resolves it from this module), not from cwd.
+         These were cwd-relative and only worked because the runners are always
+         invoked from the repo root. Run one from anywhere else and DATABASE_URL
+         goes missing, sessionCookie() falls back to the sentinel, and every
+         logged-in route is silently audited in its SIGNED-OUT state — the exact
+         failure the header of this file exists to describe. */
+      config({ path: join(ROOT, ".env") });
+      config({ path: join(ROOT, ".env.local"), override: true }); // still wins over a stray shell var
     } catch {
       /* dotenv missing → fall through to whatever the shell exported */
     }

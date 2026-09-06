@@ -1,5 +1,11 @@
-import { config } from "dotenv";
-config({ path: ".env.local", override: true }); // .env.local wins over any stray shell DATABASE_URL
+/* Env from the REPO ROOT, never from cwd. This line used to be
+   `config({ path: ".env.local" })`, which is cwd-relative — and npm runs this with
+   cwd = packages/db, so it loaded NOTHING and the script died with "DATABASE_URL
+   not set" no matter how correctly .env was filled in. `npm run db:seed` had
+   therefore never worked since the monorepo move. Same defect, same cause, and the
+   same fix as db:sql and db:purge: resolve from the module's own location. */
+import { loadEnv } from "../bin/_paths";
+loadEnv();
 
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
@@ -31,7 +37,8 @@ async function main() {
 
   const url = process.env.DATABASE_URL;
   if (!url) {
-    console.error("✗ DATABASE_URL not set. Start your local Postgres and set it in .env.local.");
+    // .env, not .env.local: the project consolidated onto one env file in Step 0.
+    console.error("✗ DATABASE_URL not set. Start your local Postgres and set it in .env.");
     process.exit(1);
   }
   const sql = postgres(url, { max: 1 });

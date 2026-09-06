@@ -185,7 +185,8 @@ measured** — four Stage C screens had shipped that way before the final pass.
 | --- | --- |
 | `npm run dev` / `dev:api` | Next on :3000 / Fastify on :4000 |
 | `npm run build` | builds both apps |
-| `npm run start:standalone` | serves the web build (**`next start` does not work with `output:"standalone"`** — it listens and never answers) |
+| `npm start` / `start:standalone` | serves the web build. **Both run the same script**, deliberately: `next start` does not work with `output:"standalone"` — it logs *Ready*, listens, and never answers a request — so `start` pointing at it was a command that looked like it worked and hung. It now runs the standalone server, which is what production runs. |
+| `npm run lint` | ESLint (`next/core-web-vitals`), `--max-warnings=0`. `no-img-element` is an **error**: "next/image only" is an invariant, and `next lint` exits 0 on warnings. |
 | `npm run typecheck` | every workspace + `e2e/` |
 | `npm run test` | API unit tests, then the Playwright suite |
 | `npm run test:e2e:docker` | the same Playwright suite against `docker compose` |
