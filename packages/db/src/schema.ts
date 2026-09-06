@@ -56,6 +56,15 @@ export const takedownStatus = pgEnum("takedown_status", ["open", "upheld", "reje
    reviewed before anyone but its owner can see it. "pending" is the only state a
    fresh upload can be in — there is no path that publishes one directly. */
 export const avatarStatus = pgEnum("avatar_status", ["pending", "approved", "rejected"]);
+/* REPORTING (Step 15). What is being reported, and what happened to it. */
+export const reportSubject = pgEnum("report_subject", [
+  "tutor", "class", "review", "message", "material", "other",
+]);
+export const reportStatus = pgEnum("report_status", ["open", "actioned", "dismissed"]);
+/* ACCOUNT DELETION. `requested` starts a 30-day grace the person can cancel;
+   `purged` is terminal. There is no "deleting" state, because the row either
+   still exists or it does not. */
+export const deletionStatus = pgEnum("deletion_status", ["requested", "cancelled", "purged"]);
 /* Where the text was written. Not a free string: this is the column a moderator
    filters on, and "review" vs "reviews" vs "Review" would quietly split it. */
 export const leakSurface = pgEnum("leak_surface", [
@@ -95,6 +104,14 @@ export const profiles = pgTable("profiles", {
   level: text("level"),
   subjects: text("subjects"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  /* ACCOUNT DELETION (Step 15). A REQUEST, not an act: 30 days in which the
+     person can change their mind, because the commonest reason to close an
+     account is a bad day and the commonest regret is doing it irreversibly.
+     Null means no request — the state of every account that has never asked. */
+  deletionRequestedAt: timestamp("deletion_requested_at", { withTimezone: true }),
+  deletionStatus: deletionStatus("deletion_status"),
+
+
 });
 
 export const tutors = pgTable("tutors", {
@@ -279,7 +296,17 @@ export const cancellations = pgTable("cancellations", {
      status flip is atomic, but two concurrent cancels racing past the ledger
      insert would otherwise write two rows and double the retained amount — the
      same class of bug as the missing unique index on bookings (see 0007). */
-  bookingId: uuid("booking_id").notNull().unique().references(() => bookings.id, { onDelete: "cascade" }),
+  /* NULLABLE and SET NULL since Step 15, not CASCADE.
+
+     bookings.student_id cascades from a profile, so deleting an account deleted
+     the bookings — and every ledger row hanging off them went with it. A money
+     ledger that the counterparty can erase by closing their account is not a
+     ledger. The row survives carrying amounts and a class, and nothing that
+     identifies a person: actor_profile_id is already SET NULL.
+
+     UNIQUE still holds. Postgres does not treat NULLs as equal, so the
+     one-row-per-booking guarantee is unaffected for live bookings. */
+  bookingId: uuid("booking_id").unique().references(() => bookings.id, { onDelete: "set null" }),
   classId: uuid("class_id").notNull().references(() => classes.id, { onDelete: "cascade" }),
   /* Nullable + set null: a deleted account must not take the tutor's record of
      what happened with it, and Step 15 deletes accounts. */
@@ -525,6 +552,67 @@ export const guardianLinks = pgTable("guardian_links", {
   minorIdx: index("guardian_links_minor_profile_id_idx").on(t.minorProfileId),
 }));
 
+/* ══════════════════════════════════════════════════════════════════════════════
+   REPORTS (Step 15) — reachable WITHOUT an account, deliberately.
+
+   The person most likely to need this is a parent who found something on a
+   public storefront and does not have a login, or a student who has already
+   been driven off the platform by whatever they are reporting. Requiring an
+   account to report abuse means the reports we most need never arrive.
+
+   That makes the write path an unauthenticated write, so it is rate-limited per
+   IP and stores only what was submitted. A reporter e-mail is optional: a report
+   nobody can follow up is still a signal, and demanding contact details is
+   another reason not to file one.
+   ══════════════════════════════════════════════════════════════════════════════ */
+export const reports = pgTable("reports", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  subjectKind: reportSubject("subject_kind").notNull(),
+  /* Free-form rather than a foreign key: the subject is a tutor, a class, a
+     message or a material, and no single FK can point at all four. A dangling id
+     is acceptable here — the report is still evidence that something was
+     reported, even after the thing is gone. */
+  subjectId: text("subject_id"),
+  reporterProfileId: uuid("reporter_profile_id").references(() => profiles.id, { onDelete: "set null" }),
+  reporterEmail: text("reporter_email"),
+  reason: text("reason").notNull(),
+  status: reportStatus("status").notNull().default("open"),
+  resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+  resolvedBy: uuid("resolved_by").references(() => profiles.id, { onDelete: "set null" }),
+  resolutionNote: text("resolution_note"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  statusIdx: index("reports_status_created_at_idx").on(t.status, t.createdAt),
+  subjectIdx: index("reports_subject_kind_subject_id_idx").on(t.subjectKind, t.subjectId),
+}));
+
+/* ADMIN AUDIT LOG (Step 15).
+
+   Every privileged action, written in the same transaction as the action itself.
+   The admin surface can approve a tutor, remove someone's teaching material,
+   reject a photograph and purge an account — powers that need a record for the
+   ordinary reason: so that "who un-verified this tutor?" has an answer, and so
+   that an admin knows their actions are attributable before they take them.
+
+   NOT deletable through the app. There is no endpoint that writes to this table
+   except the logger, and none that removes from it. */
+export const adminActions = pgTable("admin_actions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  /* set null: the log outlives the admin account. A record of who did what that
+     disappears when they leave is not an audit log. */
+  adminProfileId: uuid("admin_profile_id").references(() => profiles.id, { onDelete: "set null" }),
+  /** A stable verb, e.g. "tutor.approve", "material.takedown.uphold". */
+  action: text("action").notNull(),
+  subjectKind: text("subject_kind"),
+  subjectId: text("subject_id"),
+  /** Free text, for the human reason. Never personal data about a third party. */
+  note: text("note"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  adminIdx: index("admin_actions_admin_profile_id_created_at_idx").on(t.adminProfileId, t.createdAt),
+  subjectIdx: index("admin_actions_subject_kind_subject_id_idx").on(t.subjectKind, t.subjectId),
+}));
+
 export const payments = pgTable("payments", {
   id: uuid("id").primaryKey().defaultRandom(),
   bookingId: uuid("booking_id").references(() => bookings.id, { onDelete: "set null" }),
@@ -584,7 +672,22 @@ export const consents = pgTable("consents", {
 export const reviews = pgTable("reviews", {
   id: uuid("id").primaryKey().defaultRandom(),
   tutorId: uuid("tutor_id").notNull().references(() => tutors.id, { onDelete: "cascade" }),
-  studentId: uuid("student_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
+  /* NULLABLE, and SET NULL on delete. Step 15.
+
+     It was CASCADE, which meant a student closing their account DELETED their
+     reviews — silently rewriting a tutor's rating and review count, downward,
+     with no event anybody could see and no way to explain the change. A
+     tutor's public reputation is not the student's to retract by leaving.
+
+     The review survives and loses its AUTHOR instead. publicDisplayName(null)
+     is null, and the storefront already renders an anonymous byline for it.
+     This is what "anonymise reviews rather than delete" means in practice.
+
+     NOTE bookings.student_id is deliberately still CASCADE+notNull: a booking
+     with no student is not a record, it is a corrupt row, and the seat count
+     is derived from it. The cancellation LEDGER is what survives an account
+     deletion there — see cancellations.bookingId. */
+  studentId: uuid("student_id").references(() => profiles.id, { onDelete: "set null" }),
   classId: uuid("class_id").references(() => classes.id, { onDelete: "set null" }),
   rating: integer("rating").notNull(),
   text: text("text"),

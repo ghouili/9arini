@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { timingSafeEqual } from "node:crypto";
 import { purgeExpiredVerificationDocs, purgeExpiredAuthRows } from "@tnajem/db";
 import { db } from "../db";
+import { purgeDeletedAccounts } from "./moderation";
 
 /* The retention purge, moved from apps/web/app/api/cron/purge.
 
@@ -45,6 +46,10 @@ export async function cronRoutes(app: FastifyInstance): Promise<void> {
        expired sessions and OTP codes being swept, and vice versa. */
     const docs = await purgeExpiredVerificationDocs(db, { dryRun });
     const authRows = await purgeExpiredAuthRows(db, { dryRun });
+    /* Step 15. Third INDEPENDENT job, same reason as the first two: an account
+       whose 30-day grace has expired must be erased even if the document purge
+       fails, and vice versa. */
+    const accounts = await purgeDeletedAccounts(db, { dryRun });
 
     /* COUNTS ONLY in the response body. docs.removed[] carries tutor and document
        ids; that stays in the server log and never crosses the wire — this
@@ -61,6 +66,7 @@ export async function cronRoutes(app: FastifyInstance): Promise<void> {
         errors: docs.errors.length,
       },
       auth: authRows,
+      accounts,
     };
     return reply.code(docs.errors.length ? 500 : 200).send(body);
   };

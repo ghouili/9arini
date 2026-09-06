@@ -475,6 +475,43 @@ export async function createReview(input: { classId: string; rating: number; tex
   return call<ReviewResult>("/reviews", input);
 }
 
+/* ---------- Reporting and account deletion (Step 15) ----------
+   reportContent takes NO session and works signed out — the person most likely to
+   need it is a parent with no login, or someone already driven off the platform
+   by whatever they are reporting. */
+export async function reportContent(input: {
+  subjectKind: "tutor" | "class" | "review" | "message" | "material" | "other";
+  subjectId?: string;
+  reason: string;
+  reporterEmail?: string;
+}): Promise<ActionResult & { status?: string }> {
+  if (demoFallback) return { ok: true, demo: true };
+  return call<ActionResult & { status?: string }>("/reports", input);
+}
+
+export type DeletionState = {
+  requested: boolean;
+  requestedAt?: string;
+  purgeAt?: string;
+  graceDays: number;
+};
+
+export async function getDeletionState(): Promise<DeletionState | null> {
+  if (demoFallback) return { requested: false, graceDays: 30 };
+  return call<DeletionState | null>("/account/deletion", undefined, "GET");
+}
+
+/** Request deletion. A REQUEST: 30 days in which it can be taken back. */
+export async function requestAccountDeletion(): Promise<ActionResult & { graceDays?: number }> {
+  if (demoFallback) return { ok: true, demo: true };
+  return call<ActionResult & { graceDays?: number }>("/account/delete", {});
+}
+
+export async function cancelAccountDeletion(): Promise<ActionResult> {
+  if (demoFallback) return { ok: true, demo: true };
+  return call<ActionResult>("/account/delete/cancel", {});
+}
+
 /* ---------- Parent accounts (Step 14) ----------
    READ-ONLY, and there is deliberately no send/book/cancel here. A guardian
    acting AS their child would put words or money in a minor's name from an

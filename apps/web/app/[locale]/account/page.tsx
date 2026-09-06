@@ -6,6 +6,7 @@ import { LocaleToggle } from "@/components/LocaleToggle";
 import { useLocale } from "@/components/LocaleProvider";
 import { Phone, User, Forward } from "@/components/icons";
 import { SiteShell } from "@/components/SiteShell";
+import { DeleteAccount } from "@/components/account/DeleteAccount";
 import { bilingual } from "@/lib/i18n";
 
 const WA_LINK = "https://wa.me/216XXXXXXXX";
@@ -159,6 +160,13 @@ export default function AccountPage() {
             <Button variant="ghost" onClick={handleLogout}>
               {t.account.logout}
             </Button>
+          </div>
+
+          {/* Step 15. LAST on the page, and behind a two-step confirm: the
+              destructive control must never be the one under the cursor when the
+              section first renders. */}
+          <div className="mt-[clamp(20px,3vw,32px)]">
+            <DeleteAccount />
           </div>
 
         </div>

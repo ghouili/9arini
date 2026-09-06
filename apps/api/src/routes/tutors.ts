@@ -251,7 +251,15 @@ export async function tutorRoutes(app: FastifyInstance): Promise<void> {
         classTitle: classes.title,
       })
       .from(reviews)
-      .innerJoin(profiles, eq(reviews.studentId, profiles.id))
+      /* LEFT join, not inner. Step 15 made reviews.student_id nullable so that a
+         student closing their account ANONYMISES their review instead of deleting
+         it — and an inner join here would have silently undone that: the review
+         would survive in the table, keep counting toward tutors.rating, and
+         vanish from the public feed. A rating with no visible reviews behind it
+         is the exact "unexplainable number" the change was meant to prevent.
+         publicDisplayName(null) is null, which the storefront renders as an
+         anonymous byline. */
+      .leftJoin(profiles, eq(reviews.studentId, profiles.id))
       .leftJoin(classes, eq(reviews.classId, classes.id))
       .where(eq(reviews.tutorId, t.id))
       .orderBy(desc(reviews.createdAt))
