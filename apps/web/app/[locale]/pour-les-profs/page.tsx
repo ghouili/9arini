@@ -30,6 +30,44 @@ import { SiteShell } from "@/components/SiteShell";
 import { useLocale } from "@/components/LocaleProvider";
 import { Wallet, Video, Share, Shield, Check, Users, Bolt, Forward } from "@/components/icons";
 import { bilingual } from "@/lib/i18n";
+import { classLimitLabel, COMMISSION_PCT, commissionOn, PLANS, requirePlan, tnd } from "@tnajem/shared";
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   EVERY NUMBER ON THIS PAGE COMES FROM THE PLAN CATALOGUE.
+
+   They used to be strings in the copy below — "1 280 TND", "- 128 (10 %) - 29
+   (abonnement)", and a subscription floor stated as 29 TND. Step 16 made
+   packages/shared/plans.ts
+   the single source for exactly these figures and /tarifs already renders from
+   it; this page did not, so it was free to drift, and it had: it advertised a
+   subscription floor of 29 TND while /tarifs shows a 0 TND tier as its first card.
+   ═══════════════════════════════════════════════════════════════════════════ */
+const FREE_PLAN = requirePlan("gratuit");
+/** The cheapest LISTED plan that allows `n` classes open at once. */
+function planForOpenClasses(n: number) {
+  return [...PLANS]
+    .filter((p) => p.listed)
+    .sort((a, b) => a.monthlyMillimes - b.monthlyMillimes)
+    .find((p) => p.maxClasses === null || p.maxClasses >= n);
+}
+
+/* THE WORKED EXAMPLE. Inputs are a choice; every figure after them is arithmetic.
+
+   The plan is picked by OPEN CLASSES, not by student count — that is the rule the
+   server actually enforces (POST /classes), and the reason this example used to be
+   wrong. It showed 8 students and then deducted a 29 TND subscription, while
+   /tarifs bands 8 students into the FREE tier. Both cannot be true. What makes the
+   29 correct is not the students at all: two sessions a week means two classes open
+   at once, and the free plan allows one. */
+const EX = { students: 8, sessionsPerWeek: 2, priceTnd: 20, weeks: 4, openClasses: 2 } as const;
+const EX_GROSS = EX.students * EX.sessionsPerWeek * EX.priceTnd * EX.weeks;
+const EX_COMMISSION = commissionOn(EX_GROSS);
+const EX_PLAN = planForOpenClasses(EX.openClasses);
+const EX_SUB = EX_PLAN ? tnd(EX_PLAN.monthlyMillimes) : 0;
+const EX_NET = EX_GROSS - EX_COMMISSION - EX_SUB;
+/** Western digits with a thin thousands separator, in both locales — the Arabic
+    copy has always used Western numerals and changing that is not this change. */
+const nf = (v: number) => v.toLocaleString("fr-FR");
 
 /* ═══════════════════════════════════════════════════════════════════════════
    COPY — FR + Tunisian Derija (ar). Warm, tutor-first, structurally parallel.
@@ -40,11 +78,11 @@ const copy = bilingual({
     eyebrow: "Pour les profs",
     h1a: "Ta page de prof.",
     h1b: "Tes cours en direct.",
-    h1c: "Tu gardes 100 %.",
+    h1c: "Tu gardes 100 % pendant le pilote.",
     sub: "Crée ta page gratuitement en 2 minutes, fixe ton tarif, et donne tes cours en direct. Pendant le pilote, l'élève te paie en main propre : Tnajem ne prend rien.",
     ctaPrimary: "Crée ta page de prof",
     ctaGhost: "Voir les profs sur Tnajem",
-    micro: "Gratuit pendant le pilote. Plus tard : 10 % sur chaque élève payant, uniquement sur les paiements traités par Tnajem, plus un abonnement à partir de 29 TND/mois.",
+    micro: `Gratuit pendant le pilote. Plus tard : ${COMMISSION_PCT} % sur chaque élève payant, uniquement sur les paiements traités par Tnajem, plus un abonnement — gratuit avec ${FREE_PLAN.maxClasses} cours en ligne à la fois, à partir de ${nf(tnd(requirePlan("essentiel").monthlyMillimes))} TND/mois au-delà.`,
     tarifsCta: "Voir les tarifs",
     pilotChip: "Pilote — 0 % aujourd'hui",
 
@@ -66,12 +104,12 @@ const copy = bilingual({
     featTitle: "Une boutique de prof, prête en 2 minutes",
     f1t: "Ta page, ton lien",
     f1b: "Ton nom, ta matière, tes cours. Un seul lien à coller sur WhatsApp, Insta ou TikTok — c'est là que tes élèves réservent.",
-    f2t: "Ton tarif — tu gardes 100 %",
-    f2b: "Tu fixes ton prix, cours par cours, sans plafond. Pendant le pilote, l'élève te paie en main propre et Tnajem ne prend rien. Plus tard, Tnajem coûtera deux choses : 10 % sur chaque élève payant — uniquement sur les paiements traités par Tnajem — plus un abonnement à partir de 29 TND/mois. Ton élève te paie en main propre ? On ne prend rien.",
+    f2t: "Ton tarif — 100 % pour toi pendant le pilote",
+    f2b: `Tu fixes ton prix, cours par cours, sans plafond. Pendant le pilote, l'élève te paie en main propre et Tnajem ne prend rien. Plus tard, Tnajem coûtera deux choses : 10 % sur chaque élève payant — uniquement sur les paiements traités par Tnajem — plus un abonnement — gratuit tant que tu n'ouvres qu'un cours à la fois, à partir de ${nf(tnd(requirePlan("essentiel").monthlyMillimes))} TND/mois au-delà. Ton élève te paie en main propre ? On ne prend rien.`,
     f3t: "Vérifié à la main",
-    f3b: "On regarde ta pièce d'identité nous-mêmes. Une fois validé, ta page passe en ligne et apparaît dans Explorer — souvent sous 24–48 h.",
+    f3b: "On regarde ta pièce d'identité nous-mêmes, une par une. Une fois validé, ta page passe en ligne et apparaît dans Explorer. On te prévient dès que c'est fait.",
     f4t: "Cours en direct",
-    f4b: "Lance ta séance, partage l'écran, ajoute ton tableau blanc et ton quiz. Tes élèves entrent en un tap.",
+    f4b: "Colle tes liens — ta salle vidéo, ton tableau blanc, ton quiz. Tes élèves les ouvrent en un tap depuis la page du cours, sans chercher de lien dans un groupe WhatsApp.",
 
     // comment ça marche
     howEyebrow: "Comment ça marche",
@@ -90,15 +128,16 @@ const copy = bilingual({
     inStudents: "8 élèves",
     inSessions: "2 séances / sem",
     inPrice: "20 TND / séance",
-    inGross: "Exemple : 8 élèves × 2 séances × 20 TND × 4 semaines",
+    inGross: `Exemple : ${EX.students} élèves × ${EX.sessionsPerWeek} séances × ${EX.priceTnd} TND × ${EX.weeks} semaines`,
     inKeepLbl: "Tu gardes, aujourd'hui",
-    inKeep: "1 280 TND",
+    inKeep: `${nf(EX_GROSS)} TND`,
     inYou: "Toi · 100 %",
     inFee: "Tnajem · 0 %",
     inLaterLbl: "Plus tard, si l'élève paie via Tnajem",
-    inLater: "1 123 TND",
-    inLaterFee: "− 128 (10 %) − 29 (abonnement)",
-    inLaterNote: "Payé en main propre : toujours 100 % pour toi.",
+    inLater: `${nf(EX_NET)} TND`,
+    inLaterFee: `− ${nf(EX_COMMISSION)} (${COMMISSION_PCT} %) − ${nf(EX_SUB)} (abonnement)`,
+    inLaterNote: "Payé en main propre : aucune commission.",
+    inPlanWhy: `Deux séances par semaine, ce sont deux cours en ligne ouverts en même temps — au-delà de ${classLimitLabel(FREE_PLAN.maxClasses, "fr").toLowerCase()}, l'abonnement s'applique. C'est le nombre de cours qui compte, pas le nombre d'élèves.`,
     inWithdraw:
       "Pendant le pilote, l'élève te paie directement, de la main à la main. Tnajem ne prend aucune commission et ne touche pas à ton argent. Paiement en ligne : bientôt.",
 
@@ -106,11 +145,11 @@ const copy = bilingual({
     faqEyebrow: "Avant de te lancer",
     faqTitle: "Les questions qu'on nous pose",
     q1: "Combien Tnajem prend ?",
-    a1: "Rien, aujourd'hui. Pendant le pilote, tu gardes 100 % : l'élève te paie directement, Tnajem ne touche pas à l'argent. Plus tard, il y aura deux choses, et jamais l'une sans l'autre : 10 % sur chaque élève payant, uniquement sur les paiements traités par Tnajem, plus un abonnement à partir de 29 TND/mois. Rien sur ce qu'on te règle en main propre, et rien sur une séance que tu as choisi d'offrir. On te préviendra avant.",
+    a1: `Rien, aujourd'hui. Pendant le pilote, tu gardes 100 % : l'élève te paie directement, Tnajem ne touche pas à l'argent. Plus tard, il y aura deux choses, et jamais l'une sans l'autre : 10 % sur chaque élève payant, uniquement sur les paiements traités par Tnajem, plus un abonnement — gratuit avec un seul cours en ligne à la fois, à partir de ${nf(tnd(requirePlan("essentiel").monthlyMillimes))} TND/mois au-delà. Rien sur ce qu'on te règle en main propre, et rien sur une séance que tu as choisi d'offrir. On te préviendra avant.`,
     q2: "Faut-il un diplôme ?",
     a2: "Non. Maîtrise ta matière, une bonne connexion, et tu démarres aujourd'hui. On vérifie ton identité à la main avant que ta page soit publiée.",
     q3: "Si un élève ne vient pas ?",
-    a3: "Tu es prévenu et tu peux replanifier. Comme rien ne passe par Tnajem, l'arrangement se fait directement entre toi et l'élève.",
+    a3: "Tu peux déplacer la séance depuis ton tableau de bord — tes élèves sont prévenus, et ceux qui avaient réservé l'ancien horaire peuvent annuler sans frais. Comme aucun paiement ne passe par Tnajem, tout arrangement se règle directement entre toi et l'élève.",
 
     // final
     finalTitle: "Ta page de prof t'attend.",
@@ -123,11 +162,11 @@ const copy = bilingual({
     eyebrow: "للأساتذة",
     h1a: "صفحتك متاع أستاذ.",
     h1b: "دروسك مباشرة.",
-    h1c: "وتحتفظ بـ 100 %.",
+    h1c: "وتحتفظ بـ 100 % في فترة التجربة.",
     sub: "اعمل صفحتك فابور في دقيقتين، حدّد تعريفتك، واعطي دروسك مباشرة. في فترة التجربة، التلميذ يخلّصك في يدك : Tnajem ما تاخذ والو.",
     ctaPrimary: "اعمل صفحتك متاع أستاذ",
     ctaGhost: "شوف الأساتذة في Tnajem",
-    micro: "فابور في فترة التجربة. من بعد : 10 % على كل تلميذ خلّص، كان على الخلاص اللي يعدّي من Tnajem، زائد اشتراك من 29 دينار في الشهر.",
+    micro: `فابور في فترة التجربة. من بعد : ${COMMISSION_PCT} % على كل تلميذ خلّص، كان على الخلاص اللي يعدّي من Tnajem، زائد اشتراك — فابور بـ ${FREE_PLAN.maxClasses} درس أونلاين في نفس الوقت، ومن ${nf(tnd(requirePlan("essentiel").monthlyMillimes))} دينار في الشهر لفوق.`,
     tarifsCta: "شوف الأسعار",
     pilotChip: "تجربة — 0 % اليوم",
 
@@ -147,12 +186,12 @@ const copy = bilingual({
     featTitle: "بوتيك متاع أستاذ، حاضرة في دقيقتين",
     f1t: "صفحتك، ولينكك",
     f1b: "إسمك، مادتك، دروسك. لينك وحيد تلصقو في واتساب، إنستا ولا تيكتوك — ومن غادي تلامذتك يحجزو.",
-    f2t: "ثمنك إنتي — وتحتفظ بـ 100 %",
-    f2b: "إنتي تحدّد ثمنك، درس بدرس، بلا سقف. في فترة التجربة، التلميذ يخلّصك في يدك وTnajem ما تاخذ والو. من بعد، Tnajem باش تكلّف زوز حاجات : 10 % على كل تلميذ خلّص — كان على الخلاص اللي يعدّي من Tnajem — زائد اشتراك من 29 دينار في الشهر. التلميذ خلّصك في يدك؟ ما ناخذو والو.",
+    f2t: "ثمنك إنتي — 100 % متاعك في فترة التجربة",
+    f2b: `إنتي تحدّد ثمنك، درس بدرس، بلا سقف. في فترة التجربة، التلميذ يخلّصك في يدك وTnajem ما تاخذ والو. من بعد، Tnajem باش تكلّف زوز حاجات : 10 % على كل تلميذ خلّص — كان على الخلاص اللي يعدّي من Tnajem — زائد اشتراك — فابور مادام عندك درس واحد محلول، ومن ${nf(tnd(requirePlan("essentiel").monthlyMillimes))} دينار في الشهر لفوق. التلميذ خلّصك في يدك؟ ما ناخذو والو.`,
     f3t: "التثبّت يتعمل بيدينا",
-    f3b: "نشوفو بطاقة تعريفك بيدينا. كي تتقبل، صفحتك تولّي أونلاين وتبان في «اكتشف» — عادةً في 24–48 ساعة.",
+    f3b: "نشوفو بطاقة تعريفك بيدينا، وحدة وحدة. كي تتقبل، صفحتك تولّي أونلاين وتبان في «اكتشف». نعلموك كي يكمل الأمر.",
     f4t: "دروس مباشرة",
-    f4b: "ابدا حصتك، شارك الإيكران، زيد السبورة والكويز متاعك. تلامذتك يدخلو بنقرة.",
+    f4b: "الصق لينكاتك — القاعة متاع الفيديو، السبورة، والكويز. تلامذتك يحلّوهم بنقرة من صفحة الدرس، بلا ما يلوّجو على لينك في ڤروب واتساب.",
 
     howEyebrow: "كيفاش يخدم",
     howTitle: "من الصفر لأول حجز متاعك",
@@ -169,26 +208,27 @@ const copy = bilingual({
     inStudents: "8 تلامذة",
     inSessions: "حصتين / جمعة",
     inPrice: "20 دينار / حصة",
-    inGross: "مثال : 8 تلامذة × حصتين × 20 دينار × 4 جماعي",
+    inGross: `مثال : ${EX.students} تلامذة × ${EX.sessionsPerWeek} حصص × ${EX.priceTnd} دينار × ${EX.weeks} جماعي`,
     inKeepLbl: "تحتفظ بيه، اليوم",
-    inKeep: "1 280 دينار",
+    inKeep: `${nf(EX_GROSS)} دينار`,
     inYou: "إنتي · 100 %",
     inFee: "Tnajem · 0 %",
     inLaterLbl: "من بعد، كان التلميذ خلّص من Tnajem",
-    inLater: "1 123 دينار",
-    inLaterFee: "− 128 (10 %) − 29 (اشتراك)",
-    inLaterNote: "خلّصك في يدك : ديما 100 % متاعك.",
+    inLater: `${nf(EX_NET)} دينار`,
+    inLaterFee: `− ${nf(EX_COMMISSION)} (${COMMISSION_PCT} %) − ${nf(EX_SUB)} (اشتراك)`,
+    inLaterNote: "خلّصك في يدك : ما فما حتى عمولة.",
+    inPlanWhy: `حصتين في الجمعة معناها زوز دروس أونلاين محلولين في نفس الوقت — كي تفوت ${classLimitLabel(FREE_PLAN.maxClasses, "ar")}، الاشتراك ينطبق. العدد متاع الدروس هو اللي يحسب، موش عدد التلامذة.`,
     inWithdraw:
       "في فترة التجربة، التلميذ يخلّصك مباشرة، يد بيد. Tnajem ما تاخذ حتى عمولة وما تلمسش فلوسك. الخلاص أونلاين : قريب.",
 
     faqEyebrow: "قبل ما تبدا",
     faqTitle: "الأسئلة اللي يسقسيونا عليها",
     q1: "قدّاش تاخذ Tnajem ؟",
-    a1: "والو، اليوم. في فترة التجربة تحتفظ بـ 100 % : التلميذ يخلّصك مباشرة، وTnajem ما تلمسش الفلوس. من بعد باش يوليو زوز حاجات، وعمرها وحدة بلا لأخرى : 10 % على كل تلميذ خلّص، كان على الخلاص اللي يعدّي من Tnajem، زائد اشتراك من 29 دينار في الشهر. والو على اللي يخلّصك بيه في يدك، ووالو على حصة إنتي اخترت تعطيها بلاش. ونعلموك قبل.",
+    a1: `والو، اليوم. في فترة التجربة تحتفظ بـ 100 % : التلميذ يخلّصك مباشرة، وTnajem ما تلمسش الفلوس. من بعد باش يوليو زوز حاجات، وعمرها وحدة بلا لأخرى : 10 % على كل تلميذ خلّص، كان على الخلاص اللي يعدّي من Tnajem، زائد اشتراك — فابور بدرس أونلاين واحد في نفس الوقت، ومن ${nf(tnd(requirePlan("essentiel").monthlyMillimes))} دينار في الشهر لفوق. والو على اللي يخلّصك بيه في يدك، ووالو على حصة إنتي اخترت تعطيها بلاش. ونعلموك قبل.`,
     q2: "يلزم شهادة ؟",
     a2: "لا. اتقن مادتك، كنكسيون مليحة، وتبدا اليوم. نتثبّتو من هويتك بيدينا قبل ما تتنشر صفحتك.",
     q3: "كان التلميذ ما جاش ؟",
-    a3: "تتعلّم بيها وتنجّم تبدّل الوقت. وبما إلي حتى حاجة ما تعدّي من Tnajem، الاتفاق يكون مباشرة بيناتكم.",
+    a3: "تنجّم تبدّل وقت الحصة من لوحتك — تلامذتك يتعلمو، واللي كانو حاجزين الوقت القديم ينجّمو يلغيو بلا خسارة. وبما إلي حتى خلاص ما يعدّي من Tnajem، أي اتفاق يتعمل مباشرة بيناتكم.",
 
     finalTitle: "صفحتك متاع أستاذ تستنّى فيك.",
     finalSub: "اعملها في دقيقتين.",
@@ -540,6 +580,11 @@ function IncomePanel({ c }: { c: Copy }) {
             </span>
           </div>
           <div className="text-[13px] text-on-blue-soft mt-1 leading-[1.5]">{c.inLaterNote}</div>
+          {/* WHY this example pays a subscription at all. Without it the panel
+              shows 8 students next to a 29 TND line and invites the reader to
+              conclude the subscription is priced by student count — which is
+              what /tarifs used to imply and what the server has never done. */}
+          <div className="text-[13px] text-on-blue-soft mt-1.5 leading-[1.5]">{c.inPlanWhy}</div>
         </div>
 
         <div className="trust trust-dark relative z-[2] mt-[18px]">

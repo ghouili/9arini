@@ -53,6 +53,11 @@ const copy = bilingual({
 
     plansTitle: "Les formules",
     plansLead: "Tnajem coûte deux choses au prof, et jamais l'une sans l'autre : un abonnement mensuel, plus 10 % sur chaque élève payant — uniquement sur les paiements que Tnajem traite. L'élève, lui, ne paie jamais Tnajem.",
+    /* WHICH NUMBER IS THE RULE. The "convient à N élèves" line is a sizing hint
+       and nothing counts your students; what the server actually enforces is the
+       number of cours you keep open at once. Saying so here is what stops a tutor
+       being refused a second cours while believing they are inside "1 à 14". */
+    plansRule: "Le nombre d'élèves n'est qu'une indication : ce qui compte, c'est le nombre de cours que tu gardes en ligne en même temps — c'est la seule limite appliquée.",
     plusComm: "+ 10 % sur chaque élève payant",
     plusCommNote: "Uniquement sur les paiements traités par Tnajem. Rien sur ce qu'on te règle en main propre.",
     notBilled: "Pas encore facturé",
@@ -69,28 +74,28 @@ const copy = bilingual({
       {
         id: "gratuit",
         name: "Gratuit",
-        who: "1 à 14 élèves",
+        who: "Convient à 1–14 élèves",
         billed: false,
         features: ["Ta page de prof et ton lien", "Réservations et avis", "Paiement en main propre"],
       },
       {
         id: "essentiel",
         name: "Essentiel",
-        who: "15 à 20 élèves",
+        who: "Convient à 15–20 élèves",
         billed: true,
         features: ["Rappels SMS et WhatsApp", "Statistiques de base", "Tout ce qu'il y a dans Gratuit"],
       },
       {
         id: "pro",
         name: "Pro",
-        who: "21 à 35 élèves",
+        who: "Convient à 21–35 élèves",
         billed: true,
         features: ["Mis en avant dans Explorer", "Vends tes fiches et enregistrements", "Statistiques complètes"],
       },
       {
         id: "prestige",
         name: "Prestige",
-        who: "36 élèves et plus",
+        who: "Convient à 36 élèves et plus",
         billed: true,
         features: ["Placement prioritaire", "Replays de tes séances", "Vérification prioritaire (48 h)", "Support prioritaire"],
       },
@@ -136,6 +141,7 @@ const copy = bilingual({
 
     plansTitle: "الخطط",
     plansLead: "Tnajem تكلّف الأستاذ زوز حاجات، وعمرها وحدة بلا لأخرى : اشتراك شهري، زائد 10 % على كل تلميذ خلّص — كان على الخلاص اللي تعدّيه Tnajem. أمّا التلميذ، عمرو ما يخلّص Tnajem.",
+    plansRule: "عدد التلامذة مجرّد إشارة : اللي يحسب هو عدد الدروس اللي تخلّيهم أونلاين في نفس الوقت — هاذي هي الحدّ الوحيد اللي ينطبق.",
     plusComm: "+ 10 % على كل تلميذ خلّص",
     plusCommNote: "كان على الخلاص اللي يعدّي من Tnajem. والو على اللي يخلّصك بيه في يدك.",
     notBilled: "ما زال ما يتفوترش",
@@ -152,28 +158,28 @@ const copy = bilingual({
       {
         id: "gratuit",
         name: "فابور",
-        who: "من 1 لـ 14 تلميذ",
+        who: "يناسب من 1 لـ 14 تلميذ",
         billed: false,
         features: ["صفحتك ولينكك", "الحجوزات والآراء", "الخلاص في يدك"],
       },
       {
         id: "essentiel",
         name: "الأساسي",
-        who: "من 15 لـ 20 تلميذ",
+        who: "يناسب من 15 لـ 20 تلميذ",
         billed: true,
         features: ["تذكير بالـ SMS والواتساب", "إحصائيات أساسية", "كل اللي في فابور"],
       },
       {
         id: "pro",
         name: "برو",
-        who: "من 21 لـ 35 تلميذ",
+        who: "يناسب من 21 لـ 35 تلميذ",
         billed: true,
         features: ["تبان في «اكتشف»", "بيع الفيشات والتسجيلات", "إحصائيات كاملة"],
       },
       {
         id: "prestige",
         name: "بريستيج",
-        who: "36 تلميذ وأكثر",
+        who: "يناسب 36 تلميذ وأكثر",
         billed: true,
         features: ["مركز أول في العرض", "تسجيلات حصصك", "تثبّت بالأولوية (48 ساعة)", "دعم بالأولوية"],
       },
@@ -371,7 +377,8 @@ export function TarifsInner({ paymentsEnabled }: { paymentsEnabled: boolean }) {
       <section className="web-section tight">
         <div className="container">
           <h2 className="web-h2 mb-3">{c.plansTitle}</h2>
-          <p className="web-lead mb-6 max-w-[680px]">{c.plansLead}</p>
+          <p className="web-lead mb-2 max-w-[680px]">{c.plansLead}</p>
+          <p className="text-[13.5px] leading-relaxed text-muted mb-6 max-w-[680px]">{c.plansRule}</p>
           <div className="grid-auto">
             {c.plans.map((p) => (
               <PlanCard key={p.id} plan={p} c={c} locale={locale} paymentsEnabled={paymentsEnabled} />

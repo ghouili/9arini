@@ -3,7 +3,7 @@ import { randomBytes } from "node:crypto";
 import { sql } from "./support/db";
 import { seedProfile, seedTutor, seedClass, seedAdmin } from "./support/seed";
 import { mintSession } from "./support/session";
-import { PLANS, planByCode, tnd, classLimitLabel } from "@tnajem/shared";
+import { PLANS, planByCode, tnd, classLimitLabel, requirePlan, COMMISSION_PCT, commissionOn } from "@tnajem/shared";
 
 /* PLANS AND ENTITLEMENTS (Step 16).
 
@@ -175,6 +175,97 @@ test.describe("the catalogue is one catalogue", () => {
       page.getByText("/ mois", { exact: true }),
       "the pricing grid must show exactly the listed plans — no more, no fewer",
     ).toHaveCount(listed);
+  });
+});
+
+test.describe("the marketing pages state the catalogue's numbers", () => {
+  /* THE COPY AUDIT, pinned. /pour-les-profs advertised "un abonnement à partir de
+     29 TND/mois" while /tarifs rendered a 0 TND tier as its first card, and its
+     worked example deducted a subscription from a tutor the same site placed in
+     the free band. Both pages now derive from PLANS; these tests are what stops
+     either drifting back into a number nobody checked. */
+
+  test("no page advertises a subscription floor the catalogue contradicts", async ({ page }) => {
+    const cheapestPaid = [...PLANS]
+      .filter((p) => p.listed && p.monthlyMillimes > 0)
+      .sort((a, b) => a.monthlyMillimes - b.monthlyMillimes)[0];
+    const freeTier = PLANS.find((p) => p.listed && p.monthlyMillimes === 0);
+    expect(freeTier, "the catalogue must still have a free listed tier").toBeTruthy();
+
+    for (const path of ["/fr/pour-les-profs", "/fr/tarifs"]) {
+      await page.goto(path);
+      const body = await page.locator("body").innerText();
+      expect(
+        body.includes(`${tnd(cheapestPaid.monthlyMillimes)}`),
+        `${path} should still quote the ${cheapestPaid.code} price`,
+      ).toBe(true);
+
+      /* The floor price MAY be quoted — it is real — but never as the point where
+         paying starts, because paying starts at zero. So every sentence that
+         mentions the subscription must also say it is free at the entry tier.
+         Asserting on the sentence rather than banning the phrase is deliberate:
+         "à partir de 29" is honest when "gratuit ..." sits in front of it, and a
+         test that forbade the substring would push the copy into a worse shape. */
+      /* Target the CLAIM SHAPE, not the digits. What was wrong was "à partir de
+         29 TND/mois" — a statement about where paying BEGINS — while a 0 TND tier
+         was listed. A fee breakdown like "− 128 (10 %) − 29 (abonnement)" quotes
+         the same number and claims nothing; an assertion that cannot tell those
+         apart would force the arithmetic off the page to stay green. */
+      const claims = body
+        .split(/(?<=[.!?])\s+/)
+        .flatMap((t) => t.split("\n"))
+        .filter((t) => /à partir de|لفوق/i.test(t))
+        .filter((t) => new RegExp(`${tnd(cheapestPaid.monthlyMillimes)}`).test(t));
+
+      for (const claim of claims) {
+        expect(
+          /gratuit|فابور/i.test(claim),
+          `${path}: "${claim.trim().slice(0, 140)}" says paying starts at ${tnd(cheapestPaid.monthlyMillimes)} without saying the entry tier is free`,
+        ).toBe(true);
+      }
+    }
+  });
+
+  test("the worked example on /pour-les-profs matches the catalogue", async ({ page }) => {
+    /* The example: 8 students x 2 sessions x 20 TND x 4 weeks, and the plan is
+       chosen by OPEN CLASSES because that is what POST /classes enforces. */
+    const gross = 8 * 2 * 20 * 4;
+    const commission = commissionOn(gross);
+    const plan = [...PLANS]
+      .filter((p) => p.listed)
+      .sort((a, b) => a.monthlyMillimes - b.monthlyMillimes)
+      .find((p) => p.maxClasses === null || p.maxClasses >= 2);
+    expect(plan, "some listed plan must allow 2 open classes").toBeTruthy();
+    const net = gross - commission - tnd(plan!.monthlyMillimes);
+
+    await page.goto("/fr/pour-les-profs");
+    const body = await page.locator("body").innerText();
+    const nf = (v: number) => v.toLocaleString("fr-FR");
+    expect(body, "the gross figure must be the arithmetic, not a typed-in number").toContain(nf(gross));
+    expect(body, "the net figure must follow from the catalogue").toContain(nf(net));
+    expect(body, "the commission rate must come from COMMISSION_PCT").toContain(`${COMMISSION_PCT} %`);
+  });
+
+  test("no page invents a verification turnaround", async ({ page }) => {
+    /* There is no SLA behind it: one e-mail on submission, a FIFO queue, no
+       timer and no escalation. Nothing in the system would notice three weeks. */
+    for (const path of ["/fr/pour-les-profs", "/ar/pour-les-profs"]) {
+      await page.goto(path);
+      const body = await page.locator("body").innerText();
+      expect(/24\s*[–-]\s*48/.test(body), `${path} promises a turnaround nothing measures`).toBe(false);
+    }
+  });
+
+  test("the free plan's class limit is stated as the rule, not the student count", async ({ page }) => {
+    await page.goto("/fr/tarifs");
+    const body = await page.locator("body").innerText();
+    expect(body, "the enforced limit must appear").toContain(
+      classLimitLabel(requirePlan("gratuit").maxClasses, "fr"),
+    );
+    expect(
+      body.includes("indication") || body.includes("Convient à"),
+      "the student band must read as a hint, not as the plan's definition",
+    ).toBe(true);
   });
 });
 

@@ -35,6 +35,11 @@ import { useToast } from "@/components/useToast";
 import { vSlug } from "@tnajem/shared";
 import type { OnboardingState } from "@tnajem/shared";
 import { bilingual } from "@/lib/i18n";
+import { COMMISSION_PCT, requirePlan, tnd } from "@tnajem/shared";
+
+/* The subscription floor, from the catalogue. This string used to say "a partir
+   de 29 TND/mois" while /tarifs renders a 0 TND tier as its first card. */
+const SUB_FROM = tnd(requirePlan("essentiel").monthlyMillimes);
 
 /* Page-local copy (FR + Tunisian Derija). lib/i18n.ts is shared/read-only, and
    several of its strings cannot be used here:
@@ -48,7 +53,7 @@ import { bilingual } from "@/lib/i18n";
 const copy = bilingual({
   fr: {
     yourName: "Ton nom…",
-    fine: "Gratuit pendant le pilote : l'élève te paie en main propre et Tnajem ne prend rien. Plus tard, 10 % sur chaque élève payant via Tnajem, plus un abonnement à partir de 29 TND/mois.",
+    fine: `Gratuit pendant le pilote : l'élève te paie en main propre et Tnajem ne prend rien. Plus tard, ${COMMISSION_PCT} % sur chaque élève payant via Tnajem, plus un abonnement — gratuit avec un seul cours en ligne à la fois, à partir de ${SUB_FROM} TND/mois au-delà.`,
     perks: [
       "Ta page prête en 2 minutes",
       "Tu fixes ton prix — 100 % pour toi pendant le pilote",
@@ -84,7 +89,7 @@ const copy = bilingual({
   },
   ar: {
     yourName: "اسمك…",
-    fine: "فابور في فترة التجربة : التلميذ يخلّصك في يدك وTnajem ما تاخذ والو. من بعد، 10 % على كل تلميذ يخلّص من Tnajem، زائد اشتراك من 29 دينار في الشهر.",
+    fine: `فابور في فترة التجربة : التلميذ يخلّصك في يدك وTnajem ما تاخذ والو. من بعد، ${COMMISSION_PCT} % على كل تلميذ يخلّص من Tnajem، زائد اشتراك فابور بدرس واحد ومن ${SUB_FROM} دينار في الشهر لفوق.`,
     perks: [
       "صفحتك حاضرة في دقيقتين",
       "إنتي تحدّد ثمنك — 100 % متاعك في فترة التجربة",

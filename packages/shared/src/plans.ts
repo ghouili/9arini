@@ -38,6 +38,21 @@ export type Plan = {
 
 export const MILLIMES_PER_TND = 1000;
 
+/* THE COMMISSION — 10 %, on the one thing it applies to: payments Tnajem
+   PROCESSES. Nothing on money that changes hands directly between a student and
+   a tutor, and nothing at all today, because paymentsEnabled() is false and no
+   payment is processed.
+
+   It lives here, beside the prices, for the same reason the prices do: /tarifs
+   and /pour-les-profs both state this rate, and two copies of a number is how a
+   page ends up advertising a percentage the invoice contradicts. */
+export const COMMISSION_PCT = 10;
+
+/** What Tnajem would take on `amountTnd` IF it processed the payment. */
+export function commissionOn(amountTnd: number): number {
+  return (amountTnd * COMMISSION_PCT) / 100;
+}
+
 /* ── THE CATALOGUE ───────────────────────────────────────────────────────────
 
    `pilot` is first and is not listed. It is what every tutor is on today, and it
@@ -64,6 +79,18 @@ export function isPlanCode(v: unknown): v is PlanCode {
     guessing someone's entitlements. */
 export function planByCode(code: string | null | undefined): Plan | null {
   return PLANS.find((p) => p.code === code) ?? null;
+}
+
+/* planByCode for a code the TYPE system already proves exists. Marketing copy
+   needs the Gratuit class limit and the Essentiel price as plain numbers, and
+   `planByCode("gratuit")?.maxClasses ?? 1` would reintroduce the hardcoded 1 this
+   whole arrangement exists to delete. Taking a PlanCode (not a string) makes a
+   missing plan unrepresentable; the throw is unreachable and is there so that
+   removing a code from PLANS fails loudly rather than silently. */
+export function requirePlan(code: PlanCode): Plan {
+  const p = planByCode(code);
+  if (!p) throw new Error(`[Tnajem] plan "${code}" is missing from PLANS`);
+  return p;
 }
 
 /* THE DEFAULT PLAN — what a tutor with no subscription is on.
