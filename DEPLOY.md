@@ -526,6 +526,24 @@ that silently fails is indistinguishable from one you never wrote.
   PG18-safe (see §4).
 - **Only verified tutors are public** (`/explore`, `/<slug>`, sitemap). Approve them
   at `/admin/verifications` — access is limited to the addresses in `ADMIN_EMAILS`.
+- **What each plan actually grants.** A `Plan` carries exactly two levers —
+  `maxClasses` (open classes at once) and `exploreBoost` (ranking on `/explore`).
+  Nothing else in the product asks what plan a tutor is on.
+
+  | Plan | / month | Open classes | Explore boost |
+  |---|---|---|---|
+  | `pilot` (default while payments are off) | — | unlimited | — |
+  | `gratuit` | 0 TND | 1 | — |
+  | `essentiel` | 29 TND | 5 | — |
+  | `pro` | 59 TND | unlimited | ×1 |
+  | `prestige` | 99 TND | unlimited | ×2 |
+
+  Plus **10 % commission**, on payments Tnajem processes and nothing else — 0 TND
+  today, because it processes none. The other features `/tarifs` lists on the paid
+  tiers (SMS/WhatsApp reminders, stats, selling materials, replays, priority
+  verification, priority support) are **not built** and are marked "Bientôt" on
+  the page. Granting Prestige today hands out a stronger Explore boost and nothing
+  more. Source of truth: `packages/shared/src/plans.ts`.
 - **Plans are granted by hand at `/admin/plans`**, same allowlist. There is no
   checkout: payments are off, so a grant hands out entitlements and bills nobody.
   While `PAYMENTS_ENABLED` is unset every tutor is on the `pilot` plan (no limits);

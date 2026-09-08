@@ -33,11 +33,18 @@ const CONTACT_INFO_MSG = {
    "limite". Nobody sees this during the pilot: every tutor is on `pilot`, which
    has no class limit. */
 const PLAN_LIMIT_MSG = {
-  fr: (n: number) =>
-    `Ton offre te permet ${n === 1 ? "1 cours en ligne" : `${n} cours en ligne`} à la fois. Annule ou attends la fin d'un cours à venir, ou passe à une offre supérieure.`,
-  ar: (n: number) =>
-    `عرضك يسمحلك بـ ${n === 1 ? "درس واحد أونلاين" : `${n} دروس أونلاين`} في نفس الوقت. ألغي ولا استنّى درس جاي يكمّل، ولا اطلع لعرض أكبر.`,
+  fr: (n: number, plan: string) =>
+    `Ton offre ${plan} te permet ${n === 1 ? "1 cours en ligne" : `${n} cours en ligne`} à la fois. Annule un cours à venir, attends qu'il ait lieu, ou passe à une offre supérieure.`,
+  ar: (n: number, plan: string) =>
+    `عرضك ${plan} يسمحلك بـ ${n === 1 ? "درس واحد أونلاين" : `${n} دروس أونلاين`} في نفس الوقت. ألغي درس جاي، ولا استنّاه يكمّل، ولا اطلع لعرض أكبر.`,
 } as const;
+
+/* The link that message needs. It used to end with "passe à une offre
+   supérieure" and offer no route — and it was shown in a TOAST, which
+   useToast renders as a bare string and dismisses after 2800 ms. A tutor who has
+   just hit the ceiling is the one person guaranteed to want the comparison, so
+   this refusal is rendered inline, stays put, and links. */
+const PLAN_LIMIT_CTA = { fr: "Voir les offres", ar: "شوف العروض" } as const;
 
 /* Page-local copy (lib/i18n.ts is shared/read-only). */
 const copy = bilingual({
@@ -74,6 +81,8 @@ export default function NewClassPage() {
   const [submitted, setSubmitted] = useState(false);
   // Only ever true when the server action itself reports demo mode (no DB).
   const [demo, setDemo] = useState(false);
+  /* Not a toast: this one has to persist and carry a link. */
+  const [planLimit, setPlanLimit] = useState<{ limit: number; plan: string } | null>(null);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -85,15 +94,21 @@ export default function NewClassPage() {
     });
     if (res.ok) {
       setDemo(Boolean(res.demo));
+      setPlanLimit(null);
       showToast(res.demo ? `${t.extra.classPublished} · ${t.common.demoMode}` : t.extra.classPublished);
     } else {
       // Server-side validation (past date, negative price, bad URL…) — let them fix it.
       setSubmitted(false);
+      if (res.error === "plan-limit-classes" && typeof res.limit === "number") {
+        /* The server sends planCode back and the UI used to throw it away. Naming
+           the offer is what turns "you hit a limit" into "you hit THIS limit". */
+        setPlanLimit({ limit: res.limit, plan: res.planCode ?? "" });
+        return;
+      }
+      setPlanLimit(null);
       showToast(
         res.error === "not-verified" ? NOT_VERIFIED_MSG[locale]
           : res.error === "contact-info-not-allowed" ? CONTACT_INFO_MSG[locale]
-          : res.error === "plan-limit-classes" && typeof res.limit === "number"
-            ? PLAN_LIMIT_MSG[locale](res.limit)
           : t.extra.error,
       );
     }
@@ -128,6 +143,20 @@ export default function NewClassPage() {
                   {c.lead}
                 </p>
                 <form onSubmit={handleSubmit}>
+                  {planLimit && (
+                    <div
+                      role="alert"
+                      className="panel panel-pad mb-4"
+                      style={{ borderColor: "var(--ochre)", background: "var(--ochre-tint)" }}
+                    >
+                      <p className="text-[13.5px] leading-relaxed text-ink2 mb-3">
+                        {PLAN_LIMIT_MSG[locale](planLimit.limit, planLimit.plan)}
+                      </p>
+                      <Link href="/tarifs" className="btn btn-ink btn-sm w-auto">
+                        {PLAN_LIMIT_CTA[locale]}
+                      </Link>
+                    </div>
+                  )}
 
                   {/* Title */}
                   <Field label={t.createClass.name}>

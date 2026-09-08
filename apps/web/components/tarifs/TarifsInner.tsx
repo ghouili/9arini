@@ -6,7 +6,24 @@ import { useLocale } from "@/components/LocaleProvider";
 import { Card, CardFooter, Chip } from "@/components/ui";
 import { Check, Shield, Wallet, Star } from "@/components/icons";
 import { bilingual } from "@/lib/i18n";
-import { planByCode, classLimitLabel, monthsOffered, tnd } from "@tnajem/shared";
+import {
+  planByCode, classLimitLabel, monthsOffered, tnd, requirePlan,
+  COMMISSION_PCT, commissionOn,
+} from "@tnajem/shared";
+
+/* THE WORKED EXAMPLE. "10 % plus un abonnement" is two numbers a tutor has to
+   combine in their head, and the one thing everybody gets wrong is thinking it is
+   one or the other. So show both on one month, with the cash case beside it.
+
+   Every figure is derived: change a price in the catalogue and this moves with
+   it. A month of 1 000 TND is a round number chosen to make the arithmetic
+   readable, not a claim about what anyone earns — the copy says so. */
+const EX_PROCESSED_TND = 1000;
+const EX_PLAN = requirePlan("pro");
+const EX_FEE = commissionOn(EX_PROCESSED_TND);
+const EX_SUB = tnd(EX_PLAN.monthlyMillimes);
+const EX_NET = EX_PROCESSED_TND - EX_FEE - EX_SUB;
+const nf = (v: number) => v.toLocaleString("fr-FR");
 
 /* ═══════════════════════════════════════════════════════════════════════════
    /tarifs — the pricing page.
@@ -66,9 +83,12 @@ const copy = bilingual({
     planCta: "Commencer gratuitement",
     /* Derived-number formatting. The VALUES come from the shared catalogue; only
        the words are copy. */
-    priceUnit: (n: number) => `${n} TND`,
+    priceUnit: (n: number) => `${nf(n)} TND`,
     yearLine: (n: number) => `${n} TND / an`,
     monthsFree: (n: number) => ` — ${n} ${n === 1 ? "mois offert" : "mois offerts"}`,
+
+    soonChip: "Bientôt",
+    soonNote: "Ces fonctionnalités ne sont pas encore disponibles. On te dira quand elles arrivent.",
 
     plans: [
       {
@@ -76,30 +96,57 @@ const copy = bilingual({
         name: "Gratuit",
         who: "Convient à 1–14 élèves",
         billed: false,
-        features: ["Ta page de prof et ton lien", "Réservations et avis", "Paiement en main propre"],
+        /* THE FREE PLAN LISTS EVERYTHING IT REALLY GIVES, at the founder's
+           request. Only two things are gated by a plan in the whole product — the
+           class limit and the Explore boost — so a free tutor genuinely gets the
+           rest of Tnajem. Listing three bullets made it look like a stub. */
+        features: [
+          "Ta page de prof et ton lien à partager",
+          "Vérification d'identité à la main, et le badge qui va avec",
+          "Tu apparais dans Explorer",
+          "Réservations, avis et note",
+          "Ta photo de profil (vérifiée avant publication)",
+          "Messagerie avec tes élèves",
+          "Tes fiches et vidéos pour tes élèves",
+          "Paiement en main propre — Tnajem ne prend rien",
+        ],
+        soon: [],
       },
       {
         id: "essentiel",
         name: "Essentiel",
         who: "Convient à 15–20 élèves",
         billed: true,
-        features: ["Rappels SMS et WhatsApp", "Statistiques de base", "Tout ce qu'il y a dans Gratuit"],
+        features: ["Tout ce qu'il y a dans Gratuit"],
+        soon: ["Rappels SMS et WhatsApp", "Statistiques de base"],
       },
       {
         id: "pro",
         name: "Pro",
         who: "Convient à 21–35 élèves",
         billed: true,
-        features: ["Mis en avant dans Explorer", "Vends tes fiches et enregistrements", "Statistiques complètes"],
+        features: ["Mis en avant dans Explorer", "Tout ce qu'il y a dans Essentiel"],
+        soon: ["Vends tes fiches et enregistrements", "Statistiques complètes"],
       },
       {
         id: "prestige",
         name: "Prestige",
         who: "Convient à 36 élèves et plus",
         billed: true,
-        features: ["Placement prioritaire", "Replays de tes séances", "Vérification prioritaire (48 h)", "Support prioritaire"],
+        features: ["Placement prioritaire dans Explorer", "Tout ce qu'il y a dans Pro"],
+        soon: ["Replays de tes séances", "Vérification prioritaire (48 h)", "Support prioritaire"],
       },
     ],
+
+    exTitle: "Ce que Tnajem te coûte, sur un mois",
+    exLead: `Les deux frais ensemble, sur un exemple. ${EX_PROCESSED_TND} TND est un chiffre rond choisi pour que le calcul se lise — pas une promesse de revenu.`,
+    exRowProcessed: "Encaissé via Tnajem",
+    exRowFee: `Commission Tnajem (${COMMISSION_PCT} %)`,
+    exRowSub: (name: string) => `Abonnement ${name}`,
+    exRowNet: "Tu reçois",
+    exCashTitle: "Et si l'élève te paie en main propre ?",
+    exCash: `Tnajem ne prend aucune commission : tu gardes les ${nf(EX_PROCESSED_TND)} TND. Tu paies seulement l'abonnement, ${nf(EX_SUB)} TND.`,
+    exToday: "Aujourd'hui, rien de tout ça n'est prélevé : les paiements en ligne sont désactivés, donc la commission est de 0 TND et aucun abonnement n'est facturé.",
 
     commTitle: "La commission",
     commLine: "10 %, sur une seule chose : les paiements que Tnajem traite lui-même.",
@@ -148,11 +195,14 @@ const copy = bilingual({
     recommended: "ننصحو بيها",
     perMonth: "/ في الشهر",
     planCta: "ابدا فابور",
-    priceUnit: (n: number) => `${n} دينار`,
+    priceUnit: (n: number) => `${nf(n)} دينار`,
     yearLine: (n: number) => `${n} دينار / في العام`,
     /* Arabic has a dual. "شهرين" is two months; anything else takes a number. */
     monthsFree: (n: number) =>
       ` — ${n === 1 ? "شهر" : n === 2 ? "شهرين" : `${n} أشهر`} فابور`,
+
+    soonChip: "قريب",
+    soonNote: "الخاصيات هاذوم ما زالوش موجودين. باش نعلموك وقتلي يوصلو.",
 
     plans: [
       {
@@ -160,30 +210,53 @@ const copy = bilingual({
         name: "فابور",
         who: "يناسب من 1 لـ 14 تلميذ",
         billed: false,
-        features: ["صفحتك ولينكك", "الحجوزات والآراء", "الخلاص في يدك"],
+        features: [
+          "صفحتك متاع أستاذ واللينك متاعك",
+          "التثبّت من هويتك باليدين، والشارة اللي معاه",
+          "تبان في «اكتشف»",
+          "الحجوزات، الآراء والنقطة",
+          "تصويرتك (تتثبّت قبل ما تتنشر)",
+          "مراسلة مع تلامذتك",
+          "الفيشات والفيديوهات متاع تلامذتك",
+          "الخلاص في يدك — Tnajem ما تاخذ والو",
+        ],
+        soon: [],
       },
       {
         id: "essentiel",
         name: "الأساسي",
         who: "يناسب من 15 لـ 20 تلميذ",
         billed: true,
-        features: ["تذكير بالـ SMS والواتساب", "إحصائيات أساسية", "كل اللي في فابور"],
+        features: ["كل اللي في فابور"],
+        soon: ["تذكير بالـ SMS والواتساب", "إحصائيات أساسية"],
       },
       {
         id: "pro",
         name: "برو",
         who: "يناسب من 21 لـ 35 تلميذ",
         billed: true,
-        features: ["تبان في «اكتشف»", "بيع الفيشات والتسجيلات", "إحصائيات كاملة"],
+        features: ["تبان في «اكتشف»", "كل اللي في الأساسي"],
+        soon: ["بيع الفيشات والتسجيلات", "إحصائيات كاملة"],
       },
       {
         id: "prestige",
         name: "بريستيج",
         who: "يناسب 36 تلميذ وأكثر",
         billed: true,
-        features: ["مركز أول في العرض", "تسجيلات حصصك", "تثبّت بالأولوية (48 ساعة)", "دعم بالأولوية"],
+        features: ["مركز أول في «اكتشف»", "كل اللي في برو"],
+        soon: ["تسجيلات حصصك", "تثبّت بالأولوية (48 ساعة)", "دعم بالأولوية"],
       },
     ],
+
+    exTitle: "قدّاش تكلّفك Tnajem في الشهر",
+    exLead: `الزوز فريسي مع بعضهم، في مثال. ${EX_PROCESSED_TND} دينار رقم مدوّر باش يتقرا الحساب — موش وعد بمدخول.`,
+    exRowProcessed: "تحصّل عبر Tnajem",
+    exRowFee: `عمولة Tnajem (${COMMISSION_PCT} %)`,
+    exRowSub: (name: string) => `اشتراك ${name}`,
+    exRowNet: "يوصلك",
+    exCashTitle: "وكان التلميذ خلّصك في يدك ؟",
+    exCash: `Tnajem ما تاخذ حتى عمولة : تحتفظ بـ ${nf(EX_PROCESSED_TND)} دينار. تخلّص كان الاشتراك، ${nf(EX_SUB)} دينار.`,
+    exToday: "اليوم ما يتخلّص حتى شي من هذا : الخلاص أونلاين مطفي، معناها العمولة 0 دينار وحتى اشتراك ما يتفوتر.",
 
     commTitle: "العمولة",
     commLine: "10 %، على حاجة وحيدة : الخلاص اللي Tnajem تعدّيه هي بروحها.",
@@ -233,6 +306,11 @@ html[dir="rtl"] .tf-price{font-family:var(--fa);letter-spacing:normal}
 .tf-feats{list-style:none;display:flex;flex-direction:column;gap:9px;margin-block-start:16px}
 .tf-feats li{display:flex;gap:9px;align-items:flex-start;font-size:13.5px;line-height:1.5;color:var(--ink2);min-width:0}
 .tf-feats .ic{width:17px;height:17px;flex:none;color:var(--green-ink);margin-block-start:2px}
+/* A not-yet-built row reads as pending, not as delivered: the tick loses the
+   green it earns for a shipped feature, and the label sits beside it. */
+.tf-feats li.tf-soon{align-items:center;flex-wrap:wrap;gap:7px;color:var(--muted)}
+.tf-feats li.tf-soon .ic{color:var(--muted)}
+.tf-soon-note{font-size:13px;line-height:1.55;color:var(--muted);margin-block-start:10px}
 /* The recommended plan. A ring rather than a scale transform: at 320px the cards
    are already full-bleed, and a transform would clip against the container. */
 .tf-hi{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue100),var(--sh-s)}
@@ -244,6 +322,16 @@ html[dir="rtl"] .tf-price{font-family:var(--fa);letter-spacing:normal}
 html[dir="rtl"] .tf-cmp-name{font-family:var(--fa)}
 .tf-cmp-body{font-size:13.5px;line-height:1.6;color:var(--ink2);min-width:0;overflow-wrap:anywhere}
 .tf-note{font-size:13px;line-height:1.6;color:var(--muted);margin-block-start:12px}
+/* The cost breakdown. Rows, not a table: at 320px a 2-column table either
+   overflows or crushes the label, and this has to be readable on a phone. */
+.tf-ex{border:1px solid var(--line);border-radius:var(--r-s);background:var(--paper);overflow:hidden}
+.tf-ex-row{display:flex;justify-content:space-between;align-items:baseline;gap:14px;
+  padding:12px 16px;font-size:14px;color:var(--ink2);border-block-end:1px solid var(--line);min-width:0}
+.tf-ex-row:last-child{border-block-end:none}
+.tf-ex-row b{font-family:var(--fd);font-weight:700;color:var(--ink);white-space:nowrap}
+html[dir="rtl"] .tf-ex-row b{font-family:var(--fa)}
+.tf-ex-net{background:var(--blue50);font-weight:700}
+.tf-ex-net b{font-size:17px;color:var(--blue)}
 .tf-comm{list-style:none;display:flex;flex-direction:column;gap:11px;margin-block-start:16px}
 .tf-comm li{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.55;color:var(--ink2);min-width:0}
 .tf-comm .ic{width:19px;height:19px;flex:none;color:var(--blue);margin-block-start:1px}
@@ -324,7 +412,22 @@ function PlanCard({
             <span className="min-w-0">{f}</span>
           </li>
         ))}
+        {/* NOT YET BUILT, and said so on the tier that sells them. Six features
+            across the three paid plans do not exist: SMS/WhatsApp reminders have
+            no channel, `replay_url` is written by nothing, materials have no
+            price, the verification queue is plain FIFO, there is no support
+            system and stats are not gated by plan. Listing them unmarked is how a
+            tutor pays 99 TND for replays and finds nothing. The truth rule allows
+            a future claim — unmistakably labelled. This is the label. */}
+        {plan.soon.map((f) => (
+          <li key={f} className="tf-soon">
+            <Check />
+            <span className="min-w-0">{f}</span>
+            <Chip kind="sand">{c.soonChip}</Chip>
+          </li>
+        ))}
       </ul>
+      {plan.soon.length > 0 && <p className="tf-soon-note">{c.soonNote}</p>}
 
       <CardFooter className="pt-4">
         <Link href="/signup/prof" className="btn btn-ghost w-full">
@@ -383,6 +486,51 @@ export function TarifsInner({ paymentsEnabled }: { paymentsEnabled: boolean }) {
             {c.plans.map((p) => (
               <PlanCard key={p.id} plan={p} c={c} locale={locale} paymentsEnabled={paymentsEnabled} />
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── WHAT IT COSTS, ON ONE MONTH ─────────────────────────────────────
+          The two charges are always stated together on this page, but "10 % plus
+          un abonnement" is still two numbers a reader has to combine. This does
+          the combining, and puts the CASH case right beside it — because the
+          answer to "so what do I actually pay?" depends entirely on which of the
+          two happened, and that is the distinction tutors miss. */}
+      <section className="web-section tight">
+        <div className="container">
+          <div className="max-w-[760px]">
+            <h2 className="web-h2 mb-3">{c.exTitle}</h2>
+            <p className="web-lead mb-5">{c.exLead}</p>
+
+            <div className="tf-ex">
+              <div className="tf-ex-row">
+                <span>{c.exRowProcessed}</span>
+                <b>{c.priceUnit(EX_PROCESSED_TND)}</b>
+              </div>
+              <div className="tf-ex-row">
+                <span>{c.exRowFee}</span>
+                <b>− {c.priceUnit(EX_FEE)}</b>
+              </div>
+              <div className="tf-ex-row">
+                {/* The DISPLAY name ("Pro"), not the catalogue code ("pro").
+                    The code is an identifier for the API and the admin grant; a
+                    tutor reading a cost breakdown should see the name on the
+                    card above it. */}
+                <span>{c.exRowSub(c.plans.find((pl) => pl.id === EX_PLAN.code)?.name ?? EX_PLAN.code)}</span>
+                <b>− {c.priceUnit(EX_SUB)}</b>
+              </div>
+              <div className="tf-ex-row tf-ex-net">
+                <span>{c.exRowNet}</span>
+                <b>{c.priceUnit(EX_NET)}</b>
+              </div>
+            </div>
+
+            <div className="panel panel-pad mt-4">
+              <div className="text-[14px] font-bold mb-1">{c.exCashTitle}</div>
+              <p className="text-[13.5px] leading-relaxed text-muted">{c.exCash}</p>
+            </div>
+
+            {!paymentsEnabled && <p className="tf-note">{c.exToday}</p>}
           </div>
         </div>
       </section>

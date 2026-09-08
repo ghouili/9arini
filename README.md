@@ -179,6 +179,57 @@ screenshots at four widths, axe, and a keyboard walk in both locales. **Adding a
 page to the product without adding it there is how a screen silently stops being
 measured** — four Stage C screens had shipped that way before the final pass.
 
+## Plans and commission
+
+Source of truth: **`packages/shared/src/plans.ts`**. The prices below are rendered
+from it — `/tarifs`, `/pour-les-profs` and the admin grant page all read the same
+array, so this table cannot drift from the product without a test failing.
+
+**Nothing is billed today.** `PAYMENTS_ENABLED` is unset, so Tnajem processes no
+money, takes no commission and charges no subscription. Every tutor sits on an
+internal `pilot` plan with no limits. See DEPLOY.md §"Notes" for what happens the
+day that switch is flipped — it is a cliff, not a ramp.
+
+| Plan | / month | / year | Open classes at once | Explore boost |
+|---|---|---|---|---|
+| **Gratuit** | 0 TND | 0 | 1 | — |
+| Essentiel | 29 TND | 290 (2 months free) | 5 | — |
+| Pro | 59 TND | 590 | unlimited | ×1 |
+| Prestige | 99 TND | 990 | unlimited | ×2 |
+
+Plus **10 % commission**, and only on payments Tnajem itself processes — nothing
+on cash a student hands the tutor directly. Both charges are always stated
+together in the UI; a tutor who meets the second one later feels cheated.
+
+### Only two things are actually gated
+
+A `Plan` carries `maxClasses` and `exploreBoost` and nothing else. They are
+enforced in exactly two places:
+
+- **`POST /classes`** refuses past the class limit (`plan-limit-classes`, with the
+  limit and plan code in the response) — `apps/api/src/routes/classes.ts`
+- **`GET /tutors/explore`** orders by the boost and marks a boosted card
+  `featured: true`, which the UI must render visibly — `apps/api/src/routes/tutors.ts`
+
+**Everything else in the product is free**: storefront and shareable link,
+hand-checked verification, Explore listing, bookings, reviews and rating, the
+moderated profile photo, messaging, materials, the free-first-session toggle,
+cancellation and rescheduling, guardian access.
+
+### Features sold but NOT built
+
+`/tarifs` lists these on the paid tiers marked **"Bientôt"**. They do not exist,
+and the marker is not decorative — an unmarked one is a lie a tutor pays for:
+
+| Sold on | Reality |
+|---|---|
+| Rappels SMS et WhatsApp (Essentiel) | no SMS or WhatsApp channel; `sendClassReminder` is a stub nothing calls |
+| Statistiques de base / complètes | stats are not gated by plan — every tutor sees the same dashboard |
+| Vends tes fiches et enregistrements (Pro) | materials have no price column, and payments are off |
+| Replays de tes séances (Prestige) | `classes.replay_url` is read in 4 places and **written in 0** |
+| Vérification prioritaire 48 h (Prestige) | the queue is plain FIFO by `submitted_at` |
+| Support prioritaire (Prestige) | there is no support system to prioritise |
+
 ## Scripts
 
 | script | what it does |

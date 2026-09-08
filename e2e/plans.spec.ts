@@ -246,6 +246,71 @@ test.describe("the marketing pages state the catalogue's numbers", () => {
     expect(body, "the commission rate must come from COMMISSION_PCT").toContain(`${COMMISSION_PCT} %`);
   });
 
+  test("EVERY unbuilt feature carries its Bientôt marker", async ({ page }) => {
+    /* Six features across the three paid tiers do not exist. They are allowed on
+       the page — the truth rule permits a future claim, unmistakably labelled —
+       and this is the test that keeps the label attached. An unmarked one is a
+       feature somebody pays 99 TND for and does not receive. */
+    const NOT_BUILT = [
+      "Rappels SMS et WhatsApp",
+      "Statistiques de base",
+      "Vends tes fiches et enregistrements",
+      "Statistiques complètes",
+      "Replays de tes séances",
+      "Vérification prioritaire (48 h)",
+      "Support prioritaire",
+    ];
+    await page.goto("/fr/tarifs");
+    for (const feature of NOT_BUILT) {
+      const row = page.locator("li.tf-soon", { hasText: feature });
+      await expect(row, `"${feature}" is not built and must sit in a tf-soon row`).toHaveCount(1);
+      await expect(row, `"${feature}" must carry the Bientôt chip`).toContainText("Bientôt");
+    }
+    /* And the marker means nothing if it is on everything: the two entitlements
+       that ARE enforced must NOT be marked. */
+    for (const real of ["Mis en avant dans Explorer", "Placement prioritaire dans Explorer"]) {
+      await expect(
+        page.locator("li.tf-soon", { hasText: real }),
+        `"${real}" is built and enforced — marking it Bientôt understates the product`,
+      ).toHaveCount(0);
+    }
+  });
+
+  test("the cost breakdown adds up, from the catalogue", async ({ page }) => {
+    const processed = 1000;
+    const plan = requirePlan("pro");
+    const fee = commissionOn(processed);
+    const sub = tnd(plan.monthlyMillimes);
+    const nf = (v: number) => v.toLocaleString("fr-FR");
+
+    await page.goto("/fr/tarifs");
+    const body = await page.locator("body").innerText();
+    for (const [label, value] of [
+      ["processed", processed],
+      ["commission", fee],
+      ["subscription", sub],
+      ["net", processed - fee - sub],
+    ] as const) {
+      expect(body, `the ${label} figure must be derived, not typed in`).toContain(nf(value));
+    }
+    expect(body, "the commission rate comes from COMMISSION_PCT").toContain(`${COMMISSION_PCT} %`);
+  });
+
+  test("the free plan lists what it really gives", async ({ page }) => {
+    /* The founder asked for these three by name. They are all shipped and all
+       ungated — only maxClasses and exploreBoost are gated by a plan — so a
+       Gratuit card that omits them undersells the product. */
+    await page.goto("/fr/tarifs");
+    const body = await page.locator("body").innerText();
+    for (const claim of [
+      "Ta page de prof et ton lien à partager",
+      "Réservations, avis et note",
+      "Ta photo de profil",
+    ]) {
+      expect(body, `the free plan must list "${claim}"`).toContain(claim);
+    }
+  });
+
   test("no page invents a verification turnaround", async ({ page }) => {
     /* There is no SLA behind it: one e-mail on submission, a FIFO queue, no
        timer and no escalation. Nothing in the system would notice three weeks. */

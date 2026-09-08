@@ -888,7 +888,14 @@ function RealDashboard(
 
       {/* Free first session — only once a storefront exists, since it is a claim
           made ON that page and there is nowhere to make it before then. */}
-      {d.has_storefront && <PlanPanel d={d} c={c} locale={locale} />}
+      {/* NOT gated on has_storefront, unlike the panels below it. The plan and
+          what it costs apply from the moment someone is a tutor, and gating this
+          meant a tutor who had not published yet could not find the offers
+          anywhere in the product — the sidebar link and this panel were the only
+          two routes, and this one was hidden exactly when the other was most
+          needed. getDashboard already returns the default plan for a tutor with
+          no storefront, so there is nothing to guard against. */}
+      <PlanPanel d={d} c={c} locale={locale} />
       {d.has_storefront && <FreeFirstPanel d={d} c={c} />}
 
       {/* My classes */}

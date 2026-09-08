@@ -11,12 +11,25 @@ fix it. Where something says a number that isn't here, it is wrong.
 
 ### The plans (tutors are the paying customer)
 
-| Plan | Price / month | Price / year | For |
-|---|---|---|---|
-| **Gratuit** | 0 TND | 0 | New tutor. Page, 1 class, booking, reviews. |
-| **Essentiel** | 29 TND | 290 (2 months free) | 1–5 students. Up to 5 classes, SMS/WhatsApp reminders, basic stats. |
-| **Pro** | 59 TND | 590 | 6–15 students. Unlimited classes, featured in /explore, sell materials, full stats. |
-| **Prestige** | 99 TND | 990 | 15+ students. Top placement, lesson replays, priority verification (48h), priority support. |
+> **Superseded in part.** The prices below are still correct and are now rendered
+> from `packages/shared/src/plans.ts` rather than typed anywhere. Two things in
+> the original table were wrong and are corrected here:
+>
+> 1. **The student bands were stale.** They read 1–5 / 6–15 / 15+ while the
+>    shipped page says 1–14 / 15–20 / 21–35 / 36+. More importantly, **nothing
+>    counts a tutor's students** — the server enforces the number of OPEN CLASSES.
+>    The bands are a sizing hint and `/tarifs` now labels them as one.
+> 2. **Most of the "For" column is not built.** SMS/WhatsApp reminders, stats,
+>    selling materials, replays, priority verification and priority support do not
+>    exist; they are marked "Bientôt" on `/tarifs`. Only the class limit and the
+>    Explore boost are enforced.
+
+| Plan | Price / month | Price / year | Enforced today | Sizing hint |
+|---|---|---|---|---|
+| **Gratuit** | 0 TND | 0 | 1 open class | ~1–14 students |
+| **Essentiel** | 29 TND | 290 (2 months free) | 5 open classes | ~15–20 students |
+| **Pro** | 59 TND | 590 | unlimited classes · Explore boost ×1 | ~21–35 students |
+| **Prestige** | 99 TND | 990 | unlimited classes · Explore boost ×2 | ~36+ students |
 
 ### The commission
 

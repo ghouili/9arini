@@ -2,7 +2,7 @@
 import { Link } from "@/components/Link";
 import { usePathname } from "next/navigation";
 import { useLocale } from "./LocaleProvider";
-import { Home, Video, Plus, Wallet, User, Shield } from "./icons";
+import { Home, Video, Plus, Wallet, User, Shield, Star } from "./icons";
 
 /* Shared tutor-area nav. Desktop: the sticky column (.app-sidebar). Mobile: the
    same items as a horizontal, self-scrolling strip above the content — before,
@@ -14,8 +14,8 @@ import { Home, Video, Plus, Wallet, User, Shield } from "./icons";
    and UNLAYERED, so it wins over globals.css's @layer components. */
 
 const NAV = {
-  fr: { verify: "Vérification", label: "Espace prof" },
-  ar: { verify: "التثبّت", label: "فضاء الأستاذ" },
+  fr: { verify: "Vérification", label: "Espace prof", plans: "Offres" },
+  ar: { verify: "التثبّت", label: "فضاء الأستاذ", plans: "العروض" },
 } as const;
 
 const CSS = `
@@ -65,6 +65,12 @@ export function DashboardSidebar({ paymentsEnabled }: { paymentsEnabled: boolean
     ...(paymentsEnabled
       ? [{ href: "/dashboard/payout", Icon: Wallet, label: t.payout.title }]
       : []),
+    /* THE ONLY plan link a tutor can always find. The dashboard "Ton offre" panel
+       has one, but it is gated on has_storefront — a tutor who has not published
+       yet had no route to the offers at all, and neither the header nav nor the
+       burger has ever carried one. This is on every dashboard screen and depends
+       on nothing. */
+    { href: "/tarifs", Icon: Star, label: c.plans },
     { href: "/account", Icon: User, label: t.account.title },
   ];
 
