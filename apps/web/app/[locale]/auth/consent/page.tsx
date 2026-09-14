@@ -1,5 +1,5 @@
 "use client";
-import { Suspense, useState } from "react";
+import { Suspense, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useLocalizedRouter } from "@/components/Link";
 import { Button, Field, Spinner } from "@/components/ui";
@@ -63,11 +63,17 @@ function ConsentInner() {
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /* The two refusals a parent can fix are both about THEIR e-mail, so they go on
+     that field (Field sets aria-invalid + aria-describedby) with focus moved there.
+     `error` stays for everything else. */
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
 
   async function handleSubmit() {
     if (!agreed || !gName.trim() || !gPhone.trim() || !gEmail.trim()) return;
     setLoading(true);
     setError(null);
+    setEmailError(null);
     let res: Awaited<ReturnType<typeof saveConsent>>;
     try {
       res = await saveConsent({ guardianName: gName, guardianPhone: gPhone, guardianEmail: gEmail });
@@ -84,11 +90,12 @@ function ConsentInner() {
     if (res.ok) { router.push(next ?? "/student"); return; }
     /* Name the two cases the parent can actually fix. A generic failure on a
        legal consent form is where people give up. */
-    setError(
-      res.error === "invalid-guardian-email" ? t.consent.errGEmail
-        : res.error === "guardian-is-self" ? t.consent.errGSelf
-        : t.extra.error,
-    );
+    if (res.error === "invalid-guardian-email" || res.error === "guardian-is-self") {
+      setEmailError(res.error === "invalid-guardian-email" ? t.consent.errGEmail : t.consent.errGSelf);
+      emailRef.current?.focus();
+      return;
+    }
+    setError(t.extra.error);
   }
 
   const canSubmit =
@@ -195,15 +202,16 @@ function ConsentInner() {
                 help text says why it is asked for: without it the field reads as
                 one more thing to hand over, when it is actually what gives them
                 an account of their own. */}
-            <Field label={t.consent.gEmail} help={t.consent.gEmailHelp}>
+            <Field label={t.consent.gEmail} help={t.consent.gEmailHelp} error={emailError ?? undefined}>
               <div className="inp">
                 <Mail />
                 <input
                   type="email"
                   dir="ltr"
                   placeholder="parent@example.com"
+                  ref={emailRef}
                   value={gEmail}
-                  onChange={(e) => setGEmail(e.target.value)}
+                  onChange={(e) => { setGEmail(e.target.value); setEmailError(null); }}
                   inputMode="email"
                   autoComplete="email"
                   style={{ minWidth: 0 }}

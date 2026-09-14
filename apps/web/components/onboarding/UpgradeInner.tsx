@@ -10,7 +10,7 @@
    So the conversion now has a page of its own, and that page says what changes
    before it changes. becomeTutor() is the only writer of the role in the codebase,
    it refuses without `confirm`, and it refuses a minor. */
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useLocalizedRouter, Link } from "@/components/Link";
 import { Button, Field } from "@/components/ui";
 import { useLocale } from "@/components/LocaleProvider";
@@ -89,6 +89,15 @@ export function UpgradeInner({ needsBirthYear }: { needsBirthYear: boolean }) {
   const [birthYear, setBirthYear] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /* The birth year is the one field here. Its problems go ON it, with focus moved
+     there (Field sets aria-invalid + aria-describedby); `error` is for the rest. */
+  const [ageError, setAgeError] = useState<string | null>(null);
+  const birthYearRef = useRef<HTMLSelectElement>(null);
+  function invalidAge(message: string) {
+    setError(null);
+    setAgeError(message);
+    birthYearRef.current?.focus();
+  }
 
   // Only offered when we have no age on file. A student who already told us their
   // birth year cannot restate it here — the server prefers the stored value, so a
@@ -98,9 +107,10 @@ export function UpgradeInner({ needsBirthYear }: { needsBirthYear: boolean }) {
 
   async function handleConfirm() {
     if (busy) return;
-    if (needsBirthYear && !birthYear) { setError(c.errAge); return; }
+    if (needsBirthYear && !birthYear) { invalidAge(c.errAge); return; }
     setBusy(true);
     setError(null);
+    setAgeError(null);
     let res: Awaited<ReturnType<typeof becomeTutor>>;
     try {
       res = await becomeTutor({ confirm: true, birthYear: birthYear ? Number(birthYear) : undefined });
@@ -118,6 +128,7 @@ export function UpgradeInner({ needsBirthYear }: { needsBirthYear: boolean }) {
       return;
     }
     if (res.error === "minor-cannot-teach") setError(c.errMinor);
+    else if (res.error === "age-required" && needsBirthYear) invalidAge(c.errAge);
     else if (res.error === "age-required") setError(c.errAge);
     else if (res.error === "too-many-requests") setError(c.errRate);
     else if (res.error === "not-authenticated") setError(c.errAuth);
@@ -159,12 +170,13 @@ export function UpgradeInner({ needsBirthYear }: { needsBirthYear: boolean }) {
             {list(c.keepsTitle, c.keeps, "green")}
 
             {needsBirthYear && (
-              <Field label={c.byLabel}>
+              <Field label={c.byLabel} error={ageError ?? undefined}>
                 <div className="inp" style={birthYear ? { borderColor: "var(--blue)" } : undefined}>
                   <Calendar className="" />
                   <select
+                    ref={birthYearRef}
                     value={birthYear}
-                    onChange={(e) => setBirthYear(e.target.value)}
+                    onChange={(e) => { setBirthYear(e.target.value); setAgeError(null); }}
                     required
                     aria-required="true"
                     aria-label={c.byLabel}

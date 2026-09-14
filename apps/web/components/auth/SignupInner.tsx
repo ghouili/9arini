@@ -21,7 +21,7 @@
    query string with the client hook forces the form into a Suspense boundary,
    which Next bails to client-only rendering, which ships a login page with no
    fields in the HTML. */
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useLocalizedRouter } from "@/components/Link";
 import { Button, Field } from "@/components/ui";
 import { useLocale } from "@/components/LocaleProvider";
@@ -186,6 +186,16 @@ export function SignupInner({
   const [loading, setLoading] = useState(false);
   const [devCode, setDevCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /* Field-level problems go ON the field, with focus moved there — the same split
+     as AuthInner, which explains it. `error` is for everything else. */
+  const [fieldError, setFieldError] = useState<{ field: "identifier" | "code"; message: string } | null>(null);
+  const identifierRef = useRef<HTMLInputElement>(null);
+  const codeRef = useRef<HTMLInputElement>(null);
+  function invalid(field: "identifier" | "code", message: string) {
+    setError(null);
+    setFieldError({ field, message });
+    (field === "identifier" ? identifierRef : codeRef).current?.focus();
+  }
   /* Neutral guidance, not a failure — styled and announced as information. */
   const [notice, setNotice] = useState<string | null>(null);
   // Only true once a send actually reported a TTL — without it the "expired" state
@@ -219,11 +229,12 @@ export function SignupInner({
   async function send(resend: boolean) {
     if (loading) return;
     const id = identifier.trim();
-    if (!id) { setError(isEmail ? c.errNeedEmail : c.errNeedPhone); return; }
+    if (!id) { invalid("identifier", isEmail ? c.errNeedEmail : c.errNeedPhone); return; }
     // Same check the server runs, so a typo is caught before we spend a send.
-    if (isEmail && !isValidEmail(id.toLowerCase())) { setError(c.errBadEmail); return; }
+    if (isEmail && !isValidEmail(id.toLowerCase())) { invalid("identifier", c.errBadEmail); return; }
     setLoading(true);
     setError(null);
+    setFieldError(null);
     setNotice(null);
     let res: Awaited<ReturnType<typeof requestOtp>>;
     try {
@@ -258,9 +269,9 @@ export function SignupInner({
     } else if (res.error === "send-failed") {
       setError(c.errSend);
     } else if (res.error === "invalid-email") {
-      setError(c.errBadEmail);
+      invalid("identifier", c.errBadEmail);
     } else if (res.error === "invalid-phone") {
-      setError(ar ? "رقم الهاتف موش صحيح." : "Numéro de téléphone invalide.");
+      invalid("identifier", ar ? "رقم الهاتف موش صحيح." : "Numéro de téléphone invalide.");
     } else {
       setError(t.extra.error);
     }
@@ -289,6 +300,7 @@ export function SignupInner({
   function onCodeChange(raw: string) {
     const digits = raw.replace(/\D/g, "").slice(0, 6);
     setCode(digits);
+    if (fieldError?.field === "code") setFieldError(null);
     if (digits.length === 6 && !loading) void verifyWith(digits);
   }
 
@@ -296,9 +308,10 @@ export function SignupInner({
 
   async function verifyWith(submitted: string) {
     if (loading) return;
-    if (!submitted.trim()) { setError(c.codeHelp); return; }
+    if (!submitted.trim()) { invalid("code", c.codeHelp); return; }
     setLoading(true);
     setError(null);
+    setFieldError(null);
     setNotice(null);
     let res: Awaited<ReturnType<typeof verifyOtp>>;
     try {
@@ -324,7 +337,7 @@ export function SignupInner({
         setError(c.errTooManyAttempts(res.retryAfter ?? 900));
         return;
       }
-      if (res.error === "invalid-code") { setError(c.errBadCode); return; }
+      if (res.error === "invalid-code") { invalid("code", c.errBadCode); return; }
       setError(t.extra.error);
       return;
     }
@@ -402,7 +415,10 @@ export function SignupInner({
               }}
               noValidate
             >
-            <Field label={isEmail ? c.email : t.auth.phone}>
+            <Field
+              label={isEmail ? c.email : t.auth.phone}
+              error={fieldError?.field === "identifier" ? fieldError.message : undefined}
+            >
               <div className="inp">
                 {isEmail ? <Mail className="" /> : <Phone className="" />}
                 {!isEmail && (
@@ -414,8 +430,12 @@ export function SignupInner({
                   type={isEmail ? "email" : "tel"}
                   dir="ltr"
                   placeholder={isEmail ? c.emailPh : t.auth.phonePh}
+                  ref={identifierRef}
                   value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
+                  onChange={(e) => {
+                    setIdentifier(e.target.value);
+                    if (fieldError?.field === "identifier") setFieldError(null);
+                  }}
                   inputMode={isEmail ? "email" : "tel"}
                   autoComplete={isEmail ? "email" : "tel"}
                   autoCapitalize="off"
@@ -473,7 +493,7 @@ export function SignupInner({
                 <div className="text-center">
                   <button
                     type="button"
-                    onClick={() => { setError(null); setNotice(null); setCodeSent(true); }}
+                    onClick={() => { setError(null); setFieldError(null); setNotice(null); setCodeSent(true); }}
                     className="linklike bg-transparent border-0 text-[13px] min-h-[44px] min-w-[44px] font-[inherit]"
                   >
                     {c.haveCode}
@@ -488,7 +508,7 @@ export function SignupInner({
                     type="button"
                     className="linklike bg-transparent border-0 text-[13px] min-h-[44px] min-w-[44px] flex-none font-[inherit]"
                     onClick={() => {
-                      setCodeSent(false); setCode(""); setDevCode(null); setError(null);
+                      setCodeSent(false); setCode(""); setDevCode(null); setError(null); setFieldError(null);
                       // The timers describe a code that is no longer on screen.
                       cooldown.start(0); expiry.start(0); setHadExpiry(false);
                     }}
@@ -516,12 +536,17 @@ export function SignupInner({
                   <p className="text-[13px] text-muted leading-[1.5] mb-3.5">{c.spam}</p>
                 )}
 
-                <Field label={isEmail ? c.codeLabelEmail : c.codeLabelSms} help={c.codeHelp}>
+                <Field
+                  label={isEmail ? c.codeLabelEmail : c.codeLabelSms}
+                  help={c.codeHelp}
+                  error={fieldError?.field === "code" ? fieldError.message : undefined}
+                >
                   <div className="inp">
                     <input
                       type="text"
                       dir="ltr"
                       placeholder="000000"
+                      ref={codeRef}
                       value={code}
                       onChange={(e) => onCodeChange(e.target.value)}
                       inputMode="numeric"

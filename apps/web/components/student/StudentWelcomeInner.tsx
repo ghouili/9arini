@@ -18,7 +18,7 @@
    and a student who arrived here mid-booking (?next=/checkout?class=x) must never
    lose that booking to an onboarding screen. Skipping keeps ?next= and asks again
    on the next login (verifyOtp recomputes needsProfile every time). */
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useLocalizedRouter } from "@/components/Link";
 import { Button, Field } from "@/components/ui";
 import { ProgressSteps } from "@/components/ProgressSteps";
@@ -155,11 +155,23 @@ export function StudentWelcomeInner({
     );
   }
 
+  /* A problem with one field goes ON that field (Field sets aria-invalid +
+     aria-describedby) and focus moves to it; `error` is for everything else. */
+  const [fieldError, setFieldError] = useState<{ field: "name" | "phone"; message: string } | null>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
+  const phoneRef = useRef<HTMLInputElement>(null);
+  function invalid(field: "name" | "phone", message: string) {
+    setError(null);
+    setFieldError({ field, message });
+    (field === "name" ? nameRef : phoneRef).current?.focus();
+  }
+
   async function handleSave() {
     if (saving) return;
-    if (name.trim().length < 2) { setError(c.errName); return; }
+    if (name.trim().length < 2) { invalid("name", c.errName); return; }
     setSaving(true);
     setError(null);
+    setFieldError(null);
     let res: Awaited<ReturnType<typeof saveStudentProfile>>;
     try {
       res = await saveStudentProfile({ fullName: name, level: level || null, subjects, phone: phone || null });
@@ -172,7 +184,7 @@ export function StudentWelcomeInner({
     setSaving(false);
     if (res.ok) { router.push(done); return; }
     if (res.error === "not-authenticated") setError(c.errAuth);
-    else if (res.error === "invalid-phone") setError(c.errPhone);
+    else if (res.error === "invalid-phone") invalid("phone", c.errPhone);
     else setError(c.errGeneric);
   }
 
@@ -201,14 +213,15 @@ export function StudentWelcomeInner({
             </h1>
             <p className="text-[13.5px] text-muted mb-6 leading-[1.55]">{c.lead}</p>
 
-            <Field label={c.name} help={c.nameHelp}>
+            <Field label={c.name} help={c.nameHelp} error={fieldError?.field === "name" ? fieldError.message : undefined}>
               <div className="inp" style={name ? { borderColor: "var(--blue)" } : undefined}>
                 <User className="" />
                 <input
                   type="text"
                   placeholder={c.namePh}
+                  ref={nameRef}
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => { setName(e.target.value); if (fieldError?.field === "name") setFieldError(null); }}
                   autoComplete="name"
                   maxLength={80}
                   className="min-w-0"
@@ -236,15 +249,16 @@ export function StudentWelcomeInner({
               </div>
             </Field>
 
-            <Field label={c.phone} help={c.phoneHelp}>
+            <Field label={c.phone} help={c.phoneHelp} error={fieldError?.field === "phone" ? fieldError.message : undefined}>
               <div className="inp" style={phone ? { borderColor: "var(--blue)" } : undefined}>
                 <Phone className="" />
                 <input
                   type="tel"
                   dir="ltr"
                   placeholder={c.phonePh}
+                  ref={phoneRef}
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => { setPhone(e.target.value); if (fieldError?.field === "phone") setFieldError(null); }}
                   inputMode="tel"
                   autoComplete="tel"
                   className="min-w-0"

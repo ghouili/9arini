@@ -161,7 +161,13 @@ export function Avatar({
    dangling aria-describedby pointing at no element is worse than none.
 
    `error` is announced with role="alert" and takes precedence in the description
-   order, so the problem is read before the general help text. */
+   order, so the problem is read before the general help text.
+
+   While `error` is set the control also carries aria-invalid="true"; the attribute
+   disappears on the render after the caller clears the error. The control always
+   gets a stable id (unless the caller set one), so a caller can focus it and a
+   test can find it. Moving focus is the CALLER's job — only the form knows which
+   field failed a submit — via a ref on the input; cloneElement keeps the ref. */
 export function Field({
   label, children, help, error,
 }: { label: string; children: ReactNode; help?: string; error?: string }) {
@@ -172,7 +178,7 @@ export function Field({
 
   /* The control is usually wrapped (e.g. <div className="inp"><input/></div>), so
      walk one level to find it rather than assuming children IS the input. */
-  const described = describedBy ? describe(children, describedBy) : children;
+  const described = wire(children, { id: `${uid}-control`, describedBy, invalid: Boolean(error) });
 
   return (
     <label className="field">
@@ -188,18 +194,30 @@ export function Field({
   );
 }
 
-/** Attach aria-describedby to the first form control found in `node`. */
-function describe(node: ReactNode, ids: string): ReactNode {
-  if (!isValidElement(node)) return node;
-  const el = node as ReactElement<{ children?: ReactNode; "aria-describedby"?: string }>;
+type ControlProps = { children?: ReactNode; id?: string; "aria-describedby"?: string; "aria-invalid"?: boolean | "true" | "false" };
+
+/** Give the FIRST form control found in `node` its id, aria-describedby and
+    aria-invalid. Only the first: a second control must not get the same id. */
+function wire(
+  node: ReactNode,
+  a: { id: string; describedBy?: string; invalid: boolean },
+  seen = { control: false },
+): ReactNode {
+  if (seen.control || !isValidElement(node)) return node;
+  const el = node as ReactElement<ControlProps>;
   const type = el.type;
   if (type === "input" || type === "textarea" || type === "select") {
-    // Never clobber an aria-describedby a caller set deliberately.
-    return el.props["aria-describedby"] ? el : cloneElement(el, { "aria-describedby": ids });
+    seen.control = true;
+    // Never clobber an id, description or invalid state a caller set deliberately.
+    const props: ControlProps = {};
+    if (!el.props.id) props.id = a.id;
+    if (a.describedBy && !el.props["aria-describedby"]) props["aria-describedby"] = a.describedBy;
+    if (a.invalid && el.props["aria-invalid"] === undefined) props["aria-invalid"] = true;
+    return cloneElement(el, props);
   }
   if (el.props?.children == null) return el;
   return cloneElement(el, {
-    children: Children.map(el.props.children, (child) => describe(child, ids)),
+    children: Children.map(el.props.children, (child) => wire(child, a, seen)),
   });
 }
 

@@ -1,5 +1,5 @@
 "use client";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { Link } from "@/components/Link";
 import { Button, Field } from "@/components/ui";
 import { useLocale } from "@/components/LocaleProvider";
@@ -54,6 +54,15 @@ const copy = bilingual({
     verifNote: "Ta classe se publie une fois ton compte vérifié.",
     verifCta: "Vérifier mon compte",
     descPh: "ex. Méthodes + annales. On fait 3 exercices types ensemble.",
+    // Field refusals from createClass (apps/api/src/routes/classes.ts validators).
+    errTitle: "Le titre doit faire au moins 3 caractères.",
+    errDescription: "La description ne peut pas dépasser 1000 caractères.",
+    errDate: "Choisis une date et une heure valides.",
+    errDatePast: "Choisis une date à venir.",
+    errDuration: "Choisis une durée valide, en minutes.",
+    errPrice: "Le prix doit être entre 0 et 5000 TND.",
+    errSeats: "Choisis un nombre de places valide.",
+    errUrl: "Ce lien n'est pas valide : il doit commencer par https://",
   },
   ar: {
     lead: "عنوان، وقت، وثمنك. الحصة تبان في صفحتك، والتلامذة يحجزو بكليكة.",
@@ -61,8 +70,28 @@ const copy = bilingual({
     verifNote: "الحصة تتنشر كي يتثبّت حسابك.",
     verifCta: "ثبّت حسابي",
     descPh: "مثال: مناهج + امتحانات. نعملو 3 تمارين نموذجية مع بعضنا.",
+    errTitle: "العنوان لازم يكون فيه 3 حروف على الأقل.",
+    errDescription: "الوصف ما ينجّمش يفوت 1000 حرف.",
+    errDate: "اختار تاريخ ووقت صحاح.",
+    errDatePast: "اختار تاريخ جاي.",
+    errDuration: "اختار مدّة صحيحة، بالدقايق.",
+    errPrice: "الثمن لازم يكون بين 0 و 5000 د.ت.",
+    errSeats: "اختار عدد بلايص صحيح.",
+    errUrl: "الرابط هذا موش صحيح : لازم يبدا بـ https://",
   },
 });
+
+/* The fields createClass validates, by the name its error codes use:
+   "invalid-price", "price-too-high", "date-in-past", "invalid-meet-url"… */
+const CLASS_FIELDS = ["title", "description", "date", "duration", "price", "seats", "meet-url", "whiteboard-url", "quiz-url"] as const;
+type ClassField = (typeof CLASS_FIELDS)[number];
+
+/** The field a createClass refusal names, or null when it is not about one field. */
+function fieldOf(code: string | undefined): ClassField | null {
+  if (!code) return null;
+  const name = code.replace(/^(invalid|negative)-/, "").replace(/-(too-long|too-high|in-past)$/, "");
+  return (CLASS_FIELDS as readonly string[]).includes(name) ? (name as ClassField) : null;
+}
 
 export default function NewClassPage() {
   const { t, locale } = useLocale();
@@ -83,10 +112,40 @@ export default function NewClassPage() {
   const [demo, setDemo] = useState(false);
   /* Not a toast: this one has to persist and carry a link. */
   const [planLimit, setPlanLimit] = useState<{ limit: number; plan: string } | null>(null);
+  /* A refusal about ONE field is shown on that field (Field sets aria-invalid +
+     aria-describedby) and focus moves to it. It used to be a toast reading "une
+     erreur s'est produite", gone in three seconds and pointing at nothing. Empty
+     required fields never get this far: the browser's own validation stops them. */
+  const [fieldError, setFieldError] = useState<{ field: ClassField; message: string } | null>(null);
+  const refs = {
+    title: useRef<HTMLInputElement>(null),
+    description: useRef<HTMLTextAreaElement>(null),
+    date: useRef<HTMLInputElement>(null),
+    duration: useRef<HTMLInputElement>(null),
+    price: useRef<HTMLInputElement>(null),
+    seats: useRef<HTMLInputElement>(null),
+    "meet-url": useRef<HTMLInputElement>(null),
+    "whiteboard-url": useRef<HTMLInputElement>(null),
+    "quiz-url": useRef<HTMLInputElement>(null),
+  };
+  const errorFor = (field: ClassField) => (fieldError?.field === field ? fieldError.message : undefined);
+  const clearError = (field: ClassField) => { if (fieldError?.field === field) setFieldError(null); };
+  function messageForField(field: ClassField, code: string): string {
+    switch (field) {
+      case "title": return c.errTitle;
+      case "description": return c.errDescription;
+      case "date": return code === "date-in-past" ? c.errDatePast : c.errDate;
+      case "duration": return c.errDuration;
+      case "price": return c.errPrice;
+      case "seats": return c.errSeats;
+      default: return c.errUrl;
+    }
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setSubmitted(true);
+    setFieldError(null);
     const res = await createClass({
       title, description: desc, scheduledAt: datetime,
       durationMin: Number(duration), priceTnd: Number(price), seats: Number(seats),
@@ -106,6 +165,12 @@ export default function NewClassPage() {
         return;
       }
       setPlanLimit(null);
+      const field = fieldOf(res.error);
+      if (field && res.error) {
+        setFieldError({ field, message: messageForField(field, res.error) });
+        refs[field].current?.focus();
+        return;
+      }
       showToast(
         res.error === "not-verified" ? NOT_VERIFIED_MSG[locale]
           : res.error === "contact-info-not-allowed" ? CONTACT_INFO_MSG[locale]
@@ -159,13 +224,14 @@ export default function NewClassPage() {
                   )}
 
                   {/* Title */}
-                  <Field label={t.createClass.name}>
+                  <Field label={t.createClass.name} error={errorFor("title")}>
                     <div className="inp">
                       <input
                         type="text"
                         placeholder={t.createClass.namePh}
+                        ref={refs.title}
                         value={title}
-                        onChange={(e) => setTitle(e.target.value)}
+                        onChange={(e) => { setTitle(e.target.value); clearError("title"); }}
                         required
                         maxLength={80}
                       />
@@ -173,25 +239,27 @@ export default function NewClassPage() {
                   </Field>
 
                   {/* Description */}
-                  <Field label={t.createClass.desc}>
+                  <Field label={t.createClass.desc} error={errorFor("description")}>
                     <div className="inp items-start">
                       <textarea
                         rows={3}
                         placeholder={c.descPh}
+                        ref={refs.description}
                         value={desc}
-                        onChange={(e) => setDesc(e.target.value)}
+                        onChange={(e) => { setDesc(e.target.value); clearError("description"); }}
                         style={{ resize: "vertical", minHeight: 80 }}
                       />
                     </div>
                   </Field>
 
                   {/* Date & time */}
-                  <Field label={t.createClass.date}>
+                  <Field label={t.createClass.date} error={errorFor("date")}>
                     <div className="inp">
                       <input
                         type="datetime-local"
+                        ref={refs.date}
                         value={datetime}
-                        onChange={(e) => setDatetime(e.target.value)}
+                        onChange={(e) => { setDatetime(e.target.value); clearError("date"); }}
                         required
                         style={{ colorScheme: "light" }}
                       />
@@ -201,15 +269,16 @@ export default function NewClassPage() {
                   {/* Duration + Price — stack on mobile, side-by-side ≥480px */}
                   <div className="flex flex-wrap gap-2.5">
                     <div className="flex-[1_1_140px] min-w-0">
-                      <Field label={t.createClass.duration}>
+                      <Field label={t.createClass.duration} error={errorFor("duration")}>
                         <div className="inp">
                           <input
                             type="number"
                             min={15}
                             max={240}
                             step={15}
+                            ref={refs.duration}
                             value={duration}
-                            onChange={(e) => setDuration(e.target.value)}
+                            onChange={(e) => { setDuration(e.target.value); clearError("duration"); }}
                             required
                           />
                           <span className="pre">{t.common.min}</span>
@@ -217,15 +286,16 @@ export default function NewClassPage() {
                       </Field>
                     </div>
                     <div className="flex-[1_1_140px] min-w-0">
-                      <Field label={t.createClass.price} help={c.priceHelp}>
+                      <Field label={t.createClass.price} help={c.priceHelp} error={errorFor("price")}>
                         <div className="inp">
                           <input
                             type="number"
                             min={0}
                             step={0.5}
                             placeholder="15"
+                            ref={refs.price}
                             value={price}
-                            onChange={(e) => setPrice(e.target.value)}
+                            onChange={(e) => { setPrice(e.target.value); clearError("price"); }}
                             required
                           />
                           <span className="pre">{t.common.tnd}</span>
@@ -235,14 +305,15 @@ export default function NewClassPage() {
                   </div>
 
                   {/* Seats */}
-                  <Field label={t.createClass.seats}>
+                  <Field label={t.createClass.seats} error={errorFor("seats")}>
                     <div className="inp">
                       <input
                         type="number"
                         min={1}
                         max={200}
+                        ref={refs.seats}
                         value={seats}
-                        onChange={(e) => setSeats(e.target.value)}
+                        onChange={(e) => { setSeats(e.target.value); clearError("seats"); }}
                         required
                       />
                     </div>
@@ -260,7 +331,7 @@ export default function NewClassPage() {
                       {t.tools.setLinks}
                     </div>
 
-                    <Field label={t.tools.videoUrl}>
+                    <Field label={t.tools.videoUrl} error={errorFor("meet-url")}>
                       <div className="inp">
                         <Video className="w-4 h-4 text-muted shrink-0" />
                         <input
@@ -269,13 +340,14 @@ export default function NewClassPage() {
                           /* dir="ltr" — a Latin URL in an RTL field renders mirrored. */
                           dir="ltr"
                           placeholder="https://meet.jit.si/…"
+                          ref={refs["meet-url"]}
                           value={videoUrl}
-                          onChange={(e) => setVideoUrl(e.target.value)}
+                          onChange={(e) => { setVideoUrl(e.target.value); clearError("meet-url"); }}
                         />
                       </div>
                     </Field>
 
-                    <Field label={t.tools.whiteboardUrl}>
+                    <Field label={t.tools.whiteboardUrl} error={errorFor("whiteboard-url")}>
                       <div className="inp">
                         <Board className="w-4 h-4 text-muted shrink-0" />
                         <input
@@ -284,13 +356,14 @@ export default function NewClassPage() {
                           /* dir="ltr" — a Latin URL in an RTL field renders mirrored. */
                           dir="ltr"
                           placeholder="https://bitpaper.io/…"
+                          ref={refs["whiteboard-url"]}
                           value={whiteboardUrl}
-                          onChange={(e) => setWhiteboardUrl(e.target.value)}
+                          onChange={(e) => { setWhiteboardUrl(e.target.value); clearError("whiteboard-url"); }}
                         />
                       </div>
                     </Field>
 
-                    <Field label={t.tools.quizUrl} help={t.tools.hint}>
+                    <Field label={t.tools.quizUrl} help={t.tools.hint} error={errorFor("quiz-url")}>
                       <div className="inp">
                         <Quiz className="w-4 h-4 text-muted shrink-0" />
                         <input
@@ -299,8 +372,9 @@ export default function NewClassPage() {
                           /* dir="ltr" — a Latin URL in an RTL field renders mirrored. */
                           dir="ltr"
                           placeholder="https://wooclap.com/…"
+                          ref={refs["quiz-url"]}
                           value={quizUrl}
-                          onChange={(e) => setQuizUrl(e.target.value)}
+                          onChange={(e) => { setQuizUrl(e.target.value); clearError("quiz-url"); }}
                         />
                       </div>
                     </Field>

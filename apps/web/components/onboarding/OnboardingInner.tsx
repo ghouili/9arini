@@ -192,6 +192,25 @@ export function OnboardingInner({ state }: { state: OnboardingState | null }) {
   const [published, setPublished] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /* A problem with one field is shown ON that field (Field sets aria-invalid and
+     aria-describedby) and focus moves to it, so a keyboard or screen-reader user
+     lands on what to fix. `error` is for everything that is not about a field. */
+  type FieldName = "name" | "subject" | "bio" | "phone" | "slug";
+  const [fieldError, setFieldError] = useState<{ field: FieldName; message: string } | null>(null);
+  const fieldRefs = {
+    name: useRef<HTMLInputElement>(null),
+    subject: useRef<HTMLInputElement>(null),
+    bio: useRef<HTMLTextAreaElement>(null),
+    phone: useRef<HTMLInputElement>(null),
+    slug: useRef<HTMLInputElement>(null),
+  };
+  function invalid(field: FieldName, message: string) {
+    setError(null);
+    setFieldError({ field, message });
+    fieldRefs[field].current?.focus();
+  }
+  const errorFor = (field: FieldName) => (fieldError?.field === field ? fieldError.message : undefined);
+  const clearError = (field: FieldName) => { if (fieldError?.field === field) setFieldError(null); };
 
   // Random suffix for names with no Latin characters. Effect, not render — see above.
   const fallback = useRef("");
@@ -220,6 +239,18 @@ export function OnboardingInner({ state }: { state: OnboardingState | null }) {
 
 
 
+  /** Which field a server refusal is about, if any. */
+  function fieldFor(code: string | undefined): FieldName | null {
+    switch (code) {
+      case "slug-taken": case "slug-reserved": case "invalid-slug": return "slug";
+      case "invalid-name": case "name-too-long": return "name";
+      case "invalid-subject": case "subject-too-long": return "subject";
+      case "bio-too-long": return "bio";
+      case "invalid-phone": return "phone";
+      default: return null;
+    }
+  }
+
   function messageFor(code: string | undefined): string {
     switch (code) {
       case "slug-taken": return c.errSlugTaken;
@@ -242,11 +273,12 @@ export function OnboardingInner({ state }: { state: OnboardingState | null }) {
     /* Validate on CLICK. The button used to be disabled until every field was
        valid, which meant the primary CTA of the tutor funnel rendered grey and
        inert until hydration — and never explained which field was the problem. */
-    if (name.trim().length < 2) { setError(c.errName); return; }
-    if (!subject.trim()) { setError(c.errSubject); return; }
-    if (slugError) { setError(slugError); return; }
+    if (name.trim().length < 2) { invalid("name", c.errName); return; }
+    if (!subject.trim()) { invalid("subject", c.errSubject); return; }
+    if (slugError) { invalid("slug", slugError); return; }
     setPublishing(true);
     setError(null);
+    setFieldError(null);
     let res: Awaited<ReturnType<typeof createTutor>>;
     try {
       res = await createTutor({ name, subject, bio, slug, phone: phone || null });
@@ -261,7 +293,9 @@ export function OnboardingInner({ state }: { state: OnboardingState | null }) {
       setPublished(true);
       return;
     }
-    setError(messageFor(res.error));
+    const field = fieldFor(res.error);
+    if (field) invalid(field, messageFor(res.error));
+    else setError(messageFor(res.error));
   }
 
   /* The bar reflects reality, so publishing advances it. Everything else about the
@@ -298,54 +332,58 @@ export function OnboardingInner({ state }: { state: OnboardingState | null }) {
               </ul>
 
               <div className="max-w-[520px]">
-                <Field label={t.onboarding.name}>
+                <Field label={t.onboarding.name} error={errorFor("name")}>
                   <div className="inp" style={name ? { borderColor: "var(--blue)" } : undefined}>
                     <input
                       type="text"
                       placeholder={t.onboarding.namePh}
+                      ref={fieldRefs.name}
                       value={name}
-                      onChange={(e) => handleName(e.target.value)}
+                      onChange={(e) => { handleName(e.target.value); clearError("name"); }}
                       maxLength={80}
                       className="min-w-0"
                     />
                   </div>
                 </Field>
 
-                <Field label={t.onboarding.subject}>
+                <Field label={t.onboarding.subject} error={errorFor("subject")}>
                   <div className="inp" style={subject ? { borderColor: "var(--blue)" } : undefined}>
                     <input
                       type="text"
                       placeholder={t.onboarding.subjectPh}
+                      ref={fieldRefs.subject}
                       value={subject}
-                      onChange={(e) => setSubject(e.target.value)}
+                      onChange={(e) => { setSubject(e.target.value); clearError("subject"); }}
                       maxLength={80}
                       className="min-w-0"
                     />
                   </div>
                 </Field>
 
-                <Field label={t.onboarding.bio}>
+                <Field label={t.onboarding.bio} error={errorFor("bio")}>
                   <div className="inp" style={bio ? { borderColor: "var(--blue)" } : undefined}>
                     <textarea
                       rows={2}
                       placeholder={t.onboarding.bioPh}
+                      ref={fieldRefs.bio}
                       value={bio}
-                      onChange={(e) => setBio(e.target.value)}
+                      onChange={(e) => { setBio(e.target.value); clearError("bio"); }}
                       maxLength={1000}
                       className="resize-none min-w-0"
                     />
                   </div>
                 </Field>
 
-                <Field label={c.phone} help={c.phoneHelp}>
+                <Field label={c.phone} help={c.phoneHelp} error={errorFor("phone")}>
                   <div className="inp" style={phone ? { borderColor: "var(--blue)" } : undefined}>
                     <Phone className="" />
                     <input
                       type="tel"
                       dir="ltr"
                       placeholder={c.phonePh}
+                      ref={fieldRefs.phone}
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
+                      onChange={(e) => { setPhone(e.target.value); clearError("phone"); }}
                       inputMode="tel"
                       autoComplete="tel"
                       className="min-w-0"
@@ -365,7 +403,7 @@ export function OnboardingInner({ state }: { state: OnboardingState | null }) {
                 <Field
                   label={t.onboarding.link}
                   help={slugLocked ? c.linkLocked : c.linkHelp}
-                  error={slugError && (name || slugTouched) ? slugError : undefined}
+                  error={errorFor("slug") ?? (slugError && (name || slugTouched) ? slugError : undefined)}
                 >
                   <div
                     className={`inp ${slugError ? "border-rose" : slug ? "border-blue" : ""}`}
@@ -374,9 +412,10 @@ export function OnboardingInner({ state }: { state: OnboardingState | null }) {
                     <span className="pre whitespace-nowrap shrink-0">tnajem.tn/</span>
                     <input
                       type="text"
+                      ref={fieldRefs.slug}
                       value={slug}
-                      onChange={(e) => { setSlugTouched(true); setSlug(e.target.value.toLowerCase()); }}
-                      aria-invalid={Boolean(slugError)}
+                      onChange={(e) => { setSlugTouched(true); setSlug(e.target.value.toLowerCase()); clearError("slug"); }}
+                      aria-invalid={Boolean(slugError || errorFor("slug"))}
                       maxLength={40}
                       /* Locked once the page exists — see slugLocked. readOnly rather
                          than disabled so the value stays selectable and copyable:

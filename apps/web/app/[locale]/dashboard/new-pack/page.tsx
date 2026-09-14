@@ -1,5 +1,5 @@
 "use client";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { Link } from "@/components/Link";
 import { Button, Field } from "@/components/ui";
 import { useLocale } from "@/components/LocaleProvider";
@@ -25,6 +25,10 @@ const copy = bilingual({
     metaPh: "42 pages · 6 vidéos",
     verifNote: "Ton pack se publie une fois ton compte vérifié.",
     verifCta: "Vérifier mon compte",
+    // Field refusals from createPack (apps/api/src/routes/classes.ts validators).
+    errTitle: "Le titre doit faire au moins 3 caractères.",
+    errMeta: "Ce détail ne peut pas dépasser 200 caractères.",
+    errPrice: "Le prix doit être entre 0 et 5000 TND.",
   },
   ar: {
     hintTitle: "فيشات، PDF، فيديوهات",
@@ -38,8 +42,22 @@ const copy = bilingual({
     metaPh: "42 صفحة · 6 فيديوهات",
     verifNote: "الپاك يتنشر كي يتثبّت حسابك.",
     verifCta: "ثبّت حسابي",
+    errTitle: "العنوان لازم يكون فيه 3 حروف على الأقل.",
+    errMeta: "التفاصيل ما تنجّمش تفوت 200 حرف.",
+    errPrice: "السوم لازم يكون بين 0 و 5000 د.ت.",
   },
 });
+
+/* The fields createPack validates, by the name its error codes use
+   ("invalid-title", "price-too-high"…). */
+const PACK_FIELDS = ["title", "meta", "price"] as const;
+type PackField = (typeof PACK_FIELDS)[number];
+
+function fieldOf(code: string | undefined): PackField | null {
+  if (!code) return null;
+  const name = code.replace(/^(invalid|negative)-/, "").replace(/-(too-long|too-high)$/, "");
+  return (PACK_FIELDS as readonly string[]).includes(name) ? (name as PackField) : null;
+}
 
 export default function NewPackPage() {
   const { t, locale } = useLocale();
@@ -51,20 +69,37 @@ export default function NewPackPage() {
   const [submitted, setSubmitted] = useState(false);
   // Only ever true when the server action itself reports demo mode (no DB).
   const [demo, setDemo] = useState(false);
+  /* A refusal about one field is shown ON it, with focus moved there — not in a
+     toast that points at nothing. See new-class/page.tsx. */
+  const [fieldError, setFieldError] = useState<{ field: PackField; message: string } | null>(null);
+  const refs = {
+    title: useRef<HTMLInputElement>(null),
+    meta: useRef<HTMLInputElement>(null),
+    price: useRef<HTMLInputElement>(null),
+  };
+  const errorFor = (field: PackField) => (fieldError?.field === field ? fieldError.message : undefined);
+  const clearError = (field: PackField) => { if (fieldError?.field === field) setFieldError(null); };
 
   const { toast, showToast } = useToast();
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setSubmitted(true);
+    setFieldError(null);
     const res = await createPack({ title, meta, priceTnd: Number(price) || 0 });
     if (res.ok) {
       setDemo(Boolean(res.demo));
       showToast(res.demo ? `${t.extra.packPublished} · ${t.common.demoMode}` : t.extra.packPublished);
     } else {
       // Server-side validation (empty title, negative price…) — let them fix it.
-      showToast(res.error === "not-verified" ? c.notVerified : t.extra.error);
       setSubmitted(false);
+      const field = fieldOf(res.error);
+      if (field) {
+        setFieldError({ field, message: field === "title" ? c.errTitle : field === "meta" ? c.errMeta : c.errPrice });
+        refs[field].current?.focus();
+        return;
+      }
+      showToast(res.error === "not-verified" ? c.notVerified : t.extra.error);
     }
   }
 
@@ -110,13 +145,14 @@ export default function NewPackPage() {
 
                 <form onSubmit={handleSubmit}>
                   {/* Title */}
-                  <Field label={t.createPack.name}>
+                  <Field label={t.createPack.name} error={errorFor("title")}>
                     <div className="inp">
                       <input
                         type="text"
                         placeholder={c.titlePh}
+                        ref={refs.title}
                         value={title}
-                        onChange={(e) => setTitle(e.target.value)}
+                        onChange={(e) => { setTitle(e.target.value); clearError("title"); }}
                         required
                         maxLength={80}
                       />
@@ -127,28 +163,31 @@ export default function NewPackPage() {
                   <Field
                     label={t.createPack.meta}
                     help={c.metaHelp}
+                    error={errorFor("meta")}
                   >
                     <div className="inp">
                       <input
                         type="text"
                         placeholder={c.metaPh}
+                        ref={refs.meta}
                         value={meta}
-                        onChange={(e) => setMeta(e.target.value)}
+                        onChange={(e) => { setMeta(e.target.value); clearError("meta"); }}
                         maxLength={80}
                       />
                     </div>
                   </Field>
 
                   {/* Price */}
-                  <Field label={t.createPack.price}>
+                  <Field label={t.createPack.price} error={errorFor("price")}>
                     <div className="inp">
                       <input
                         type="number"
                         min={0}
                         step={0.5}
                         placeholder="8"
+                        ref={refs.price}
                         value={price}
-                        onChange={(e) => setPrice(e.target.value)}
+                        onChange={(e) => { setPrice(e.target.value); clearError("price"); }}
                         required
                       />
                       <span className="pre">{t.common.tnd}</span>
