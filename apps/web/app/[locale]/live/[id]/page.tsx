@@ -234,7 +234,7 @@ export default function LiveLobbyPage({ params }: Props) {
                 <LiveCountdown ts={ts as number} />
               ) : (
                 <div style={{ display: "inline-flex", alignItems: "center", gap: 7, color: "var(--on-dark)", fontSize: 13.5, fontWeight: 600, margin: "18px 0 6px" }}>
-                  <Clock /> {cls.day} {cls.month} · {cls.time} · {cls.duration_min} {t.common.min}
+                  <Clock /> <time dateTime={cls.starts_at}>{cls.day} {cls.month} · {cls.time}</time> · {cls.duration_min} {t.common.min}
                 </div>
               )}
 

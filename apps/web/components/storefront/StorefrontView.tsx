@@ -347,17 +347,19 @@ export function StorefrontView({
                             markup) is invalid, non-focusable-in-order interactive
                             nesting. */}
                         <Link href={`/class/${cls.id}`} className="u-card u-card-int sf-row">
-                          <div className="thumb">
+                          {/* <time>, not <div>: the date is data. .thumb is display:grid, so the
+                              element swap changes nothing visually. */}
+                          <time className="thumb" dateTime={cls.starts_at}>
                             <b>{cls.day}</b>
                             <span>{localMonth(cls.month)}</span>
-                          </div>
+                          </time>
 
                           <div className="sf-row-main">
                             <UserText as="h3" className="sf-row-title">{cls.title}</UserText>
                             <div className="metaline">
                               <span>
                                 <Clock />
-                                {cls.time} · {cls.duration_min} {t.common.min}
+                                <time dateTime={cls.starts_at}>{cls.time}</time> · {cls.duration_min} {t.common.min}
                               </span>
                               <span className={soldOut ? "sf-soldout" : undefined}>
                                 <Users />
@@ -496,7 +498,9 @@ export function StorefrontView({
                     <div className="metaline sf-panel-meta">
                       <span>
                         <Calendar />
-                        {firstClass.day} {localMonth(firstClass.month)} · {firstClass.time}
+                        <time dateTime={firstClass.starts_at}>
+                          {firstClass.day} {localMonth(firstClass.month)} · {firstClass.time}
+                        </time>
                       </span>
                       <span>
                         <Clock />

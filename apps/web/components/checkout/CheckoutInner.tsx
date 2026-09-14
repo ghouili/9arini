@@ -185,9 +185,9 @@ function Confetti() {
 
 /* ---------- success overlay ---------- */
 function SuccessOverlay({
-  show, okTitle, okBody, whenLabel, when, okCta,
+  show, okTitle, okBody, whenLabel, when, whenIso, okCta,
 }: {
-  show: boolean; okTitle: string; okBody: string; whenLabel: string; when: string; okCta: string;
+  show: boolean; okTitle: string; okBody: string; whenLabel: string; when: string; whenIso: string; okCta: string;
 }) {
   if (!show) return null;
   return (
@@ -219,7 +219,7 @@ function SuccessOverlay({
       <div className="ck-success-when">
         <Calendar />
         <span>
-          <b>{whenLabel}</b> {when}
+          <b>{whenLabel}</b> <time dateTime={whenIso}>{when}</time>
         </span>
       </div>
 
@@ -405,16 +405,16 @@ export default function CheckoutInner() {
       </div>
 
       <div className="u-card u-card-pad ck-class">
-        <div className="thumb" style={{ background: "var(--blue)", color: "#fff" }}>
+        <time className="thumb" dateTime={cls.starts_at} style={{ background: "var(--blue)", color: "#fff" }}>
           <b>{cls.day}</b>
           <span>{month}</span>
-        </div>
+        </time>
         <div className="ck-class-main">
           <UserText as="div" className="ck-class-title">{cls.title}</UserText>
           <div className="metaline">
             <span>
               <Clock />
-              {cls.time} · {cls.duration_min} {t.common.min}
+              <time dateTime={cls.starts_at}>{cls.time}</time> · {cls.duration_min} {t.common.min}
             </span>
             <span className={soldOut ? "ck-soldout" : undefined}>
               <Users />
@@ -534,6 +534,7 @@ export default function CheckoutInner() {
         okBody={done === "already" ? c.okAlready : c.okBody}
         whenLabel={c.okWhen}
         when={whenLine}
+        whenIso={cls.starts_at}
         okCta={c.okCta}
       />
     </div>

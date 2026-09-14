@@ -321,7 +321,7 @@ function UpcomingCard({ item, hero, onChanged }: { item: StudentClass; hero: boo
 
       <div className="flex items-center gap-2.5 flex-wrap text-on-dark text-[13px] font-semibold">
         <span className="inline-flex items-center gap-1.5">
-          <Clock /> {item.day} {item.month} · {item.time}
+          <Clock /> <time dateTime={new Date(item.ts).toISOString()}>{item.day} {item.month} · {item.time}</time>
         </span>
         {item.isFree && <Chip kind="free">{c.free}</Chip>}
       </div>
@@ -525,7 +525,7 @@ export default function StudentPage() {
                         <div className="flex-1 min-w-0">
                           <UserText as="div" style={{ fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</UserText>
                           <div className="muted text-[13px] mt-0.5">
-                            {item.day} {item.month} · {item.time} · {t.student.with} <UserText>{item.tutorName}</UserText>
+                            <time dateTime={new Date(item.ts).toISOString()}>{item.day} {item.month} · {item.time}</time> · {t.student.with} <UserText>{item.tutorName}</UserText>
                           </div>
                         </div>
                         {item.replayUrl ? (

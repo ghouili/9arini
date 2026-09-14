@@ -114,7 +114,7 @@ function ChildCard({ child }: { child: GuardianChild }) {
               <div className="min-w-0">
                 <UserText as="div" className="text-[14px] font-semibold">{u.title}</UserText>
                 <div className="text-[13px] text-muted mt-0.5">
-                  {u.day} {u.month} · {u.time} · {c.with} <UserText>{u.tutorName}</UserText>
+                  <time dateTime={u.starts_at}>{u.day} {u.month} · {u.time}</time> · {c.with} <UserText>{u.tutorName}</UserText>
                 </div>
               </div>
             </li>

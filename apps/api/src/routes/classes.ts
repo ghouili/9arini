@@ -505,6 +505,7 @@ export async function classRoutes(app: FastifyInstance): Promise<void> {
       return {
         id: c.id,
         title: c.title,
+        starts_at: d.toISOString(),
         day: String(d.getDate()),
         month: MONTHS_FR[d.getMonth()] ?? "",
         time: d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),

@@ -96,6 +96,7 @@ export type TutorStats = {
 export type DashboardClass = {
   id: string;
   title: string;
+  starts_at: string;     // ISO 8601 — for <time datetime>; the strings below are for reading
   day: string;           // "23"
   month: string;         // localized short month
   time: string;          // "18:00"
@@ -217,6 +218,7 @@ export type GuardianChild = {
   upcoming: {
     classId: string;
     title: string;
+    starts_at: string;          // ISO 8601, for <time datetime>
     day: string;
     month: string;
     time: string;

@@ -295,10 +295,10 @@ export default function ClassDetailPage({ params }: { params: { id: string } }) 
               {/* When / duration / seats */}
               <div className="u-card u-card-pad mb-4">
                 <div className="cd-when">
-                  <div className="thumb bg-blue text-white">
+                  <time className="thumb bg-blue text-white" dateTime={cls.starts_at}>
                     <b>{cls.day}</b>
                     <span>{month}</span>
-                  </div>
+                  </time>
                   {/* min-width:0 — without it this flex item refuses to shrink and the
                       meta line pushes out of the card at 320px. */}
                   <div className="cd-when-main">
@@ -306,7 +306,7 @@ export default function ClassDetailPage({ params }: { params: { id: string } }) 
                     <div className="metaline">
                       <span>
                         <Clock />
-                        {cls.time} · {cls.duration_min} {t.common.min}
+                        <time dateTime={cls.starts_at}>{cls.time}</time> · {cls.duration_min} {t.common.min}
                       </span>
                       <span className={soldOut ? "cd-soldout" : undefined}>
                         <Users />
@@ -380,7 +380,7 @@ export default function ClassDetailPage({ params }: { params: { id: string } }) 
                       <div className="metaline">
                         <span>
                           <Calendar />
-                          {cls.day} {month} · {cls.time}
+                          <time dateTime={cls.starts_at}>{cls.day} {month} · {cls.time}</time>
                         </span>
                         <span>
                           <Clock />

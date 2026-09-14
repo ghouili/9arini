@@ -918,7 +918,7 @@ function RealDashboard(
                 </div>
                 <div className="flex-1 min-w-0">
                   <UserText as="div" style={{ fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{cl.title}</UserText>
-                  <div className="text-[13px] text-muted mt-0.5">{cl.day} {cl.month} · {cl.time}</div>
+                  <time className="block text-[13px] text-muted mt-0.5" dateTime={cl.starts_at}>{cl.day} {cl.month} · {cl.time}</time>
                 </div>
                 <div className="text-end flex-none ms-auto">
                   <div className="qd-num font-display font-bold text-ink">{cl.price_tnd} TND</div>
