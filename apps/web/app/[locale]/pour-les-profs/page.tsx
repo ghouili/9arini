@@ -24,12 +24,13 @@
    Uses the app design system (globals.css tokens + classes), SiteShell, useLocale.
    RTL-safe (logical properties only). Honors prefers-reduced-motion.
    ─────────────────────────────────────────────────────────────────────────── */
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState } from "react";
 import { Link } from "@/components/Link";
 import { SiteShell } from "@/components/SiteShell";
 import { useLocale } from "@/components/LocaleProvider";
 import { Wallet, Video, Share, Shield, Check, Users, Bolt, Forward } from "@/components/icons";
 import { bilingual } from "@/lib/i18n";
+import { Reveal as SharedReveal, useReveal } from "@/components/Reveal";
 import { classLimitRule, COMMISSION_PCT, commissionOn, PLANS, requirePlan, tnd } from "@tnajem/shared";
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -239,82 +240,18 @@ const copy = bilingual({
 
 type Copy = (typeof copy)[keyof typeof copy];
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   Scroll-reveal — PROGRESSIVE ENHANCEMENT, not a prerequisite for reading.
-
-   This hook used to start hidden (`opacity:0` in the SSR HTML) and only become
-   visible once an IntersectionObserver fired from a useEffect. That shipped a
-   BLANK HERO for the whole JS download+parse window, and a permanently blank
-   page if the bundle never arrived — on the 3G Android this page is actually
-   opened on, that is the common case. The <h1>, the sub-headline and the primary
-   CTA were all inside it.
-
-   Inverted: the element starts UNARMED, so the server-rendered HTML is already
-   the final, visible state. JS then *arms* the animation — and only for elements
-   that are currently off-screen, so arming can never blink out something the
-   reader is already looking at. With JS off, or if the bundle fails, the page is
-   simply a static page. Nothing to go wrong.
-   ═══════════════════════════════════════════════════════════════════════════ */
-function useReveal<T extends HTMLElement = HTMLDivElement>() {
-  const ref = useRef<T | null>(null);
-  const [armed, setArmed] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    if (!("IntersectionObserver" in window)) return;
-    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
-    // Already on screen at mount → leave it alone; animating it now would be a
-    // visible flash-out/flash-in of content the reader can see.
-    const r = el.getBoundingClientRect();
-    if (r.bottom > 0 && r.top < window.innerHeight) return;
-
-    setArmed(true);
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) {
-          if (e.isIntersecting) {
-            setArmed(false);
-            io.disconnect();
-            break;
-          }
-        }
-      },
-      /* threshold 0, not 0.16: a section TALLER than the viewport can never
-         reach a fractional visibility ratio, so the old 0.16 left tall sections
-         armed — and therefore invisible — forever. That is very reachable at
-         320px in Arabic. The negative bottom rootMargin does the "wait until
-         it's properly on screen" job instead, and it is height-independent. */
-      { threshold: 0, rootMargin: "0px 0px -8% 0px" },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-  return { ref, armed };
-}
-
-function Reveal({
-  children,
-  delay = 0,
-  as: Tag = "div",
-  className = "",
-  style,
-}: {
+/* The reveal lives in components/Reveal.tsx — /tarifs needs the same behaviour, and
+   a second copy of a rule about whether content is VISIBLE is the duplication this
+   codebase least wants. The class names stay `lpp-` prefixed and page-scoped; only
+   the logic is shared. */
+function Reveal(props: {
   children: React.ReactNode;
   delay?: number;
-  as?: any;
+  as?: React.ElementType;
   className?: string;
   style?: React.CSSProperties;
 }) {
-  const { ref, armed } = useReveal<HTMLElement>();
-  return (
-    <Tag
-      ref={ref as any}
-      className={`lpp-reveal ${armed ? "lpp-armed" : ""} ${className}`}
-      style={{ ...style, ["--lpp-d" as any]: `${delay}ms` }}
-    >
-      {children}
-    </Tag>
-  );
+  return <SharedReveal {...props} base="lpp-reveal" armedClass="lpp-armed" delayVar="--lpp-d" />;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

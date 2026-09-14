@@ -106,6 +106,13 @@ const PAIRS = [
   ["On dark", "--on-dark-soft", "--ink900", "normal", "student panel meta", "student/page.tsx:272"],
   ["On dark", "--rose200", "--ink800", "normal", "LIVE badge / alert on dark", "student/page.tsx:338"],
   ["On dark", "--mint", "--blue900", "ui", "split-bar fill / dot", "pour-les-profs:506"],
+  /* /tarifs' payoff number — --mint as TEXT at clamp(26-34px) on the hero-blue
+     gradient, which runs --blue -> #082F54. Large text needs 3.0, but check it
+     against BOTH ends: the gradient's light end is the harder one, and assuming
+     the dark end because it looked fine is exactly how a contrast bug ships. */
+  ["On dark", "--mint", "--blue", "large", ".tf-ex-net b payoff", "TarifsInner.tsx"],
+  ["On dark", "--on-blue", "--blue", "normal", ".tf-ex-row b", "TarifsInner.tsx"],
+  ["On dark", "--on-blue-soft", "--blue", "normal", ".tf-ex-row / cash / today", "TarifsInner.tsx"],
   ["On dark", "--mint200", "--blue900", "ui", ".sf-pill icon", "StorefrontView.tsx:631"],
   ["On dark", W, "--ink", "normal", ".toast / .side-nav .active", "globals.css:186"],
 

@@ -66,6 +66,10 @@
   --ochre300:#F0A85F;
   --mint:#54D6AC; --mint200:#9FD9C3;
   --on-blue:#EAF2FC;          /* primary text on a blue surface  — 13.0:1 */
+  /* Translucent white on the blue surface — structure only (rules, fills), never text. */
+  --on-blue-hairline:rgba(255,255,255,.14);
+  --on-blue-rule:rgba(255,255,255,.28);
+  --on-blue-fill:rgba(255,255,255,.10);
   --on-dark:#CDD9E8;          /* primary text on the ink panels */
   --on-dark-soft:#B9C6D8;     /* secondary text on the ink panels */
   /* Rose steps for the legal notice and the checkout/booking alerts. */

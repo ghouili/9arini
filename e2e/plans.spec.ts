@@ -264,8 +264,20 @@ test.describe("the marketing pages state the catalogue's numbers", () => {
     for (const feature of NOT_BUILT) {
       const row = page.locator("li.tf-soon", { hasText: feature });
       await expect(row, `"${feature}" is not built and must sit in a tf-soon row`).toHaveCount(1);
-      await expect(row, `"${feature}" must carry the Bientôt chip`).toContainText("Bientôt");
+      /* The marker is a group label plus an sr-only word per row, not a chip on
+         every row — per-row chips wrapped and orphaned themselves. What must stay
+         true is that the row says "Bientôt" to a screen reader as well as to the
+         eye, so the label can never be visual-only. */
+      await expect(row, `"${feature}" must be marked Bientôt in its own row text`).toContainText(
+        "Bientôt",
+      );
     }
+    /* And the visible group label exists on every card that has unbuilt items. */
+    const cardsWithSoon = new Set(["essentiel", "pro", "prestige"]).size;
+    await expect(
+      page.locator("li.tf-soon-head"),
+      "each paid tier with unbuilt features needs its visible Bientôt label",
+    ).toHaveCount(cardsWithSoon);
     /* And the marker means nothing if it is on everything: the two entitlements
        that ARE enforced must NOT be marked. */
     for (const real of ["Mis en avant dans Explorer", "Placement prioritaire dans Explorer"]) {

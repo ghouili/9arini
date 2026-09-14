@@ -6,6 +6,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { Card, CardFooter, Chip } from "@/components/ui";
 import { Check, Shield, Wallet, Star } from "@/components/icons";
 import { bilingual } from "@/lib/i18n";
+import { Reveal } from "@/components/Reveal";
 import {
   planByCode, classLimitLabel, classLimitRule, monthsOffered, tnd, requirePlan,
   COMMISSION_PCT, commissionOn,
@@ -49,9 +50,10 @@ const nf = (v: number) => v.toLocaleString("fr-FR");
      — an invented one would be exactly the kind of claim this page exists to
      avoid. Preply and Wyzant figures come from their own help centres.
 
-   NO SCROLL-REVEAL HERE, deliberately. /pour-les-profs needs an inverted reveal
-   to survive nojs.mjs; this page simply renders its final state, which is the
-   same contract with less that can go wrong.
+   SCROLL-REVEAL: only the shared, INVERTED one (components/Reveal.tsx). The
+   server HTML is the final visible state and JS merely arms the animation for
+   off-screen elements, so with JS off nothing on this page is hidden — nojs.mjs
+   is the gate that proves it.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 const copy = bilingual({
@@ -156,16 +158,22 @@ const copy = bilingual({
       "Ton élève te paie en main propre ? Tnajem ne prend rien et ne facture rien.",
       "La 1ʳᵉ séance est toujours offerte à l'élève — et sans commission.",
     ],
-    commToday: "Aujourd'hui, Tnajem ne traitant aucun paiement, la commission perçue est de 0 TND.",
 
     cmpTitle: "Ce que prennent les autres",
     cmpLead: "Taux publiés par les plateformes elles-mêmes, relevés en août 2026. Les modèles diffèrent — à toi de juger.",
     cmpUs: "Tnajem",
+    cmpUsRate: `${COMMISSION_PCT} %`,
     cmpUsBody: "10 %, uniquement sur les paiements traités par Tnajem. Rien sur ce que l'élève te règle en main propre.",
+    /* THE RATE LEADS. This is the strongest argument the business has — 10 %
+       against 18-33 % and 25 %+9 % — and it was set in 13.5px body copy in
+       section five. Splitting the rate out lets it be typeset at display size
+       and, more importantly, keeps the four rates in one scannable column at
+       320px, where the old two-column grid collapsed and made comparison
+       impossible on the exact device this page is built for. */
     cmpRows: [
-      { name: "Preply", body: "18 à 33 % selon le nombre d'heures enseignées, et 100 % de chaque séance d'essai avec un nouvel élève." },
-      { name: "Wyzant", body: "25 % de commission — le prof garde 75 % — plus 9 % de frais de service sur chaque séance." },
-      { name: "GoStudent", body: "Formules par abonnement côté famille. La commission prof n'est pas publiée, donc on ne lui prête aucun chiffre." },
+      { name: "Preply", rate: "18–33 %", body: "Selon le nombre d'heures enseignées — et 100 % de chaque séance d'essai avec un nouvel élève." },
+      { name: "Wyzant", rate: "25 % + 9 %", body: "25 % de commission — le prof garde 75 % — plus 9 % de frais de service sur chaque séance." },
+      { name: "GoStudent", rate: "—", body: "Formules par abonnement côté famille. La commission prof n'est pas publiée, donc on ne lui prête aucun chiffre." },
     ],
     cmpNote: "Sources : centres d'aide publics de Preply et Wyzant. On ne cite aucun chiffre qu'une plateforme n'a pas publié elle-même.",
 
@@ -266,16 +274,16 @@ const copy = bilingual({
       "التلميذ خلّصك في يدك ؟ Tnajem ما تاخذ والو وما تفوتر والو.",
       "أول حصة تبقى ديما فابور للتلميذ — وبلا عمولة.",
     ],
-    commToday: "اليوم، وبما إلي Tnajem ما تعدّي حتى خلاص، العمولة اللي تتحصّل هي 0 دينار.",
 
     cmpTitle: "شنوّة ياخذو الآخرين",
     cmpLead: "نسب نشروها المنصّات بأنفسهم، مأخوذة في أوت 2026. النماذج تختلف — وإنتي احكم.",
     cmpUs: "Tnajem",
+    cmpUsRate: `${COMMISSION_PCT} %`,
     cmpUsBody: "10 %، كان على الخلاص اللي يعدّي من Tnajem. والو على اللي يخلّصك بيه في يدك.",
     cmpRows: [
-      { name: "Preply", body: "من 18 لـ 33 % حسب عدد الساعات اللي قرّيتها، و 100 % من كل حصة تجريبية مع تلميذ جديد." },
-      { name: "Wyzant", body: "25 % عمولة — الأستاذ يحتفظ بـ 75 % — وزيد 9 % فريسي خدمة على كل حصة." },
-      { name: "GoStudent", body: "اشتراكات شهرية على العائلة. عمولة الأستاذ ما هيش منشورة، وعلى هكّاكا ما نعطيوهاش رقم." },
+      { name: "Preply", rate: "18–33 %", body: "حسب عدد الساعات اللي قرّيتها — و 100 % من كل حصة تجريبية مع تلميذ جديد." },
+      { name: "Wyzant", rate: "25 % + 9 %", body: "25 % عمولة — الأستاذ يحتفظ بـ 75 % — وزيد 9 % فريسي خدمة على كل حصة." },
+      { name: "GoStudent", rate: "—", body: "اشتراكات شهرية على العائلة. عمولة الأستاذ ما هيش منشورة، وعلى هكّاكا ما نعطيوهاش رقم." },
     ],
     cmpNote: "المصادر : مراكز المساعدة العمومية متاع Preply و Wyzant. ما نذكرو حتى رقم ما نشرتوش المنصّة بروحها.",
 
@@ -293,10 +301,18 @@ type Copy = (typeof copy)[keyof typeof copy];
    Unlayered on purpose, so it beats globals.css's @layer components without
    needing !important. Logical properties only (guardrails.mjs check #1). */
 const CSS = `
-.tf-price{font-family:var(--fd);font-size:clamp(30px,4vw,38px);line-height:1.05;letter-spacing:-1px;color:var(--ink)}
+/* E. THE PRICE HAS TO WIN. It was clamp(30px,4vw,38px) against .web-h2's
+   clamp(24px,3.6vw,38px) — identical at 1280, so five section headings and four
+   prices were nine equal-weight 38px objects and nothing on a PRICING page was
+   allowed to be the biggest thing on screen. */
+.tf-price{font-family:var(--fd);font-size:clamp(34px,5vw,46px);line-height:1.02;letter-spacing:-1.5px;color:var(--ink)}
 html[dir="rtl"] .tf-price{font-family:var(--fa);letter-spacing:normal}
 .tf-per{font-size:14px;font-weight:700;color:var(--muted)}
-.tf-year{font-size:13px;color:var(--muted);line-height:1.5}
+/* The annual saving is a real ~17 % discount and was the SMALLEST type in the
+   card — set below the disclaimer above it. It is a reason to commit; give it
+   the weight of one. */
+.tf-year{font-size:13.5px;color:var(--ink2);line-height:1.5}
+.tf-year b{font-weight:700;color:var(--green-ink)}
 .tf-who{font-size:13px;font-weight:700;color:var(--blue)}
 /* The "+ 10 %" block. Sits directly under the price so the two costs are read
    as one number, not as a price with a footnote. */
@@ -309,15 +325,56 @@ html[dir="rtl"] .tf-price{font-family:var(--fa);letter-spacing:normal}
 .tf-feats .ic{width:17px;height:17px;flex:none;color:var(--green-ink);margin-block-start:2px}
 /* A not-yet-built row reads as pending, not as delivered: the tick loses the
    green it earns for a shipped feature, and the label sits beside it. */
-.tf-feats li.tf-soon{align-items:center;flex-wrap:wrap;gap:7px;color:var(--muted)}
+.tf-feats li.tf-soon{color:var(--muted)}
 .tf-feats li.tf-soon .ic{color:var(--muted)}
-.tf-soon-note{font-size:13px;line-height:1.55;color:var(--muted);margin-block-start:10px}
+/* The group divider: a hairline that runs to the chip, so "Bientôt" reads as a
+   heading over the rows beneath it rather than a tag floating beside one. */
+.tf-feats li.tf-soon-head{align-items:center;gap:9px;margin-block-start:5px}
+.tf-soon-rule{flex:1;height:1px;background:var(--line);min-width:12px}
+/* Said ONCE, under the grid, instead of verbatim inside three or four cards. */
+.tf-under{display:flex;flex-direction:column;gap:7px;margin-block-start:18px}
+.tf-under p{font-size:13.5px;line-height:1.6;color:var(--muted);max-width:70ch}
 /* The recommended plan. A ring rather than a scale transform: at 320px the cards
    are already full-bleed, and a transform would clip against the container. */
-.tf-hi{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue100),var(--sh-s)}
+/* A REAL elevation, not a pale ring. --blue100 at 2px is invisible on a
+   mid-range Android outdoors, which is the device this page is for. Still no
+   scale() — the note above is right that a transform clips at 320px where the
+   cards are already full-bleed; the recommended card gains its prominence from
+   shadow, a solid border and, once there is room for a row, a lifted baseline. */
+.tf-hi{border-color:var(--blue);border-width:2px;box-shadow:var(--sh)}
+@media (min-width:768px){
+  .tf-hi{margin-block:-10px}
+}
+/* Gratuit is the baseline the paid tiers build on, not a competing purchase.
+   Quieter surface, no shadow — it recedes without losing a single feature. */
+.tf-base{background:var(--cream);box-shadow:none}
+/* MOTION. The page had none, and said so — because the first attempt at a reveal
+   on /pour-les-profs shipped a blank hero. The shared hook in components/Reveal
+   is the inverted version: this HTML is already the final visible state and JS
+   only ARMS the offset, so with JS off nothing here is hidden. nojs.mjs is the
+   gate that proves it. */
+.tf-reveal{transition:opacity .55s cubic-bezier(.2,.7,.2,1),transform .55s cubic-bezier(.2,.7,.2,1);
+  transition-delay:var(--tf-d,0ms)}
+.tf-reveal.tf-armed{opacity:0;transform:translateY(14px)}
+/* The reveal wrapper becomes the grid item, so it has to pass the stretch
+   through: without this the .u-card inside loses its height:100% and the row
+   stops sharing a baseline — the footers would ladder. */
+.tf-cell{display:flex;min-width:0}
+.tf-cell>*{flex:1;min-width:0}
+@media (prefers-reduced-motion:reduce){
+  .tf-reveal,.tf-reveal.tf-armed{opacity:1 !important;transform:none !important;transition:none !important}
+}
 .tf-cmp{display:flex;flex-direction:column;gap:10px}
-.tf-cmp-row{display:grid;grid-template-columns:1fr;gap:4px 14px;padding:14px 16px;border:1px solid var(--line);border-radius:var(--r-s);background:var(--paper);min-width:0}
-@media (min-width:620px){.tf-cmp-row{grid-template-columns:150px 1fr;align-items:baseline}}
+/* The rate column holds at EVERY width — 84px is enough for "25 % + 9 %" at
+   320px, and keeping it means the four rates line up vertically and can actually
+   be compared on a phone. Only the explanation wraps. */
+.tf-cmp-row{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;padding:14px 16px;
+  border:1px solid var(--line);border-radius:var(--r-s);background:var(--paper);min-width:0;align-items:baseline}
+.tf-cmp-rate{font-family:var(--fd);font-weight:700;font-size:clamp(20px,3.4vw,26px);
+  line-height:1.1;color:var(--ink);min-width:84px;white-space:nowrap}
+html[dir="rtl"] .tf-cmp-rate{font-family:var(--fa)}
+.tf-cmp-row.is-us .tf-cmp-rate{color:var(--blue)}
+.tf-cmp-text{min-width:0}
 .tf-cmp-row.is-us{border-color:var(--blue);background:var(--blue50)}
 .tf-cmp-name{font-family:var(--fd);font-weight:700;font-size:15px;color:var(--ink);min-width:0}
 html[dir="rtl"] .tf-cmp-name{font-family:var(--fa)}
@@ -325,14 +382,25 @@ html[dir="rtl"] .tf-cmp-name{font-family:var(--fa)}
 .tf-note{font-size:13px;line-height:1.6;color:var(--muted);margin-block-start:12px}
 /* The cost breakdown. Rows, not a table: at 320px a 2-column table either
    overflows or crushes the label, and this has to be readable on a phone. */
-.tf-ex{border:1px solid var(--line);border-radius:var(--r-s);background:var(--paper);overflow:hidden}
+/* ON THE BLUE SURFACE. Every colour here is a token that contrast.mjs already
+   audits against --blue / --blue900: --on-blue 6.14 / 12.04, --on-blue-soft
+   5.15 / 10.10, --mint 7.50. */
+.tf-ex{border-radius:var(--r-s);overflow:hidden}
 .tf-ex-row{display:flex;justify-content:space-between;align-items:baseline;gap:14px;
-  padding:12px 16px;font-size:14px;color:var(--ink2);border-block-end:1px solid var(--line);min-width:0}
+  padding:13px 0;font-size:14.5px;color:var(--on-blue-soft);
+  border-block-end:1px solid var(--on-blue-hairline);min-width:0}
 .tf-ex-row:last-child{border-block-end:none}
-.tf-ex-row b{font-family:var(--fd);font-weight:700;color:var(--ink);white-space:nowrap}
+.tf-ex-row b{font-family:var(--fd);font-weight:700;color:var(--on-blue);white-space:nowrap}
 html[dir="rtl"] .tf-ex-row b{font-family:var(--fa)}
-.tf-ex-net{background:var(--blue50);font-weight:700}
-.tf-ex-net b{font-size:17px;color:var(--blue)}
+/* THE PAYOFF LINE. The one number on the page that says what a tutor RECEIVES,
+   so it is the one number allowed to be large. */
+.tf-ex-net{border-block-start:1px solid var(--on-blue-rule);margin-block-start:4px;padding-block-start:16px}
+.tf-ex-net span{color:var(--on-blue);font-weight:700}
+.tf-ex-net b{font-size:clamp(26px,4.4vw,34px);line-height:1.05;color:var(--mint)}
+.tf-ex-cash{margin-block-start:18px;padding:14px 16px;border-radius:var(--r-s);background:var(--on-blue-fill)}
+.tf-ex-cash-t{font-size:14px;font-weight:700;color:var(--on-blue);margin-block-end:3px}
+.tf-ex-cash p{font-size:13.5px;line-height:1.6;color:var(--on-blue-soft)}
+.tf-ex-today{font-size:13px;line-height:1.6;color:var(--on-blue-soft);margin-block-start:14px}
 .tf-comm{list-style:none;display:flex;flex-direction:column;gap:11px;margin-block-start:16px}
 .tf-comm li{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.55;color:var(--ink2);min-width:0}
 .tf-comm .ic{width:19px;height:19px;flex:none;color:var(--blue);margin-block-start:1px}
@@ -349,7 +417,19 @@ function PlanCard({
   locale: "fr" | "ar";
   paymentsEnabled: boolean;
 }) {
+  /* THE GRID USED TO RECOMMEND THE FREE PLAN. Every card carried the same ghost
+     button and the same label, so "recommended" rested entirely on a 13px chip
+     and a 2px --blue100 ring — invisible on a mid-range Android outdoors. The eye
+     defaulted to the leftmost card, which is 0 TND.
+
+     Two changes fix it, and neither invents anything: the recommended tier gets
+     the page's one FILLED call to action, and Gratuit gets a quieter surface
+     because it is not a purchase. It still lists all nine things it really gives
+     — that was the point of the last change — it just stops winning the grid on
+     visual generosity, which is the only reading an identical column format
+     allows. */
   const highlighted = plan.id === "pro";
+  const isFree = !plan.billed;
   /* THE NUMBERS COME FROM THE CATALOGUE, not from the copy above. A card whose
      plan is missing from PLANS renders nothing rather than a price with no
      entitlements behind it — a plan the server does not know is not a plan we
@@ -358,7 +438,7 @@ function PlanCard({
   if (!spec) return null;
   const free = monthsOffered(spec);
   return (
-    <Card className={highlighted ? "tf-hi" : ""}>
+    <Card className={highlighted ? "tf-hi" : isFree ? "tf-base" : ""}>
       <div className="flex items-center gap-2 flex-wrap mb-2">
         <span className="font-display font-bold text-[17px] text-ink">{plan.name}</span>
         {/* "Recommandé", never "le plus populaire": no tutor is on any plan yet,
@@ -376,7 +456,7 @@ function PlanCard({
           price change that makes it untrue. */}
       <div className="tf-year mt-1">
         {c.yearLine(tnd(spec.yearlyMillimes))}
-        {free > 0 ? c.monthsFree(free) : ""}
+        {free > 0 ? <b>{c.monthsFree(free)}</b> : null}
       </div>
 
       {/* §2.2: a price is never shown without the commission that comes with it.
@@ -385,9 +465,17 @@ function PlanCard({
           EVERY card, Gratuit included — the 10 % is charged per paying student on
           all plans, so a free plan showing "0 TND" alone would be the same lie in
           its most tempting form. */}
+      {/* The "+ 10 %" line STAYS on every card, Gratuit included: a price is never
+          shown without the commission that comes with it, or a tutor who reads
+          only the card meets the second charge later and is right to feel misled.
+
+          The 26-word NOTE that used to sit under it does not stay. It was typeset
+          verbatim in all four cards — roughly 200 duplicated words inside one grid
+          row, and at 320px the largest single block in every card, in a
+          warning-temperature fill, directly beneath the price. A human writes that
+          once, under the grid. It now is. */}
       <div className="tf-plus">
         <b>{c.plusComm}</b>
-        <span>{c.plusCommNote}</span>
       </div>
 
       {/* Only on plans that would actually cost something — "pas encore facturé"
@@ -420,18 +508,38 @@ function PlanCard({
             system and stats are not gated by plan. Listing them unmarked is how a
             tutor pays 99 TND for replays and finds nothing. The truth rule allows
             a future claim — unmistakably labelled. This is the label. */}
+        {/* ONE label for the group, not a chip per row. Per-row chips wrapped onto
+            their own line as soon as the feature text was longer than the card was
+            wide — which was most of them — leaving an orphaned "Bientôt" floating
+            under the feature it was supposed to label, and in one card separating
+            the tick from its own text. Seven chips became visual noise that made
+            the paid tiers look unfinished rather than forthcoming. */}
+        {plan.soon.length > 0 && (
+          <li className="tf-soon-head" aria-hidden="true">
+            <span className="tf-soon-rule" />
+            <Chip kind="sand">{c.soonChip}</Chip>
+          </li>
+        )}
         {plan.soon.map((f) => (
           <li key={f} className="tf-soon">
             <Check />
-            <span className="min-w-0">{f}</span>
-            <Chip kind="sand">{c.soonChip}</Chip>
+            {/* The group label above is aria-hidden, so each row still carries the
+                word for a screen reader — the marker must not be visual-only. */}
+            <span className="min-w-0">
+              {f} <span className="sr-only">— {c.soonChip}</span>
+            </span>
           </li>
         ))}
       </ul>
-      {plan.soon.length > 0 && <p className="tf-soon-note">{c.soonNote}</p>}
 
       <CardFooter className="pt-4">
-        <Link href="/signup/prof" className="btn btn-ghost w-full">
+        {/* The one filled CTA in the grid. The page's other primary buttons sit
+            above and below the grid, so until now its own calls to action
+            competed with the thing it was selling. */}
+        <Link
+          href="/signup/prof"
+          className={`btn ${highlighted ? "btn-primary" : "btn-ghost"} w-full`}
+        >
           {c.planCta}
         </Link>
       </CardFooter>
@@ -481,60 +589,99 @@ export function TarifsInner({ paymentsEnabled }: { paymentsEnabled: boolean }) {
       <section className="web-section tight">
         <div className="container">
           <h2 className="web-h2 mb-3">{c.plansTitle}</h2>
-          <p className="web-lead mb-2 max-w-[680px]">{c.plansLead}</p>
-          <p className="text-[13.5px] leading-relaxed text-muted mb-6 max-w-[680px]">{c.plansRule}</p>
+          {/* ONE lead, not two. This was `plansLead` (39 words) followed by
+              `plansRule` (35), which existed only to retract the "Convient à N
+              élèves" model the cards introduce one screen later — the page
+              manufactured a misunderstanding and apologised for it in the same
+              section. Together with the banner that was 121 words of
+              qualification before the reader saw a single digit. The rule the
+              server actually enforces now travels WITH the cards, where the
+              misunderstanding would otherwise start. */}
+          <p className="web-lead mb-6 max-w-[680px]">{c.plansLead}</p>
           <div className="grid-auto">
-            {c.plans.map((p) => (
-              <PlanCard key={p.id} plan={p} c={c} locale={locale} paymentsEnabled={paymentsEnabled} />
+            {/* Staggered, 70ms apart — the one place on this page where a
+                sequence exists, so the one place motion carries meaning rather
+                than decorating. Everything else stays still. */}
+            {c.plans.map((p, i) => (
+              <Reveal
+                key={p.id}
+                delay={i * 70}
+                base="tf-reveal"
+                armedClass="tf-armed"
+                delayVar="--tf-d"
+                className="tf-cell"
+              >
+                <PlanCard plan={p} c={c} locale={locale} paymentsEnabled={paymentsEnabled} />
+              </Reveal>
             ))}
+          </div>
+          {/* The two notes that used to be typeset inside every card. */}
+          <div className="tf-under">
+            {/* The limit rule first: it is the one that explains the cards above. */}
+            <p>{c.plansRule}</p>
+            <p>{c.plusCommNote}</p>
+            <p>{c.soonNote}</p>
           </div>
         </div>
       </section>
 
       {/* ── WHAT IT COSTS, ON ONE MONTH ─────────────────────────────────────
-          The two charges are always stated together on this page, but "10 % plus
-          un abonnement" is still two numbers a reader has to combine. This does
-          the combining, and puts the CASH case right beside it — because the
-          answer to "so what do I actually pay?" depends entirely on which of the
-          two happened, and that is the distinction tutors miss. */}
+
+          MOVED UP, and onto a different surface. This is the only section that
+          tells a tutor what they RECEIVE rather than what is deducted, and it sat
+          eight phone-screens down, behind two sections that restate the
+          commission. It is now the first thing after the grid.
+
+          .panel.hero-blue is the blue gradient already in globals.css and already
+          used by /pour-les-profs for exactly this job. It matters that it is not
+          white: before this, the reader's first two colour events on a pricing
+          page were a green legal disclaimer and four peach warning boxes. This is
+          the page's one colour event that is not a caveat. */}
       <section className="web-section tight">
         <div className="container">
           <div className="max-w-[760px]">
             <h2 className="web-h2 mb-3">{c.exTitle}</h2>
             <p className="web-lead mb-5">{c.exLead}</p>
 
-            <div className="tf-ex">
-              <div className="tf-ex-row">
-                <span>{c.exRowProcessed}</span>
-                <b>{c.priceUnit(EX_PROCESSED_TND)}</b>
+            <Reveal
+              base="tf-reveal"
+              armedClass="tf-armed"
+              delayVar="--tf-d"
+              className="panel panel-pad hero-blue"
+            >
+              <div className="tf-ex">
+                <div className="tf-ex-row">
+                  <span>{c.exRowProcessed}</span>
+                  <b><bdi>{c.priceUnit(EX_PROCESSED_TND)}</bdi></b>
+                </div>
+                <div className="tf-ex-row">
+                  <span>{c.exRowFee}</span>
+                  {/* <bdi>: a bare U+2212 next to a digit run inside an RTL
+                      paragraph reorders unpredictably. white-space:nowrap does
+                      not help bidi; isolation does. */}
+                  <b><bdi>&minus; {c.priceUnit(EX_FEE)}</bdi></b>
+                </div>
+                <div className="tf-ex-row">
+                  <span>{c.exRowSub(c.plans.find((pl) => pl.id === EX_PLAN.code)?.name ?? EX_PLAN.code)}</span>
+                  <b><bdi>&minus; {c.priceUnit(EX_SUB)}</bdi></b>
+                </div>
+                <div className="tf-ex-row tf-ex-net">
+                  <span>{c.exRowNet}</span>
+                  <b><bdi>{c.priceUnit(EX_NET)}</bdi></b>
+                </div>
               </div>
-              <div className="tf-ex-row">
-                <span>{c.exRowFee}</span>
-                <b>− {c.priceUnit(EX_FEE)}</b>
-              </div>
-              <div className="tf-ex-row">
-                {/* The DISPLAY name ("Pro"), not the catalogue code ("pro").
-                    The code is an identifier for the API and the admin grant; a
-                    tutor reading a cost breakdown should see the name on the
-                    card above it. */}
-                <span>{c.exRowSub(c.plans.find((pl) => pl.id === EX_PLAN.code)?.name ?? EX_PLAN.code)}</span>
-                <b>− {c.priceUnit(EX_SUB)}</b>
-              </div>
-              <div className="tf-ex-row tf-ex-net">
-                <span>{c.exRowNet}</span>
-                <b>{c.priceUnit(EX_NET)}</b>
-              </div>
-            </div>
 
-            <div className="panel panel-pad mt-4">
-              <div className="text-[14px] font-bold mb-1">{c.exCashTitle}</div>
-              <p className="text-[13.5px] leading-relaxed text-muted">{c.exCash}</p>
-            </div>
+              <div className="tf-ex-cash">
+                <div className="tf-ex-cash-t">{c.exCashTitle}</div>
+                <p>{c.exCash}</p>
+              </div>
 
-            {!paymentsEnabled && <p className="tf-note">{c.exToday}</p>}
+              {!paymentsEnabled && <p className="tf-ex-today">{c.exToday}</p>}
+            </Reveal>
           </div>
         </div>
       </section>
+
 
       {/* ── COMMISSION ──────────────────────────────────────────────────── */}
       <section className="web-section tight">
@@ -550,7 +697,12 @@ export function TarifsInner({ paymentsEnabled }: { paymentsEnabled: boolean }) {
                 </li>
               ))}
             </ul>
-            {!paymentsEnabled && <p className="tf-note">{c.commToday}</p>}
+            {/* `commToday` used to sit here — a third restatement of "0 TND is
+                taken today", after the flag-driven banner and the line inside the
+                breakdown. "Nothing is billed" appeared on THIRTEEN surfaces on
+                this page; past about three repetitions reassurance inverts and
+                the reader starts wondering what is wrong with the billing. The
+                statement stays where the numbers are, and only there. */}
           </div>
         </div>
       </section>
@@ -562,17 +714,29 @@ export function TarifsInner({ paymentsEnabled }: { paymentsEnabled: boolean }) {
           <p className="web-lead mb-6 max-w-[720px]">{c.cmpLead}</p>
 
           {/* Rows, not a <table>: at 320px a 2-column table either overflows the
-              page (shots.mjs exits 1) or crushes the text. This collapses to a
-              single column instead. */}
+              page (shots.mjs exits 1) or crushes the text.
+
+              THE RATE NOW LEADS EACH ROW, at display size. This is the strongest
+              argument the business has and it was typeset as 13.5px body copy —
+              and the old grid collapsed to ONE column below 620px, so on the
+              phone this page is built for the four rates never shared a column
+              and could not be compared at all. The rate column survives at every
+              width; only the explanation moves beneath. */}
           <div className="tf-cmp">
             <div className="tf-cmp-row is-us">
-              <div className="tf-cmp-name">{c.cmpUs}</div>
-              <div className="tf-cmp-body">{c.cmpUsBody}</div>
+              <div className="tf-cmp-rate"><bdi>{c.cmpUsRate}</bdi></div>
+              <div className="tf-cmp-text">
+                <div className="tf-cmp-name">{c.cmpUs}</div>
+                <div className="tf-cmp-body">{c.cmpUsBody}</div>
+              </div>
             </div>
             {c.cmpRows.map((r) => (
               <div key={r.name} className="tf-cmp-row">
-                <div className="tf-cmp-name">{r.name}</div>
-                <div className="tf-cmp-body">{r.body}</div>
+                <div className="tf-cmp-rate"><bdi>{r.rate}</bdi></div>
+                <div className="tf-cmp-text">
+                  <div className="tf-cmp-name">{r.name}</div>
+                  <div className="tf-cmp-body">{r.body}</div>
+                </div>
               </div>
             ))}
           </div>
