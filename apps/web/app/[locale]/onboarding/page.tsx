@@ -19,10 +19,30 @@
    The shell also reads the tutor's current storefront so the form opens pre-filled
    — createTutor has always updated in place, but the page opened blank, so a tutor
    fixing a typo was retyping their page from memory. */
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { OnboardingInner } from "@/components/onboarding/OnboardingInner";
 import { getOnboardingState } from "@/app/actions";
 import { pageGuard, localeOf, localePath } from "@/lib/page-guard";
+import { bilingual } from "@/lib/i18n";
+import { pageMetadata } from "@/lib/metadata";
+
+/* NOINDEX: a signed-in form, reachable only with a session. */
+const meta = bilingual({
+  fr: {
+    title: "Ma page de prof",
+    description: "Remplis ta page de prof sur Tnajem : ton nom, ta matière, ta présentation.",
+  },
+  ar: {
+    title: "صفحتي كأستاذ",
+    description: "عمّر صفحتك كأستاذ في Tnajem : إسمك، المادة، والتقديم متاعك.",
+  },
+});
+
+export async function generateMetadata({ params }: { params: { locale: string } }): Promise<Metadata> {
+  const locale = localeOf(params.locale);
+  return pageMetadata({ locale, path: "/onboarding", ...meta[locale], noindex: true });
+}
 
 export default async function OnboardingPage({ params }: { params: { locale: string } }) {
   const locale = localeOf(params.locale);

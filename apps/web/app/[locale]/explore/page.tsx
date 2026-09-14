@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ExploreClient } from "@/components/explore/ExploreClient";
 import { getExploreTutors } from "@/app/actions";
 import { isLocale, DEFAULT_LOCALE, type AppLocale } from "@/lib/locale";
+import { pageMetadata } from "@/lib/metadata";
 
 /* /explore — the marketplace feed. SERVER component now (was client-rendered, so
    crawlers saw an empty grid — the single biggest SEO defect in the app).
@@ -34,12 +35,9 @@ export const revalidate = 60;
    behaviour. e2e/isr.spec.ts records the measurement. */
 export const dynamic = "force-dynamic";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://tnajem.tn";
-
 export async function generateMetadata({ params }: { params: { locale: string } }): Promise<Metadata> {
   const locale: AppLocale = isLocale(params.locale) ? params.locale : DEFAULT_LOCALE;
   const ar = locale === "ar";
-  const canonical = `/${locale}/explore`;
   const title = ar ? "استكشف الأساتذة المؤكّدين" : "Explorer les profs vérifiés";
   /* The free-session claim is gone from here too, and for a sharper reason than
      on the site description: /explore lists MANY tutors, so no single answer to
@@ -47,21 +45,9 @@ export async function generateMetadata({ params }: { params: { locale: string } 
   const description = ar
     ? "تصفّح الأساتذة التوانسة المؤكّدين على Tnajem — رياضيات، فيزياء، فرنسية، إنقليزية وأكثر، من الابتدائي للباك. الخلاص بالدينار."
     : "Parcours les profs particuliers tunisiens vérifiés sur Tnajem — maths, physique, français, anglais et plus, du primaire au Bac. Paiement en dinar.";
-  return {
-    title,
-    description,
-    alternates: {
-      canonical,
-      languages: { "fr-TN": "/fr/explore", "ar-TN": "/ar/explore", "x-default": "/fr/explore" },
-    },
-    openGraph: {
-      type: "website",
-      url: `${SITE_URL}${canonical}`,
-      locale: ar ? "ar_TN" : "fr_TN",
-      title: `${title} · Tnajem`,
-      description,
-    },
-  };
+  // Through pageMetadata: a bare openGraph object here replaced the layout's and
+  // dropped the og:image, siteName and twitter card from every shared /explore link.
+  return pageMetadata({ locale, path: "/explore", title, description });
 }
 
 export default async function ExplorePage() {

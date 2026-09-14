@@ -3,6 +3,7 @@ import { TarifsInner } from "@/components/tarifs/TarifsInner";
 import { paymentsEnabled } from "@tnajem/shared/payments";
 import { COMMISSION_PCT, requirePlan, tnd } from "@tnajem/shared";
 import { isLocale, DEFAULT_LOCALE, type AppLocale } from "@/lib/locale";
+import { pageMetadata } from "@/lib/metadata";
 
 /* /tarifs — the public pricing page.
 
@@ -20,12 +21,9 @@ import { isLocale, DEFAULT_LOCALE, type AppLocale } from "@/lib/locale";
    The prices below are the FINAL model but are NOT being charged. Every surface
    that names them must label them as future; see TarifsInner. */
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://tnajem.tn";
-
 export async function generateMetadata({ params }: { params: { locale: string } }): Promise<Metadata> {
   const locale: AppLocale = isLocale(params.locale) ? params.locale : DEFAULT_LOCALE;
   const ar = locale === "ar";
-  const canonical = `/${locale}/tarifs`;
   const title = ar ? "الأسعار" : "Tarifs";
   /* DERIVED, not typed out. This is the sentence Google shows, and it said the
      subscription starts at 29 TND while the page below it renders a 0 TND tier as
@@ -34,21 +32,9 @@ export async function generateMetadata({ params }: { params: { locale: string } 
   const description = ar
     ? `أسعار Tnajem للأساتذة : فابور في فترة التجربة. من بعد، اشتراك فابور بدرس واحد ومن ${from} دينار في الشهر لفوق، و ${COMMISSION_PCT} % كان على الخلاص اللي يعدّي من Tnajem. التلميذ ما يخلّص حتى حاجة لـ Tnajem.`
     : `Les tarifs Tnajem pour les profs : gratuit pendant le pilote. Plus tard, un abonnement gratuit pour un cours à la fois puis à partir de ${from} TND/mois, et ${COMMISSION_PCT} % uniquement sur les paiements traités par Tnajem. L'élève ne paie jamais Tnajem.`;
-  return {
-    title,
-    description,
-    alternates: {
-      canonical,
-      languages: { "fr-TN": "/fr/tarifs", "ar-TN": "/ar/tarifs", "x-default": "/fr/tarifs" },
-    },
-    openGraph: {
-      type: "website",
-      url: `${SITE_URL}${canonical}`,
-      locale: ar ? "ar_TN" : "fr_TN",
-      title: `${title} · Tnajem`,
-      description,
-    },
-  };
+  // Through pageMetadata: a bare openGraph object here replaced the layout's and
+  // dropped the og:image, siteName and twitter card from every shared /tarifs link.
+  return pageMetadata({ locale, path: "/tarifs", title, description });
 }
 
 export default function TarifsPage() {

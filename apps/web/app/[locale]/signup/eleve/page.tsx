@@ -14,9 +14,29 @@
    it on the server keeps OTP_CHANNEL a runtime env var — a NEXT_PUBLIC_ value
    would be baked in at build time, so reverting to SMS would mean a rebuild
    rather than a restart. */
+import type { Metadata } from "next";
 import { SignupInner } from "@/components/auth/SignupInner";
 import { safeNext } from "@tnajem/shared";
 import { otpChannel } from "@/lib/auth";
+import { bilingual } from "@/lib/i18n";
+import { isLocale, DEFAULT_LOCALE } from "@/lib/locale";
+import { pageMetadata } from "@/lib/metadata";
+
+const meta = bilingual({
+  fr: {
+    title: "Créer mon compte élève",
+    description: "Crée ton compte élève sur Tnajem pour réserver ta place dans les cours en direct de profs vérifiés.",
+  },
+  ar: {
+    title: "اعمل حسابك كتلميذ",
+    description: "اعمل حسابك كتلميذ في Tnajem باش تحجز بلاصتك في الدروس المباشرة متاع أساتذة مؤكّدين.",
+  },
+});
+
+export async function generateMetadata({ params }: { params: { locale: string } }): Promise<Metadata> {
+  const locale = isLocale(params.locale) ? params.locale : DEFAULT_LOCALE;
+  return pageMetadata({ locale, path: "/signup/eleve", ...meta[locale] });
+}
 
 export default function SignupStudentPage({
   searchParams,

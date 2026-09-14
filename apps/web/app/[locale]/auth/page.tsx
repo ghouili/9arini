@@ -13,9 +13,31 @@
    it on the server keeps OTP_CHANNEL a runtime env var — a NEXT_PUBLIC_ value
    would be baked in at build time, so reverting to SMS would mean a rebuild
    rather than a restart. */
+import type { Metadata } from "next";
 import { AuthInner } from "@/components/auth/AuthInner";
 import { safeNext } from "@tnajem/shared";
 import { otpChannel } from "@/lib/auth";
+import { bilingual } from "@/lib/i18n";
+import { isLocale, DEFAULT_LOCALE } from "@/lib/locale";
+import { pageMetadata } from "@/lib/metadata";
+
+/* No channel in the description: OTP_CHANNEL is a runtime switch (email today),
+   and a search snippet cannot follow it. "A one-time code" is true either way. */
+const meta = bilingual({
+  fr: {
+    title: "Se connecter",
+    description: "Connecte-toi à Tnajem avec un code à usage unique — sans mot de passe.",
+  },
+  ar: {
+    title: "تسجيل الدخول",
+    description: "ادخل لـ Tnajem بكود يتستعمل مرّة وحدة — بلا كلمة سر.",
+  },
+});
+
+export async function generateMetadata({ params }: { params: { locale: string } }): Promise<Metadata> {
+  const locale = isLocale(params.locale) ? params.locale : DEFAULT_LOCALE;
+  return pageMetadata({ locale, path: "/auth", ...meta[locale] });
+}
 
 export default function AuthPage({
   searchParams,
