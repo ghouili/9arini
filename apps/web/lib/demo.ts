@@ -5,13 +5,18 @@ import type { Storefront, ClassItem, Pack } from "@tnajem/shared";
 
    ⚠️  HARD RULE: nothing in this file may ever reach a production response.
 
-   Why: these fixtures describe a *verified* tutor with a 4.9★ rating and 1,240
-   students. None of that is real. The old contract was "fixtures are safe because
-   the backend is always configured in prod" — which is a deployment assumption, not a
-   guarantee. A rotated secret, a typo'd env var or a fresh box with a missing
-   .env.local flips `dbReady` to false in production, and the fallback would then
-   serve that fake 4.9★ tutor at every URL on the public site. That is a
-   misrepresentation of a real business, not a graceful degradation.
+   Why: these fixtures describe *verified* tutors who do not exist. The old contract
+   was "fixtures are safe because the backend is always configured in prod" — which
+   is a deployment assumption, not a guarantee. A rotated secret, a typo'd env var
+   or a fresh box with a missing .env.local flips `dbReady` to false in production,
+   and the fallback would then serve an invented tutor at every URL on the public
+   site. That is a misrepresentation of a real business, not a graceful degradation.
+
+   NO SOCIAL PROOF, EVEN IN DEV. The Yassine fixture used to carry a 4.9 rating and
+   1,240 students, and the /explore preview added "37 avis" — and the 14 Sept review
+   found them rendering. Every demo tutor is rated 0 with 0 students, so every one is
+   "Nouveau". Do not put numbers back to make a demo look busier: a screenshot of dev
+   is exactly how an invented figure ends up in a pitch deck or a store listing.
 
    So the gate is the environment, not the database:
 
@@ -57,7 +62,7 @@ const devStorefront: Storefront = {
     id: "yassine", slug: "yassine-math", full_name: "Yassine Khelifi",
     subject: "Prof de Maths · Bac", level: "Bac",
     bio: "« Spécialiste révisions Bac. On révise les dérivées, intégrales et annales — en darija, à ton rythme. 1ère séance offerte. »",
-    avatar_initials: "YK", rating: 4.9, students_count: 1240, verified: true,
+    avatar_initials: "YK", rating: 0, students_count: 0, verified: true,
     // The dev fixture opts IN, so the audit harness can still walk the badge and
     // the "free" checkout copy. It is dev-only by construction (demoEnabled).
     offers_free_first_session: true,
