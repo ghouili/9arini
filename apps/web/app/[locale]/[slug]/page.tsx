@@ -7,7 +7,7 @@ import { getCachedStorefront, STOREFRONT_TTL, tutorTag } from "@/lib/cache";
 import { getTutorReviews } from "@/app/actions";
 import { isLocale, DEFAULT_LOCALE, type AppLocale } from "@/lib/locale";
 import { dict } from "@/lib/i18n";
-import { tutorStanding } from "@tnajem/shared";
+import { tutorStanding, isOpenForBooking } from "@tnajem/shared";
 
 type Props = { params: { locale: string; slug: string } };
 
@@ -187,10 +187,10 @@ export default async function StorefrontPage({ params }: Props) {
      that does not exist is structured-data spam and draws a Google manual action,
      and it is exactly the fabricated social proof the truth rule forbids. A new
      tutor ships Person + Service + BreadcrumbList and NO rating markup. */
-  /* Real prices, from classes that can actually be booked. A cancelled or
-     finished class is not an offer. */
+  /* Real prices, from classes that can actually be booked. A cancelled, finished
+     or already-started class is not an offer. */
   const offerPrices = data.classes
-    .filter((c) => (c.status ?? "scheduled") === "scheduled")
+    .filter((c) => isOpenForBooking(c))
     .map((c) => c.price_tnd)
     .filter((p) => Number.isFinite(p) && p >= 0);
 

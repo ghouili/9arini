@@ -84,7 +84,7 @@ const copy = bilingual({
    review count come from reviews, and demo mode has none (getTutorReviews returns
    an empty feed), so every demo tutor is "Nouveau"; the price is the cheapest of
    the tutor's own demo classes, or nothing. */
-const DEMO_PREVIEW: ExploreTutor[] = demoStorefrontList.map(({ tutor, classes }) => ({
+const DEMO_PREVIEW: ExploreTutor[] = demoStorefrontList().map(({ tutor, classes }) => ({
   slug: tutor.slug,
   full_name: tutor.full_name,
   subject: tutor.subject,

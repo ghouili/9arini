@@ -1,4 +1,4 @@
-import { eq, classes as classesT, packs as packsT, tutors } from "@tnajem/db";
+import { and, asc, eq, classes as classesT, packs as packsT, tutors } from "@tnajem/db";
 import {
   initials,
   MONTHS_FR,
@@ -9,6 +9,7 @@ import {
   type Pack,
 } from "@tnajem/shared";
 import { db } from "../db";
+import { onSaleClassSql } from "./class-sale";
 
 /* The public storefront read, ported from apps/web/lib/data.ts::getStorefront.
 
@@ -26,7 +27,13 @@ export async function getStorefrontData(slug: string): Promise<Storefront | null
   if (!t) return null;
   if (t.status !== "verified") return null; // pending/unverified tutors aren't public
 
-  const cls = await db.select().from(classesT).where(eq(classesT.tutorId, t.id));
+  /* Only classes still on sale, soonest first — the storefront's "Prochaine
+     séance" is the first bookable row of this list, so the order is the product. */
+  const cls = await db
+    .select()
+    .from(classesT)
+    .where(and(eq(classesT.tutorId, t.id), onSaleClassSql))
+    .orderBy(asc(classesT.scheduledAt));
   const pks = await db.select().from(packsT).where(eq(packsT.tutorId, t.id));
 
   const tutor: Tutor = {
@@ -54,6 +61,7 @@ export async function getStorefrontData(slug: string): Promise<Storefront | null
       tutor_name: t.fullName,
       title: c.title,
       description: c.description ?? undefined,
+      starts_at: d.toISOString(),
       day: String(d.getDate()),
       month: MONTHS_FR[d.getMonth()],
       time: d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),

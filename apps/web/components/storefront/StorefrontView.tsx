@@ -30,7 +30,7 @@ import {
   Gift,
 } from "@/components/icons";
 import { SiteShell } from "@/components/SiteShell";
-import { tutorStanding, type Storefront, type TutorReviews, type ClassItem } from "@tnajem/shared";
+import { tutorStanding, isOpenForBooking, type Storefront, type TutorReviews, type ClassItem } from "@tnajem/shared";
 
 /** Month label map FR → AR (short). Demo data uses FR short labels. */
 const monthAr: Record<string, string> = {
@@ -65,9 +65,12 @@ const copy = bilingual({
        flag), and it is false for every tutor who has not opted in. */
     book: "Réserver la séance",
     bookShort: "Réserver",
-    noClassesTitle: "Ce prof n'a pas encore publié de séance",
+    /* "No UPCOMING session", not "has not published one": since the list only
+       carries classes still on sale, a tutor who taught all month and has nothing
+       scheduled next lands here too, and "pas encore publié" would be false. */
+    noClassesTitle: "Pas de séance à venir pour l'instant",
     noClassesBody:
-      "Sa page est ouverte, mais aucune séance n'est encore programmée. Reviens bientôt — ou trouve un autre prof dès maintenant.",
+      "Sa page est ouverte, mais aucune séance à venir n'est programmée. Reviens bientôt — ou trouve un autre prof dès maintenant.",
     noClassesCta: "Voir d'autres profs",
 
     // ── Price / seats ──
@@ -106,9 +109,9 @@ const copy = bilingual({
     anon: "تلميذ",
     book: "احجز الحصة",
     bookShort: "احجز",
-    noClassesTitle: "هذا الأستاذ مازال ما نشرش حصة",
+    noClassesTitle: "ما فماش حصة جاية توّا",
     noClassesBody:
-      "الصفحة متاعو محلولة، أما مازال ما فماش حصة مبرمجة. عاود شوف قريب — ولا لوّج على أستاذ آخر توّا.",
+      "الصفحة متاعو محلولة، أما ما فماش حصة جاية مبرمجة. عاود شوف قريب — ولا لوّج على أستاذ آخر توّا.",
     noClassesCta: "شوف أساتذة أخرين",
 
     free: "مجانية",
@@ -168,7 +171,11 @@ export function StorefrontView({
 }) {
   const t = dict[locale];
   const c = copy[locale === "ar" ? "ar" : "fr"];
-  const { tutor, classes, packs } = data;
+  const { tutor, packs } = data;
+  /* Only classes still on sale. The API already lists nothing else, but the
+     storefront read is cached for up to 60s, so a class can start while its row
+     sits in the cache — re-checked here, at render, against the clock. */
+  const classes = data.classes.filter((k) => isOpenForBooking(k));
 
   /* A newly-verified tutor can have ZERO published classes. In that state there is
      nothing to book, so `firstClass` is undefined and EVERY booking CTA must be

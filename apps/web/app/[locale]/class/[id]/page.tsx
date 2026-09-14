@@ -6,7 +6,7 @@ import { SiteShell } from "@/components/SiteShell";
 import { Calendar, Clock, Users, Shield, Gift, Back } from "@/components/icons";
 import { useLocale } from "@/components/LocaleProvider";
 import { getClass, getExploreTutors } from "@/app/actions";
-import type { ClassItem, ExploreTutor } from "@tnajem/shared";
+import { isOpenForBooking, type ClassItem, type ExploreTutor } from "@tnajem/shared";
 import { bilingual } from "@/lib/i18n";
 
 /** Month label map FR → AR (short) — same table as the storefront/checkout. */
@@ -42,6 +42,8 @@ const copy = bilingual({
     perSession: "la séance",
     soldOutTitle: "Cette séance est complète",
     soldOutBody: "Toutes les places sont prises. Trouve une autre séance — il y en a d'autres.",
+    closedTitle: "Cette séance n'est plus ouverte à la réservation",
+    closedBody: "Elle a déjà commencé, ou elle a été annulée. Trouve une autre séance — il y en a d'autres.",
   },
   ar: {
     reassure: "الحصة الأولى مجانية · إلغاء مجاني حتى 48 ساعة قبل",
@@ -59,6 +61,8 @@ const copy = bilingual({
     perSession: "للحصة",
     soldOutTitle: "هذه الحصة كاملة",
     soldOutBody: "الأماكن الكل تحجزو. لوّج على حصة أخرى — فما غيرها.",
+    closedTitle: "هذه الحصة ما عادش مفتوحة للحجز",
+    closedBody: "الحصة بدات ولا تلغات. لوّج على حصة أخرى — فما غيرها.",
   },
 });
 
@@ -221,7 +225,12 @@ export default function ClassDetailPage({ params }: { params: { id: string } }) 
         .join(" · ")
     : "";
   const month = locale === "ar" ? monthAr[cls.month] ?? cls.month : cls.month;
-  const soldOut = cls.seats_left <= 0;
+  /* A class that has started, finished or been cancelled offers no booking, however
+     many seats it has left. This page used to check seats only, so a past class
+     still carried "Réserver". The server refuses it too (POST /bookings). */
+  const closed = !isOpenForBooking(cls);
+  const soldOut = !closed && cls.seats_left <= 0;
+  const blocked = closed || soldOut;
 
   /* One price renderer, so "1ère gratuite" and "15 TND" can never sit side by side
      as if both applied to the session being booked. */
@@ -245,8 +254,8 @@ export default function ClassDetailPage({ params }: { params: { id: string } }) 
 
   const soldOutBox = (
     <div className="cd-soldout-box">
-      <h2 className="text-[15.5px] mb-0.5">{c.soldOutTitle}</h2>
-      <p>{c.soldOutBody}</p>
+      <h2 className="text-[15.5px] mb-0.5">{closed ? c.closedTitle : c.soldOutTitle}</h2>
+      <p>{closed ? c.closedBody : c.soldOutBody}</p>
       <Link href="/explore" className="btn btn-ghost">{c.otherClasses}</Link>
     </div>
   );
@@ -352,7 +361,7 @@ export default function ClassDetailPage({ params }: { params: { id: string } }) 
               {/* Sold out, mobile: the booking panel that carries this message is
                   desktop-only, and the sticky bar is suppressed — without this the
                   small screen would just lose the CTA with no explanation. */}
-              {soldOut && (
+              {blocked && (
                 <div className="u-card u-card-pad cd-soldout-mobile mt-4">
                   {soldOutBox}
                 </div>
@@ -362,7 +371,7 @@ export default function ClassDetailPage({ params }: { params: { id: string } }) 
             {/* RIGHT col — sticky booking panel */}
             <div className="cd-panel-col">
               <div className="panel panel-pad cd-panel">
-                {soldOut ? (
+                {blocked ? (
                   soldOutBox
                 ) : (
                   <>
@@ -424,7 +433,7 @@ export default function ClassDetailPage({ params }: { params: { id: string } }) 
           </div>
 
           {/* Mobile-only sticky bottom CTA */}
-          {!soldOut && (
+          {!blocked && (
             <div className="cd-mobile-cta">
               <div className="cd-mcta-row">
                 <div className="cd-mcta-price">

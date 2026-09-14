@@ -363,7 +363,7 @@ export async function getStudentDashboard(): Promise<StudentDashboard | null> {
 /* ---------- Single class read (for class detail / checkout / live) ----------
    Demo mode → demo class; real mode → the row by id, or null if missing. */
 export async function getClass(id: string): Promise<ClassItem | null> {
-  if (demoFallback) return demoEnabled ? (demoClasses.find((c) => c.id === id) ?? null) : null;
+  if (demoFallback) return demoEnabled ? (demoClasses().find((c) => c.id === id) ?? null) : null;
   /* PORTED to apps/api (GET /classes/:id).
 
      call(), not callAnonymous: the entitlement check needs the session — meet_url

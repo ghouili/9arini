@@ -33,6 +33,9 @@ export type ClassItem = {
   tutor_name?: string;
   title: string;
   description?: string;
+  /* The instant the class starts, ISO 8601. The display strings below are for
+     reading; this is for deciding (isOpenForBooking) and for <time datetime>. */
+  starts_at: string;
   day: string;           // "23"
   month: string;         // localized short month, e.g. "JUIN"
   time: string;          // "18:00"

@@ -196,7 +196,11 @@ export const ROUTES = [
   { path: "/pour-les-profs", name: "pour-les-profs", nojs: true, h1: "h1.web-h1", sub: "p.web-lead", cta: "main a.btn-primary" },
   { path: "/tarifs", name: "tarifs", nojs: true, h1: "main h1", sub: "main p.web-lead", cta: "main a.btn-primary" },
   { path: "/explore", name: "explore", nojs: true, h1: "main h1", sub: "main h1 + p", cta: "main a.u-card-int, main a[href*=\"/\"]" },
-  { path: "/yassine-math", name: "storefront", nojs: true, h1: "main h1", sub: "main .sf-bio", cta: "main a.btn-primary, main a.btn-green" },
+  /* The CTA is "Réserver" while the tutor has an upcoming class, and the empty
+     state's "Voir d'autres profs" once they have none. Seeded dates age: since
+     fix-04 a storefront no longer sells a class that already ran, so a dev
+     database seeded last week has no booking CTA to find, and that is correct. */
+  { path: "/yassine-math", name: "storefront", nojs: true, h1: "main h1", sub: "main .sf-bio", cta: "main a.btn-primary, main a.btn-green, main a.sf-empty-cta" },
   { path: "/terms", name: "terms", nojs: true, h1: "main h1", sub: "main p.web-lead", cta: null },
   { path: "/privacy", name: "privacy", nojs: true, h1: "main h1", sub: "main p.web-lead", cta: null },
   { path: "/nonexistent-404", name: "404", nojs: true, h1: "main h1", sub: "main p.web-lead", cta: "main a.btn-primary" },

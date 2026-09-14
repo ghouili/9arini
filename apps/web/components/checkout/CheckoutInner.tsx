@@ -6,7 +6,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { Check, Calendar, Clock, Users, Shield, Back } from "@/components/icons";
 import { Spinner } from "@/components/ui";
 import { getClass, reserveSeat } from "@/app/actions";
-import type { ClassItem } from "@tnajem/shared";
+import { isOpenForBooking, type ClassItem } from "@tnajem/shared";
 import { bilingual } from "@/lib/i18n";
 
 /** Month label map FR → AR (short) — same table as the storefront. Class rows
@@ -70,6 +70,8 @@ const copy = bilingual({
     // ── Dead ends, each with a way out ──
     soldOutTitle: "Cette séance est complète",
     soldOutBody: "Toutes les places sont prises. Trouve une autre séance — il y en a d'autres.",
+    closedTitle: "Cette séance n'est plus ouverte à la réservation",
+    closedBody: "Elle a déjà commencé, ou elle a été annulée. Trouve une autre séance — il y en a d'autres.",
     otherClasses: "Voir d'autres séances",
     errAuth: "Connecte-toi pour réserver ta place.",
     errFull: "Plus de places pour cette séance.",
@@ -118,6 +120,8 @@ const copy = bilingual({
 
     soldOutTitle: "هذه الحصة كاملة",
     soldOutBody: "الأماكن الكل تحجزو. لوّج على حصة أخرى — فما غيرها.",
+    closedTitle: "هذه الحصة ما عادش مفتوحة للحجز",
+    closedBody: "الحصة بدات ولا تلغات. لوّج على حصة أخرى — فما غيرها.",
     otherClasses: "شوف حصص أخرى",
     errAuth: "تسجّل الدخول باش تحجز مكانك.",
     errFull: "ما عادش فما أماكن في هاذي الحصة.",
@@ -376,7 +380,11 @@ export default function CheckoutInner() {
 
   const month = locale === "ar" ? monthAr[cls.month] ?? cls.month : cls.month;
   const whenLine = `${cls.day} ${month} · ${cls.time}`;
-  const soldOut = cls.seats_left <= 0;
+  /* Started, finished or cancelled → nothing to confirm. Checked at render against
+     the clock; if the class starts while this screen is open, the button still
+     reaches reserveSeat, and the server refuses it ("unavailable" below). */
+  const closed = !isOpenForBooking(cls);
+  const soldOut = !closed && cls.seats_left <= 0;
 
   return (
     <div className="ck-wrap">
@@ -500,10 +508,10 @@ export default function CheckoutInner() {
       {/* Confirm — or an honest way out when the seats are already gone. Letting a
           student tap into a guaranteed "full" error is a dead end we can see coming. */}
       <div className="ck-foot">
-        {soldOut ? (
+        {closed || soldOut ? (
           <div className="u-card u-card-pad ck-state" style={{ marginBottom: 0 }}>
-            <h2 className="ck-h1" style={{ fontSize: 16 }}>{c.soldOutTitle}</h2>
-            <p>{c.soldOutBody}</p>
+            <h2 className="ck-h1" style={{ fontSize: 16 }}>{closed ? c.closedTitle : c.soldOutTitle}</h2>
+            <p>{closed ? c.closedBody : c.soldOutBody}</p>
             <Link href="/explore" className="btn btn-primary">{c.otherClasses}</Link>
           </div>
         ) : (

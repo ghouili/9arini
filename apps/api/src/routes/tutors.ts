@@ -13,6 +13,7 @@ import { db } from "../db";
 import { getSession } from "../lib/session";
 import { assertNoContactInfo, CONTACT_ERROR } from "../lib/contact-guard";
 import { exploreBoostSql, subscriptionIsLiveSql } from "../lib/entitlements";
+import { onSaleClassSql } from "../lib/class-sale";
 
 /* tutors — createTutor, and the three PUBLIC reads that feed the cached storefront.
 
@@ -375,11 +376,12 @@ export async function tutorRoutes(app: FastifyInstance): Promise<void> {
         .groupBy(reviews.tutorId);
       const byTutor = new Map(revAgg.map((r) => [r.tutorId, r]));
 
-      // "À partir de X TND" — cheapest class still on sale.
+      // "À partir de X TND" — cheapest class still on sale. It used to take the
+      // minimum over every class ever created, past and cancelled ones included.
       const priceAgg = await db
         .select({ tutorId: classes.tutorId, min: raw<string | null>`min(${classes.priceTnd})` })
         .from(classes)
-        .where(inArray(classes.tutorId, ids))
+        .where(and(inArray(classes.tutorId, ids), onSaleClassSql))
         .groupBy(classes.tutorId);
       const priceByTutor = new Map(priceAgg.map((r) => [r.tutorId, r.min]));
 

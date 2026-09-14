@@ -237,6 +237,7 @@ export async function classRoutes(app: FastifyInstance): Promise<void> {
       tutor_name: tut?.fullName ?? "",
       title: c.title,
       description: c.description ?? undefined,
+      starts_at: d.toISOString(),
       day: String(d.getDate()),
       month: MONTHS_FR[d.getMonth()],
       time: d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),

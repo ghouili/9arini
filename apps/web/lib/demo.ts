@@ -1,4 +1,4 @@
-import type { Storefront, ClassItem, Pack } from "@tnajem/shared";
+import { MONTHS_FR, type Storefront, type ClassItem, type Pack } from "@tnajem/shared";
 
 /* ══════════════════════════════════════════════════════════════════════════════
    Demo data — the zero-backend fallback. DEVELOPMENT ONLY.
@@ -21,16 +21,14 @@ import type { Storefront, ClassItem, Pack } from "@tnajem/shared";
    So the gate is the environment, not the database:
 
      • `demoEnabled === false` in production → every export below is INERT
-       (empty arrays; a zeroed, unverified, unrated storefront). Even if a caller
-       forgets to check the flag, there is no fabricated rating, no fake student
-       count and no verified badge in the production bundle to leak.
+       (empty lists, null storefronts). Even if a caller forgets to check the
+       flag, there is no invented tutor in the production bundle to leak.
      • Callers must ALSO branch on `demoEnabled` and render an honest error/empty
        state in production instead of the fixtures — see lib/data.ts::getStorefront,
        which throws DatabaseNotConfiguredError rather than inventing a tutor.
 
    Importers:
-     • demoClasses    → app/actions.ts (getClass fallback), demoStorefront
-     • demoPacks      → demoStorefront
+     • demoClasses()  → app/actions.ts (getClass fallback)
      • demoStorefrontFor → lib/data.ts (getStorefront fallback, per slug)
      • demoStorefrontList → components/explore/ExploreClient.tsx (demo preview cards)
      • demoEnabled    → the gate. Import this next to any of the above.
@@ -48,16 +46,39 @@ import type { Storefront, ClassItem, Pack } from "@tnajem/shared";
 /** The single gate. False in production — no fixture may be served to a real user. */
 export const demoEnabled: boolean = process.env.NODE_ENV !== "production";
 
-const devClasses: ClassItem[] = [
-  { id: "c1", tutor_id: "yassine", tutor_name: "Yassine Khelifi", title: "Intégrales — révision express", description: "Méthodes + annales. On fait 3 exercices types ensemble.", day: "23", month: "JUIN", time: "18:00", duration_min: 90, price_tnd: 15, seats: 20, seats_left: 8, is_free_first: true, status: "scheduled", meet_url: "https://meet.jit.si/tnajem-c1", whiteboard_url: "https://bitpaper.io/", quiz_url: "https://www.wooclap.com/" },
-  { id: "c2", tutor_id: "yassine", tutor_name: "Yassine Khelifi", title: "Annales Bac 2025 corrigées", description: "Correction guidée des sujets 2025.", day: "25", month: "JUIN", time: "17:00", duration_min: 120, price_tnd: 20, seats: 20, seats_left: 12, is_free_first: false, status: "scheduled", meet_url: "https://meet.jit.si/tnajem-c2" },
+/* DATED FROM NOW, ON EVERY CALL. The classes used to be the strings "23 JUIN ·
+   18:00" and "25 JUIN · 17:00" — fixed display text with no date behind it — so
+   by September the demo storefront was selling June's classes as "Prochaine
+   séance". They are now built relative to the moment they are read (the same
+   +2 days 18:00 / +4 days 17:00 as packages/db/src/seed.ts) and can never
+   expire. A module-level constant would freeze the dates at server start. */
+function at(daysFromNow: number, hour: number, minute: number): Date {
+  const d = new Date();
+  d.setDate(d.getDate() + daysFromNow);
+  d.setHours(hour, minute, 0, 0);
+  return d;
+}
+
+/** Display strings derived exactly like the API derives them (apps/api/src/lib/storefront.ts). */
+function when(d: Date): Pick<ClassItem, "starts_at" | "day" | "month" | "time"> {
+  return {
+    starts_at: d.toISOString(),
+    day: String(d.getDate()),
+    month: MONTHS_FR[d.getMonth()],
+    time: d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+  };
+}
+
+const devClasses = (): ClassItem[] => [
+  { id: "c1", tutor_id: "yassine", tutor_name: "Yassine Khelifi", title: "Intégrales — révision express", description: "Méthodes + annales. On fait 3 exercices types ensemble.", ...when(at(2, 18, 0)), duration_min: 90, price_tnd: 15, seats: 20, seats_left: 8, is_free_first: true, status: "scheduled", meet_url: "https://meet.jit.si/tnajem-c1", whiteboard_url: "https://bitpaper.io/", quiz_url: "https://www.wooclap.com/" },
+  { id: "c2", tutor_id: "yassine", tutor_name: "Yassine Khelifi", title: "Annales Bac 2025 corrigées", description: "Correction guidée des sujets 2025.", ...when(at(4, 17, 0)), duration_min: 120, price_tnd: 20, seats: 20, seats_left: 12, is_free_first: false, status: "scheduled", meet_url: "https://meet.jit.si/tnajem-c2" },
 ];
 
 const devPacks: Pack[] = [
   { id: "p1", tutor_id: "yassine", title: "Pack révision : Dérivées & Limites", meta: "42 pages · 6 vidéos", price_tnd: 8, kind: "pdf" },
 ];
 
-const devStorefront: Storefront = {
+const devYassine = (): Storefront => ({
   tutor: {
     id: "yassine", slug: "yassine-math", full_name: "Yassine Khelifi",
     subject: "Prof de Maths · Bac", level: "Bac",
@@ -70,26 +91,9 @@ const devStorefront: Storefront = {
     // real face. The monogram is the honest render.
     has_photo: false,
   },
-  classes: devClasses,
+  classes: devClasses(),
   packs: devPacks,
-};
-
-/* The production value. Deliberately empty and unverified: if a code path we
-   missed ever renders it on a real deploy, it degrades to a visibly-broken blank
-   — which we can see and fix — instead of a convincing lie about a tutor who
-   does not exist. Loud failure over silent fabrication. */
-const inertStorefront: Storefront = {
-  tutor: {
-    id: "", slug: "", full_name: "", subject: "", level: "",
-    bio: "", avatar_initials: "", rating: 0, students_count: 0, verified: false,
-    // FALSE in the inert value, like every other field: if a missed code path ever
-    // renders this on a real deploy it must not promise a free session.
-    offers_free_first_session: false,
-    has_photo: false,
-  },
-  classes: [],
-  packs: [],
-};
+});
 
 /* The other two tutors the /explore demo preview links to. Before these existed,
    getStorefront() answered EVERY slug with Yassine — so a typo'd link showed a
@@ -102,8 +106,8 @@ const devTutorOnly = (tutor: Pick<Storefront["tutor"], "id" | "slug" | "full_nam
   packs: [],
 });
 
-const devStorefronts: Record<string, Storefront> = {
-  [devStorefront.tutor.slug]: devStorefront,
+const devStorefronts = (): Record<string, Storefront> => ({
+  "yassine-math": devYassine(),
   "sonia-physique": devTutorOnly({
     id: "sonia", slug: "sonia-physique", full_name: "Sonia Trabelsi",
     subject: "Prof de Physique · Lycée & Bac", level: "Bac",
@@ -116,18 +120,22 @@ const devStorefronts: Record<string, Storefront> = {
     bio: "Les bases d'abord. Patiente, en darija, avec des exercices à la maison.",
     avatar_initials: "LB",
   }),
-};
+});
 
-export const demoClasses: ClassItem[] = demoEnabled ? devClasses : [];
-export const demoPacks: Pack[] = demoEnabled ? devPacks : [];
-export const demoStorefront: Storefront = demoEnabled ? devStorefront : inertStorefront;
+/** The demo classes, dated from now. Empty in production. */
+export function demoClasses(): ClassItem[] {
+  return demoEnabled ? devClasses() : [];
+}
 
 /** Every demo storefront, for the /explore preview — the cards are built FROM these, so a
     card can never describe a tutor differently from that tutor's own demo page. */
-export const demoStorefrontList: Storefront[] = demoEnabled ? Object.values(devStorefronts) : [];
+export function demoStorefrontList(): Storefront[] {
+  return demoEnabled ? Object.values(devStorefronts()) : [];
+}
 
 /** The demo storefront for one slug, or null — never another tutor's page. Always null in production. */
 export function demoStorefrontFor(slug: string): Storefront | null {
   if (!demoEnabled) return null;
-  return Object.prototype.hasOwnProperty.call(devStorefronts, slug) ? devStorefronts[slug] : null;
+  const all = devStorefronts();
+  return Object.prototype.hasOwnProperty.call(all, slug) ? all[slug] : null;
 }
