@@ -26,6 +26,7 @@ import { Verified, Chip } from "@/components/ui";
 import { Search, Users, Bolt } from "@/components/icons";
 import { SiteShell } from "@/components/SiteShell";
 import { TutorStanding } from "@/components/TutorStanding";
+import { UserText } from "@/components/UserText";
 import { getExploreTutors } from "@/app/actions";
 import { demoStorefrontList } from "@/lib/demo";
 import { tutorStanding, type ExploreTutor } from "@tnajem/shared";
@@ -370,9 +371,9 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
 
                       <div className="min-w-0 flex-1">
                         <div className="flex min-w-0 items-center gap-1.5">
-                          <span className="min-w-0 truncate font-display text-base font-bold text-ink transition-colors group-hover:text-blue">
+                          <UserText className="min-w-0 truncate font-display text-base font-bold text-ink transition-colors group-hover:text-blue">
                             {tutor.full_name}
-                          </span>
+                          </UserText>
                           {/* Only verified tutors are ever returned by getExploreTutors.
                               .verified is flex:none, so it stays a circle next to
                               the truncated name instead of squashing to an ellipse. */}
@@ -388,17 +389,17 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
                         )}
                         {/* line-clamp-2, not truncate: "Prof de Maths · Lycée & Bac"
                             (and its longer AR form) needs two lines at 284px. */}
-                        <div className="mt-1 line-clamp-2 text-[13px] leading-snug text-muted">
+                        <UserText as="div" className="mt-1 line-clamp-2 text-[13px] leading-snug text-muted">
                           {tutor.subject}
-                        </div>
+                        </UserText>
                       </div>
                     </div>
 
                     {/* Bio teaser */}
                     {tutor.bio && (
-                      <p className="mt-4 line-clamp-2 break-words text-[13px] leading-relaxed text-ink2">
+                      <UserText as="p" className="mt-4 line-clamp-2 break-words text-[13px] leading-relaxed text-ink2">
                         {tutor.bio}
-                      </p>
+                      </UserText>
                     )}
 
                     {/* Footer — was ONE justify-between row cramming three

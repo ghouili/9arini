@@ -12,6 +12,7 @@ import type { StudentClass, StudentDashboard } from "@tnajem/shared";
 import { CANCEL_FREE_WINDOW_MS, CANCEL_FREE_WINDOW_HOURS, LATE_CANCEL_RETAINED_PCT } from "@tnajem/shared";
 import { SiteShell } from "@/components/SiteShell";
 import { MessageBookingButton } from "@/components/MessageBookingButton";
+import { UserText } from "@/components/UserText";
 import { bilingual } from "@/lib/i18n";
 
 /* Page-local copy (never lib/i18n.ts — that file is shared).
@@ -309,14 +310,14 @@ function UpcomingCard({ item, hero, onChanged }: { item: StudentClass; hero: boo
           {live ? c.liveNow : t.student.soon}
         </span>
         <span style={{ color: "var(--on-dark-soft)", fontSize: 13, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {t.student.with} {item.tutorName}
+          {t.student.with} <UserText>{item.tutorName}</UserText>
         </span>
       </div>
 
       {/* h3: the section above already owns the h2 ("Prochains cours") */}
-      <h3 style={{ fontFamily: "var(--fd)", fontSize: hero ? "clamp(19px, 2.8vw, 28px)" : "clamp(16px, 2vw, 19px)", lineHeight: 1.25, marginBottom: 8 }}>
+      <UserText as="h3" style={{ fontFamily: "var(--fd)", fontSize: hero ? "clamp(19px, 2.8vw, 28px)" : "clamp(16px, 2vw, 19px)", lineHeight: 1.25, marginBottom: 8 }}>
         {item.title}
-      </h3>
+      </UserText>
 
       <div className="flex items-center gap-2.5 flex-wrap text-on-dark text-[13px] font-semibold">
         <span className="inline-flex items-center gap-1.5">
@@ -522,9 +523,9 @@ export default function StudentPage() {
                           <Play />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div style={{ fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</div>
+                          <UserText as="div" style={{ fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</UserText>
                           <div className="muted text-[13px] mt-0.5">
-                            {item.day} {item.month} · {item.time} · {t.student.with} {item.tutorName}
+                            {item.day} {item.month} · {item.time} · {t.student.with} <UserText>{item.tutorName}</UserText>
                           </div>
                         </div>
                         {item.replayUrl ? (

@@ -92,7 +92,28 @@ async function main() {
     description: "42 pages · 6 vidéos", priceTnd: "8",
   });
 
+  /* A tutor who writes in ARABIC SCRIPT. Most tutors write French or Latin-script
+     Derija, and user text renders with dir="auto" (apps/web/components/UserText.tsx)
+     so a French bio reads LTR on an Arabic page. This fixture is the other half:
+     an Arabic bio must still read RTL, including on the French page. No classes,
+     so it also exercises the storefront's "no upcoming session" state. */
+  await db.delete(tutors).where(eq(tutors.slug, "leila-primaire"));
+  await db.insert(tutors).values({
+    slug: "leila-primaire",
+    fullName: "Leïla Ben Amor",
+    subject: "Maths & Français · Primaire & Collège",
+    level: "Collège",
+    bio: "« القواعد قبل كل شي. بالصبر، بالدارجة، وتمارين للدار. »",
+    rating: "0",
+    studentsCount: 0,
+    verified: true,
+    status: "verified",
+    submittedAt: new Date(),
+    reviewedAt: new Date(),
+  });
+
   console.log("✓ Seeded tutor /yassine-math (verified) — 0 students, no rating — with 2 classes + 1 pack.");
+  console.log("✓ Seeded tutor /leila-primaire (verified) — Arabic-script bio, no classes.");
   console.log("  Rating/students stay at 0 on purpose: they are computed from real reviews + bookings.");
   await sql.end();
   process.exit(0);

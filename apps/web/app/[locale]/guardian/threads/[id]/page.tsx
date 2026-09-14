@@ -6,6 +6,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { Spinner } from "@/components/ui";
 import { SiteShell } from "@/components/SiteShell";
 import { Shield, Forward } from "@/components/icons";
+import { UserText } from "@/components/UserText";
 import { getChildThread } from "@/app/actions";
 import type { MessageThreadDetail } from "@tnajem/shared";
 import { bilingual } from "@/lib/i18n";
@@ -106,9 +107,9 @@ export default function GuardianThreadPage() {
           </Link>
 
           <div className="mb-[clamp(14px,2vw,22px)]">
-            <h1 className="web-h1 text-[22px]">{thread.classTitle}</h1>
+            <UserText as="h1" className="web-h1 text-[22px]">{thread.classTitle}</UserText>
             <p className="text-[14px] text-muted mt-1">
-              {c.with} {thread.withName}
+              {c.with} <UserText>{thread.withName}</UserText>
             </p>
           </div>
 
@@ -140,10 +141,10 @@ export default function GuardianThreadPage() {
                     }}
                   >
                     <div className="text-[12px] font-bold text-muted mb-1">
-                      {m.fromChild ? c.fromChild : thread.withName}
+                      {m.fromChild ? c.fromChild : <UserText>{thread.withName}</UserText>}
                     </div>
                     {/* TEXT NODE. Never dangerouslySetInnerHTML. */}
-                    <p className="text-[14px] leading-[1.6] whitespace-pre-wrap break-words">{m.body}</p>
+                    <UserText as="p" className="text-[14px] leading-[1.6] whitespace-pre-wrap break-words">{m.body}</UserText>
                     <div className="flex items-center gap-2 flex-wrap mt-1">
                       <span className="text-[12px] text-muted">
                         {new Date(m.at).toLocaleString(locale === "ar" ? "ar-TN" : "fr-FR", {

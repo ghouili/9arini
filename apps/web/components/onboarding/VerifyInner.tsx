@@ -7,6 +7,7 @@ import { Shield, Check, Upload, User, Eye, Bulb } from "@/components/icons";
 import { SiteShell } from "@/components/SiteShell";
 import { getMyVerification, submitVerification } from "@/app/actions";
 import { OnboardingProgress } from "@/components/OnboardingProgress";
+import { UserText } from "@/components/UserText";
 import type { TutorVerification, Locale, OnboardingState } from "@tnajem/shared";
 import { bilingual } from "@/lib/i18n";
 
@@ -496,7 +497,7 @@ export function VerifyInner({ state }: { state: OnboardingState | null }) {
             </div>
             {verif?.reviewNote && (
               <p className="text-[13px] text-ink2 mt-1 leading-[1.55]">
-                <b>{c.rejectedNote} </b>{verif.reviewNote}
+                <b>{c.rejectedNote} </b><UserText>{verif.reviewNote}</UserText>
               </p>
             )}
             <p className="text-[13px] text-muted mt-1.5 leading-[1.55]">
@@ -824,7 +825,7 @@ function FileDrop({
         <span className="dz-txt">
           {file ? (
             <>
-              <b className="break-words">{file.name}</b>
+              <UserText as="b" className="break-words">{file.name}</UserText>
               <span className="dz-hint">{fmtMb(file.size)}</span>
             </>
           ) : (

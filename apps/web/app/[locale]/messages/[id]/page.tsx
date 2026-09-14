@@ -6,6 +6,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { Button, Spinner } from "@/components/ui";
 import { SiteShell } from "@/components/SiteShell";
 import { Shield, Forward } from "@/components/icons";
+import { UserText } from "@/components/UserText";
 import { getThread, sendMessage, reportMessage } from "@/app/actions";
 import type { MessageThreadDetail } from "@tnajem/shared";
 import { MESSAGE_MAX_LENGTH } from "@tnajem/shared";
@@ -190,8 +191,8 @@ export default function ThreadPage() {
           </Link>
 
           <div className="mb-[clamp(14px,2vw,22px)]">
-            <h1 className="web-h1 text-[22px]">{thread.classTitle}</h1>
-            <p className="text-[14px] text-muted mt-1">{who}</p>
+            <UserText as="h1" className="web-h1 text-[22px]">{thread.classTitle}</UserText>
+            <UserText as="p" className="text-[14px] text-muted mt-1">{who}</UserText>
           </div>
 
           <div className="panel panel-pad mb-3 flex items-start gap-2.5">
@@ -218,7 +219,7 @@ export default function ThreadPage() {
                     }}
                   >
                     {/* TEXT NODE. Never dangerouslySetInnerHTML — see the file header. */}
-                    <p className="text-[14px] leading-[1.6] whitespace-pre-wrap break-words">{m.body}</p>
+                    <UserText as="p" className="text-[14px] leading-[1.6] whitespace-pre-wrap break-words">{m.body}</UserText>
                     <div className="flex items-center gap-2 flex-wrap mt-1">
                       <span className="text-[12px] text-muted">
                         {new Date(m.at).toLocaleString(locale === "ar" ? "ar-TN" : "fr-FR", {

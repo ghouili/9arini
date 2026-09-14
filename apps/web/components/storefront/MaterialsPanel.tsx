@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useLocale } from "@/components/LocaleProvider";
 import { Book, Video } from "@/components/icons";
+import { UserText } from "@/components/UserText";
 import { getTutorMaterials } from "@/app/actions";
 import type { MaterialItem } from "@tnajem/shared";
 import { youTubeEmbedUrl } from "@tnajem/shared";
@@ -81,9 +82,9 @@ export function MaterialsPanel({ slug }: { slug: string }) {
             </span>
 
             <div className="min-w-0 flex-1">
-              <div className="text-[14px] font-semibold">{m.title}</div>
+              <UserText as="div" className="text-[14px] font-semibold">{m.title}</UserText>
               {m.description && (
-                <p className="text-[13px] text-muted leading-[1.6] mt-0.5">{m.description}</p>
+                <UserText as="p" className="text-[13px] text-muted leading-[1.6] mt-0.5">{m.description}</UserText>
               )}
               <div className="text-[12px] text-muted mt-1 flex items-center gap-1.5 flex-wrap">
                 {m.visibility === "students" && <span>{c.forStudents}</span>}

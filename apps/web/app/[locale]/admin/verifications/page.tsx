@@ -6,6 +6,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { useToast } from "@/components/useToast";
 import { SiteShell } from "@/components/SiteShell";
 import { Shield, Check, Eye, Users, Forward } from "@/components/icons";
+import { UserText } from "@/components/UserText";
 import { getPendingVerifications, approveTutor, rejectTutor } from "@/app/actions";
 import type { PendingTutor } from "@tnajem/shared";
 import { bilingual } from "@/lib/i18n";
@@ -258,9 +259,9 @@ export default function AdminVerificationsPage() {
                             this list — so in the DOM a screen reader actually
                             walks, this jumped h1 -> h3 and every applicant name
                             was announced at a level with no parent. */}
-                        <h2 className="av-name">{t.name}</h2>
+                        <UserText as="h2" className="av-name">{t.name}</UserText>
                         <div className="av-sub">
-                          <span className="chip chip-soft">{t.subject}</span>
+                          <UserText className="chip chip-soft">{t.subject}</UserText>
                           <span className="av-slug">tnajem.tn/{t.slug}</span>
                         </div>
                       </div>
@@ -280,11 +281,11 @@ export default function AdminVerificationsPage() {
                       </div>
                       <div className="av-field">
                         <span className="av-label">{c.institution}</span>
-                        <span className="av-value">{t.institution || c.notProvided}</span>
+                        <span className="av-value">{t.institution ? <UserText>{t.institution}</UserText> : c.notProvided}</span>
                       </div>
                       <div className="av-field">
                         <span className="av-label">{c.languages}</span>
-                        <span className="av-value">{t.languages || c.notProvided}</span>
+                        <span className="av-value">{t.languages ? <UserText>{t.languages}</UserText> : c.notProvided}</span>
                       </div>
                     </div>
 
@@ -292,7 +293,7 @@ export default function AdminVerificationsPage() {
                     {t.pitch && (
                       <blockquote className="av-pitch">
                         <span className="av-label">{c.pitch}</span>
-                        <p>{t.pitch}</p>
+                        <UserText as="p">{t.pitch}</UserText>
                       </blockquote>
                     )}
 

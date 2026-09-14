@@ -7,6 +7,7 @@ import { SiteShell } from "@/components/SiteShell";
 import { Avatar, Button, Spinner } from "@/components/ui";
 import { Back, Video, Bulb, Clock } from "@/components/icons";
 import { ClassTools } from "@/components/teaching/ClassTools";
+import { UserText } from "@/components/UserText";
 import { canJoinClass, getClass, getStudentDashboard, getDashboard } from "@/app/actions";
 import type { ClassItem } from "@tnajem/shared";
 import { bilingual } from "@/lib/i18n";
@@ -222,10 +223,10 @@ export default function LiveLobbyPage({ params }: Props) {
             {/* Stage */}
             <div style={{ textAlign: "center", margin: "clamp(20px,4vw,32px) 0 8px" }}>
               {initials && <Avatar initials={initials} size={92} />}
-              <h1 className="font-display text-[clamp(18px,4vw,22px)] mt-4">{cls.title}</h1>
+              <UserText as="h1" className="font-display text-[clamp(18px,4vw,22px)] mt-4">{cls.title}</UserText>
               {cls.tutor_name && (
                 <div className="text-on-dark-soft text-[13px] mt-[5px]">
-                  {t.live.with} {cls.tutor_name}
+                  {t.live.with} <UserText>{cls.tutor_name}</UserText>
                 </div>
               )}
 

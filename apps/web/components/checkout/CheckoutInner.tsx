@@ -5,6 +5,7 @@ import { Link } from "@/components/Link";
 import { useLocale } from "@/components/LocaleProvider";
 import { Check, Calendar, Clock, Users, Shield, Back } from "@/components/icons";
 import { Spinner } from "@/components/ui";
+import { UserText } from "@/components/UserText";
 import { getClass, reserveSeat } from "@/app/actions";
 import { isOpenForBooking, type ClassItem } from "@tnajem/shared";
 import { bilingual } from "@/lib/i18n";
@@ -409,7 +410,7 @@ export default function CheckoutInner() {
           <span>{month}</span>
         </div>
         <div className="ck-class-main">
-          <div className="ck-class-title">{cls.title}</div>
+          <UserText as="div" className="ck-class-title">{cls.title}</UserText>
           <div className="metaline">
             <span>
               <Clock />
@@ -422,7 +423,7 @@ export default function CheckoutInner() {
           </div>
           {cls.tutor_name && (
             <div className="ck-class-who">
-              {c.who} {cls.tutor_name}
+              {c.who} <UserText>{cls.tutor_name}</UserText>
             </div>
           )}
         </div>

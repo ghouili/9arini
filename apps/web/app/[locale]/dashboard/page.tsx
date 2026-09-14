@@ -11,6 +11,7 @@ import { MessageBookingButton } from "@/components/MessageBookingButton";
 import { ClassActions } from "@/components/dashboard/ClassActions";
 import { AvatarUpload } from "@/components/dashboard/AvatarUpload";
 import { WrongRoleNotice } from "@/components/WrongRoleNotice";
+import { UserText } from "@/components/UserText";
 import { buildTutorSteps, STEP_COPY } from "@/lib/onboarding-steps";
 import type { OnboardingStep, StepState } from "@/lib/onboarding-steps";
 import type { DashboardData, DashboardBooking, NotificationItem, DashboardResult } from "@tnajem/shared";
@@ -768,7 +769,7 @@ function BookingsPanel({ d }: { d: DashboardData }) {
                   overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis",
                 }}
               >
-                {g.classTitle}
+                <UserText>{g.classTitle}</UserText>
               </Link>
               <span
                 className="ms-auto text-[13px] font-bold text-blue bg-blue50 py-[3px] px-[9px] rounded-[999px] shrink-0"
@@ -793,14 +794,14 @@ function BookingsPanel({ d }: { d: DashboardData }) {
                 </div>
 
                 <div className="flex-[1_1_150px] min-w-0">
-                  <div
+                  <UserText as="div"
                     style={{
                       fontSize: 13.5, fontWeight: 600, overflow: "hidden",
                       whiteSpace: "nowrap", textOverflow: "ellipsis",
                     }}
                   >
                     {b.studentName?.trim() || c.anon}
-                  </div>
+                  </UserText>
                   <div
                     className="text-[13px] text-muted mt-0.5 flex items-center gap-[5px] flex-wrap"
                   >
@@ -916,7 +917,7 @@ function RealDashboard(
                   <Video />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div style={{ fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{cl.title}</div>
+                  <UserText as="div" style={{ fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{cl.title}</UserText>
                   <div className="text-[13px] text-muted mt-0.5">{cl.day} {cl.month} · {cl.time}</div>
                 </div>
                 <div className="text-end flex-none ms-auto">
@@ -950,8 +951,8 @@ function RealDashboard(
                 <Book />
               </div>
               <div className="flex-1 min-w-0">
-                <div style={{ fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.title}</div>
-                {p.meta && <div className="text-[13px] text-muted mt-0.5">{p.meta}</div>}
+                <UserText as="div" style={{ fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.title}</UserText>
+                {p.meta && <UserText as="div" className="text-[13px] text-muted mt-0.5">{p.meta}</UserText>}
               </div>
               <div className="qd-num font-display font-bold text-ink flex-none ms-auto">{p.price_tnd} TND</div>
             </div>

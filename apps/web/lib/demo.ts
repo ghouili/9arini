@@ -117,7 +117,9 @@ const devStorefronts = (): Record<string, Storefront> => ({
   "leila-primaire": devTutorOnly({
     id: "leila", slug: "leila-primaire", full_name: "Leïla Ben Amor",
     subject: "Maths & Français · Primaire & Collège", level: "Collège",
-    bio: "Les bases d'abord. Patiente, en darija, avec des exercices à la maison.",
+    /* Arabic script, on purpose: user text renders with dir="auto", and this is the
+       fixture that proves an Arabic bio still reads RTL — see packages/db/src/seed.ts. */
+    bio: "« القواعد قبل كل شي. بالصبر، بالدارجة، وتمارين للدار. »",
     avatar_initials: "LB",
   }),
 });

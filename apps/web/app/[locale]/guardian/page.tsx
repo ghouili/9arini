@@ -5,6 +5,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { Spinner } from "@/components/ui";
 import { SiteShell } from "@/components/SiteShell";
 import { Shield, Clock, Forward } from "@/components/icons";
+import { UserText } from "@/components/UserText";
 import { getMyChildren, getChildThreads } from "@/app/actions";
 import type { GuardianChild, MessageThreadSummary } from "@tnajem/shared";
 import { bilingual } from "@/lib/i18n";
@@ -96,7 +97,7 @@ function ChildCard({ child }: { child: GuardianChild }) {
   return (
     <div className="panel panel-pad mb-[clamp(14px,2vw,22px)]">
       <div className="flex items-baseline justify-between gap-2.5 flex-wrap mb-2">
-        <h2 className="font-display text-[17px] font-bold">{child.name}</h2>
+        <UserText as="h2" className="font-display text-[17px] font-bold">{child.name}</UserText>
         {child.isMinor && (
           <span className="text-[12px] font-bold text-muted uppercase tracking-[.5px]">{c.minor}</span>
         )}
@@ -111,9 +112,9 @@ function ChildCard({ child }: { child: GuardianChild }) {
             <li key={u.classId} className="flex items-start gap-2.5 py-2 border-b border-line last:border-b-0">
               <Clock className="w-4 h-4 flex-none mt-0.5" aria-hidden="true" />
               <div className="min-w-0">
-                <div className="text-[14px] font-semibold">{u.title}</div>
+                <UserText as="div" className="text-[14px] font-semibold">{u.title}</UserText>
                 <div className="text-[13px] text-muted mt-0.5">
-                  {u.day} {u.month} · {u.time} · {c.with} {u.tutorName}
+                  {u.day} {u.month} · {u.time} · {c.with} <UserText>{u.tutorName}</UserText>
                 </div>
               </div>
             </li>
@@ -148,9 +149,9 @@ function ChildCard({ child }: { child: GuardianChild }) {
                   style={{ color: "inherit" }}
                 >
                   <div className="min-w-0 flex-1">
-                    <div className="text-[14px] font-semibold truncate">{t.classTitle}</div>
+                    <UserText as="div" className="text-[14px] font-semibold truncate">{t.classTitle}</UserText>
                     <div className="text-[13px] text-muted mt-0.5">
-                      {c.with} {t.withName}
+                      {c.with} <UserText>{t.withName}</UserText>
                     </div>
                   </div>
                   <Forward className="w-4 h-4 flex-none" aria-hidden="true" />

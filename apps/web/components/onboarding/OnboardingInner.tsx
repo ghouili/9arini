@@ -32,6 +32,7 @@ import { SiteShell } from "@/components/SiteShell";
 import { OnboardingProgress } from "@/components/OnboardingProgress";
 import { createTutor } from "@/app/actions";
 import { useToast } from "@/components/useToast";
+import { UserText } from "@/components/UserText";
 import { vSlug } from "@tnajem/shared";
 import type { OnboardingState } from "@tnajem/shared";
 import { bilingual } from "@/lib/i18n";
@@ -437,15 +438,15 @@ export function OnboardingInner({ state }: { state: OnboardingState | null }) {
                   <Avatar initials={inits} size={52} square />
                   <div className="min-w-0">
                     <div className="font-display text-[16px] mb-[3px] truncate">
-                      {name || <span className="text-muted">{c.yourName}</span>}
+                      {name ? <UserText>{name}</UserText> : <span className="text-muted">{c.yourName}</span>}
                     </div>
                     <div className="text-[13px] text-muted truncate">
-                      {subject || t.onboarding.subjectPh}
+                      {subject ? <UserText>{subject}</UserText> : t.onboarding.subjectPh}
                     </div>
                   </div>
                 </div>
 
-                {bio && <p className="text-[13px] text-ink2 leading-[1.6] mt-3.5">{bio}</p>}
+                {bio && <UserText as="p" className="text-[13px] text-ink2 leading-[1.6] mt-3.5">{bio}</UserText>}
                 <p className="text-[13px] text-muted mt-3.5 leading-[1.5]">{c.previewNote}</p>
               </div>
             </div>

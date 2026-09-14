@@ -5,6 +5,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { Button, Spinner } from "@/components/ui";
 import { SiteShell } from "@/components/SiteShell";
 import { Book, Video, Forward } from "@/components/icons";
+import { UserText } from "@/components/UserText";
 import { getMyMaterials, createMaterial, deleteMaterial } from "@/app/actions";
 import type { MaterialItem } from "@tnajem/shared";
 import { bilingual } from "@/lib/i18n";
@@ -282,7 +283,7 @@ export default function MaterialsPage() {
                       {m.kind === "youtube" ? <Video /> : <Book />}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <div className="text-[14px] font-semibold">{m.title}</div>
+                      <UserText as="div" className="text-[14px] font-semibold">{m.title}</UserText>
                       <div className="text-[12px] text-muted mt-0.5">
                         {m.visibility === "public" ? c.visPublic
                           : m.visibility === "students" ? c.visStudents

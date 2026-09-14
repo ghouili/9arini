@@ -6,6 +6,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { useToast } from "@/components/useToast";
 import { SiteShell } from "@/components/SiteShell";
 import { Shield, Users } from "@/components/icons";
+import { UserText } from "@/components/UserText";
 import { getAdminPlans, grantPlan, revokePlan, type AdminPlanRow } from "@/app/actions";
 import { PLANS, classLimitLabel, tnd } from "@tnajem/shared";
 import { bilingual } from "@/lib/i18n";
@@ -278,7 +279,7 @@ export default function AdminPlansPage() {
                         <div className="flex items-start justify-between gap-3 flex-wrap mb-2">
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <b className="font-display text-[15px]">{row.fullName}</b>
+                              <UserText as="b" className="font-display text-[15px]">{row.fullName}</UserText>
                               <Chip kind={row.granted ? "soft" : "sand"}>
                                 {row.granted ? row.planCode : c.onPilot}
                               </Chip>

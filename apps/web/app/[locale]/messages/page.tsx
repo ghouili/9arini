@@ -5,6 +5,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { Spinner } from "@/components/ui";
 import { SiteShell } from "@/components/SiteShell";
 import { Forward, Shield } from "@/components/icons";
+import { UserText } from "@/components/UserText";
 import { getThreads } from "@/app/actions";
 import type { MessageThreadSummary } from "@tnajem/shared";
 import { bilingual } from "@/lib/i18n";
@@ -106,10 +107,10 @@ export default function MessagesPage() {
                   style={{ color: "inherit" }}
                 >
                   <div className="min-w-0 flex-1">
-                    <div className="text-[14px] font-semibold truncate">{t.classTitle}</div>
+                    <UserText as="div" className="text-[14px] font-semibold truncate">{t.classTitle}</UserText>
                     <div className="text-[13px] text-muted mt-0.5 flex items-center gap-1.5 flex-wrap">
                       <span>
-                        {t.withName ?? (t.iAm === "tutor" ? c.withStudent : c.withTutor)}
+                        {t.withName ? <UserText>{t.withName}</UserText> : t.iAm === "tutor" ? c.withStudent : c.withTutor}
                       </span>
                       {t.studentIsMinor && (
                         <>

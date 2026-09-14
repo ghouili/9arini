@@ -5,6 +5,7 @@ import { Spinner } from "@/components/ui";
 import { SiteShell } from "@/components/SiteShell";
 import { Calendar, Clock, Users, Shield, Gift, Back } from "@/components/icons";
 import { useLocale } from "@/components/LocaleProvider";
+import { UserText } from "@/components/UserText";
 import { getClass, getExploreTutors } from "@/app/actions";
 import { isOpenForBooking, type ClassItem, type ExploreTutor } from "@tnajem/shared";
 import { bilingual } from "@/lib/i18n";
@@ -279,9 +280,9 @@ export default function ClassDetailPage({ params }: { params: { id: string } }) 
             {/* A category kicker, not t.classDetail.book ("Réserver cette séance") —
                 static text that reads like a CTA is a trap next to the real one. */}
             <p className="web-eyebrow mb-2">{t.storefront.live}</p>
-            <h1 className="web-h2 cd-title">{cls.title}</h1>
+            <UserText as="h1" className="web-h2 cd-title">{cls.title}</UserText>
             <p className="cd-with">
-              {t.classDetail.with} {tutorName}
+              {t.classDetail.with} <UserText>{tutorName}</UserText>
             </p>
           </div>
 
@@ -323,7 +324,7 @@ export default function ClassDetailPage({ params }: { params: { id: string } }) 
                     <div className="cd-label mt-4 mb-2">
                       {t.classDetail.about}
                     </div>
-                    <p className="cd-desc">{cls.description}</p>
+                    <UserText as="p" className="cd-desc">{cls.description}</UserText>
                     <div className="divider mt-4" />
                   </>
                 )}
@@ -349,12 +350,10 @@ export default function ClassDetailPage({ params }: { params: { id: string } }) 
                 <div className="min-w-0">
                   <div className="cd-tutor-name">
                     {tutor?.slug ? (
-                      <Link href={`/${tutor.slug}`} style={{ color: "inherit" }}>{tutorName}</Link>
-                    ) : (
-                      tutorName
-                    )}
+                      <Link href={`/${tutor.slug}`} style={{ color: "inherit" }}><UserText>{tutorName}</UserText></Link>
+                    ) : (<UserText>{tutorName}</UserText>)}
                   </div>
-                  {tutorMeta && <div className="cd-tutor-meta">{tutorMeta}</div>}
+                  {tutorMeta && <UserText as="div" className="cd-tutor-meta">{tutorMeta}</UserText>}
                 </div>
               </div>
 
@@ -377,7 +376,7 @@ export default function ClassDetailPage({ params }: { params: { id: string } }) 
                   <>
                     {/* Mini summary — which session this button books. */}
                     <div className="mb-4">
-                      <div className="cd-panel-title">{cls.title}</div>
+                      <UserText as="div" className="cd-panel-title">{cls.title}</UserText>
                       <div className="metaline">
                         <span>
                           <Calendar />

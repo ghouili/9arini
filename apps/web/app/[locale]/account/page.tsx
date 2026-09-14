@@ -7,6 +7,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { Phone, User, Forward } from "@/components/icons";
 import { SiteShell } from "@/components/SiteShell";
 import { DeleteAccount } from "@/components/account/DeleteAccount";
+import { UserText } from "@/components/UserText";
 import { bilingual } from "@/lib/i18n";
 
 const WA_LINK = "https://wa.me/216XXXXXXXX";
@@ -74,9 +75,9 @@ export default function AccountPage() {
                 <User style={{ width: 32, height: 32, stroke: "#fff" }} />
               </div>
               <div className="flex-[1_1_160px] min-w-0">
-                <div style={{ fontFamily: "var(--fd)", fontSize: "clamp(16px, 2vw, 20px)", fontWeight: 700, marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <UserText as="div" style={{ fontFamily: "var(--fd)", fontSize: "clamp(16px, 2vw, 20px)", fontWeight: 700, marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {me?.name || "—"}
-                </div>
+                </UserText>
                 {/* The login identity first — that is what they type to get back in.
                     The phone is an optional contact and may simply not be set. */}
                 {me?.email && (

@@ -30,6 +30,7 @@ import {
   Gift,
 } from "@/components/icons";
 import { SiteShell } from "@/components/SiteShell";
+import { UserText } from "@/components/UserText";
 import { tutorStanding, isOpenForBooking, type Storefront, type TutorReviews, type ClassItem } from "@tnajem/shared";
 
 /** Month label map FR → AR (short). Demo data uses FR short labels. */
@@ -272,10 +273,10 @@ export function StorefrontView({
               />
               <div className="min-w-0">
                 <h1 className="web-h2 sf-name">
-                  <span className="sf-name-txt">{tutor.full_name}</span>
+                  <UserText className="sf-name-txt">{tutor.full_name}</UserText>
                   {tutor.verified && <Verified label={c.verifiedLabel} />}
                 </h1>
-                <div className="sf-subject">{tutor.subject}</div>
+                <UserText as="div" className="sf-subject">{tutor.subject}</UserText>
 
                 <div className="sf-hero-meta">
                   <TutorStanding standing={standing} locale={locale} variant="hero" />
@@ -323,7 +324,7 @@ export function StorefrontView({
                   real per-tutor "booked this week" count. */}
 
               {/* Bio — guarded so an empty bio doesn't leave a gapped blank block. */}
-              {tutor.bio && <p className="web-lead sf-bio">{tutor.bio}</p>}
+              {tutor.bio && <UserText as="p" className="web-lead sf-bio">{tutor.bio}</UserText>}
 
               {/* ── Classes ── the reason the page exists, so it comes first. */}
               <div className="sf-sechead">
@@ -352,7 +353,7 @@ export function StorefrontView({
                           </div>
 
                           <div className="sf-row-main">
-                            <h3 className="sf-row-title">{cls.title}</h3>
+                            <UserText as="h3" className="sf-row-title">{cls.title}</UserText>
                             <div className="metaline">
                               <span>
                                 <Clock />
@@ -406,8 +407,8 @@ export function StorefrontView({
                       <li key={pack.id} className="u-card sf-pack">
                         <span className="sf-pack-ic" aria-hidden="true"><Play /></span>
                         <div className="sf-pack-main">
-                          <h3 className="sf-pack-title">{pack.title}</h3>
-                          <div className="metaline"><span>{pack.meta}</span></div>
+                          <UserText as="h3" className="sf-pack-title">{pack.title}</UserText>
+                          <div className="metaline"><UserText>{pack.meta}</UserText></div>
                         </div>
                       </li>
                     ))}
@@ -452,7 +453,7 @@ export function StorefrontView({
                           <div className="sf-rev-who">
                             <Avatar initials={initialsOf(r.studentName) || "?"} size={34} square />
                             <div className="min-w-0">
-                              <div className="sf-rev-name">{r.studentName ?? c.anon}</div>
+                              <UserText as="div" className="sf-rev-name">{r.studentName ?? c.anon}</UserText>
                               <Stars filled={r.rating} size={12} label={`${r.rating}/5`} />
                             </div>
                           </div>
@@ -461,10 +462,10 @@ export function StorefrontView({
                           </time>
                         </div>
 
-                        {r.text && <p className="sf-rev-text">{r.text}</p>}
+                        {r.text && <UserText as="p" className="sf-rev-text">{r.text}</UserText>}
                         {r.classTitle && (
                           <div className="metaline mt-2">
-                            <span>{r.classTitle}</span>
+                            <UserText>{r.classTitle}</UserText>
                           </div>
                         )}
                       </li>
@@ -491,7 +492,7 @@ export function StorefrontView({
                     {/* Which class this button actually books — naming it removes
                         the guesswork when the tutor has several. */}
                     <div className="sf-panel-label">{c.nextSession}</div>
-                    <div className="sf-panel-title">{firstClass.title}</div>
+                    <UserText as="div" className="sf-panel-title">{firstClass.title}</UserText>
                     <div className="metaline sf-panel-meta">
                       <span>
                         <Calendar />
