@@ -154,6 +154,16 @@ export function classLimitLabel(maxClasses: number | null, locale: "fr" | "ar"):
   return locale === "ar" ? `حتى لـ ${maxClasses} دروس` : `Jusqu'à ${maxClasses} cours`;
 }
 
+/** The one sentence that says what the class limit COUNTS. /pour-les-profs and
+    /tarifs both render this, so the two pages cannot describe the unit
+    differently — and neither has to argue for it. "Ouverts" is what
+    canOpenAnotherClass counts: upcoming, not cancelled. */
+export function classLimitRule(locale: "fr" | "ar"): string {
+  return locale === "ar"
+    ? "الحدّ هو عدد الدروس المحلولة في نفس الوقت — موش عدد التلامذة."
+    : "La limite, c'est le nombre de cours ouverts en même temps — pas le nombre d'élèves.";
+}
+
 /** Whole TND, for display. Every catalogue price is a whole number of dinars. */
 export function tnd(millimes: number): number {
   return millimes / MILLIMES_PER_TND;

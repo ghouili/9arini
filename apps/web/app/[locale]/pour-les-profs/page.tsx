@@ -30,7 +30,7 @@ import { SiteShell } from "@/components/SiteShell";
 import { useLocale } from "@/components/LocaleProvider";
 import { Wallet, Video, Share, Shield, Check, Users, Bolt, Forward } from "@/components/icons";
 import { bilingual } from "@/lib/i18n";
-import { classLimitLabel, COMMISSION_PCT, commissionOn, PLANS, requirePlan, tnd } from "@tnajem/shared";
+import { classLimitRule, COMMISSION_PCT, commissionOn, PLANS, requirePlan, tnd } from "@tnajem/shared";
 
 /* ═══════════════════════════════════════════════════════════════════════════
    EVERY NUMBER ON THIS PAGE COMES FROM THE PLAN CATALOGUE.
@@ -54,15 +54,16 @@ function planForOpenClasses(n: number) {
 /* THE WORKED EXAMPLE. Inputs are a choice; every figure after them is arithmetic.
 
    The plan is picked by OPEN CLASSES, not by student count — that is the rule the
-   server actually enforces (POST /classes), and the reason this example used to be
-   wrong. It showed 8 students and then deducted a 29 TND subscription, while
-   /tarifs bands 8 students into the FREE tier. Both cannot be true. What makes the
-   29 correct is not the students at all: two sessions a week means two classes open
-   at once, and the free plan allows one. */
-const EX = { students: 8, sessionsPerWeek: 2, priceTnd: 20, weeks: 4, openClasses: 2 } as const;
-const EX_GROSS = EX.students * EX.sessionsPerWeek * EX.priceTnd * EX.weeks;
+   server actually enforces (POST /classes). The example used to be "8 students,
+   two sessions a week" and then needed a paragraph to argue why two sessions with
+   the same group are two classes open at once. It is now a tutor teaching TWO
+   DIFFERENT COURSES (Maths and Physique) to the same 8 students, one session a
+   week each: two courses open at once, so the free tier (one) does not cover it —
+   self-evident, no argument. Same figures, so e2e/plans.spec.ts still holds. */
+const EX = { students: 8, courses: 2, priceTnd: 20, weeks: 4 } as const;
+const EX_GROSS = EX.students * EX.courses * EX.priceTnd * EX.weeks;
 const EX_COMMISSION = commissionOn(EX_GROSS);
-const EX_PLAN = planForOpenClasses(EX.openClasses);
+const EX_PLAN = planForOpenClasses(EX.courses);
 const EX_SUB = EX_PLAN ? tnd(EX_PLAN.monthlyMillimes) : 0;
 const EX_NET = EX_GROSS - EX_COMMISSION - EX_SUB;
 /** Western digits with a thin thousands separator, in both locales — the Arabic
@@ -124,20 +125,20 @@ const copy = bilingual({
     // l'exemple chiffré
     incomeEyebrow: "Combien tu peux gagner",
     incomeTitle: "Fixe ton tarif. Aujourd'hui, tu gardes tout.",
-    incomeLead: "Un exemple d'arithmétique — pas une promesse, et pas un plafond :",
+    /* The unit, stated ONCE and up front — the same sentence /tarifs shows. */
+    incomeLead: `${classLimitRule("fr")} Un exemple d'arithmétique — pas une promesse, et pas un plafond :`,
     inStudents: "8 élèves",
-    inSessions: "2 séances / sem",
+    inSessions: "2 cours : Maths + Physique",
     inPrice: "20 TND / séance",
-    inGross: `Exemple : ${EX.students} élèves × ${EX.sessionsPerWeek} séances × ${EX.priceTnd} TND × ${EX.weeks} semaines`,
+    inGross: `Exemple : ${EX.students} élèves × ${EX.courses} cours × ${EX.priceTnd} TND × ${EX.weeks} semaines (1 séance par cours, par semaine)`,
     inKeepLbl: "Tu gardes, aujourd'hui",
     inKeep: `${nf(EX_GROSS)} TND`,
     inYou: "Toi · 100 %",
     inFee: "Tnajem · 0 %",
     inLaterLbl: "Plus tard, si l'élève paie via Tnajem",
     inLater: `${nf(EX_NET)} TND`,
-    inLaterFee: `− ${nf(EX_COMMISSION)} (${COMMISSION_PCT} %) − ${nf(EX_SUB)} (abonnement)`,
+    inLaterFee: `− ${nf(EX_COMMISSION)} (${COMMISSION_PCT} %) − ${nf(EX_SUB)} (abonnement, ${EX.courses} cours)`,
     inLaterNote: "Payé en main propre : aucune commission.",
-    inPlanWhy: `Deux séances par semaine, ce sont deux cours en ligne ouverts en même temps — au-delà de ${classLimitLabel(FREE_PLAN.maxClasses, "fr").toLowerCase()}, l'abonnement s'applique. C'est le nombre de cours qui compte, pas le nombre d'élèves.`,
     inWithdraw:
       "Pendant le pilote, l'élève te paie directement, de la main à la main. Tnajem ne prend aucune commission et ne touche pas à ton argent. Paiement en ligne : bientôt.",
 
@@ -204,20 +205,19 @@ const copy = bilingual({
 
     incomeEyebrow: "قداش تنجم تربح",
     incomeTitle: "حدّد تعريفتك. اليوم، تحتفظ بالكل.",
-    incomeLead: "هاذا مثال حساب — موش وعد، وموش سقف :",
+    incomeLead: `${classLimitRule("ar")} هاذا مثال حساب — موش وعد، وموش سقف :`,
     inStudents: "8 تلامذة",
-    inSessions: "حصتين / جمعة",
+    inSessions: "2 دروس : رياضيات + فيزياء",
     inPrice: "20 دينار / حصة",
-    inGross: `مثال : ${EX.students} تلامذة × ${EX.sessionsPerWeek} حصص × ${EX.priceTnd} دينار × ${EX.weeks} جماعي`,
+    inGross: `مثال : ${EX.students} تلامذة × ${EX.courses} دروس × ${EX.priceTnd} دينار × ${EX.weeks} جماعي (حصة وحدة لكل درس، في الجمعة)`,
     inKeepLbl: "تحتفظ بيه، اليوم",
     inKeep: `${nf(EX_GROSS)} دينار`,
     inYou: "إنتي · 100 %",
     inFee: "Tnajem · 0 %",
     inLaterLbl: "من بعد، كان التلميذ خلّص من Tnajem",
     inLater: `${nf(EX_NET)} دينار`,
-    inLaterFee: `− ${nf(EX_COMMISSION)} (${COMMISSION_PCT} %) − ${nf(EX_SUB)} (اشتراك)`,
+    inLaterFee: `− ${nf(EX_COMMISSION)} (${COMMISSION_PCT} %) − ${nf(EX_SUB)} (اشتراك، ${EX.courses} دروس)`,
     inLaterNote: "خلّصك في يدك : ما فما حتى عمولة.",
-    inPlanWhy: `حصتين في الجمعة معناها زوز دروس أونلاين محلولين في نفس الوقت — كي تفوت ${classLimitLabel(FREE_PLAN.maxClasses, "ar")}، الاشتراك ينطبق. العدد متاع الدروس هو اللي يحسب، موش عدد التلامذة.`,
     inWithdraw:
       "في فترة التجربة، التلميذ يخلّصك مباشرة، يد بيد. Tnajem ما تاخذ حتى عمولة وما تلمسش فلوسك. الخلاص أونلاين : قريب.",
 
@@ -580,11 +580,6 @@ function IncomePanel({ c }: { c: Copy }) {
             </span>
           </div>
           <div className="text-[13px] text-on-blue-soft mt-1 leading-[1.5]">{c.inLaterNote}</div>
-          {/* WHY this example pays a subscription at all. Without it the panel
-              shows 8 students next to a 29 TND line and invites the reader to
-              conclude the subscription is priced by student count — which is
-              what /tarifs used to imply and what the server has never done. */}
-          <div className="text-[13px] text-on-blue-soft mt-1.5 leading-[1.5]">{c.inPlanWhy}</div>
         </div>
 
         <div className="trust trust-dark relative z-[2] mt-[18px]">

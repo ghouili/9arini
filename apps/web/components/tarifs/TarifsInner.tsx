@@ -7,7 +7,7 @@ import { Card, CardFooter, Chip } from "@/components/ui";
 import { Check, Shield, Wallet, Star } from "@/components/icons";
 import { bilingual } from "@/lib/i18n";
 import {
-  planByCode, classLimitLabel, monthsOffered, tnd, requirePlan,
+  planByCode, classLimitLabel, classLimitRule, monthsOffered, tnd, requirePlan,
   COMMISSION_PCT, commissionOn,
 } from "@tnajem/shared";
 
@@ -74,7 +74,8 @@ const copy = bilingual({
        and nothing counts your students; what the server actually enforces is the
        number of cours you keep open at once. Saying so here is what stops a tutor
        being refused a second cours while believing they are inside "1 à 14". */
-    plansRule: "Le nombre d'élèves n'est qu'une indication : ce qui compte, c'est le nombre de cours que tu gardes en ligne en même temps — c'est la seule limite appliquée.",
+    // The same sentence /pour-les-profs shows — one source, so the two cannot drift.
+    plansRule: classLimitRule("fr"),
     plusComm: "+ 10 % sur chaque élève payant",
     plusCommNote: "Uniquement sur les paiements traités par Tnajem. Rien sur ce qu'on te règle en main propre.",
     notBilled: "Pas encore facturé",
@@ -188,7 +189,7 @@ const copy = bilingual({
 
     plansTitle: "الخطط",
     plansLead: "Tnajem تكلّف الأستاذ زوز حاجات، وعمرها وحدة بلا لأخرى : اشتراك شهري، زائد 10 % على كل تلميذ خلّص — كان على الخلاص اللي تعدّيه Tnajem. أمّا التلميذ، عمرو ما يخلّص Tnajem.",
-    plansRule: "عدد التلامذة مجرّد إشارة : اللي يحسب هو عدد الدروس اللي تخلّيهم أونلاين في نفس الوقت — هاذي هي الحدّ الوحيد اللي ينطبق.",
+    plansRule: classLimitRule("ar"),
     plusComm: "+ 10 % على كل تلميذ خلّص",
     plusCommNote: "كان على الخلاص اللي يعدّي من Tnajem. والو على اللي يخلّصك بيه في يدك.",
     notBilled: "ما زال ما يتفوترش",
