@@ -17,6 +17,7 @@ import { MaterialsPanel } from "./MaterialsPanel";
 import { dict, bilingual } from "@/lib/i18n";
 import type { AppLocale } from "@/lib/locale";
 import { Avatar, Verified } from "@/components/ui";
+import { TutorStanding, Stars, formatRating } from "@/components/TutorStanding";
 import {
   Star,
   Clock,
@@ -29,7 +30,7 @@ import {
   Gift,
 } from "@/components/icons";
 import { SiteShell } from "@/components/SiteShell";
-import type { Storefront, TutorReviews, ClassItem } from "@tnajem/shared";
+import { tutorStanding, type Storefront, type TutorReviews, type ClassItem } from "@tnajem/shared";
 
 /** Month label map FR → AR (short). Demo data uses FR short labels. */
 const monthAr: Record<string, string> = {
@@ -51,8 +52,6 @@ const monthAr: Record<string, string> = {
        "Complet" / "كامل". */
 const copy = bilingual({
   fr: {
-    students: "élèves",
-    isNew: "Nouveau prof",
     verifiedLabel: "Prof vérifié par Tnajem",
     reviewsTitle: "Avis des élèves",
     reviewsCount: (n: number) => (n === 1 ? "1 avis" : `${n} avis`),
@@ -99,8 +98,6 @@ const copy = bilingual({
       "Ce prof affiche complet. Reviens quand il publiera de nouvelles dates — ou trouve un autre prof dès maintenant.",
   },
   ar: {
-    students: "تلميذ",
-    isNew: "أستاذ جديد",
     verifiedLabel: "أستاذ مؤكّد من Tnajem",
     reviewsTitle: "آراء التلامذة",
     reviewsCount: (n: number) => (n === 1 ? "تقييم واحد" : `${n} تقييم`),
@@ -160,29 +157,6 @@ function fmtDate(iso: string) {
   return `${dd}/${mm}/${d.getUTCFullYear()}`;
 }
 
-/** 5 stars, only `filled` of them lit. No reviews → the caller shows "Nouveau" instead.
-    Decorative by default (aria-hidden) since a nearby number carries the score; pass
-    `label` on a standalone rating (e.g. a review row) so the score is announced. */
-function Stars({ filled, size = 13, label }: { filled: number; size?: number; label?: string }) {
-  return (
-    <span
-      className="stars"
-      {...(label ? { role: "img", "aria-label": label } : { "aria-hidden": true })}
-    >
-      {[1, 2, 3, 4, 5].map((i) => (
-        <Star
-          key={i}
-          style={{
-            width: size,
-            height: size,
-            opacity: i <= filled ? 1 : 0.28,
-          }}
-        />
-      ))}
-    </span>
-  );
-}
-
 export function StorefrontView({
   data,
   reviews = EMPTY_REVIEWS,
@@ -214,9 +188,15 @@ export function StorefrontView({
      honest label so a paid class never carries a "gratuite" promise. */
   const ctaLabel = firstClass?.is_free_first ? t.storefront.cta : c.book;
 
-  // The rating shown is the one backed by the reviews table — never a decorative 5 stars.
-  const hasReviews = reviews.count > 0;
-  const average = hasReviews ? reviews.average : 0;
+  /* ONE standing for the whole page, built from the same reviews read as the
+     reviews panel below — never tutor.rating (a cached mirror kept for ordering).
+     The header badge, the panel and the /explore card all derive from it, so a
+     tutor cannot be "Nouveau" in one place and "1 240 élèves" in another. */
+  const standing = tutorStanding({
+    reviewCount: reviews.count,
+    rating: reviews.average,
+    students: tutor.students_count,
+  });
 
   function localMonth(m: string) {
     if (locale === "ar") return monthAr[m] ?? m;
@@ -291,25 +271,7 @@ export function StorefrontView({
                 <div className="sf-subject">{tutor.subject}</div>
 
                 <div className="sf-hero-meta">
-                  {hasReviews ? (
-                    <>
-                      <Stars filled={Math.round(average)} />
-                      <b className="sf-num">{average.toFixed(1)}</b>
-                      <span className="opacity-[0.85]">({c.reviewsCount(reviews.count)})</span>
-                    </>
-                  ) : (
-                    /* No reviews yet → say so. Never a fake star score. */
-                    <span className="sf-newtag">{c.isNew}</span>
-                  )}
-
-                  {tutor.students_count > 0 && (
-                    <>
-                      <span aria-hidden="true" className="opacity-[0.6]">·</span>
-                      <span>
-                        {tutor.students_count.toLocaleString()} {c.students}
-                      </span>
-                    </>
-                  )}
+                  <TutorStanding standing={standing} locale={locale} variant="hero" />
                 </div>
               </div>
             </div>
@@ -450,10 +412,10 @@ export function StorefrontView({
               {/* ── Reviews section — real rows from getTutorReviews(slug) ── */}
               <div className="sf-sechead mt-[34px]">
                 <h2 className="sf-h2">{c.reviewsTitle}</h2>
-                {hasReviews && <span className="sf-count">{c.reviewsCount(reviews.count)}</span>}
+                {standing.kind === "rated" && <span className="sf-count">{c.reviewsCount(standing.reviewCount)}</span>}
               </div>
 
-              {!hasReviews ? (
+              {standing.kind === "new" ? (
                 /* Honest empty state — no stars, no invented score. */
                 <div className="u-card u-card-pad sf-empty">
                   <span className="sf-empty-ic sf-empty-ic-blue" aria-hidden="true">
@@ -468,10 +430,10 @@ export function StorefrontView({
                 <>
                   {/* Average summary */}
                   <div className="u-card u-card-pad sf-avg">
-                    <div className="sf-avg-n">{average.toFixed(1)}</div>
+                    <div className="sf-avg-n">{formatRating(standing.rating, locale)}</div>
                     <div className="min-w-0">
-                      <Stars filled={Math.round(average)} size={15} />
-                      <div className="sf-avg-c">{c.reviewsCount(reviews.count)}</div>
+                      <Stars filled={Math.round(standing.rating)} size={15} />
+                      <div className="sf-avg-c">{c.reviewsCount(standing.reviewCount)}</div>
                     </div>
                   </div>
 

@@ -7,6 +7,7 @@ import { getCachedStorefront, STOREFRONT_TTL, tutorTag } from "@/lib/cache";
 import { getTutorReviews } from "@/app/actions";
 import { isLocale, DEFAULT_LOCALE, type AppLocale } from "@/lib/locale";
 import { dict } from "@/lib/i18n";
+import { tutorStanding } from "@tnajem/shared";
 
 type Props = { params: { locale: string; slug: string } };
 
@@ -179,6 +180,8 @@ export default async function StorefrontPage({ params }: Props) {
 
   const { tutor } = data;
   const url = `${SITE_URL}/${loc}/${params.slug}`; // locale-prefixed canonical URL
+  // The same standing StorefrontView renders — markup can never claim more than the page shows.
+  const standing = tutorStanding({ reviewCount: reviews.count, rating: reviews.average, students: tutor.students_count });
   /* Truthful structured data for the storefront. The AggregateRating is emitted
      ONLY when this tutor has real reviews (reviews.count > 0) — marking up a rating
      that does not exist is structured-data spam and draws a Google manual action,
@@ -202,12 +205,12 @@ export default async function StorefrontPage({ params }: Props) {
       worksFor: { "@type": "Organization", name: "Tnajem", url: SITE_URL },
       knowsLanguage: ["fr", "ar"],
       areaServed: { "@type": "Country", name: "Tunisia" },
-      ...(reviews.count > 0
+      ...(standing.kind === "rated"
         ? {
             aggregateRating: {
               "@type": "AggregateRating",
-              ratingValue: reviews.average,
-              reviewCount: reviews.count,
+              ratingValue: standing.rating,
+              reviewCount: standing.reviewCount,
               bestRating: 5,
               worstRating: 1,
             },

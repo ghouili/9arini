@@ -27,7 +27,7 @@ import type { Storefront, ClassItem, Pack } from "@tnajem/shared";
      • demoClasses    → app/actions.ts (getClass fallback), demoStorefront
      • demoPacks      → demoStorefront
      • demoStorefrontFor → lib/data.ts (getStorefront fallback, per slug)
-     • demoStorefront → components/explore/ExploreClient.tsx (demo preview card)
+     • demoStorefrontList → components/explore/ExploreClient.tsx (demo preview cards)
      • demoEnabled    → the gate. Import this next to any of the above.
 
    NOTE: process.env.NODE_ENV is statically inlined by Next in both the server and
@@ -116,6 +116,10 @@ const devStorefronts: Record<string, Storefront> = {
 export const demoClasses: ClassItem[] = demoEnabled ? devClasses : [];
 export const demoPacks: Pack[] = demoEnabled ? devPacks : [];
 export const demoStorefront: Storefront = demoEnabled ? devStorefront : inertStorefront;
+
+/** Every demo storefront, for the /explore preview — the cards are built FROM these, so a
+    card can never describe a tutor differently from that tutor's own demo page. */
+export const demoStorefrontList: Storefront[] = demoEnabled ? Object.values(devStorefronts) : [];
 
 /** The demo storefront for one slug, or null — never another tutor's page. Always null in production. */
 export function demoStorefrontFor(slug: string): Storefront | null {

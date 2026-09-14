@@ -23,20 +23,18 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "@/components/Link";
 import { useLocale } from "@/components/LocaleProvider";
 import { Verified, Chip } from "@/components/ui";
-import { Search, Star, Users, Bolt } from "@/components/icons";
+import { Search, Users, Bolt } from "@/components/icons";
 import { SiteShell } from "@/components/SiteShell";
+import { TutorStanding } from "@/components/TutorStanding";
 import { getExploreTutors } from "@/app/actions";
-import { demoStorefront } from "@/lib/demo";
-import type { ExploreTutor } from "@tnajem/shared";
+import { demoStorefrontList } from "@/lib/demo";
+import { tutorStanding, type ExploreTutor } from "@tnajem/shared";
 import { bilingual } from "@/lib/i18n";
 
 /* ── Page-local copy (FR + Tunisian Derija) ── */
 const copy = bilingual({
   fr: {
     heroSub: "Des profs tunisiens vérifiés, un par un. Chacun fixe ses tarifs.",
-    isNew: "Nouveau",
-    reviews: (n: number) => (n === 1 ? "1 avis" : `${n} avis`),
-    students: "élèves",
     from: "à partir de",
     tnd: "TND",
     verifiedOnly: "Profs vérifiés",
@@ -60,9 +58,6 @@ const copy = bilingual({
   },
   ar: {
     heroSub: "أساتذة توانسة، منقّحين واحد واحد. كل واحد يحدد أسعارو.",
-    isNew: "جديد",
-    reviews: (n: number) => (n === 1 ? "تقييم واحد" : `${n} تقييم`),
-    students: "تلميذ",
     from: "من",
     tnd: "د.ت",
     verifiedOnly: "أساتذة مؤكّدين",
@@ -81,54 +76,29 @@ const copy = bilingual({
 });
 
 /* Static preview used ONLY in demo mode (no API_URL). Never rendered when a
-   DB is connected — see the `demo` flag below. */
-const DEMO_PREVIEW: ExploreTutor[] = [
-  {
-    slug: demoStorefront.tutor.slug,
-    full_name: demoStorefront.tutor.full_name,
-    subject: demoStorefront.tutor.subject,
-    level: demoStorefront.tutor.level,
-    bio: demoStorefront.tutor.bio,
-    avatar_initials: demoStorefront.tutor.avatar_initials,
-    rating: demoStorefront.tutor.rating,
-    review_count: 37,
-    students_count: demoStorefront.tutor.students_count,
-    price_from_tnd: 15,
-    /* Demo mode only. NEVER featured: the preview must not model paid
-       placement, and no demo tutor has ever paid for anything. */
-    featured: false,
-  },
-  {
-    slug: "sonia-physique",
-    full_name: "Sonia Trabelsi",
-    subject: "Prof de Physique · Lycée & Bac",
-    level: "Bac",
-    bio: "Physique-chimie sans par cœur : on comprend, puis on s'entraîne sur les annales.",
-    avatar_initials: "ST",
-    rating: 4.8,
-    review_count: 12,
-    students_count: 640,
-    price_from_tnd: 18,
-    /* Demo mode only. NEVER featured: the preview must not model paid
-       placement, and no demo tutor has ever paid for anything. */
-    featured: false,
-  },
-  {
-    slug: "leila-primaire",
-    full_name: "Leïla Ben Amor",
-    subject: "Maths & Français · Primaire & Collège",
-    level: "Collège",
-    bio: "Les bases d'abord. Patiente, en darija, avec des exercices à la maison.",
-    avatar_initials: "LB",
-    rating: 0,
-    review_count: 0,
-    students_count: 0,
-    price_from_tnd: 12,
-    /* Demo mode only. NEVER featured: the preview must not model paid
-       placement, and no demo tutor has ever paid for anything. */
-    featured: false,
-  },
-];
+   DB is connected — see the `demo` flag below.
+
+   BUILT FROM the demo storefronts, not typed out beside them. The hand-written
+   cards claimed "37 avis" for a tutor whose own demo page had no reviews at all.
+   Each card now says what the API would say about that fixture: the rating and
+   review count come from reviews, and demo mode has none (getTutorReviews returns
+   an empty feed), so every demo tutor is "Nouveau"; the price is the cheapest of
+   the tutor's own demo classes, or nothing. */
+const DEMO_PREVIEW: ExploreTutor[] = demoStorefrontList.map(({ tutor, classes }) => ({
+  slug: tutor.slug,
+  full_name: tutor.full_name,
+  subject: tutor.subject,
+  level: tutor.level,
+  bio: tutor.bio,
+  avatar_initials: tutor.avatar_initials,
+  rating: 0,
+  review_count: 0,
+  students_count: tutor.students_count,
+  price_from_tnd: classes.length ? Math.min(...classes.map((k) => k.price_tnd)) : null,
+  /* NEVER featured: the preview must not model paid placement, and no demo
+     tutor has ever paid for anything. */
+  featured: false,
+}));
 
 /* Subject filters — the URL contract shared with the home page's subject chips
    (/explore?subject=<slug>). `term` is what we match against tutors.subject, which
@@ -371,7 +341,11 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
             /* ── Results ── */
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {visible.map((tutor) => {
-                const isNew = tutor.review_count === 0;
+                const standing = tutorStanding({
+                  reviewCount: tutor.review_count,
+                  rating: tutor.rating,
+                  students: tutor.students_count,
+                });
                 return (
                   /* .u-card = the canonical card primitive (app/globals.css):
                      flex column + height:100% → every card in a row is the same
@@ -434,24 +408,7 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
                         social proof wraps freely, price gets its own line. */}
                     <div className="u-card-foot mt-5 border-t border-solid border-line pt-3.5">
                       <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5 text-[13px] text-muted">
-                        {isNew ? (
-                          <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-green50 px-2.5 py-0.5 text-[13px] font-semibold text-green-ink">
-                            {c.isNew}
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-                            <Star className="size-4 shrink-0 text-amber" />
-                            <b className="font-display text-ink">{tutor.rating.toFixed(1)}</b>
-                            <span>({c.reviews(tutor.review_count)})</span>
-                          </span>
-                        )}
-
-                        {tutor.students_count > 0 && (
-                          <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-                            <Users className="size-4 shrink-0" />
-                            {tutor.students_count.toLocaleString()}
-                          </span>
-                        )}
+                        <TutorStanding standing={standing} locale={locale === "ar" ? "ar" : "fr"} variant="card" />
                       </div>
 
                       {tutor.price_from_tnd !== null && (
