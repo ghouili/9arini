@@ -26,7 +26,8 @@ import type { Storefront, ClassItem, Pack } from "@tnajem/shared";
    Importers:
      • demoClasses    → app/actions.ts (getClass fallback), demoStorefront
      • demoPacks      → demoStorefront
-     • demoStorefront → lib/data.ts (getStorefront fallback), app/explore/page.tsx
+     • demoStorefrontFor → lib/data.ts (getStorefront fallback, per slug)
+     • demoStorefront → components/explore/ExploreClient.tsx (demo preview card)
      • demoEnabled    → the gate. Import this next to any of the above.
 
    NOTE: process.env.NODE_ENV is statically inlined by Next in both the server and
@@ -85,6 +86,39 @@ const inertStorefront: Storefront = {
   packs: [],
 };
 
+/* The other two tutors the /explore demo preview links to. Before these existed,
+   getStorefront() answered EVERY slug with Yassine — so a typo'd link showed a
+   different tutor's page, with a working "Réserver". Now each demo slug resolves
+   to its own tutor and anything else is not found, exactly like the real API.
+   No rating, no student count: nothing here may invent social proof. */
+const devTutorOnly = (tutor: Pick<Storefront["tutor"], "id" | "slug" | "full_name" | "subject" | "level" | "bio" | "avatar_initials">): Storefront => ({
+  tutor: { ...tutor, rating: 0, students_count: 0, verified: true, offers_free_first_session: false, has_photo: false },
+  classes: [],
+  packs: [],
+});
+
+const devStorefronts: Record<string, Storefront> = {
+  [devStorefront.tutor.slug]: devStorefront,
+  "sonia-physique": devTutorOnly({
+    id: "sonia", slug: "sonia-physique", full_name: "Sonia Trabelsi",
+    subject: "Prof de Physique · Lycée & Bac", level: "Bac",
+    bio: "Physique-chimie sans par cœur : on comprend, puis on s'entraîne sur les annales.",
+    avatar_initials: "ST",
+  }),
+  "leila-primaire": devTutorOnly({
+    id: "leila", slug: "leila-primaire", full_name: "Leïla Ben Amor",
+    subject: "Maths & Français · Primaire & Collège", level: "Collège",
+    bio: "Les bases d'abord. Patiente, en darija, avec des exercices à la maison.",
+    avatar_initials: "LB",
+  }),
+};
+
 export const demoClasses: ClassItem[] = demoEnabled ? devClasses : [];
 export const demoPacks: Pack[] = demoEnabled ? devPacks : [];
 export const demoStorefront: Storefront = demoEnabled ? devStorefront : inertStorefront;
+
+/** The demo storefront for one slug, or null — never another tutor's page. Always null in production. */
+export function demoStorefrontFor(slug: string): Storefront | null {
+  if (!demoEnabled) return null;
+  return Object.prototype.hasOwnProperty.call(devStorefronts, slug) ? devStorefronts[slug] : null;
+}

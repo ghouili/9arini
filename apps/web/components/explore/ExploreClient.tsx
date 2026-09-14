@@ -9,8 +9,8 @@
    island then owns the interactive filtering (subject chips + search).
 
    `initial` mirrors getExploreTutors()'s contract:
-     null → demo mode (no API_URL): clearly-badged static preview (never 404s,
-            since getStorefront() resolves any slug in demo mode).
+     null → demo mode (no API_URL): clearly-badged static preview. Every card's
+            slug has its own fixture in lib/demo.ts, so none of them 404s.
      []   → real DB, no verified tutor yet: honest empty state + CTA.
      [..] → results. Rating/review_count come from the reviews table; 0 reviews →
             "Nouveau", never a fabricated star score.

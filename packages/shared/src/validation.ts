@@ -110,6 +110,12 @@ export const RESERVED_SLUGS: readonly string[] = [
      routes shipped — the root catch-all would otherwise let a tutor claim
      tnajem.tn/signup and shadow the top of the funnel. */
   "signup",
+  /* Routes that shipped WITHOUT being reserved. A tutor could claim "tarifs" and
+     get a storefront nobody can reach (Next serves the static route first) — and
+     since middleware.ts now answers 404 for any unreserved one-segment path that
+     is not a tutor, an unreserved route would 404 outright. e2e/not-found.spec.ts
+     fails if any folder under app/[locale]/ is missing from this list. */
+  "pour-les-profs", "tarifs", "guardian",
   /* Brand names, not routes. "tnajem" would let a tutor impersonate the
      platform at tnajem.tn/tnajem; "9arini" is the name we renamed away from and
      is reserved so nobody squats it. */

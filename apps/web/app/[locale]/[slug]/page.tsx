@@ -6,6 +6,7 @@ import { JsonLd } from "@/components/JsonLd";
 import { getCachedStorefront, STOREFRONT_TTL, tutorTag } from "@/lib/cache";
 import { getTutorReviews } from "@/app/actions";
 import { isLocale, DEFAULT_LOCALE, type AppLocale } from "@/lib/locale";
+import { dict } from "@/lib/i18n";
 
 type Props = { params: { locale: string; slug: string } };
 
@@ -82,16 +83,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // Same cached read as the page body → the OG-card crawler (WhatsApp fetches the
   // link preview once per share) does not add a second round of queries.
   const data = await getCachedStorefront(params.slug);
+  const locale: AppLocale = isLocale(params.locale) ? params.locale : DEFAULT_LOCALE;
 
-  /* Unknown / unverified slug → the body renders <NotFoundScreen> and this keeps
-     the dead URL out of the index. See the note on the render below for why this
-     is noindex-on-200 rather than a hard 404. */
+  /* Unknown / unverified slug → the body renders <NotFoundScreen>, middleware
+     sets the 404 status, and this keeps the dead URL out of the index. */
   if (!data) {
-    return { title: "Prof introuvable", robots: { index: false, follow: false } };
+    return { title: dict[locale].err.nfTitle, robots: { index: false, follow: false } };
   }
 
   const { tutor } = data;
-  const locale: AppLocale = isLocale(params.locale) ? params.locale : DEFAULT_LOCALE;
   const subpath = `/${params.slug}`;
   const canonical = `/${locale}${subpath}`; // this locale's canonical URL
   // layout.tsx applies the "%s · Tnajem" template on top of this.
@@ -164,17 +164,17 @@ export default async function StorefrontPage({ params }: Props) {
   /* Unknown slug → render the branded "not found" screen INLINE rather than
      calling notFound().
 
-     Measured on Next 14.2: a runtime notFound() renders its boundary on the
-     CLIENT only. The production <body> for a bad slug came back literally empty
-     (6 bytes) — layout included — so a visitor whose bundle had not landed yet
-     saw a white screen. This is the most-shared URL shape in the product (a
+     Measured on Next 14.2: a runtime notFound() fails the server render and
+     ships `<html id="__next_error__"><body/>` — the production <body> for a bad
+     slug came back literally empty — so a visitor whose bundle had not landed
+     yet saw a white screen. This is the most-shared URL shape in the product (a
      tutor pastes their link into WhatsApp); a typo'd or retired slug has to
      still say what happened and offer a way onward, on a 3G Android, with no JS.
 
-     The cost is that the response is 200 instead of 404. generateMetadata above
-     emits robots: noindex, nofollow for exactly this case, so dead slugs are
-     still kept out of search results. Founder decision, recorded in the audit
-     report — revisit if Next ever server-renders the not-found boundary. */
+     The STATUS is still a real 404: middleware.ts asks app/api/tutor-exists
+     (same cache entry as this read) and sets it before this render starts. It
+     used to be a 200 — that was reversed by the 14 Sept review, because a soft
+     404 gives Google unlimited duplicate URLs on the route that must rank. */
   if (!data) return <NotFoundScreen locale={loc} />;
 
   const { tutor } = data;

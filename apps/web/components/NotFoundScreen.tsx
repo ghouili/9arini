@@ -11,9 +11,8 @@
    slug came back literally empty (6 bytes). A visitor whose bundle had not
    arrived yet (a mid-range Android on 3G, which is the common case here) got a
    white screen instead of "this tutor doesn't exist, here's how to find one".
-   So the storefront renders this screen inline instead of throwing, and relies
-   on `robots: noindex, nofollow` (set in that route's generateMetadata) to keep
-   dead slugs out of the index. Trade-off recorded in the audit report.
+   So the storefront renders this screen inline instead of throwing; middleware.ts
+   sets the 404 status, and generateMetadata adds `robots: noindex, nofollow`.
 
    Plain <a> rather than the locale-aware <Link>: <Link> is a client component,
    and a full document load is the right behaviour for a URL that does not exist.

@@ -40,17 +40,13 @@ test("an unverified tutor's storefront exposes nothing and is noindex", async ({
 
   const res = await page.goto(`/fr/${tutor.slug}`);
 
-  /* 200, NOT 404, and that is deliberate — do not "fix" it.
-     app/[locale]/[slug]/page.tsx renders <NotFoundScreen> inline instead of
-     calling notFound(), because on Next 14.2 a runtime notFound() renders its
-     boundary CLIENT-side only: the production body for a bad slug came back
-     literally empty (6 bytes), so a visitor on 3G whose bundle had not landed saw
-     a white screen. This is the most-shared URL shape in the product (a tutor
-     pastes their link into WhatsApp). The trade is documented in that file.
-
-     So the contract to protect is not the status code. It is: an unverified
-     tutor's details never reach the page, and the URL stays out of the index. */
-  expect(res?.status()).toBe(200);
+  /* 404 — this used to assert 200, deliberately: a runtime notFound() on Next
+     14.2 ships an empty <body>, so the page renders <NotFoundScreen> inline. That
+     is still true; the 14 Sept review reversed only the STATUS, which middleware.ts
+     now sets. e2e/not-found.spec.ts pins the readable no-JS body. What this test
+     protects is unchanged: an unverified tutor's details never reach the page,
+     and the URL stays out of the index. */
+  expect(res?.status()).toBe(404);
 
   const html = await page.content();
   expect(html, "an unverified tutor's name must not be served").not.toContain("Pending Person");

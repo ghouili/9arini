@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { DEFAULT_LOCALE, isLocale, localeFromPath, stripLocale, LOCALE_HEADER } from "@/lib/locale";
+import { RESERVED_SLUGS } from "@tnajem/shared/validation";
 
-/* Two jobs, in order:
+/* Three jobs, in order:
 
    1. LOCALE ROUTING. Every page lives under /fr/… or /ar/… (app/[locale]/…). A
       request with no locale prefix is redirected to the preferred locale (the
@@ -12,14 +13,71 @@ import { DEFAULT_LOCALE, isLocale, localeFromPath, stripLocale, LOCALE_HEADER } 
 
    2. AUTH GUARD (presence only). Redirects to /<locale>/auth when the session cookie
       is absent on a protected route. Real validation happens server-side via
-      getSession(); the edge only checks presence and never touches Postgres. */
+      getSession(); the edge only checks presence and never touches Postgres.
+
+   3. UNKNOWN TUTOR SLUG → 404 STATUS. See tutorExists() below. */
 
 const SESSION_COOKIE = "tnajem_session";
+
+/* ── Why the 404 status is decided HERE and not in app/[locale]/[slug]/page.tsx ──
+   A tutor pastes tnajem.tn/<slug> into WhatsApp; one wrong character used to
+   land on a page that answered 200. On Next 14.2 a runtime notFound() in the page
+   fails the server render and ships `<html id="__next_error__"><body/>` — an EMPTY
+   body until the bundle arrives, which on 3G is a white screen. So the page keeps
+   rendering <NotFoundScreen> inline (server HTML, both locales, no JS needed) and
+   middleware — the one place that can still set the status — sets 404.
+
+   The answer comes from app/api/tutor-exists/[slug], which reads the page's own
+   unstable_cache entry: no extra database load, same invalidation. Only POSITIVE
+   answers are memoised here, briefly: caching "does not exist" would 404 a tutor
+   for up to the TTL right after an admin approves them — the exact moment they
+   share their link. Any failure to get a clean answer passes the request through
+   (a soft 404 on a dead link beats a hard 404 on a real tutor). */
+const KNOWN_TUTOR_TTL_MS = 30_000;
+const KNOWN_TUTOR_MAX = 5_000;
+const knownTutors = new Map<string, number>(); // slug → expiry
+
+function selfOrigin(req: NextRequest): string {
+  if (process.env.NODE_ENV !== "production") return req.nextUrl.origin;
+  /* Production sits behind nginx, where nextUrl.origin is the PUBLIC host — a
+     lookup through it would leave the box and come back in. Ask the server
+     directly. HOSTNAME is the bind address (Dockerfile: 0.0.0.0; standalone
+     script: 127.0.0.1); a wildcard bind is reachable on loopback. */
+  const host = process.env.HOSTNAME;
+  const loopback = !host || host === "0.0.0.0" || host === "::" ? "127.0.0.1" : host;
+  return `http://${loopback}:${process.env.PORT || "3000"}`;
+}
+
+async function tutorExists(slug: string, req: NextRequest): Promise<boolean | null> {
+  const until = knownTutors.get(slug);
+  if (until !== undefined && until > Date.now()) return true;
+
+  const abort = new AbortController();
+  const timer = setTimeout(() => abort.abort(), 2_000);
+  try {
+    const res = await fetch(`${selfOrigin(req)}/api/tutor-exists/${encodeURIComponent(slug)}`, {
+      cache: "no-store",
+      signal: abort.signal,
+    });
+    if (!res.ok) return null;
+    const { exists } = (await res.json()) as { exists?: unknown };
+    if (exists === true) {
+      if (knownTutors.size >= KNOWN_TUTOR_MAX) knownTutors.clear();
+      knownTutors.set(slug, Date.now() + KNOWN_TUTOR_TTL_MS);
+      return true;
+    }
+    return exists === false ? false : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 /* Path prefixes (locale-stripped) that require a session. Mirrors the old matcher. */
 const PROTECTED = ["/dashboard", "/onboarding", "/account", "/student", "/checkout", "/live", "/admin", "/messages", "/guardian"];
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const locale = localeFromPath(pathname);
 
@@ -84,6 +142,22 @@ export function middleware(req: NextRequest) {
      A request header is the one channel that reaches it. */
   const headers = new Headers(req.headers);
   headers.set(LOCALE_HEADER, locale);
+
+  /* 3. One segment after the locale that is not a route is a tutor slug — every
+     top-level route is in RESERVED_SLUGS (e2e/not-found.spec.ts enforces it). */
+  const segment = bare.slice(1);
+  if (segment && !segment.includes("/") && !RESERVED_SLUGS.includes(segment)) {
+    let slug: string | null = null;
+    try {
+      slug = decodeURIComponent(segment);
+    } catch {
+      /* malformed escape — let the page handle it */
+    }
+    if (slug !== null && (await tutorExists(slug, req)) === false) {
+      return NextResponse.next({ status: 404, request: { headers } });
+    }
+  }
+
   return NextResponse.next({ request: { headers } });
 }
 

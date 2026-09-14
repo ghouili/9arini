@@ -1,7 +1,7 @@
 import "server-only";
 import { callAnonymous } from "./api";
 import { demoFallback, backendReady } from "./backend";
-import { demoEnabled, demoStorefront } from "@/lib/demo";
+import { demoEnabled, demoStorefrontFor } from "@/lib/demo";
 import type { Storefront, Tutor, ClassItem, Pack } from "@tnajem/shared";
 
 /* ══════════════════════════════════════════════════════════════════════════════
@@ -64,7 +64,7 @@ const initials = (name: string) => {
 export async function getStorefront(slug: string): Promise<Storefront | null> {
   if (demoFallback) {
     assertNotProdWithoutDb("getStorefront");   // prod + no DB → throw, never fabricate
-    return demoStorefront;                     // dev only: any slug shows the demo storefront
+    return demoStorefrontFor(slug);            // dev only: that slug's fixture, or not found
   }
 
   /* PORTED to apps/api (GET /tutors/:slug/storefront).
