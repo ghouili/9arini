@@ -109,6 +109,18 @@ const PAIRS = [
   ["On dark", "--mint200", "--blue900", "ui", ".sf-pill icon", "StorefrontView.tsx:631"],
   ["On dark", W, "--ink", "normal", ".toast / .side-nav .active", "globals.css:186"],
 
+  // ── avatar initials on their gradient — BOTH ends of every gradient ──
+  ["Avatars", "--ink", "--amber", "normal", ".avatar / .cd-tutor-av initials (light end)", "globals.css .avatar"],
+  ["Avatars", "--ink", "--ochre", "normal", ".avatar / .cd-tutor-av initials (dark end)", "globals.css .avatar"],
+  ["Avatars", "--ink", "--amber", "normal", "hero seat A (amber end)", "pour-les-profs seats[0]"],
+  ["Avatars", "--ink", "--ochre", "normal", "hero seat A (ochre end)", "pour-les-profs seats[0]"],
+  ["Avatars", "--paper", "--blue", "normal", "hero seat S (blue end)", "pour-les-profs seats[1]"],
+  ["Avatars", "--paper", "--blue700", "normal", "hero seat S (blue700 end)", "pour-les-profs seats[1]"],
+  ["Avatars", "--ink", "--mint", "normal", "hero seat M (mint end)", "pour-les-profs seats[2]"],
+  ["Avatars", "--ink", "--green", "normal", "hero seat M (green end)", "pour-les-profs seats[2]"],
+  ["Avatars", "--ink", "--ochre300", "normal", "hero seat R (ochre300 end)", "pour-les-profs seats[3]"],
+  ["Avatars", "--ink", "--ochre", "normal", "hero seat R (ochre end)", "pour-les-profs seats[3]"],
+
   // ── alert blocks ──
   ["Alerts", "--rose700", "--rose50", "normal", ".lg-notice b / .ck-alert", "privacy/page.tsx:47"],
   ["Alerts", "--rose600", "--rose50", "normal", ".lg-notice span", "privacy/page.tsx:48"],

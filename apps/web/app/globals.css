@@ -180,7 +180,9 @@
   .stars .ic{width:13px;height:13px;fill:var(--amber);stroke:var(--ochre600);stroke-width:1.1}
 
   /* ---- avatar ---- */
-  .avatar{border-radius:20px;flex:none;background:linear-gradient(150deg,var(--amber),var(--ochre));display:grid;place-items:center;font-family:var(--fd);color:#fff;border:3px solid rgba(255,255,255,.55)}
+  /* Initials in --ink, not white: white on this gradient was 1.66:1 at the amber
+     end and 2.78:1 at the ochre end; ink is 9.98 / 5.98 (contrast.mjs "Avatars"). */
+  .avatar{border-radius:20px;flex:none;background:linear-gradient(150deg,var(--amber),var(--ochre));display:grid;place-items:center;font-family:var(--fd);color:var(--ink);border:3px solid rgba(255,255,255,.55)}
   .avatar.sq{border-radius:14px;border-width:2px}
 
   /* ---- forms ---- */

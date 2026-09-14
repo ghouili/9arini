@@ -113,7 +113,7 @@ const PAGE_CSS = `
   .cd-tutor{flex-direction:row;align-items:center;gap:14px}
   .cd-tutor-av{width:52px;height:52px;border-radius:15px;flex:none;
     background:linear-gradient(150deg,var(--amber),var(--ochre));display:grid;place-items:center;
-    font-family:var(--fd);font-size:20px;color:#fff;font-weight:700}
+    font-family:var(--fd);font-size:20px;color:var(--ink);font-weight:700}
   .cd-tutor-name{font-weight:700;font-size:14.5px;overflow-wrap:anywhere}
   .cd-tutor-meta{font-size:13px;color:var(--muted);margin-top:2px;overflow-wrap:anywhere}
 

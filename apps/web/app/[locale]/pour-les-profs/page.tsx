@@ -332,11 +332,20 @@ function HeroScene({ c }: { c: Copy }) {
      tutors literally read "ler cours offert". Anchoring them to the phone's half
      width plus a gap means they can never re-enter the content box, at any
      viewport, in either language. */
+  /* Each seat's initial is checked at BOTH ends of its gradient (the letter sits
+     mid-tile, and a gradient's lighter end is the one a glance misses). White on
+     amber was 1.66:1. The seats are aria-hidden, but a low-vision reader still
+     sees the letters, so the colour has to pass, not just the markup:
+       amber→ochre      ink    9.98 / 5.98
+       blue→blue700     paper  6.93 / 9.45   (was blue300→blue: nothing passes both ends)
+       mint→green       ink    9.16 / 4.76
+       ochre300→ochre   ink    8.27 / 5.98   (was →ochre600: ink 4.38)
+     Pinned in tools/ui-audit/contrast.mjs. */
   const seats = [
-    { grad: "linear-gradient(150deg,var(--amber),var(--ochre))", x: "calc(var(--phone-w) / -2 - 26px)", y: -54, d: 0.6 },
-    { grad: "linear-gradient(150deg,var(--blue300),var(--blue))", x: "calc(var(--phone-w) / 2 + 28px)", y: -30, d: 1.2 },
-    { grad: "linear-gradient(150deg,var(--mint),var(--green))", x: "calc(var(--phone-w) / -2 - 30px)", y: 64, d: 1.8 },
-    { grad: "linear-gradient(150deg,var(--ochre300),var(--ochre600))", x: "calc(var(--phone-w) / 2 + 24px)", y: 86, d: 2.4 },
+    { grad: "linear-gradient(150deg,var(--amber),var(--ochre))", fg: "var(--ink)", x: "calc(var(--phone-w) / -2 - 26px)", y: -54, d: 0.6 },
+    { grad: "linear-gradient(150deg,var(--blue),var(--blue700))", fg: "var(--paper)", x: "calc(var(--phone-w) / 2 + 28px)", y: -30, d: 1.2 },
+    { grad: "linear-gradient(150deg,var(--mint),var(--green))", fg: "var(--ink)", x: "calc(var(--phone-w) / -2 - 30px)", y: 64, d: 1.8 },
+    { grad: "linear-gradient(150deg,var(--ochre300),var(--ochre))", fg: "var(--ink)", x: "calc(var(--phone-w) / 2 + 24px)", y: 86, d: 2.4 },
   ];
 
   return (
@@ -356,6 +365,7 @@ function HeroScene({ c }: { c: Copy }) {
               ["--sy" as any]: `${s.y}px`,
               ["--sd" as any]: `${s.d}s`,
               background: s.grad,
+              color: s.fg,
             }}
           >
             {seatInits[idx]}
@@ -703,7 +713,7 @@ export default function PourLesProfsPage() {
         .lpp-seats { position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; pointer-events: none; }
         .lpp-seat {
           position: absolute; width: 46px; height: 46px; border-radius: 15px;
-          display: grid; place-items: center; color: #fff; font-family: var(--fd); font-weight: 700; font-size: 17px;
+          display: grid; place-items: center; font-family: var(--fd); font-weight: 700; font-size: 17px;
           border: 2.5px solid var(--cream); box-shadow: var(--sh); opacity: 0;
           animation:
             lpp-seat-in .7s cubic-bezier(.2,.8,.2,1) forwards var(--sd, .6s),
