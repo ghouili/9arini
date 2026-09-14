@@ -52,7 +52,10 @@ async function main() {
     fullName: "Yassine Khelifi",
     subject: "Prof de Maths · Bac",
     level: "Bac",
-    bio: "« Spécialiste révisions Bac. On révise les dérivées, intégrales et annales — en darija, à ton rythme. 1ère séance offerte. »",
+    /* No "1ère séance offerte" here: that promise belongs to the tutor's
+       free-session option (the storefront badge renders from it), not to free text
+       that keeps saying it after the option is turned off. */
+    bio: "« Spécialiste révisions Bac. On révise les dérivées, intégrales et annales — en darija, à ton rythme. »",
     // No rating, no students: nothing here has been earned yet.
     rating: "0",
     studentsCount: 0,

@@ -35,3 +35,45 @@ export function isEffectivelyFreeFirst(
 export function tutorOffersFreeFirst(tutorOptsIn: boolean | null | undefined): boolean {
   return tutorOptsIn === true;
 }
+
+/* ── A free first session promised in FREE TEXT ─────────────────────────────
+
+   The badge follows the toggle; a bio does not. A tutor who writes "1ère séance
+   offerte" in their bio and leaves the option off advertises a session the
+   booking flow will charge for (the demo bio did exactly that). It is their text,
+   so the product WARNS rather than blocks — this only has to recognise the claim.
+
+   Matched after folding case, accents and Arabic letter variants, in the three
+   ways tutors actually write: French, Derija in Latin letters, Arabic script.
+   "first" and "free" may sit a few words apart ("le premier cours est gratuit",
+   "الحصة الأولى تكون مجانية"). */
+const FIRST = "(?:1ere|1re|1er|1st|premiere|premier|awel|awwel|ewel|lowla|louwla|loula|lawla|اول|الاول|اولي|الاولي)";
+const SESSION = "(?:seance|seances|cours|lecon|heure|ders|se9a|7essa|hessa|hissa|حصه|الحصه|درس|الدرس)";
+const FREE = "(?:offerte?s?|gratuite?s?|gratis|free|b?bi?le?[sc]h|blech|fabor|fabour|mjenni|majjani|majeni|مجانيه|مجاني|مجانا|بلاش|ببلاش|فابور)";
+const GAP = "(?:\\s+\\S+){0,3}\\s+";
+const FREE_FIRST_PATTERNS = [
+  new RegExp(`(?:^|\\s)${FIRST}\\s+(?:\\S+\\s+)?${SESSION}${GAP}${FREE}(?=\\s|$)`), // 1ère séance offerte · awel séance bilech · أول حصة مجانية
+  new RegExp(`(?:^|\\s)${SESSION}\\s+${FIRST}${GAP}${FREE}(?=\\s|$)`), //               الحصة الأولى مجانية · el 7essa lowla fabor
+  new RegExp(`(?:^|\\s)${SESSION}\\s+d?\\s?essai\\s+${FREE}(?=\\s|$)`), //               séance d'essai gratuite
+  new RegExp(`(?:^|\\s)essai\\s+${FREE}(?=\\s|$)`), //                                   essai gratuit
+];
+
+function fold(text: string): string {
+  return text
+    .normalize("NFD")
+    .replace(/[̀-ًͯ-ٰٟ]/g, "") // Latin accents, Arabic harakat
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/[’'`ʳᵉ]/g, (ch) => (ch === "ʳ" ? "r" : ch === "ᵉ" ? "e" : " "))
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
+}
+
+/** Does this text promise a free first session? For a warning, not a block. */
+export function mentionsFreeFirstSession(text: string | null | undefined): boolean {
+  if (!text) return false;
+  const folded = fold(text);
+  return FREE_FIRST_PATTERNS.some((re) => re.test(folded));
+}

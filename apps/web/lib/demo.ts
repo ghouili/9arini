@@ -82,7 +82,8 @@ const devYassine = (): Storefront => ({
   tutor: {
     id: "yassine", slug: "yassine-math", full_name: "Yassine Khelifi",
     subject: "Prof de Maths · Bac", level: "Bac",
-    bio: "« Spécialiste révisions Bac. On révise les dérivées, intégrales et annales — en darija, à ton rythme. 1ère séance offerte. »",
+    // No free-session promise in the bio: the badge renders from offers_free_first_session below.
+    bio: "« Spécialiste révisions Bac. On révise les dérivées, intégrales et annales — en darija, à ton rythme. »",
     avatar_initials: "YK", rating: 0, students_count: 0, verified: true,
     // The dev fixture opts IN, so the audit harness can still walk the badge and
     // the "free" checkout copy. It is dev-only by construction (demoEnabled).

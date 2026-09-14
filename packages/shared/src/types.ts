@@ -359,6 +359,10 @@ export type OnboardingState = {
   hasClass: boolean;
   hasSlug: boolean;
   draft: { fullName: string; subject: string; bio: string; slug: string; phone: string } | null;
+  /* The tutor's free-first-session option (false when there is no storefront yet).
+     The form warns when the bio promises a free session this option does not
+     honour — see mentionsFreeFirstSession. */
+  offersFreeFirstSession: boolean;
 };
 
 // ---- Explore feed ----

@@ -133,6 +133,7 @@ export async function profileRoutes(app: FastifyInstance): Promise<void> {
         subject: tutors.subject,
         bio: tutors.bio,
         status: tutors.status,
+        offersFreeFirstSession: tutors.offersFreeFirstSession,
       })
       .from(tutors)
       .where(eq(tutors.profileId, session.profile.id))
@@ -151,6 +152,7 @@ export async function profileRoutes(app: FastifyInstance): Promise<void> {
         draft: contactPhone
           ? { fullName: "", subject: "", bio: "", slug: "", phone: contactPhone }
           : null,
+        offersFreeFirstSession: false,
       };
     }
 
@@ -172,6 +174,7 @@ export async function profileRoutes(app: FastifyInstance): Promise<void> {
         slug: mine.slug ?? "",
         phone: contactPhone,
       },
+      offersFreeFirstSession: mine.offersFreeFirstSession,
     };
   });
 }

@@ -33,7 +33,7 @@ import { OnboardingProgress } from "@/components/OnboardingProgress";
 import { createTutor } from "@/app/actions";
 import { useToast } from "@/components/useToast";
 import { UserText } from "@/components/UserText";
-import { vSlug } from "@tnajem/shared";
+import { vSlug, mentionsFreeFirstSession } from "@tnajem/shared";
 import type { OnboardingState } from "@tnajem/shared";
 import { bilingual } from "@/lib/i18n";
 import { COMMISSION_PCT, requirePlan, tnd } from "@tnajem/shared";
@@ -82,6 +82,10 @@ const copy = bilingual({
     errName: "Écris ton nom (2 caractères minimum).",
     errSubject: "Écris ta matière.",
     errTooLong: "C'est trop long — raccourcis un peu.",
+    /* Non-blocking: it is the tutor's text. Shown while the bio promises a free
+       first session and their free-session option is off. */
+    freeFirstMismatch:
+      "Ta page dit que la 1ʳᵉ séance est offerte, mais l'option est désactivée. Active-la dans ton tableau de bord, ou retire la phrase.",
     errNotTutor: "Ton compte n'est pas un compte prof.",
     errAuth: "Ta session a expiré. Reconnecte-toi.",
     errGeneric: "Ça n'a pas marché. Réessaie.",
@@ -118,6 +122,8 @@ const copy = bilingual({
     errName: "اكتب اسمك (حرفين على الأقل).",
     errSubject: "اكتب مادتك.",
     errTooLong: "طويل برشة — نقّصو شوية.",
+    freeFirstMismatch:
+      "صفحتك تقول إلّي الحصة الأولى مجانية، أما الخيار هذا مطفي. شعّلو من لوحة التحكم، ولا نحّي الجملة.",
     errNotTutor: "حسابك موش حساب أستاذ.",
     errAuth: "الجلسة متاعك سالات. عاود ادخل.",
     errGeneric: "ما مشاتش. عاود حاول.",
@@ -188,6 +194,12 @@ export function OnboardingInner({ state }: { state: OnboardingState | null }) {
      discards the value would make a deliberate edit a silent no-op, which is worse
      than not offering it at all. */
   const slugLocked = Boolean(state?.hasStorefront && draft?.slug);
+
+  /* The storefront badge follows the tutor's free-session option, never the bio.
+     A bio that promises a free first session while the option is off advertises a
+     session the booking flow will not honour — so say so, live, while they type.
+     A warning, not a block: it is their page and their words. */
+  const freeFirstMismatch = !state?.offersFreeFirstSession && mentionsFreeFirstSession(bio);
 
   const [published, setPublished] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -373,6 +385,15 @@ export function OnboardingInner({ state }: { state: OnboardingState | null }) {
                     />
                   </div>
                 </Field>
+                {/* The live region is always in the DOM so the warning is announced
+                    when it appears, not only if it was there at load. */}
+                <div role="status" aria-live="polite">
+                  {freeFirstMismatch && (
+                    <p className="bg-ochre-tint border border-ochre rounded-brand py-2.5 px-3 mb-3.5 text-[13px] text-ink2 leading-[1.5]">
+                      {c.freeFirstMismatch}
+                    </p>
+                  )}
+                </div>
 
                 <Field label={c.phone} help={c.phoneHelp} error={errorFor("phone")}>
                   <div className="inp" style={phone ? { borderColor: "var(--blue)" } : undefined}>
