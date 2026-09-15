@@ -8,7 +8,7 @@ import multipart from "@fastify/multipart";
 import { randomUUID } from "node:crypto";
 import { STATUS_CODES } from "node:http";
 import { sql as rawSql, objectStore } from "@tnajem/db";
-import { warnIfSecretMissing } from "@tnajem/shared/auth-core";
+import { SESSION_COOKIE, warnIfSecretMissing } from "@tnajem/shared/auth-core";
 import { APP_TIME_ZONE } from "@tnajem/shared";
 import {
   PORT,
@@ -99,6 +99,29 @@ export async function buildServer(opts: { logStream?: { write(line: string): voi
      line without asking them for anything identifying. */
   app.addHook("onSend", async (req, reply) => {
     reply.header("x-request-id", req.id);
+
+    /* BASELINE HEADERS on every API response. The API renders no page, so it can
+       refuse the lot: no sniffing, no framing, no referrer, no script, no
+       embedding. A header a route set itself (the ID-scan CSP, a photo's cache
+       policy) is never overwritten. */
+    const baseline: Record<string, string> = {
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "no-referrer",
+      "content-security-policy": "default-src 'none'; frame-ancestors 'none'",
+      "cross-origin-resource-policy": "same-site",
+    };
+    if (IS_PROD) baseline["strict-transport-security"] = "max-age=63072000; includeSubDomains; preload";
+    for (const [name, value] of Object.entries(baseline)) {
+      if (!reply.hasHeader(name)) reply.header(name, value);
+    }
+
+    /* A response to a request that carried a session is about that person, so no
+       cache (a shared proxy, the browser's disk) may keep it. Anonymous responses
+       are left to their routes: the public catalogue is meant to be cached. */
+    if (req.headers.cookie?.includes(`${SESSION_COOKIE}=`) && !reply.hasHeader("cache-control")) {
+      reply.header("cache-control", "private, no-store");
+    }
   });
 
   await app.register(meRoutes);

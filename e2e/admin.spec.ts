@@ -34,7 +34,7 @@ async function queueLink(adminToken: string, docId: string): Promise<string> {
   return doc.url;
 }
 
-test.describe("admin document access", () => {
+test.describe("security: admin document access", () => {
   test("200 for an allowlisted admin, 403 for everyone else", async ({ request }) => {
     const admin = await seedAdmin();
     const tutor = await seedTutor({ status: "pending" });

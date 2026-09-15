@@ -1,0 +1,62 @@
+import { test, expect } from "@playwright/test";
+import { seedProfile } from "./support/seed";
+import { mintSession } from "./support/session";
+
+/* HEADERS (production readiness Stage 4). The web suite runs against a
+   PRODUCTION build (standalone), so what is asserted here is what ships. */
+
+const API = process.env.E2E_API_URL ?? "http://127.0.0.1:4000";
+
+test.describe("security: response headers", () => {
+  for (const path of ["/fr", "/ar/explore", "/fr/unknown-slug-e2e-headers"]) {
+    test(`a page (${path}) carries CSP, HSTS, nosniff, referrer and permissions policies`, async ({ request }) => {
+      const res = await request.get(path, { maxRedirects: 0 });
+      const h = res.headers();
+      expect(h["content-security-policy"]).toContain("default-src 'self'");
+      expect(h["content-security-policy"]).toContain("frame-ancestors 'none'");
+      expect(h["content-security-policy"]).toContain("object-src 'none'");
+      expect(h["strict-transport-security"]).toBe("max-age=63072000; includeSubDomains; preload");
+      expect(h["x-content-type-options"]).toBe("nosniff");
+      expect(h["x-frame-options"]).toBe("DENY");
+      expect(h["referrer-policy"]).toBe("strict-origin-when-cross-origin");
+      expect(h["permissions-policy"]).toContain("camera=()");
+      expect(h["x-powered-by"], "no framework advertisement").toBeUndefined();
+    });
+  }
+
+  test("the image optimizer is not reachable (GHSA-2xp9-vwfh-vxw4)", async ({ request }) => {
+    const res = await request.get("/_next/image?url=%2Flogo.webp&w=128&q=75");
+    expect(res.status()).toBe(404);
+  });
+
+  test("every API response refuses sniffing, framing, referrers and scripts", async () => {
+    const res = await fetch(`${API}/health`);
+    expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(res.headers.get("x-frame-options")).toBe("DENY");
+    expect(res.headers.get("referrer-policy")).toBe("no-referrer");
+    expect(res.headers.get("content-security-policy")).toBe("default-src 'none'; frame-ancestors 'none'");
+    expect(res.headers.get("x-request-id")).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  test("a response to a signed-in request is never cacheable; an anonymous one is left to its route", async () => {
+    const me = await seedProfile({ role: "student" });
+    const authed = await fetch(`${API}/me`, { headers: { cookie: `tnajem_session=${await mintSession(me.id)}` } });
+    expect(authed.headers.get("cache-control")).toBe("private, no-store");
+
+    const anonymous = await fetch(`${API}/health`);
+    expect(anonymous.headers.get("cache-control")).not.toBe("private, no-store");
+  });
+
+  test("a 5xx never carries an internal message to the client", async () => {
+    // A malformed multipart body reaches the upload route's parser and fails there.
+    const me = await seedProfile({ role: "tutor", birthYear: 1985 });
+    const res = await fetch(`${API}/verification`, {
+      method: "POST",
+      headers: { "content-type": "multipart/form-data; boundary=x", cookie: `tnajem_session=${await mintSession(me.id)}` },
+      body: "--x\r\nContent-Disposition: form-data; name=\"idFront\"; filename=\"a.png\"\r\n\r\nnot-closed",
+    });
+    const body = await res.text();
+    if (res.status >= 500) expect(body).toContain('"message":"Internal Server Error"');
+    expect(body).not.toMatch(/at \w+ \(|node_modules|postgres|select |insert /i);
+  });
+});
