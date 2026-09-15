@@ -20,7 +20,7 @@ import { db } from "../db";
 import { IS_PROD } from "../env";
 import { checkRateLimit } from "../lib/rate-limit";
 import { createOtp, otpCooldownRemaining, verifyOtpCode } from "../lib/otp";
-import { createSession, destroySession, getSession } from "../lib/session";
+import { createSession, destroyProfileSessions, destroySession, getSession } from "../lib/session";
 import { OTP_MAIL } from "../lib/otp-copy";
 
 /* auth-write. Ported from apps/web/app/actions.ts, branch for branch.
@@ -287,6 +287,14 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       // For the web to set the cookie — see the header. Redacted in logs.
       session: { token, expiresAt: expiresAt.toISOString() },
     };
+  });
+
+  /* ── POST /auth/logout-all — every device, this one included ───────────── */
+  app.post("/auth/logout-all", async (req) => {
+    const session = await getSession(req);
+    if (!session) return { ok: false, error: "not-authenticated" };
+    const ended = await destroyProfileSessions(session.profile.id);
+    return { ok: true, ended };
   });
 
   /* ── POST /auth/logout ──────────────────────────────────────────────────── */

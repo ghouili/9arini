@@ -9,7 +9,7 @@ import {
 } from "@tnajem/shared";
 import { db } from "../db";
 import { checkRateLimit } from "../lib/rate-limit";
-import { getSession } from "../lib/session";
+import { getSession, rotateSession } from "../lib/session";
 
 /* profile — becomeTutor, saveStudentProfile, getOnboardingState.
 
@@ -60,10 +60,15 @@ export async function profileRoutes(app: FastifyInstance): Promise<void> {
 
     await db.update(profiles).set({ role: "tutor" }).where(eq(profiles.id, session.profile.id));
 
+    /* A privilege change gets a fresh session: the student's token is deleted and a
+       new one minted (lib/session.ts rotateSession). The web replaces the cookie
+       from `session`, exactly as after an OTP verify — redacted in logs. */
+    const rotated = await rotateSession(session.token, session.profile.id);
+
     /* The web sets the role-hint cookie from this. It is a forgeable UI hint that
        only decides which nav link renders, so it stays entirely on the web side —
        but the web needs to be TOLD the role changed, hence returning it. */
-    return { ok: true, role: "tutor" };
+    return { ok: true, role: "tutor", session: { token: rotated.token, expiresAt: rotated.expiresAt.toISOString() } };
   });
 
   /* ── POST /profile/student ──────────────────────────────────────────────── */

@@ -10,7 +10,7 @@
    The cookie NAME is written out literally on purpose. If someone renames
    tnajem_session, these tests SHOULD fail — that is a behaviour change, which is
    exactly what this suite exists to catch. Never import it from app code. */
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import type { BrowserContext } from "@playwright/test";
 import { sql } from "./db";
 import { BASE_URL } from "./env";
@@ -18,10 +18,16 @@ import { BASE_URL } from "./env";
 export const SESSION_COOKIE = "tnajem_session";
 
 export async function mintSession(profileId: string, days = 1): Promise<string> {
-  const token = randomBytes(32).toString("hex"); // matches lib/auth.ts exactly
-  await sql`insert into sessions (token, profile_id, expires_at)
-            values (${token}, ${profileId}, now() + (${days} * interval '1 day'))`;
+  const token = randomBytes(32).toString("hex"); // matches lib/session.ts exactly
+  /* The table stores sha256(token), never the token (0020). Written out here
+     rather than imported, so a change to the scheme fails this suite loudly. */
+  await sql`insert into sessions (token_hash, profile_id, expires_at)
+            values (${sha256(token)}, ${profileId}, now() + (${days} * interval '1 day'))`;
   return token;
+}
+
+export function sha256(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
 }
 
 export function sessionCookie(token: string, baseURL = BASE_URL) {

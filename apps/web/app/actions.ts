@@ -148,6 +148,19 @@ export async function logout(): Promise<{ ok: boolean }> {
   return { ok: true };
 }
 
+/** Sign out of every device, this one included. */
+export async function logoutEverywhere(): Promise<{ ok: boolean; error?: string }> {
+  if (demoFallback) {
+    await destroySession();
+    return { ok: true };
+  }
+  const res = await call<{ ok: boolean; error?: string }>("/auth/logout-all");
+  /* The cookie goes whatever the API said: the user asked to be signed out, and a
+     failed call must not leave this browser signed in. */
+  await destroySession();
+  return { ok: res.ok, error: res.error };
+}
+
 export async function saveConsent(input: {
   guardianName: string;
   guardianPhone: string;
@@ -200,8 +213,14 @@ export async function becomeTutor(input: { confirm: boolean; birthYear?: number 
      setRoleHint stays HERE: it writes a cookie on the browser, which the API
      cannot do, and it is a forgeable UI hint the API has no business knowing
      about. The endpoint returns the new role so we know when to set it. */
-  const res = await call<ActionResult & { role?: string }>("/profile/become-tutor", input);
-  if (res.ok && res.role) await setRoleHint(res.role);
+  const res = await call<ActionResult & { role?: string; session?: { token: string; expiresAt: string } }>(
+    "/profile/become-tutor",
+    input,
+  );
+  /* The API rotated the session on the role change: the old token is already dead,
+     so the cookie MUST be replaced here or the next request is signed out. */
+  if (res.ok && res.session) await adoptSession(res.session.token, new Date(res.session.expiresAt), res.role);
+  else if (res.ok && res.role) await setRoleHint(res.role);
   return { ok: res.ok, error: res.error };
 }
 

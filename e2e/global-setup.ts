@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { DB_URL, assertLocalDb, STORAGE_DIR, AUTH_SECRET, BASE_URL } from "./support/env";
 
@@ -103,8 +103,8 @@ async function assertApiSharesOurDatabase(): Promise<void> {
   try {
     await sql`insert into profiles (id, email, role, locale, full_name, birth_year)
               values (${id}, ${email}, 'student', 'fr', 'E2E DB Check', 1995)`;
-    await sql`insert into sessions (token, profile_id, expires_at)
-              values (${token}, ${id}, now() + interval '1 hour')`;
+    await sql`insert into sessions (token_hash, profile_id, expires_at)
+              values (${createHash("sha256").update(token).digest("hex")}, ${id}, now() + interval '1 hour')`;
 
     const res = await fetch(`${apiBase}/me`, { headers: { cookie: `tnajem_session=${token}` } });
     const body = (await res.json().catch(() => null)) as { id?: string } | null;

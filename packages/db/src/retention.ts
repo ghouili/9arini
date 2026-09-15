@@ -22,7 +22,8 @@
  * drizzle handle, so the same code runs from the CLI script and from the
  * cron route. Same reason lib/db/seed.ts connects directly.
  */
-import { and, eq, inArray, isNotNull, lt, sql } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, lt, or, sql } from "drizzle-orm";
+import { SESSION_IDLE_DAYS } from "@tnajem/shared/auth-core";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 /* ONE object store, in ./storage, shared with the uploader and the admin doc
    route. There used to be three copies of the base-directory lookup; they agreed
@@ -246,12 +247,18 @@ export async function purgeExpiredAuthRows(
   const dryRun = opts.dryRun ?? false;
   const log = opts.log ?? (() => {});
   const now = new Date();
+  /* A session is dead at its absolute expiry OR after SESSION_IDLE_DAYS unused —
+     getSession() refuses both, so both rows are swept. */
+  const deadSession = or(
+    lt(sessions.expiresAt, now),
+    lt(sessions.lastSeenAt, new Date(now.getTime() - SESSION_IDLE_DAYS * 86_400_000)),
+  );
 
   if (dryRun) {
     const [s] = await db
       .select({ n: sql<number>`count(*)::int` })
       .from(sessions)
-      .where(lt(sessions.expiresAt, now));
+      .where(deadSession);
     const [o] = await db
       .select({ n: sql<number>`count(*)::int` })
       .from(otpCodes)
@@ -275,7 +282,7 @@ export async function purgeExpiredAuthRows(
     return res;
   }
 
-  const s = await db.delete(sessions).where(lt(sessions.expiresAt, now));
+  const s = await db.delete(sessions).where(deadSession);
   const o = await db.delete(otpCodes).where(lt(otpCodes.expiresAt, now));
   // Stale fixed-window rows: self-healing (reset on next hit) but a key never hit
   // again lingers, so sweep it here on the same daily schedule. Indexed on reset_at.

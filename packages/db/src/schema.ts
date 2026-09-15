@@ -810,15 +810,21 @@ export const notifications = pgTable("notifications", {
 
 // ---- Auth ----
 export const sessions = pgTable("sessions", {
-  /* PRIMARY KEY = unique btree on token. This is the index hit on EVERY
-     authenticated request (getSession → `where token = ?` joined to profiles),
-     and the uniqueness is a correctness property: two rows with the same token
-     would be two identities behind one cookie. Nothing more to add here. */
-  token: text("token").primaryKey(),
+  /* sha256(cookie token), hex — NEVER the token itself (0020). The table is a
+     list of logins; stored raw, every backup was a set of live sessions.
+
+     PRIMARY KEY = unique btree. This is the index hit on EVERY authenticated
+     request (getSession → `where token_hash = ?` joined to profiles), and the
+     uniqueness is a correctness property: two rows with the same hash would be
+     two identities behind one cookie. */
+  tokenHash: text("token_hash").primaryKey(),
   profileId: uuid("profile_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  /* The idle clock (0020). Moved at most every 15 minutes by getSession(). */
+  lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
+  lastSeenAtIdx: index("sessions_last_seen_at_idx").on(t.lastSeenAt),
   /* The retention sweep this table needs: `delete from sessions where
      expires_at < now()`. Without it, the purge is a full scan of a table that
      grows by one row per login, forever (see SCALABILITY.md §Housekeeping). */

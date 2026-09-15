@@ -26,7 +26,16 @@ export const SESSION_COOKIE = "tnajem_session";
    It stays entirely on the web side — the API must never read it. */
 export const ROLE_HINT_COOKIE = "tnajem_role";
 
+/* Two clocks on every session. ABSOLUTE: 30 days from login, whatever happens.
+   IDLE: a session nobody has used for SESSION_IDLE_DAYS stops working, so a
+   forgotten login on a shared or lost phone does not stay open for a month. */
 export const SESSION_DAYS = 30;
+export const SESSION_IDLE_DAYS = 14;
+
+/** What the sessions table stores for a cookie token: sha256, hex. Never the token. */
+export function sessionTokenHash(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
 export const OTP_TTL_MIN = 5;
 export const MAX_ATTEMPTS = 5;
 export const OTP_RESEND_COOLDOWN_MS = 60_000;

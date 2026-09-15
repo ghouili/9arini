@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { logout, getMe } from "@/app/actions";
+import { logout, logoutEverywhere, getMe } from "@/app/actions";
 import { Button } from "@/components/ui";
 import { LocaleToggle } from "@/components/LocaleToggle";
 import { useLocale } from "@/components/LocaleProvider";
@@ -14,8 +14,16 @@ const WA_LINK = "https://wa.me/216XXXXXXXX";
 
 /* Page-local copy (lib/i18n.ts is shared/read-only). */
 const copy = bilingual({
-  fr: { sub: "Ta langue, ton rôle, et comment nous joindre." },
-  ar: { sub: "لغتك، دورك، وكيفاش تتصل بينا." },
+  fr: {
+    sub: "Ta langue, ton rôle, et comment nous joindre.",
+    logoutAll: "Se déconnecter de tous les appareils",
+    logoutAllHint: "Un téléphone perdu ou prêté ? Toutes tes connexions s'arrêtent, celle-ci comprise.",
+  },
+  ar: {
+    sub: "لغتك، دورك، وكيفاش تتصل بينا.",
+    logoutAll: "اخرج من حسابك في الأجهزة الكل",
+    logoutAllHint: "تليفون ضاع ولا سلّفتو؟ الدخول يتسكّر في الأجهزة الكل، حتى هذا.",
+  },
 });
 
 export default function AccountPage() {
@@ -24,6 +32,13 @@ export default function AccountPage() {
   const [me, setMe] = useState<{ name: string | null; role: string; email: string | null; phone: string | null } | null>(null);
 
   useEffect(() => { getMe().then(setMe).catch(() => setMe(null)); }, []);
+
+  async function handleLogoutEverywhere() {
+    await logoutEverywhere();
+    // Same hard navigation as a plain logout, for the same reason.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+    window.location.href = "/";
+  }
 
   async function handleLogout() {
     await logout();
@@ -158,11 +173,15 @@ export default function AccountPage() {
 
           </div>
 
-          {/* Logout button */}
-          <div className="mt-[clamp(14px,_2vw,_22px)] max-w-[320px]">
+          {/* Logout buttons */}
+          <div className="mt-[clamp(14px,_2vw,_22px)] max-w-[320px] flex flex-col gap-2.5">
             <Button variant="ghost" onClick={handleLogout}>
               {t.account.logout}
             </Button>
+            <Button variant="ghost" onClick={handleLogoutEverywhere}>
+              {c.logoutAll}
+            </Button>
+            <p className="muted text-[13px] m-0">{c.logoutAllHint}</p>
           </div>
 
           {/* Step 15. LAST on the page, and behind a two-step confirm: the

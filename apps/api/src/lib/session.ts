@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { and, eq, gt, isNull, lt, profiles, sessions } from "@tnajem/db";
-import { SESSION_COOKIE, SESSION_DAYS } from "@tnajem/shared/auth-core";
+import { and, eq, gt, isNull, lt, ne, or, profiles, sessions } from "@tnajem/db";
+import { SESSION_COOKIE, SESSION_DAYS, SESSION_IDLE_DAYS, sessionTokenHash } from "@tnajem/shared/auth-core";
 import { db } from "../db";
 import { COOKIE_DOMAIN, IS_PROD } from "../env";
 
@@ -37,7 +37,8 @@ export async function createSession(profileId: string): Promise<{ token: string;
      never the one that ends up authenticated. */
   const token = randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 86_400_000);
-  await db.insert(sessions).values({ token, profileId, expiresAt });
+  // The cookie gets the token; the table gets its hash (0020). See sessionTokenHash.
+  await db.insert(sessions).values({ tokenHash: sessionTokenHash(token), profileId, expiresAt });
 
   /* Opportunistic GC of this profile's expired rows — the sessions table
      otherwise grows forever (every login on every device leaves a row behind).
@@ -45,22 +46,31 @@ export async function createSession(profileId: string): Promise<{ token: string;
   try {
     await db
       .delete(sessions)
-      .where(and(eq(sessions.profileId, profileId), lt(sessions.expiresAt, new Date())));
+      .where(and(eq(sessions.profileId, profileId), or(lt(sessions.expiresAt, new Date()), lt(sessions.lastSeenAt, idleCutoff()))));
   } catch (e) {
-    console.error("[tnajem-api] session cleanup failed", e);
+    // The code only: a driver error can carry query parameters.
+    console.error("[tnajem-api] session cleanup failed", (e as { code?: string }).code ?? (e as Error).name);
   }
 
   return { token, expiresAt };
 }
 
+const idleCutoff = () => new Date(Date.now() - SESSION_IDLE_DAYS * 86_400_000);
+
+/* How stale last_seen_at may get before a request moves it. The idle window is
+   days long; a write per request to keep it minute-accurate would be the busiest
+   write in the product for no benefit. */
+const LAST_SEEN_RESOLUTION_MS = 15 * 60_000;
+
 /** Resolve the caller's session, or null. One join, on every authenticated request. */
 export async function getSession(req: FastifyRequest): Promise<Session | null> {
   const token = req.cookies?.[SESSION_COOKIE];
   if (!token) return null;
+  const tokenHash = sessionTokenHash(token);
 
   const [row] = await db
     .select({
-      token: sessions.token,
+      lastSeenAt: sessions.lastSeenAt,
       id: profiles.id,
       role: profiles.role,
       fullName: profiles.fullName,
@@ -74,12 +84,32 @@ export async function getSession(req: FastifyRequest): Promise<Session | null> {
     /* A BLOCKED account has no session, whatever cookie it holds. Blocking also
        deletes the rows (routes/admin-accounts.ts); this is what makes a session
        minted a moment before the block — or restored from a backup — worthless. */
-    .where(and(eq(sessions.token, token), gt(sessions.expiresAt, new Date()), isNull(profiles.blockedAt)))
+    /* Absolute expiry, idle expiry, and not blocked — all three on every request,
+       so a revocation (logout everywhere, a block, a deletion request) takes effect
+       on the very next call. */
+    .where(
+      and(
+        eq(sessions.tokenHash, tokenHash),
+        gt(sessions.expiresAt, new Date()),
+        gt(sessions.lastSeenAt, idleCutoff()),
+        isNull(profiles.blockedAt),
+      ),
+    )
     .limit(1);
 
   if (!row) return null;
+
+  if (Date.now() - new Date(row.lastSeenAt).getTime() > LAST_SEEN_RESOLUTION_MS) {
+    try {
+      await db.update(sessions).set({ lastSeenAt: new Date() }).where(eq(sessions.tokenHash, tokenHash));
+    } catch (e) {
+      // Best-effort: a missed touch shortens the idle window by minutes, never lengthens it.
+      req.log.warn({ code: (e as { code?: string }).code ?? (e as Error).name }, "session touch failed");
+    }
+  }
+
   return {
-    token: row.token,
+    token,
     profile: {
       id: row.id,
       role: row.role,
@@ -93,7 +123,35 @@ export async function getSession(req: FastifyRequest): Promise<Session | null> {
 }
 
 export async function destroySession(token: string): Promise<void> {
-  await db.delete(sessions).where(eq(sessions.token, token));
+  await db.delete(sessions).where(eq(sessions.tokenHash, sessionTokenHash(token)));
+}
+
+/** End every session of a profile, optionally keeping the one making the request. */
+export async function destroyProfileSessions(profileId: string, opts: { keepToken?: string } = {}): Promise<number> {
+  const rows = await db
+    .delete(sessions)
+    .where(
+      opts.keepToken
+        ? and(eq(sessions.profileId, profileId), ne(sessions.tokenHash, sessionTokenHash(opts.keepToken)))
+        : eq(sessions.profileId, profileId),
+    )
+    .returning({ profileId: sessions.profileId });
+  return rows.length;
+}
+
+/* ROTATION ON PRIVILEGE CHANGE. The token that authenticated a request as a
+   student must not be the one that goes on to act as a tutor: if it had leaked
+   (a shared device, a logged request), the leak would now carry the new powers.
+   The old row is deleted and a fresh token minted in one transaction; the caller
+   hands the new token to the web, which replaces the cookie. */
+export async function rotateSession(oldToken: string, profileId: string): Promise<{ token: string; expiresAt: Date }> {
+  const token = randomBytes(32).toString("hex");
+  const expiresAt = new Date(Date.now() + SESSION_DAYS * 86_400_000);
+  await db.transaction(async (tx) => {
+    await tx.delete(sessions).where(eq(sessions.tokenHash, sessionTokenHash(oldToken)));
+    await tx.insert(sessions).values({ tokenHash: sessionTokenHash(token), profileId, expiresAt });
+  });
+  return { token, expiresAt };
 }
 
 /* Cookie options, byte-identical to apps/web's createSession. Kept in ONE place

@@ -118,7 +118,7 @@ async function mintSession(key) {
   const url = localDb();
   if (!url) return SENTINEL;
 
-  const [{ default: postgres }, { randomBytes }] = await Promise.all([
+  const [{ default: postgres }, { createHash, randomBytes }] = await Promise.all([
     import("postgres"),
     import("node:crypto"),
   ]);
@@ -167,8 +167,9 @@ async function mintSession(key) {
     }
 
     const token = randomBytes(32).toString("hex");
-    await sql`insert into sessions (token, profile_id, expires_at)
-              values (${token}, ${p.id}, now() + interval '1 day')`;
+    // The table stores sha256(token), never the token (packages/db/sql/0020).
+    await sql`insert into sessions (token_hash, profile_id, expires_at)
+              values (${createHash("sha256").update(token).digest("hex")}, ${p.id}, now() + interval '1 day')`;
     return { name: "tnajem_session", value: token, url: BASE };
   } catch (e) {
     console.warn(`  ! could not mint an audit session (${e.message}) — falling back to the sentinel`);

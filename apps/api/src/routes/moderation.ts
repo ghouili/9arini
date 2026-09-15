@@ -10,7 +10,7 @@ import {
   detectContactInfo,
 } from "@tnajem/shared";
 import { db } from "../db";
-import { getSession } from "../lib/session";
+import { destroyProfileSessions, getSession } from "../lib/session";
 import { requireAdmin } from "../lib/admin";
 import { checkRateLimit } from "../lib/rate-limit";
 import { auditAdmin } from "../lib/audit";
@@ -197,6 +197,12 @@ export async function moderationRoutes(app: FastifyInstance): Promise<void> {
       .update(profiles)
       .set({ deletionRequestedAt: raw`now()`, deletionStatus: "requested" })
       .where(eq(profiles.id, uid));
+
+    /* Every OTHER device is signed out now. Someone asking for their account to be
+       deleted — perhaps because a phone was lost or shared — must not stay signed
+       in elsewhere for the 30-day grace. This browser keeps its session, so the
+       page can show the request and the way to cancel it. */
+    await destroyProfileSessions(uid, { keepToken: session.token });
 
     return { ok: true, graceDays: DELETION_GRACE_DAYS };
   });
