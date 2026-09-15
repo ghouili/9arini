@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {
   and, desc, eq, inArray, isNull,
-  bookings, classes, consents, notifications, reviews, tutors,
+  bookings, classes, consents, guardianLinks, notifications, reviews, tutors,
 } from "@tnajem/db";
 import {
   vRating, vOptionalText, vUuid, vText, vPhone, isUuid,
@@ -190,7 +190,14 @@ export async function miscRoutes(app: FastifyInstance): Promise<void> {
     };
 
     if (existing) {
-      await db.update(consents).set(values).where(eq(consents.id, existing.id));
+      await db.transaction(async (tx) => {
+        await tx.update(consents).set(values).where(eq(consents.id, existing.id));
+        /* The consent now names someone else: whoever the old address linked is
+           unlinked at once, not merely filtered out on their next read. */
+        if ((existing.guardianEmail ?? "") !== guardianEmail) {
+          await tx.delete(guardianLinks).where(eq(guardianLinks.consentId, existing.id));
+        }
+      });
     } else {
       await db.insert(consents).values({ minorId: session.profile.id, ...values });
     }

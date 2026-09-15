@@ -39,6 +39,7 @@ const copy = bilingual({
     errEmpty: "Écris quelque chose d'abord.",
     errTooLong: "Message trop long.",
     errRate: "Tu as envoyé beaucoup de messages. Réessaie dans quelques minutes.",
+    errCancelled: "Cette réservation a été annulée : la conversation est fermée. Les messages restent visibles.",
     report: "Signaler",
     reported: "Signalé",
     reportDone: "Merci. Ce message a été signalé à Tnajem.",
@@ -68,6 +69,7 @@ const copy = bilingual({
     errGeneric: "الرسالة ما مشاتش. عاود حاول.",
     errEmpty: "اكتب حاجة الأول.",
     errTooLong: "الرسالة طويلة برشا.",
+    errCancelled: "الحجز هذا تلغى: المحادثة تسكّرت. الرسائل القديمة تقعد تبان.",
     errRate: "بعثت برشا رسائل. عاود بعد شوية دقايق.",
     report: "بلّغ",
     reported: "تبلّغ",
@@ -128,6 +130,7 @@ export default function ThreadPage() {
         text: e2 === "message-too-long" ? c.errTooLong
           : e2 === "message-empty" ? c.errEmpty
           : e2 === "too-many-requests" ? c.errRate
+          : e2 === "booking-cancelled" ? c.errCancelled
           : c.errGeneric,
       });
       return;

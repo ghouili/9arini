@@ -13,6 +13,7 @@ import {
   CANCEL_FREE_WINDOW_HOURS,
 } from "@tnajem/shared";
 import { resolveMeetUrl } from "@tnajem/shared/live";
+import { rotateRoomToken } from "../lib/room-rotation";
 import { paymentsEnabled } from "@tnajem/shared/payments";
 import { db } from "../db";
 import { getSession } from "../lib/session";
@@ -76,7 +77,10 @@ export async function bookingRoutes(app: FastifyInstance): Promise<void> {
        Scoped to a MINOR student: an adult books without it, while a minor — or a
        student whose age we do not know (null fails SAFE via isMinorBirthYear) —
        must have a consent row. */
-    if (session.profile.role === "student" && isMinorBirthYear(session.profile.birthYear)) {
+    /* ANY ROLE. This was scoped to role === "student", so a minor who signed up at
+       /signup/prof — which asks no age — booked with no consent at all (security
+       review, 15 Sept 2026). Unknown age fails safe here as everywhere. */
+    if (isMinorBirthYear(session.profile.birthYear)) {
       const [consent] = await db
         .select({ id: consents.id })
         .from(consents)
@@ -323,6 +327,8 @@ export async function bookingRoutes(app: FastifyInstance): Promise<void> {
         .onConflictDoNothing();
 
       await recomputeTutorStats(cls.tutorId, tx);
+      // The link this student may have fetched stops working (lib/room-rotation.ts).
+      await rotateRoomToken(tx, cls.id);
       return true;
     });
 

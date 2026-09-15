@@ -15,6 +15,7 @@ import { db } from "../db";
 import { requireAdmin } from "../lib/admin";
 import { auditAdmin } from "../lib/audit";
 import { cancelClassForEveryone } from "../lib/class-cancel";
+import { rotateRoomToken } from "../lib/room-rotation";
 import { recomputeTutorStats } from "../lib/stats";
 
 /* ACCOUNT BLOCKS (production readiness, Stage 2).
@@ -189,6 +190,8 @@ export async function adminAccountRoutes(app: FastifyInstance): Promise<void> {
           .update(classes)
           .set({ seatsTaken: raw`greatest(coalesce(${classes.seatsTaken}, 0) - 1, 0)` })
           .where(eq(classes.id, b.classId));
+        // A blocked account keeps no working room link (lib/room-rotation.ts).
+        await rotateRoomToken(tx, b.classId);
         const outcome = cancellationOutcome({
           scheduledAt: b.scheduledAt,
           amountTnd: b.isFree ? 0 : Number(b.priceTnd ?? 0),

@@ -299,6 +299,17 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
     const me = await participantIn(req.params.id, session.profile.id);
     if (!me) return { ok: false, error: "not-found" };
 
+    /* A CANCELLED BOOKING ENDS THE CONVERSATION, for sending. Both sides keep the
+       history, but a minor who cancels to get away from a tutor must not keep
+       receiving messages — each one a notification (security review, 15 Sept 2026). */
+    const [live] = await db
+      .select({ status: bookings.status })
+      .from(messageThreads)
+      .innerJoin(bookings, eq(bookings.id, messageThreads.bookingId))
+      .where(eq(messageThreads.id, me.threadId))
+      .limit(1);
+    if (!live || live.status === "cancelled") return { ok: false, error: "booking-cancelled" };
+
     /* Keyed on the SENDER, not the IP: the abuse being prevented is one account
        flooding another, and a shared connection must not throttle a classroom. */
     const rl = await checkRateLimit(`msg:send:${session.profile.id}`, SEND_LIMIT, SEND_WINDOW_MS);

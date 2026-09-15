@@ -82,11 +82,22 @@ export async function resolveGuardianLinks(profileId: string, email: string | nu
     Every guardian read goes through this function. There is no path that reads
     guardian_links without resolving them first. */
 async function childrenOf(session: { id: string; email: string | null }): Promise<string[]> {
+  if (!session.email) return [];
   await resolveGuardianLinks(session.id, session.email);
+  /* A LINK IS ONLY AS GOOD AS THE CONSENT BEHIND IT, checked on every read. A link
+     used to live forever: a consent naming a typo'd address — or an adult who
+     "helped" with the signup — created it, and correcting the consent to the real
+     parent left the first person reading the child's conversations indefinitely
+     (security review, 15 Sept 2026). The join requires the consent the link was
+     made from to still name THIS address, for THIS child. */
   const rows = await db
     .select({ minorProfileId: guardianLinks.minorProfileId })
     .from(guardianLinks)
-    .where(eq(guardianLinks.guardianProfileId, session.id));
+    .innerJoin(
+      consents,
+      and(eq(consents.id, guardianLinks.consentId), eq(consents.minorId, guardianLinks.minorProfileId)),
+    )
+    .where(and(eq(guardianLinks.guardianProfileId, session.id), eq(consents.guardianEmail, session.email)));
   return rows.map((r) => r.minorProfileId);
 }
 
