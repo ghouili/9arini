@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useLocale } from "@/components/LocaleProvider";
 import { Book, Video } from "@/components/icons";
 import { UserText } from "@/components/UserText";
+import { ReportButton } from "@/components/ReportButton";
 import { getTutorMaterials } from "@/app/actions";
 import type { MaterialItem } from "@tnajem/shared";
 import { youTubeEmbedUrl } from "@tnajem/shared";
@@ -95,6 +96,8 @@ export function MaterialsPanel({ slug }: { slug: string }) {
                   </>
                 )}
               </div>
+              {/* Abuse, or a rights-holder's removal request (Terms §8) — no account. */}
+              <ReportButton subjectKind="material" subjectId={m.id} compact />
             </div>
 
             {m.kind === "file" ? (

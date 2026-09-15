@@ -698,6 +698,31 @@ export async function materialRoutes(app: FastifyInstance): Promise<void> {
     return { ok: true, status: "received" };
   });
 
+  /* ── GET /admin/takedowns — open copyright claims, oldest first ─────────── */
+  app.get("/admin/takedowns", async (req) => {
+    const session = await requireAdmin(req);
+    if (!session) return [];
+    const rows = await db
+      .select({
+        id: materialTakedowns.id,
+        claimantName: materialTakedowns.claimantName,
+        claimantEmail: materialTakedowns.claimantEmail,
+        reason: materialTakedowns.reason,
+        createdAt: materialTakedowns.createdAt,
+        materialId: materials.id,
+        materialTitle: materials.title,
+        tutorName: tutors.fullName,
+        tutorSlug: tutors.slug,
+      })
+      .from(materialTakedowns)
+      .innerJoin(materials, eq(materialTakedowns.materialId, materials.id))
+      .innerJoin(tutors, eq(materials.tutorId, tutors.id))
+      .where(eq(materialTakedowns.status, "open"))
+      .orderBy(materialTakedowns.createdAt)
+      .limit(200);
+    return rows.map((r) => ({ ...r, createdAt: new Date(r.createdAt).toISOString() }));
+  });
+
   /* ── POST /admin/takedowns/:id/resolve ───────────────────────────────────── */
   app.post<{ Params: { id: string } }>("/admin/takedowns/:id/resolve", async (req, reply) => {
     const parsed = z.object({ uphold: z.boolean() }).safeParse(req.body);
@@ -734,7 +759,8 @@ export async function materialRoutes(app: FastifyInstance): Promise<void> {
         })
         .where(eq(materialTakedowns.id, claim.id));
 
-      if (!parsed.data.uphold || !m) return;
+      if (!m) return;
+      if (!parsed.data.uphold) return;
 
       await tx
         .update(materials)
@@ -750,6 +776,7 @@ export async function materialRoutes(app: FastifyInstance): Promise<void> {
         .values({ tutorId: m.tutorId, takedownId: claim.id, reason: "copyright-takedown" })
         .onConflictDoNothing();
     });
+    await auditAdmin(session.profile.id, parsed.data.uphold ? "takedown.upheld" : "takedown.rejected", { kind: "material", id: claim.materialId });
 
     return { ok: true };
   });

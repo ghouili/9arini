@@ -25,6 +25,7 @@ const copy = bilingual({
     title: "Comptes",
     lead: "Cherche un compte par son email pour le bloquer ou le débloquer.",
     toVerifications: "Vérifications en attente",
+    toModeration: "Signalements et photos",
     emailLabel: "Email du compte",
     search: "Chercher",
     searching: "Recherche…",
@@ -61,6 +62,7 @@ const copy = bilingual({
     title: "الحسابات",
     lead: "لوّج على حساب بالإيميل متاعو باش تحظرو ولا تنحّي الحظر.",
     toVerifications: "الطلبات اللي تستنّى",
+    toModeration: "التبليغات والتصاور",
     emailLabel: "إيميل الحساب",
     search: "لوّج",
     searching: "قاعد يلوّج…",
@@ -203,6 +205,8 @@ export default function AdminAccountsPage() {
               <p className="muted mt-2 leading-[1.6]">
                 {c.lead}{" "}
                 <Link href="/admin/verifications" className="linklike">{c.toVerifications}</Link>
+                {" · "}
+                <Link href="/admin/moderation" className="linklike">{c.toModeration}</Link>
               </p>
             )}
           </div>

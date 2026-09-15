@@ -440,6 +440,41 @@ export type PendingTutor = {
   docs: { id: string; kind: string; fileName: string; url: string }[];
 };
 
+/* ── The moderation queue (/admin/moderation) ─────────────────────────────── */
+
+/** An open report. `subject` is what it is about, resolved by the API. */
+export type AdminReport = {
+  id: string;
+  subjectKind: "tutor" | "class" | "review" | "message" | "material" | "other";
+  subjectId: string | null;
+  subject: { label: string; href: string | null } | null;
+  reason: string;
+  reporterEmail: string | null;
+  createdAt: string;
+};
+
+/** An open copyright claim on a material. */
+export type AdminTakedown = {
+  id: string;
+  claimantName: string;
+  claimantEmail: string;
+  reason: string;
+  createdAt: string;
+  materialId: string;
+  materialTitle: string;
+  tutorName: string;
+  tutorSlug: string;
+};
+
+/** A photo waiting for review. `version` names the exact file: a decision is bound to it. */
+export type PendingAvatar = {
+  tutorId: string;
+  slug: string;
+  fullName: string;
+  updatedAt: string | null;
+  version: string | null;
+};
+
 /** An account as an ADMIN sees it on /admin/accounts (POST /admin/accounts/find).
     The admin typed the address, so it is echoed back; nothing else identifying. */
 export type AdminAccount = {

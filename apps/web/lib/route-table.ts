@@ -15,6 +15,7 @@ export const ROUTE_PATTERNS: readonly string[] = [
   "",
   "account",
   "admin/accounts",
+  "admin/moderation",
   "admin/plans",
   "admin/verifications",
   "auth",

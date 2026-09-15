@@ -1,6 +1,9 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { and, desc, eq, gt, isNull, sql as raw, bookings, classes, profiles, reports, tutors, DELETION_GRACE_DAYS } from "@tnajem/db";
+import {
+  and, desc, eq, gt, inArray, isNull, sql as raw, bookings, classes, materials, messages, profiles, reports, reviews, tutors,
+  DELETION_GRACE_DAYS,
+} from "@tnajem/db";
 import {
   isUuid,
   vText,
@@ -33,6 +36,57 @@ const reportBody = z.object({
   reporterEmail: z.string().optional(),
 });
 
+type SubjectKind = "tutor" | "class" | "review" | "message" | "material";
+
+async function subjectExists(kind: string, id: string): Promise<boolean> {
+  const table = { tutor: tutors, class: classes, review: reviews, message: messages, material: materials }[kind as SubjectKind];
+  if (!table) return false;
+  const [row] = await db.select({ id: table.id }).from(table).where(eq(table.id, id)).limit(1);
+  return Boolean(row);
+}
+
+/** A label and a web path for each reported subject. Erased or hidden tutors still
+    resolve (an admin needs to see what was reported), but never to a public link. */
+async function subjectContext(items: { kind: string; id: string | null }[]): Promise<Map<string, { label: string; href: string | null }>> {
+  const out = new Map<string, { label: string; href: string | null }>();
+  const ids = (k: string) => items.filter((i) => i.kind === k && i.id && isUuid(i.id)).map((i) => i.id as string);
+  const link = (slug: string | null, live: boolean) => (slug && live ? `/${slug}` : null);
+
+  const tutorIds = ids("tutor");
+  if (tutorIds.length) {
+    for (const t of await db.select({ id: tutors.id, slug: tutors.slug, name: tutors.fullName, status: tutors.status, suspendedAt: tutors.suspendedAt }).from(tutors).where(inArray(tutors.id, tutorIds))) {
+      out.set(`tutor:${t.id}`, { label: t.name || "—", href: link(t.slug, t.status === "verified" && !t.suspendedAt) });
+    }
+  }
+  const classIds = ids("class");
+  if (classIds.length) {
+    for (const c of await db.select({ id: classes.id, title: classes.title }).from(classes).where(inArray(classes.id, classIds))) {
+      out.set(`class:${c.id}`, { label: c.title, href: `/class/${c.id}` });
+    }
+  }
+  const materialIds = ids("material");
+  if (materialIds.length) {
+    for (const m of await db
+      .select({ id: materials.id, title: materials.title, slug: tutors.slug, status: tutors.status, suspendedAt: tutors.suspendedAt })
+      .from(materials)
+      .innerJoin(tutors, eq(materials.tutorId, tutors.id))
+      .where(inArray(materials.id, materialIds))) {
+      out.set(`material:${m.id}`, { label: m.title, href: link(m.slug, m.status === "verified" && !m.suspendedAt) });
+    }
+  }
+  const reviewIds = ids("review");
+  if (reviewIds.length) {
+    for (const r of await db
+      .select({ id: reviews.id, text: reviews.text, slug: tutors.slug, status: tutors.status, suspendedAt: tutors.suspendedAt })
+      .from(reviews)
+      .innerJoin(tutors, eq(reviews.tutorId, tutors.id))
+      .where(inArray(reviews.id, reviewIds))) {
+      out.set(`review:${r.id}`, { label: (r.text ?? "").slice(0, 120), href: link(r.slug, r.status === "verified" && !r.suspendedAt) });
+    }
+  }
+  return out;
+}
+
 export async function moderationRoutes(app: FastifyInstance): Promise<void> {
   /* ── POST /reports — NO ACCOUNT REQUIRED ─────────────────────────────────────
 
@@ -64,6 +118,14 @@ export async function moderationRoutes(app: FastifyInstance): Promise<void> {
 
     const subjectId = parsed.data.subjectId?.trim() || null;
     if (subjectId && subjectId.length > 200) return { ok: false, error: "not-found" };
+    /* The thing reported must exist. A report about an id that points at nothing is
+       a report nobody can act on — and an open write endpoint that accepts any id is
+       an easy way to flood the queue with noise. "other" names no subject. */
+    if (parsed.data.subjectKind !== "other" && subjectId) {
+      if (!isUuid(subjectId) || !(await subjectExists(parsed.data.subjectKind, subjectId))) {
+        return { ok: false, error: "not-found" };
+      }
+    }
 
     /* The reporter may be signed in, and attributing the report is useful — but
        it is never required, and an anonymous one is not second class. */
@@ -105,10 +167,14 @@ export async function moderationRoutes(app: FastifyInstance): Promise<void> {
       .where(eq(reports.status, "open"))
       .orderBy(desc(reports.createdAt))
       .limit(200);
+    const context = await subjectContext(rows.map((r) => ({ kind: r.subjectKind, id: r.subjectId })));
     return rows.map((r) => ({
       id: r.id,
       subjectKind: r.subjectKind,
       subjectId: r.subjectId,
+      /* What the report is ABOUT, for an admin: a title and a page they can open.
+         Resolved here so the queue never shows a bare uuid. */
+      subject: (r.subjectId && context.get(`${r.subjectKind}:${r.subjectId}`)) || null,
       reason: r.reason,
       reporterEmail: r.reporterEmail,
       createdAt: new Date(r.createdAt).toISOString(),

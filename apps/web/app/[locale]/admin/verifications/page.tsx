@@ -17,6 +17,7 @@ const copy = bilingual({
     eyebrow: "ADMIN",
     title: "Vérifications en attente",
     toAccounts: "Bloquer ou débloquer un compte",
+    toModeration: "Signalements et photos",
     count: (n: number) => (n === 1 ? "1 demande" : `${n} demandes`),
     loading: "Chargement des demandes…",
     deniedTitle: "Accès réservé",
@@ -53,6 +54,7 @@ const copy = bilingual({
     eyebrow: "أدمين",
     title: "الطلبات اللي تستنّى",
     toAccounts: "احظر ولا نحّي الحظر على حساب",
+    toModeration: "التبليغات والتصاور",
     count: (n: number) => (n === 1 ? "طلب واحد" : `${n} طلبات`),
     loading: "قاعدين نحمّلو الطلبات…",
     deniedTitle: "الدخول محجوز",
@@ -222,6 +224,8 @@ export default function AdminVerificationsPage() {
             {!loading && admin && (
               <p className="mt-2.5">
                 <Link href="/admin/accounts" className="linklike">{c.toAccounts}</Link>
+                {" · "}
+                <Link href="/admin/moderation" className="linklike">{c.toModeration}</Link>
               </p>
             )}
           </div>

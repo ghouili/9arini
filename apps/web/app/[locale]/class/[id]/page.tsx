@@ -6,6 +6,7 @@ import { SiteShell } from "@/components/SiteShell";
 import { Calendar, Clock, Users, Shield, Gift, Back } from "@/components/icons";
 import { useLocale } from "@/components/LocaleProvider";
 import { UserText } from "@/components/UserText";
+import { ReportButton } from "@/components/ReportButton";
 import { getClass, getExploreTutors } from "@/app/actions";
 import { isOpenForBooking, monthLabel, type ClassItem, type ExploreTutor } from "@tnajem/shared";
 import { bilingual } from "@/lib/i18n";
@@ -424,6 +425,11 @@ export default function ClassDetailPage(props: { params: Promise<{ id: string }>
                 )}
               </div>
             </div>
+          </div>
+
+          {/* Anyone can report a class — no account needed (Stage 5). */}
+          <div className="mt-6">
+            <ReportButton subjectKind="class" subjectId={cls.id} />
           </div>
 
           {/* Mobile-only sticky bottom CTA */}

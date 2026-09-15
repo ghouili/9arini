@@ -14,6 +14,7 @@
 import { Link } from "@/components/Link";
 import { ShareButton } from "./ShareButton";
 import { MaterialsPanel } from "./MaterialsPanel";
+import { ReportButton } from "@/components/ReportButton";
 import { dict, bilingual } from "@/lib/i18n";
 import type { AppLocale } from "@/lib/locale";
 import { Avatar, Verified } from "@/components/ui";
@@ -521,6 +522,12 @@ export function StorefrontView({
                 )}
               </div>
             </aside>
+          </div>
+
+          {/* Anyone can report this page — no account needed (Stage 5). A client
+              island, like ShareButton: the rest of the page stays cached HTML. */}
+          <div className="mt-6">
+            <ReportButton subjectKind="tutor" subjectId={tutor.id} />
           </div>
         </div>
       </section>

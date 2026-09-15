@@ -20,6 +20,7 @@ import type {
   ExploreTutor, TutorReviews, NotificationItem, NotificationKind, DashboardResult,
   StudentLevel, Role, OnboardingState,
   MessageThreadSummary, MessageThreadDetail, MaterialItem, GuardianChild,
+  AdminReport, AdminTakedown, PendingAvatar,
 } from "@tnajem/shared";
 import { STUDENT_LEVELS, parseStudentProfile } from "@tnajem/shared";
 import type { Me, AdminAccount } from "@tnajem/shared";
@@ -691,6 +692,34 @@ export async function deleteMaterial(input: { id: string }): Promise<ActionResul
 /** File a copyright claim. NO ACCOUNT REQUIRED — a rights-holder is almost never
     a user of this site, and making them sign up to complain is the same as having
     no process. Nothing is removed by filing; a human decides. */
+/* ---------- The moderation queue (/admin/moderation) ----------
+   Every gate lives in apps/api (requireAdmin); each list answers [] to a non-admin. */
+export async function getAdminReports(): Promise<AdminReport[]> {
+  if (demoFallback) return [];
+  return call<AdminReport[]>("/admin/reports", undefined, "GET");
+}
+export async function resolveReport(input: { id: string; action: "actioned" | "dismissed"; note?: string }): Promise<ActionResult> {
+  if (demoFallback) return { ok: false, error: "forbidden" };
+  return call<ActionResult>(`/admin/reports/${encodeURIComponent(input.id)}`, { action: input.action, note: input.note });
+}
+export async function getAdminTakedowns(): Promise<AdminTakedown[]> {
+  if (demoFallback) return [];
+  return call<AdminTakedown[]>("/admin/takedowns", undefined, "GET");
+}
+export async function resolveTakedown(input: { id: string; uphold: boolean }): Promise<ActionResult> {
+  if (demoFallback) return { ok: false, error: "forbidden" };
+  return call<ActionResult>(`/admin/takedowns/${encodeURIComponent(input.id)}/resolve`, { uphold: input.uphold });
+}
+export async function getPendingAvatars(): Promise<PendingAvatar[]> {
+  if (demoFallback) return [];
+  return call<PendingAvatar[]>("/admin/avatars", undefined, "GET");
+}
+/** Approve or reject THE photo the admin looked at (`version`); a newer upload refuses. */
+export async function decideAvatar(input: { tutorId: string; approve: boolean; version: string }): Promise<ActionResult> {
+  if (demoFallback) return { ok: false, error: "forbidden" };
+  return call<ActionResult>(`/admin/avatars/${encodeURIComponent(input.tutorId)}`, { approve: input.approve, version: input.version });
+}
+
 export async function requestTakedown(input: {
   materialId: string;
   claimantName: string;
