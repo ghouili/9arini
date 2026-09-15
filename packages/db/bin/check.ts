@@ -21,6 +21,7 @@ import { loadEnv, SQL_DIR } from "./_paths";
 loadEnv();
 
 import postgres from "postgres";
+import { verifyMail, closeMail } from "@tnajem/shared/mail";
 import { readFile, readdir, mkdir, writeFile, unlink } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
@@ -79,7 +80,7 @@ function checkEnv() {
 
   const mailKeys = ["MAIL_HOST", "MAIL_USER", "MAIL_PASS", "MAIL_FROM_ADDRESS"];
   const mailMissing = mailKeys.filter((k) => keyState(k) !== "set");
-  if (mailMissing.length === 0) ok("MAIL_*", "HOST, USER, PASS, FROM_ADDRESS set (delivery not tested)");
+  if (mailMissing.length === 0) ok("MAIL_*", "HOST, USER, PASS, FROM_ADDRESS set (login tested below)");
   else if (production) fail("MAIL_*", `${mailMissing.join(", ")} not set — no login code can be delivered`);
   else warn("MAIL_*", `${mailMissing.join(", ")} not set — login codes are shown on screen (dev only)`);
 }
@@ -168,11 +169,27 @@ async function checkStorage() {
   }
 }
 
+/* Presence was never the question that mattered: a set MAIL_PASS that Gmail rejects
+   means nobody can log in, and the first to find out is a user. verify() connects and
+   authenticates without sending anything. */
+async function checkMail() {
+  console.log("\nMail");
+  const keys = ["MAIL_HOST", "MAIL_USER", "MAIL_PASS", "MAIL_FROM_ADDRESS"];
+  if (keys.some((k) => keyState(k) !== "set")) {
+    return (production ? fail : warn)("SMTP login", "skipped — MAIL_* incomplete (see Configuration)");
+  }
+  const res = await verifyMail();
+  closeMail();
+  if (res.ok) ok("SMTP login", "connected and authenticated (nothing sent)");
+  else (production ? fail : warn)("SMTP login", `failed: ${res.error}`);
+}
+
 async function main() {
   console.log(`Tnajem db:check — ${production ? "PRODUCTION" : "development"} rules`);
   checkEnv();
   await checkDatabase();
   await checkStorage();
+  await checkMail();
   console.log(`\n${failures === 0 ? "✓ OK" : `✗ ${failures} failure(s)`}${warnings ? `, ${warnings} warning(s)` : ""}`);
   process.exit(failures === 0 ? 0 : 1);
 }

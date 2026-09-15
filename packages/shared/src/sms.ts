@@ -53,12 +53,15 @@ export async function sendSms(to: string, body: string): Promise<boolean> {
       },
     );
     if (!res.ok) {
-      console.error("SMS send failed:", res.status, await res.text().catch(() => ""));
+      /* Twilio's error body echoes the To number; log its numeric error code only.
+         This line bypasses the API's redacting logger. */
+      const body = (await res.json().catch(() => null)) as { code?: number } | null;
+      console.error("[tnajem] SMS send failed:", res.status, body?.code ? `twilio ${body.code}` : "");
       return false;
     }
     return true;
   } catch (e) {
-    console.error("SMS send error:", e);
+    console.error("[tnajem] SMS send error:", (e as { code?: string }).code ?? (e as Error).name);
     return false;
   }
 }

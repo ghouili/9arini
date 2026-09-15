@@ -105,7 +105,49 @@ export async function sendMail(to: string, subject: string, text: string): Promi
     });
     return true;
   } catch (e) {
-    console.error("Mail send error:", e);
+    /* WHAT failed, never TO WHOM. The whole nodemailer error used to be logged, and
+       an SMTP refusal carries the recipient in `response` ("550 5.1.1 <a@b.tn>"),
+       `command` ("RCPT TO:<a@b.tn>") and `rejected[]`. This line bypasses the
+       API's redacting logger, so it must not contain an address. */
+    console.error("[tnajem] mail send failed:", describeMailError(e));
     return false;
   }
+}
+
+/** A mail error reduced to what an operator needs and nothing personal:
+    the nodemailer code, the SMTP status and the SMTP verb. */
+export function describeMailError(e: unknown): string {
+  const err = e as { code?: string; responseCode?: number; command?: string; name?: string };
+  const verb = err.command ? String(err.command).split(/[\s:]/)[0] : "";
+  return [err.code ?? err.name ?? "Error", err.responseCode ? String(err.responseCode) : "", verb ? `during ${verb}` : ""]
+    .filter(Boolean)
+    .join(" ");
+}
+
+/** Can we log in to the SMTP server? Connects and authenticates WITHOUT sending
+    anything (nodemailer's verify()). Used by `npm run db:check`; never throws and
+    never returns a credential or an address. */
+export async function verifyMail(timeoutMs = 15_000): Promise<{ ok: true } | { ok: false; error: string }> {
+  const t = transport();
+  if (!t) return { ok: false, error: "not-configured" };
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      t.verify(),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(Object.assign(new Error("timeout"), { code: "ETIMEDOUT" })), timeoutMs);
+      }),
+    ]);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: describeMailError(e) };
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+/** Close the pooled connections (one-shot scripts like db:check must not hang on them). */
+export function closeMail(): void {
+  g.__tnajemMail?.close();
+  g.__tnajemMail = undefined;
 }
