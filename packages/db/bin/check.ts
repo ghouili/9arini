@@ -10,7 +10,7 @@
                                       — also implied by NODE_ENV=production
 
    NEVER PRINTS A VALUE. Every key is reported as set / empty / missing, and the
-   storage directory is exercised without echoing its path. The server version
+   object store is exercised without echoing its location. The server version
    is printed: it is not configuration.
 
    "Every migration applied" without a ledger: there is no schema_migrations
@@ -22,8 +22,10 @@ loadEnv();
 
 import postgres from "postgres";
 import { verifyMail, closeMail } from "@tnajem/shared/mail";
-import { readFile, readdir, mkdir, writeFile, unlink } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { objectStore, type ObjectStore } from "../src/storage";
+import { randomBytes } from "node:crypto";
+import { readFile, readdir } from "node:fs/promises";
+import { join } from "node:path";
 
 /* The public fallback in packages/shared/src/auth-core.ts (DEV_SECRET). */
 const PUBLIC_DEV_SECRET = "dev-insecure-secret-change-me";
@@ -150,22 +152,40 @@ async function checkDatabase() {
   }
 }
 
+/* Through the SAME driver the API uses (objectStore()), so this proves the thing
+   uploads will actually hit — not merely a directory that happens to be writable. */
 async function checkStorage() {
   console.log("\nDocument store");
-  const dir = process.env.STORAGE_DIR?.trim();
-  if (!dir) return fail("write/read/delete", "skipped — STORAGE_DIR is not set");
-  const sentinel = join(resolve(dir), `.tnajem-check-${process.pid}`);
-  const body = `db:check ${new Date().toISOString()}`;
+  const driver = (process.env.STORAGE_DRIVER ?? "local").trim().toLowerCase() || "local";
+  if (driver === "local" && !process.env.STORAGE_DIR?.trim()) {
+    return fail("put/get/stream/delete", "skipped — STORAGE_DIR is not set");
+  }
+  const key = `_check/${process.pid}-${randomBytes(4).toString("hex")}`;
+  const body = Buffer.from(`db:check ${new Date().toISOString()}`);
+  let store: ObjectStore;
   try {
-    await mkdir(resolve(dir), { recursive: true });
-    await writeFile(sentinel, body, { mode: 0o600 });
-    const back = await readFile(sentinel, "utf8");
-    await unlink(sentinel);
-    if (back !== body) return fail("write/read/delete", "read back different bytes");
-    ok("write/read/delete", "sentinel file round-tripped (local filesystem)");
+    store = objectStore();
+  } catch {
+    return fail("put/get/stream/delete", `STORAGE_DRIVER=${driver} is not available in this build`);
+  }
+  try {
+    await store.put(key, body);
+    const back = await store.get(key);
+    const opened = await store.open(key);
+    const chunks: Buffer[] = [];
+    if (opened) for await (const c of opened.stream) chunks.push(c as Buffer);
+    const removed = await store.delete(key);
+    const after = await store.stat(key);
+    await store.pruneEmpty("_check");
+    if (!back || !back.equals(body)) return fail("put/get/stream/delete", "get returned different bytes");
+    if (!opened || opened.size !== body.length || !Buffer.concat(chunks).equals(body)) {
+      return fail("put/get/stream/delete", "the stream returned different bytes");
+    }
+    if (removed !== "deleted" || after !== null) return fail("put/get/stream/delete", "the object survived delete");
+    ok("put/get/stream/delete", `sentinel round-tripped through the ${store.driver} driver`);
   } catch (e) {
-    fail("write/read/delete", `failed (${(e as { code?: string }).code ?? (e as Error).name})`);
-    await unlink(sentinel).catch(() => {});
+    fail("put/get/stream/delete", `failed (${(e as { code?: string }).code ?? (e as Error).name})`);
+    await store.delete(key).catch(() => {});
   }
 }
 

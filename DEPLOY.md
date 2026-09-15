@@ -187,6 +187,17 @@ them; a relative path resolved somewhere different three times in this project's
 history, and each time the purge deleted rows while orphaning the files.
 `storageBase()` now throws in production rather than guessing.
 
+Every read, write and delete of an upload (ID scans, materials, photos) goes
+through one object store, `objectStore()` in `packages/db/src/storage.ts`, chosen by
+`STORAGE_DRIVER`. This build has **only `local`** (the default): files under
+`STORAGE_DIR`, laid out exactly as the database keys say
+(`verification/<tutorId>/…`, `materials/<tutorId>/…`, `avatars/<tutorId>/…`), written
+atomically (temp file, then rename). That means **one API instance per volume**:
+two instances on two machines would each see half the files. Running more than one
+instance needs either a shared volume or the S3-compatible driver, which is not
+built yet (it needs a bucket and credentials). `npm run db:check` round-trips a
+sentinel through the same driver.
+
 ```
 sudo mkdir -p /var/lib/tnajem/storage && sudo chown $USER /var/lib/tnajem/storage
 sudo chmod 700 /var/lib/tnajem/storage

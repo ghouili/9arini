@@ -14,7 +14,8 @@ export * from "./schema";
 export { createDb } from "./client";
 export type { DbHandle, CreateDbOptions, Database, Sql } from "./client";
 
-export { storageBase, tutorDocDir, resolveDocPath } from "./storage";
+export { storageBase, storageKey, localStore, objectStore } from "./storage";
+export type { ObjectStore, StoredObject } from "./storage";
 
 export { notify, REMINDER_CADENCE } from "./notify";
 export type { NotifyInput, NotifyDb, ReminderStep, ReminderPayload } from "./notify";

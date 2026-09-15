@@ -1,11 +1,9 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { mkdir, writeFile, readFile } from "node:fs/promises";
-import { join } from "node:path";
 import {
   and, eq, inArray, sql as raw,
   tutors, verificationDocs, notify,
-  storageBase, resolveDocPath,
+  objectStore, storageKey,
 } from "@tnajem/db";
 import { docKind } from "@tnajem/db";
 
@@ -26,8 +24,8 @@ import { auditAdmin } from "../lib/audit";
 /* uploads + admin — the most sensitive surface in the product. These endpoints
    accept, store and stream Tunisian national ID cards.
 
-   uploads and admin move TOGETHER because they share STORAGE_DIR, the same
-   resolveDocPath containment check, and the admin allowlist. Splitting them would
+   uploads and admin move TOGETHER because they share the object store (and its
+   key containment check), and the admin allowlist. Splitting them would
    have shipped a document route whose gate lived in the other half. */
 
 const MAX_DOC_BYTES = 8 * 1024 * 1024; // 8 MB per file
@@ -131,27 +129,26 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
       return { ok: false, error: "too-many-documents" };
     }
 
-    /* Persist. Files land under STORAGE_DIR/verification/<tutorId>/ — OUTSIDE any
-       public directory, so nothing here is ever served statically; the only reader
-       is the admin-gated stream below. `mine.id` comes from the session's own
-       tutor row, so a tutor can only ever write into their OWN folder. */
-    const dir = join(storageBase(), "verification", mine.id);
-    await mkdir(dir, { recursive: true });
+    /* Persist. Keys are verification/<tutorId>/<file> in the object store — never
+       a public directory or bucket, so nothing here is ever served statically; the
+       only reader is the admin-gated stream below. `mine.id` comes from the
+       session's own tutor row, so a tutor can only ever write into their OWN folder. */
+    const store = objectStore();
 
     for (const { kind, bytes, mime, fileName } of incoming) {
       /* safeFileName strips directory components and everything outside
          [a-zA-Z0-9._-], so "../../../etc/cron.d/x" and NUL-byte tricks collapse to
          a flat, inert name. */
       const safe = `${kind}-${Date.now()}-${safeFileName(fileName, 60)}`;
-      await writeFile(join(dir, safe), bytes);
+      await store.put(`verification/${mine.id}/${safe}`, bytes);
       await db.insert(verificationDocs).values({
         tutorId: mine.id,
         kind,
         // The SANITIZED name: this string is echoed into a Content-Disposition
         // header by the stream route, and a raw client name could carry CR/LF.
         fileName: safeFileName(fileName, 60),
-        // POSIX separators, ALWAYS — node:path.join is platform-dependent.
-        storagePath: ["verification", mine.id, safe].join("/"),
+        // The object key itself: POSIX separators, always.
+        storagePath: `verification/${mine.id}/${safe}`,
         mime, // the SNIFFED type — never the client's claim
         sizeBytes: bytes.length,
       });
@@ -445,15 +442,22 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
       .limit(1);
     if (!doc) return reply.code(404).type("text/plain").send("Not found");
 
-    const abs = resolveDocPath(storageBase(), doc.storagePath);
-    if (!abs) return reply.code(400).type("text/plain").send("Bad request");
-
-    let bytes: Buffer;
+    /* A row whose key could escape the store is refused before any read (defence
+       in depth: the value is ours, but one bad row must not read an arbitrary file). */
     try {
-      bytes = await readFile(abs);
+      storageKey(doc.storagePath, { legacy: true });
     } catch {
-      return reply.code(404).type("text/plain").send("Not found");
+      return reply.code(400).type("text/plain").send("Bad request");
     }
+
+    let bytes: Buffer | null;
+    try {
+      bytes = await objectStore().get(doc.storagePath);
+    } catch (e) {
+      req.log.error({ code: (e as { code?: string }).code ?? (e as Error).name }, "document store read failed");
+      return reply.code(503).type("text/plain").send("Unavailable");
+    }
+    if (!bytes) return reply.code(404).type("text/plain").send("Not found");
 
     /* Every header below is deliberate. This is the one URL in the product that
        returns a Tunisian national ID card.

@@ -1,12 +1,9 @@
-import type { FastifyInstance } from "fastify";
+import type { FastifyBaseLogger, FastifyInstance } from "fastify";
 import { z } from "zod";
-import { createReadStream } from "node:fs";
-import { stat, mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
 import {
   and, desc, eq, isNull, sql as raw,
   bookings, classes, materials, materialTakedowns, tutorStrikes, tutors,
-  storageBase, resolveDocPath,
+  objectStore, storageKey, type StoredObject,
 } from "@tnajem/db";
 import {
   isUuid,
@@ -122,6 +119,25 @@ function toItem(m: typeof materials.$inferSelect): MaterialItem {
   };
 }
 
+/* One read path for materials and photos. A row whose key could escape the store
+   is a 404 before anything is opened: the value comes from our own database, so
+   this is defence in depth, but the route returns whatever bytes it opens and one
+   bad row must not become "read any file on the box". A store that errors (disk,
+   permissions, a bucket outage) is a 503 and a log line, not a misleading 404. */
+async function openStored(key: string, log: FastifyBaseLogger): Promise<StoredObject | null | "unavailable"> {
+  try {
+    storageKey(key, { legacy: true });
+  } catch {
+    return null;
+  }
+  try {
+    return await objectStore().open(key);
+  } catch (e) {
+    log.error({ code: (e as { code?: string }).code ?? (e as Error).name }, "object store read failed");
+    return "unavailable";
+  }
+}
+
 export async function materialRoutes(app: FastifyInstance): Promise<void> {
   /* ── POST /materials — upload a file, or attach a video ──────────────────── */
   app.post("/materials", async (req) => {
@@ -231,13 +247,12 @@ export async function materialRoutes(app: FastifyInstance): Promise<void> {
       return { ok: true, id: row.id };
     }
 
-    /* Persist. Under STORAGE_DIR/materials/<tutorId>/, never public/. `mine.id`
-       comes from the session's own tutor row, so a tutor can only write into
-       their own folder. */
-    const dir = join(storageBase(), "materials", mine.id);
-    await mkdir(dir, { recursive: true });
+    /* Persist. Key materials/<tutorId>/<file> in the object store, never public/.
+       `mine.id` comes from the session's own tutor row, so a tutor can only write
+       into their own folder. */
     const safe = `${Date.now()}-${safeFileName(file!.fileName, 60)}`;
-    await writeFile(join(dir, safe), file!.bytes);
+    const key = `materials/${mine.id}/${safe}`;
+    await objectStore().put(key, file!.bytes);
 
     const [row] = await db
       .insert(materials)
@@ -248,9 +263,8 @@ export async function materialRoutes(app: FastifyInstance): Promise<void> {
         visibility: visibility as "public" | "students" | "private",
         title: title.value,
         description: description.value,
-        // POSIX separators ALWAYS — node:path.join is platform-dependent, and a
-        // backslash written on Windows does not resolve on Linux.
-        storagePath: ["materials", mine.id, safe].join("/"),
+        // The object key itself: POSIX separators, always.
+        storagePath: key,
         fileName: safeFileName(file!.fileName, 60),
         mime: file!.mime, // the SNIFFED type — never the client's claim
         sizeBytes: file!.bytes.length,
@@ -326,19 +340,9 @@ export async function materialRoutes(app: FastifyInstance): Promise<void> {
       return reply.code(403).send({ error: "forbidden" });
     }
 
-    /* Containment check. The value comes from our own database, so this is
-       defence in depth — but the next line reads arbitrary bytes off disk and
-       returns them, so one bad row must not become "read any file on the box". */
-    /* resolveDocPath takes the BASE explicitly — it does not assume the
-       verification folder — so materials and ID documents share one
-       containment check rather than growing a second, weaker one. */
-    const abs = resolveDocPath(storageBase(), m.storagePath);
-    if (!abs) return reply.code(404).send({ error: "not-found" });
-    try {
-      await stat(abs);
-    } catch {
-      return reply.code(404).send({ error: "not-found" });
-    }
+    const stored = await openStored(m.storagePath, req.log);
+    if (stored === "unavailable") return reply.code(503).send({ error: "unavailable" });
+    if (!stored) return reply.code(404).send({ error: "not-found" });
 
     /* The SNIFFED type, and only from an allow-list. Serving a stored string
        straight into Content-Type is how a "PNG" gets run as HTML. */
@@ -352,7 +356,8 @@ export async function materialRoutes(app: FastifyInstance): Promise<void> {
       "content-disposition",
       `inline; filename="${safeFileName(m.fileName ?? "material", 60)}"`,
     );
-    return reply.send(createReadStream(abs));
+    reply.header("content-length", stored.size);
+    return reply.send(stored.stream);
   });
 
   /* ── POST /materials/:id/delete — the tutor removes their own ────────────── */
@@ -450,10 +455,9 @@ export async function materialRoutes(app: FastifyInstance): Promise<void> {
     if (!processed.ok) return { ok: false, error: processed.error };
 
     const stamp = Date.now();
-    const dir = join(storageBase(), "avatars", mine.id);
-    await mkdir(dir, { recursive: true });
+    const store = objectStore();
     for (const out of processed.value) {
-      await writeFile(join(dir, `${stamp}-${out.name}.webp`), out.bytes);
+      await store.put(`avatars/${mine.id}/${stamp}-${out.name}.webp`, out.bytes);
     }
 
     /* RULE 1. `pending`, always. If this ever reads anything else, the review
@@ -461,7 +465,7 @@ export async function materialRoutes(app: FastifyInstance): Promise<void> {
     await db
       .update(tutors)
       .set({
-        avatarPath: ["avatars", mine.id, String(stamp)].join("/"),
+        avatarPath: `avatars/${mine.id}/${stamp}`,
         avatarStatus: "pending",
         avatarUpdatedAt: raw`now()`,
       })
@@ -528,13 +532,9 @@ export async function materialRoutes(app: FastifyInstance): Promise<void> {
       const isPublic = t.avatarStatus === "approved" && t.status === "verified";
       if (!isPublic && !isOwner) return reply.code(404).send({ error: "not-found" });
 
-      const abs = resolveDocPath(storageBase(), `${t.avatarPath}-${size.name}.webp`);
-      if (!abs) return reply.code(404).send({ error: "not-found" });
-      try {
-        await stat(abs);
-      } catch {
-        return reply.code(404).send({ error: "not-found" });
-      }
+      const stored = await openStored(`${t.avatarPath}-${size.name}.webp`, req.log);
+      if (stored === "unavailable") return reply.code(503).send({ error: "unavailable" });
+      if (!stored) return reply.code(404).send({ error: "not-found" });
 
       reply.header("content-type", "image/webp");
       reply.header("x-content-type-options", "nosniff");
@@ -545,7 +545,8 @@ export async function materialRoutes(app: FastifyInstance): Promise<void> {
         "cache-control",
         isPublic ? "public, max-age=86400, immutable" : "private, no-store",
       );
-      return reply.send(createReadStream(abs));
+      reply.header("content-length", stored.size);
+      return reply.send(stored.stream);
     },
   );
 

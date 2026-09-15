@@ -5,7 +5,7 @@
  *
  * What it does, for every tutor whose verification was DECIDED (status
  * "verified" or "rejected") more than RETENTION_DAYS ago:
- *   1. removes the file from disk (STORAGE_DIR, default ./.storage), then
+ *   1. removes the file from the object store (STORAGE_DRIVER, local by default), then
  *   2. removes the matching `verification_docs` row.
  * File first, row second — if the unlink fails we keep the row so the next run
  * retries it (a row without a file is a lie; a file without a row is a leak).
@@ -24,12 +24,10 @@
  */
 import { and, eq, inArray, isNotNull, lt, sql } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
-import { readdir, rm, rmdir, stat } from "node:fs/promises";
-import { join } from "node:path";
-/* ONE storageBase()/resolveDocPath(), in ./storage. There used to be three
-   copies of each across the uploader, the admin doc route and this file; they
-   agreed only because all three happened to run with the same cwd. */
-import { storageBase, resolveDocPath } from "./storage";
+/* ONE object store, in ./storage, shared with the uploader and the admin doc
+   route. There used to be three copies of the base-directory lookup; they agreed
+   only because all three happened to run with the same cwd. */
+import { localStore, objectStore, storageBase, storageKey, type ObjectStore } from "./storage";
 export { storageBase };
 import { otpCodes, profiles, rateLimits, sessions, subscriptions, tutors, verificationDocs } from "./schema";
 
@@ -69,7 +67,9 @@ export type PurgeOptions = {
   dryRun?: boolean;
   /** Override the window (tests / legal changes). Defaults to RETENTION_DAYS. */
   retentionDays?: number;
-  /** Where the files live. Defaults to storageBase(). */
+  /** Where the files live. Defaults to objectStore() (STORAGE_DRIVER). */
+  store?: ObjectStore;
+  /** Shorthand for a local store rooted here (tests). Ignored when `store` is set. */
   baseDir?: string;
   /** Line logger. Never receives file names or any other document content. */
   log?: (line: string) => void;
@@ -81,7 +81,10 @@ export async function purgeExpiredVerificationDocs(
 ): Promise<PurgeResult> {
   const retentionDays = opts.retentionDays ?? RETENTION_DAYS;
   const dryRun = opts.dryRun ?? false;
-  const baseDir = opts.baseDir ?? storageBase();
+  /* Resolved BEFORE any row is read. In production with no STORAGE_DIR this throws,
+     and that is the point: see storageBase() — a purge pointed at the wrong place
+     would find no files, delete every row, and report success. */
+  const store = opts.store ?? (opts.baseDir ? localStore(opts.baseDir) : objectStore());
   const log = opts.log ?? (() => {});
 
   const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
@@ -127,8 +130,9 @@ export async function purgeExpiredVerificationDocs(
   );
 
   for (const row of expired) {
-    const abs = resolveDocPath(baseDir, row.storagePath);
-    if (!abs) {
+    try {
+      storageKey(row.storagePath, { legacy: true });
+    } catch {
       // Unsafe/garbage path — never unlink it, never silently drop the row.
       result.errors.push(`doc ${row.docId}: refusing unsafe storage_path`);
       continue;
@@ -136,16 +140,10 @@ export async function purgeExpiredVerificationDocs(
 
     let fileExisted = false;
     try {
-      // rm(force) is a no-op when the file is already gone, so probe first —
-      // purely to keep an honest deleted/already-gone count in the audit log.
-      try {
-        await stat(abs);
-        fileExisted = true;
-      } catch {
-        fileExisted = false;
-      }
-
-      if (!dryRun) await rm(abs, { force: true });
+      /* The deleted/already-gone split exists only to keep an honest count in the
+         audit log; a missing file is not an error. */
+      if (dryRun) fileExisted = (await store.stat(row.storagePath)) !== null;
+      else fileExisted = (await store.delete(row.storagePath)) === "deleted";
     } catch (e) {
       // Disk problem: keep the row so the next run retries. Never orphan a file.
       result.errors.push(`doc ${row.docId}: unlink failed — ${(e as Error).message}`);
@@ -182,14 +180,7 @@ export async function purgeExpiredVerificationDocs(
   // Best-effort: drop the per-tutor folder once it is empty. Never fatal.
   if (!dryRun) {
     for (const tutorId of tutorIds) {
-      const dir = resolveDocPath(baseDir, join("verification", tutorId));
-      if (!dir) continue;
-      try {
-        const left = await readdir(dir);
-        if (left.length === 0) await rmdir(dir);
-      } catch {
-        /* folder already gone, or not empty — fine either way */
-      }
+      await store.pruneEmpty(`verification/${tutorId}`);
     }
   }
 
