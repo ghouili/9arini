@@ -22,7 +22,7 @@ import { getSession } from "../lib/session";
 import { readUploadPart } from "../lib/uploads";
 import { processAvatar, AVATAR_SIZES } from "../lib/avatar";
 import { assertNoContactInfo, CONTACT_ERROR } from "../lib/contact-guard";
-import { checkRateLimit } from "../lib/rate-limit";
+import { checkRateLimit, ipBucket } from "../lib/rate-limit";
 import { requireAdmin } from "../lib/admin";
 
 /* MATERIALS (Step 10) — worksheets, corrections and videos a tutor attaches.
@@ -611,7 +611,7 @@ export async function materialRoutes(app: FastifyInstance): Promise<void> {
        site, and making them sign up to complain is the same as having no process.
        That means the only throttle is per-IP, and it has to exist: an open write
        endpoint without one is a spam target. */
-    const rl = await checkRateLimit(`takedown:${req.ip}`, 5, 60 * 60_000);
+    const rl = await checkRateLimit(`takedown:${ipBucket(req.ip)}`, 5, 60 * 60_000);
     if (!rl.ok) return { ok: false, error: "too-many-requests" };
 
     const name = vText(parsed.data.claimantName, { field: "name", max: 120, min: 2 });

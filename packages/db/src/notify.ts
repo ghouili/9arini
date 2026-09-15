@@ -58,7 +58,8 @@ export async function notify(
     }
     return { ok: true };
   } catch (e) {
-    console.error("[tnajem] notify failed:", input.kind, profileId, e);
+    // The kind and the error code: never the recipient, never the driver message.
+    console.error("[tnajem] notify failed:", input.kind, (e as { code?: string }).code ?? (e as Error).name);
     return { ok: false };
   }
 }
@@ -83,7 +84,7 @@ export type ReminderPayload = {
 export async function sendClassReminder(payload: ReminderPayload): Promise<{ ok: boolean; stubbed: boolean }> {
   if (process.env.NODE_ENV !== "production") {
     // eslint-disable-next-line no-console
-    console.log("[Tnajem reminder — STUB]", payload.step, "→", payload.toPhone, payload.className);
+    console.log("[Tnajem reminder — STUB]", payload.step); // never the phone number
   }
   return { ok: true, stubbed: true };
 }

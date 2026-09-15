@@ -79,12 +79,15 @@ async function upcomingFor(profileId: string, tutorId: string | null) {
 }
 
 export async function adminAccountRoutes(app: FastifyInstance): Promise<void> {
-  /* ── GET /admin/accounts?email= ──────────────────────────────────────────── */
-  app.get<{ Querystring: { email?: string } }>("/admin/accounts", async (req) => {
+  /* ── POST /admin/accounts/find { email } ───────────────────────────────────
+     POST with a body, not GET ?email=: an address in a query string ends up in
+     proxy access logs, browser history and error trackers, none of which redact. */
+  app.post("/admin/accounts/find", async (req) => {
     const session = await requireAdmin(req);
     if (!session) return { ok: false, error: "forbidden" };
 
-    const email = normalizeEmail(req.query.email ?? "");
+    const body = (req.body ?? {}) as { email?: unknown };
+    const email = normalizeEmail(typeof body.email === "string" ? body.email : "");
     if (!isValidEmail(email)) return { ok: false, error: "invalid-email" };
 
     const [p] = await db.select().from(profiles).where(eq(profiles.email, email)).limit(1);

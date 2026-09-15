@@ -12,7 +12,7 @@ import {
 import { db } from "../db";
 import { destroyProfileSessions, getSession } from "../lib/session";
 import { requireAdmin } from "../lib/admin";
-import { checkRateLimit } from "../lib/rate-limit";
+import { checkRateLimit, ipBucket } from "../lib/rate-limit";
 import { auditAdmin } from "../lib/audit";
 
 /* REPORTING, MODERATION AND ACCOUNT DELETION (Step 15). */
@@ -49,7 +49,7 @@ export async function moderationRoutes(app: FastifyInstance): Promise<void> {
     const parsed = reportBody.safeParse(req.body);
     if (!parsed.success) return reply.code(400).send({ error: "bad-request" });
 
-    const rl = await checkRateLimit(`report:${req.ip}`, 10, 60 * 60_000);
+    const rl = await checkRateLimit(`report:${ipBucket(req.ip)}`, 10, 60 * 60_000);
     if (!rl.ok) return { ok: false, error: "too-many-requests" };
 
     const reason = vText(parsed.data.reason, { field: "reason", max: 2000, min: 10 });

@@ -11,6 +11,8 @@ import {
 } from "@tnajem/shared";
 import { db } from "../db";
 import { getSession } from "../lib/session";
+import { checkRateLimit } from "../lib/rate-limit";
+import { isUniqueViolation } from "../lib/db-errors";
 import { assertNoContactInfo, CONTACT_ERROR } from "../lib/contact-guard";
 import { exploreBoostSql, subscriptionIsLiveSql } from "../lib/entitlements";
 import { onSaleClassSql } from "../lib/class-sale";
@@ -126,25 +128,40 @@ export async function tutorRoutes(app: FastifyInstance): Promise<void> {
       if (bySlug && bySlug.profileId !== uid) return { ok: false, error: "slug-taken" };
     }
 
-    await db
-      .update(profiles)
-      // Never null out a number already on file just because this submit omitted it.
-      .set({ fullName: name.value, ...(normalizedPhone ? { phone: normalizedPhone } : {}) })
-      .where(eq(profiles.id, uid));
+    const rl = await checkRateLimit(`profile:write:${uid}`, 20, 60 * 60_000);
+    if (!rl.ok) return { ok: false, error: "too-many-requests" };
 
-    if (mine) {
-      await db
-        .update(tutors)
-        .set({ fullName: name.value, subject: subject.value, bio: bio.value })
-        .where(eq(tutors.id, mine.id));
-    } else {
-      await db.insert(tutors).values({
-        profileId: uid,
-        slug: effectiveSlug,
-        fullName: name.value,
-        subject: subject.value,
-        bio: bio.value,
+    try {
+      await db.transaction(async (tx) => {
+        await tx
+          .update(profiles)
+          // Never null out a number already on file just because this submit omitted it.
+          .set({ fullName: name.value, ...(normalizedPhone ? { phone: normalizedPhone } : {}) })
+          .where(eq(profiles.id, uid));
+
+        if (mine) {
+          await tx
+            .update(tutors)
+            .set({ fullName: name.value, subject: subject.value, bio: bio.value })
+            .where(eq(tutors.id, mine.id));
+        } else {
+          await tx.insert(tutors).values({
+            profileId: uid,
+            slug: effectiveSlug,
+            fullName: name.value,
+            subject: subject.value,
+            bio: bio.value,
+          });
+        }
       });
+    } catch (e) {
+      /* Two first publishes racing for one slug pass the check above together; the
+         unique index decides. A phone already on another account lands here too.
+         Answers, not 500s — the 500 wrote the statement's parameters to the log. */
+      if (isUniqueViolation(e)) {
+        return { ok: false, error: isUniqueViolation(e, "profiles_phone_unique") ? "phone-unavailable" : "slug-taken" };
+      }
+      throw e;
     }
 
     /* revalidateTutor CANNOT run here — revalidateTag only works inside a Next

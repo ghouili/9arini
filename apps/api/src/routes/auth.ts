@@ -18,7 +18,7 @@ import { mailEnabled, sendMail } from "@tnajem/shared/mail";
 import { smsEnabled, sendSms } from "@tnajem/shared/sms";
 import { db } from "../db";
 import { IS_PROD } from "../env";
-import { checkRateLimit } from "../lib/rate-limit";
+import { checkRateLimit, ipBucket, peekRateLimit, rlSubject } from "../lib/rate-limit";
 import { createOtp, otpCooldownRemaining, verifyOtpCode } from "../lib/otp";
 import { createSession, destroyProfileSessions, destroySession, getSession } from "../lib/session";
 import { OTP_MAIL } from "../lib/otp-copy";
@@ -61,7 +61,7 @@ const verifyOtpBody = z.object({
     trustProxy, which trusts SPECIFIC hops only — see env.ts. Never an authz
     input; it is a throttle key. */
 function clientIp(req: FastifyRequest): string {
-  return req.ip || "unknown";
+  return ipBucket(req.ip);
 }
 
 export async function authRoutes(app: FastifyInstance): Promise<void> {
@@ -165,13 +165,21 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
        exists. Expiry, by contrast, stays folded into "invalid-code" — telling a
        caller their code "expired" would confirm one had been issued, which is
        exactly the enumeration oracle this opacity exists to prevent. */
-    const perId = await checkRateLimit(`otp:vfy:id:${id}`, 10, 15 * 60_000);
+    /* ONLY A WRONG CODE SPENDS THE PER-IDENTITY BUDGET. It used to be spent by every
+       attempt, a person's own correct one included; brute force is made of failures,
+       so counting successes bought nothing. The key holds a keyed hash, never the
+       address. The per-IP budget still counts every attempt: it is about the host. */
+    const idKey = `otp:vfy:id:${rlSubject(id)}`;
+    const perId = await peekRateLimit(idKey, 10);
     if (!perId.ok) return { ok: false, error: "too-many-attempts", retryAfter: perId.retryAfter };
     const perIp = await checkRateLimit(`otp:vfy:ip:${clientIp(req)}`, 30, 15 * 60_000);
     if (!perIp.ok) return { ok: false, error: "too-many-attempts", retryAfter: perIp.retryAfter };
 
     const valid = await verifyOtpCode(id, (input.code || "").trim());
-    if (!valid) return { ok: false, error: "invalid-code" };
+    if (!valid) {
+      await checkRateLimit(idKey, 10, 15 * 60_000);
+      return { ok: false, error: "invalid-code" };
+    }
 
     /* role and locale are pgEnum/text columns on a public surface: an arbitrary
        string would reach Postgres and blow up as "invalid input value for enum

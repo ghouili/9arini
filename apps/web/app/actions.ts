@@ -801,7 +801,8 @@ export async function canJoinClass(classId: string): Promise<{
    so a blocked tutor's storefront and sitemap entry go dark immediately. */
 export async function findAccount(email: string): Promise<{ ok: boolean; error?: string; account?: AdminAccount | null }> {
   if (demoFallback) return { ok: false, error: "forbidden" };
-  return call(`/admin/accounts?email=${encodeURIComponent(email)}`, undefined, "GET");
+  // In the body, never the query string (proxy logs, history).
+  return call("/admin/accounts/find", { email });
 }
 
 export async function blockAccount(input: { profileId: string; reason: string; cancelUpcoming: boolean }): Promise<{

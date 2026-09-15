@@ -6,6 +6,7 @@ import cookie from "@fastify/cookie";
 import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
 import { randomUUID } from "node:crypto";
+import { STATUS_CODES } from "node:http";
 import { sql as rawSql, objectStore } from "@tnajem/db";
 import { warnIfSecretMissing } from "@tnajem/shared/auth-core";
 import { APP_TIME_ZONE } from "@tnajem/shared";
@@ -36,9 +37,10 @@ import { moderationRoutes } from "./routes/moderation";
 import { subscriptionRoutes } from "./routes/subscriptions";
 import { adminAccountRoutes } from "./routes/admin-accounts";
 
-export async function buildServer(): Promise<FastifyInstance> {
+/** logStream: tests capture every log line (test/log-pii.test.ts). */
+export async function buildServer(opts: { logStream?: { write(line: string): void } } = {}): Promise<FastifyInstance> {
   const app = Fastify({
-    logger: loggerOptions,
+    logger: opts.logStream ? { ...loggerOptions, stream: opts.logStream } : loggerOptions,
     /* See env.ts. NEVER `true`: that makes X-Forwarded-For attacker-controlled and
        the per-IP OTP limiter bypassable by rotating a header. */
     trustProxy: TRUST_PROXY,
@@ -69,6 +71,28 @@ export async function buildServer(): Promise<FastifyInstance> {
       files: 6,
       fields: 30,
     },
+  });
+
+  /* ONE ERROR HANDLER, and it logs a code, not an error object. Fastify's default
+     logs the whole error — and a database error carries its statement parameters
+     (names, phone numbers, tokens) in `params`, `query` and `cause.detail`, none of
+     which the redaction paths reach. It also sent a 5xx error's MESSAGE to the
+     client. Now: the code and the route in the log, a generic body for a 5xx, the
+     framework's own 4xx fields (400/404/413…). */
+  app.setErrorHandler((err, req, reply) => {
+    const e = err as { statusCode?: number; code?: string; name?: string; cause?: { code?: string } };
+    const status = e.statusCode && e.statusCode >= 400 && e.statusCode < 600 ? e.statusCode : 500;
+    const where = { code: e.code ?? e.name ?? "Error", cause: e.cause?.code, route: req.routeOptions?.url };
+    if (status >= 500) {
+      req.log.error(where, "request failed");
+      return reply.code(status).send({ statusCode: status, error: "Internal Server Error", message: "Internal Server Error" });
+    }
+    req.log.info(where, "request rejected");
+    /* Built here rather than reply.send(err): that would hand the error to the
+       framework default handler, which logs the whole object. */
+    return reply
+      .code(status)
+      .send({ statusCode: status, code: e.code, error: STATUS_CODES[status] ?? "Error", message: (err as Error).message });
   });
 
   /* Request id on the way out, so a user-reported failure can be traced to a log

@@ -9,6 +9,7 @@ import {
 } from "@tnajem/shared";
 import { db } from "../db";
 import { checkRateLimit } from "../lib/rate-limit";
+import { isUniqueViolation } from "../lib/db-errors";
 import { getSession, rotateSession } from "../lib/session";
 
 /* profile — becomeTutor, saveStudentProfile, getOnboardingState.
@@ -86,16 +87,28 @@ export async function profileRoutes(app: FastifyInstance): Promise<void> {
     // Symmetric with createTutor's gate: the student screen writes a student profile.
     if (session.profile.role !== "student") return { ok: false, error: "not-a-student" };
 
-    await db
-      .update(profiles)
-      .set({
-        fullName: v.fullName,
-        level: v.level,
-        subjects: v.subjects.length ? v.subjects.join(",") : null,
-        // Never null out a number already on file just because this submit omitted it.
-        ...(v.phone ? { phone: v.phone } : {}),
-      })
-      .where(eq(profiles.id, session.profile.id));
+    /* Throttled: each submit can probe whether a phone number is already on another
+       account (profiles.phone is unique). */
+    const rl = await checkRateLimit(`profile:write:${session.profile.id}`, 20, 60 * 60_000);
+    if (!rl.ok) return { ok: false, error: "too-many-requests" };
+
+    try {
+      await db
+        .update(profiles)
+        .set({
+          fullName: v.fullName,
+          level: v.level,
+          subjects: v.subjects.length ? v.subjects.join(",") : null,
+          // Never null out a number already on file just because this submit omitted it.
+          ...(v.phone ? { phone: v.phone } : {}),
+        })
+        .where(eq(profiles.id, session.profile.id));
+    } catch (e) {
+      /* Another account holds this number. An answer, not a 500 — the 500 logged the
+         number and the name, and failed the whole form. */
+      if (isUniqueViolation(e)) return { ok: false, error: "phone-unavailable" };
+      throw e;
+    }
 
     return { ok: true };
   });

@@ -440,7 +440,7 @@ export type PendingTutor = {
   docs: { id: string; kind: string; fileName: string; url: string }[];
 };
 
-/** An account as an ADMIN sees it on /admin/accounts (GET /admin/accounts?email=).
+/** An account as an ADMIN sees it on /admin/accounts (POST /admin/accounts/find).
     The admin typed the address, so it is echoed back; nothing else identifying. */
 export type AdminAccount = {
   id: string;

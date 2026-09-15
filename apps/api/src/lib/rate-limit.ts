@@ -1,5 +1,34 @@
-import { rateLimits, sql as raw } from "@tnajem/db";
+import { createHmac } from "node:crypto";
+import { isIP } from "node:net";
+import { and, eq, gt, rateLimits, sql as raw } from "@tnajem/db";
+import { authSecret } from "@tnajem/shared/auth-core";
 import { db } from "../db";
+
+/* ── KEY PARTS ────────────────────────────────────────────────────────────────
+   A rate-limit key is stored in rate_limits for the length of its window, and a
+   failed upsert once echoed it into a log. Neither place may hold an e-mail
+   address, so an identity goes into a key as a keyed hash: stable for the window,
+   meaningless outside this process (a plain sha256 of an address is reversible by
+   anyone with a list of addresses). */
+export function rlSubject(value: string): string {
+  return createHmac("sha256", authSecret()).update(`tnajem:rate-limit:${value}`).digest("hex").slice(0, 32);
+}
+
+/* The bucket an address belongs to. IPv4 as-is. IPv6 by its /64: one subscriber
+   is handed a whole /64, so keying the full address gave anyone with one
+   connection ~2^64 fresh budgets (security review, 15 Sept 2026). An IPv4-mapped
+   IPv6 address is its IPv4 address. */
+export function ipBucket(ip: string | undefined): string {
+  const raw = (ip ?? "").trim();
+  const mapped = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/i.exec(raw);
+  if (mapped) return mapped[1];
+  if (isIP(raw) !== 6) return raw || "unknown";
+  const [head, tail = ""] = raw.split("::");
+  const left = head ? head.split(":") : [];
+  const right = tail ? tail.split(":") : [];
+  const groups = raw.includes("::") ? [...left, ...Array(8 - left.length - right.length).fill("0"), ...right] : left;
+  return `${groups.slice(0, 4).map((g) => parseInt(g || "0", 16).toString(16)).join(":")}::/64`;
+}
 
 /* The durable, cross-instance rate limiter, ported from apps/web/lib/auth.ts.
 
@@ -88,6 +117,26 @@ async function rateLimitDb(key: string, limit: number, windowMs: number): Promis
       (e as { code?: string }).code ?? (e as Error).name,
     );
     return rateLimitInProcess(key, limit, windowMs);
+  }
+}
+
+/** Would one more hit be refused? Reads the window WITHOUT spending it — for budgets
+    that only failures may consume. Fails open, like checkRateLimit. */
+export async function peekRateLimit(key: string, limit: number): Promise<RateLimitResult> {
+  try {
+    const [row] = await db
+      .select({ count: rateLimits.count, resetAt: rateLimits.resetAt })
+      .from(rateLimits)
+      .where(and(eq(rateLimits.key, key), gt(rateLimits.resetAt, raw`now()`)))
+      .limit(1);
+    if (!row || row.count < limit) return { ok: true, retryAfter: 0 };
+    return { ok: false, retryAfter: Math.max(1, Math.ceil((new Date(row.resetAt).getTime() - Date.now()) / 1000)) };
+  } catch (e) {
+    console.error("[tnajem-api] rate_limits read failed:", (e as { code?: string }).code ?? (e as Error).name);
+    const b = buckets.get(key);
+    return !b || b.resetAt <= Date.now() || b.count < limit
+      ? { ok: true, retryAfter: 0 }
+      : { ok: false, retryAfter: Math.max(1, Math.ceil((b.resetAt - Date.now()) / 1000)) };
   }
 }
 
