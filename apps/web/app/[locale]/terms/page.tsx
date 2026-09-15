@@ -18,6 +18,11 @@
 import { Link } from "@/components/Link";
 import { SiteShell } from "@/components/SiteShell";
 import { useLocale } from "@/components/LocaleProvider";
+import { DELETION_GRACE_DAYS, MINOR_AGE_YEARS, TERMS_VERSION, formatLongDate } from "@tnajem/shared";
+
+/* Describes what is implemented (Stage 5, rewritten 15 Sept 2026). Numbers come from
+   @tnajem/shared/legal; bracketed passages are open questions for counsel. */
+const versionDate = (locale: "fr" | "ar") => formatLongDate(`${TERMS_VERSION}T12:00:00Z`, locale);
 
 type Section = { h: string; p?: string[]; list?: string[]; after?: string[] };
 type LegalCopy = {
@@ -53,10 +58,10 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
   fr: {
     notice: "Modèle — à faire relire par un avocat avant la mise en ligne.",
     noticeSub:
-      "Version du 12 juillet 2026. Ce texte est un projet rédigé par l'équipe produit pour cadrer le service. Il ne constitue pas un conseil juridique et n'a pas encore été validé par un avocat.",
+      `Version du ${versionDate("fr")}. Ce texte est un projet rédigé par l'équipe produit pour cadrer le service. Il décrit ce que le service fait à cette date, mais il ne constitue pas un conseil juridique et n'a pas encore été validé par un avocat. Les passages entre crochets restent à compléter par l'avocat.`,
     eyebrow: "Légal",
     title: "Conditions d'utilisation",
-    updated: "Version du 12 juillet 2026",
+    updated: `Version du ${versionDate("fr")}`,
     lead:
       "Ces conditions expliquent, en langage simple, ce que Tnajem fait, ce que Tnajem ne fait pas, et les règles que chacun accepte en utilisant la plateforme. En créant un compte ou en réservant une séance, tu les acceptes.",
     sections: [
@@ -75,8 +80,8 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
         ],
         list: [
           "Élève majeur : tu peux créer ton compte toi-même.",
-          "Élève mineur (moins de 18 ans) : un parent ou tuteur doit donner son accord et renseigner son nom et son téléphone. Sans cet accord, le compte n'est pas activé.",
-          "Prof : tu dois pouvoir prouver ton identité (voir article 9) et être en règle avec tes propres obligations (statut, fiscalité, autorisations éventuelles). Tnajem ne s'en charge pas à ta place.",
+          `Élève mineur (moins de ${MINOR_AGE_YEARS} ans) : un parent ou tuteur doit donner son accord — son nom, son téléphone et son adresse e-mail. Sans cet accord, aucune séance ne peut être réservée. Le parent peut retirer son accord à tout moment depuis son espace parent ; les séances à venir sont alors annulées sans frais.`,
+          "Prof : tu dois pouvoir prouver ton identité (voir article 9), déclarer que tu n'enseignes pas dans un établissement d'enseignement public (décret n° 2015-1619), et être en règle avec tes propres obligations (statut, fiscalité, autorisations éventuelles). Tnajem ne s'en charge pas à ta place.",
         ],
       },
       {
@@ -137,17 +142,18 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
           "envoyer du spam, de la publicité, ou détourner Tnajem de son objet éducatif.",
         ],
         after: [
-          "Les documents et vidéos que tu publies restent les tiens, mais tu garantis avoir le droit de les partager. Un ayant droit peut demander le retrait d'un document sans avoir de compte chez nous ; nous examinons la demande, et si elle est fondée le document est retiré et un avertissement est enregistré sur le compte du prof. Les avertissements sont comptés, jamais appliqués automatiquement — une décision de suspension est prise par une personne.",
+          "Chacun peut signaler une page de prof, une séance, un document ou un message — sans compte — avec le bouton « Signaler ». Un signalement ne retire rien automatiquement : une personne de l'équipe le lit et décide.",
+          "Les documents et vidéos que tu publies restent les tiens, mais tu garantis avoir le droit de les partager. Un ayant droit peut demander le retrait d'un document sans avoir de compte chez nous, depuis le bouton « Signaler » du document ; nous examinons la demande, et si elle est fondée le document est retiré et un avertissement est enregistré sur le compte du prof. Les avertissements sont comptés, jamais appliqués automatiquement — une décision de suspension est prise par une personne.",
           "Les coordonnées personnelles restent privées des deux côtés. Un prof voit le prénom de son élève, jamais son numéro ni son email ; un élève voit le prénom de son prof. Nous ne transmettons ces informations à personne.",
           "Les textes que tu écris — page de prof, séance, avis — sont analysés automatiquement pour repérer un numéro, un email, un lien ou un nom de messagerie. Sur ta page et tes séances, l'enregistrement est refusé et tu peux corriger. Dans un avis, les coordonnées sont retirées et le reste de ton texte est publié tel quel. Nous conservons le TYPE de ce qui a été détecté, jamais le texte détecté lui-même.",
-          "En cas de manquement, nous pouvons retirer un contenu, suspendre ou supprimer un compte — sans préavis lorsque la sécurité des utilisateurs, en particulier des mineurs, l'exige.",
+          "En cas de manquement, nous pouvons retirer un contenu ou suspendre un compte — sans préavis lorsque la sécurité des utilisateurs, en particulier des mineurs, l'exige.",
         ],
       },
       {
         h: "9. Vérification des profs",
         p: [
           "Avant d'apparaître publiquement, un prof doit soumettre une pièce d'identité (CIN ou passeport, recto/verso). Les diplômes et attestations sont facultatifs et servent à renforcer la confiance.",
-          "Ces documents sont examinés manuellement par un administrateur de Tnajem. Ils ne sont jamais publiés. Leur traitement, leur durée de conservation et leur suppression sont décrits dans la politique de confidentialité.",
+          "Ces documents sont examinés manuellement par un administrateur de Tnajem, avec ta déclaration de ne pas enseigner dans un établissement public : sans elle, le dossier ne peut pas être envoyé. Les documents ne sont jamais publiés. Leur traitement, leur durée de conservation et leur suppression sont décrits dans la politique de confidentialité.",
           "Le badge « Vérifié » signifie uniquement que des documents d'identité ont été présentés et contrôlés visuellement. Ce n'est ni une enquête judiciaire, ni un agrément de l'État, ni une garantie de compétence pédagogique ou de bonne conduite. Nous pouvons refuser ou retirer une vérification à tout moment.",
         ],
       },
@@ -181,14 +187,14 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
       {
         h: "14. Suspension et fermeture du compte",
         p: [
-          "Tu peux fermer ton compte à tout moment en nous écrivant. Nous pouvons suspendre ou fermer un compte qui enfreint ces conditions, la loi, ou qui met en danger d'autres utilisateurs.",
-          "La fermeture n'annule pas d'elle-même les séances déjà réservées auprès d'autres utilisateurs ; nous ferons le nécessaire pour prévenir les personnes concernées.",
+          `Tu peux supprimer ton compte à tout moment depuis « Mon compte ». Ce n'est pas possible tant qu'une séance est à venir : annule-la d'abord, pour que l'autre personne soit prévenue. La suppression a lieu ${DELETION_GRACE_DAYS} jours plus tard, et tu peux changer d'avis d'ici là ; ce qui est effacé et ce qui reste est décrit dans la politique de confidentialité.`,
+          "Nous pouvons suspendre un compte qui enfreint ces conditions, la loi, ou qui met en danger d'autres utilisateurs. Ses séances à venir sont alors annulées sans frais, et les élèves d'un prof suspendu sont prévenus que la séance n'aura pas lieu.",
         ],
       },
       {
         h: "15. Modification des conditions",
         p: [
-          "Ces conditions peuvent évoluer, notamment lors de l'activation des paiements. La version applicable est celle publiée sur cette page. En cas de changement important, nous te préviendrons dans l'application ou par SMS avant qu'il ne s'applique.",
+          "Ces conditions peuvent évoluer, notamment lors de l'activation des paiements. La version applicable est celle publiée sur cette page ; la version en vigueur quand tu as créé ton compte est enregistrée avec lui. [À compléter par l'avocat : comment prévenir d'un changement important, et si une nouvelle acceptation est nécessaire.]",
         ],
       },
       {
@@ -209,10 +215,10 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
   ar: {
     notice: "نموذج — لازم يقراه محامي قبل ما ينشر رسميًا.",
     noticeSub:
-      "نسخة 12 جويلية 2026. النصّ هذا مسودّة كتبها فريق المنتج باش يوضّح الخدمة. ما هوش استشارة قانونية وما زال ما صادقش عليه محامي.",
+      `نسخة ${versionDate("ar")}. النصّ هذا مسودّة كتبها فريق المنتج باش يوضّح الخدمة. يوصف شنوّة تعمل الخدمة في التاريخ هذا، أما ما هوش استشارة قانونية وما زال ما صادقش عليه محامي. اللي بين معقّفات يكمّلو المحامي.`,
     eyebrow: "قانوني",
     title: "شروط الاستعمال",
-    updated: "نسخة 12 جويلية 2026",
+    updated: `نسخة ${versionDate("ar")}`,
     lead:
       "الشروط هاذي تشرح، بكلام بسيط، شنوّة تعمل تنجّم، شنوّة ما تعملهاش، والقواعد اللي كل واحد يقبلها كي يستعمل المنصّة. كي تعمل حساب ولا تحجز حصة، إنت تقبل بيهم.",
     sections: [
@@ -231,8 +237,8 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
         ],
         list: [
           "تلميذ راشد: تنجّم تعمل حسابك وحدك.",
-          "تلميذ قاصر (أقلّ من 18 سنة): لازم وليّ يوافق ويعمّر اسمه ورقم تليفونه. من غير الموافقة هاذي، الحساب ما يتفعّلش.",
-          "أستاذ: لازم تثبت هويتك (شوف الفصل 9) وتكون في القانون مع واجباتك (الوضعية، الجباية، الرخص إذا لزمو). تنجّم ما تعملهمش عوضك.",
+          `تلميذ قاصر (أقلّ من ${MINOR_AGE_YEARS} سنة): لازم وليّ يوافق — باسمو، تليفونو والإيميل متاعو. من غير الموافقة هاذي، ما تنجّم تتحجز حتى حصة. الوليّ ينجّم يسحب موافقتو وقت ما يحب من فضاء الولي؛ الحصص الجاية تتلغى وقتها بلا مصاريف.`,
+          "أستاذ: لازم تثبت هويتك (شوف الفصل 9)، تصرّح إنّك ما تقرّيش في مؤسسة تعليم عمومية (الأمر عدد 1619 لسنة 2015)، وتكون في القانون مع واجباتك (الوضعية، الجباية، الرخص إذا لزمو). تنجّم ما تعملهمش عوضك.",
         ],
       },
       {
@@ -293,17 +299,18 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
           "إرسال سبام ولا إشهار، ولا استعمال تنجّم في حاجة ما عندهاش علاقة بالتعليم.",
         ],
         after: [
-          "الوثائق والفيديوهات اللي تنشرهم يبقاو متاعك، أما إنت تضمن إلّي عندك الحقّ باش تشاركهم. صاحب الحقوق ينجّم يطلب نحّي وثيقة حتى كان ما عندوش حساب عندنا؛ نشوفو الطلب، وكان يكون في محلّو الوثيقة تتنحّى ويتسجّل إنذار على حساب الأستاذ. الإنذارات تتعدّ برك، عمرها ما تتطبّق آليًا — قرار التعليق ياخذو إنسان.",
+          "كل واحد ينجّم يبلّغ على صفحة أستاذ، حصة، وثيقة ولا رسالة — بلا حساب — بزرّ « بلّغ ». التبليغ ما ينحّي حتى شي آليًا: واحد من الفريق يقراه ويقرّر.",
+          "الوثائق والفيديوهات اللي تنشرهم يبقاو متاعك، أما إنت تضمن إلّي عندك الحقّ باش تشاركهم. صاحب الحقوق ينجّم يطلب نحّي وثيقة حتى كان ما عندوش حساب عندنا، من زرّ « بلّغ » متاع الوثيقة؛ نشوفو الطلب، وكان يكون في محلّو الوثيقة تتنحّى ويتسجّل إنذار على حساب الأستاذ. الإنذارات تتعدّ برك، عمرها ما تتطبّق آليًا — قرار التعليق ياخذو إنسان.",
           "معلومات الاتصال الشخصية تبقى مخبّية من الجهتين. الأستاذ يشوف الإسم الأول متاع تلميذو، عمرو ما يشوف نمرتو ولا إيميلو؛ والتلميذ يشوف الإسم الأول متاع أستاذو. ما نعطيو هالمعلومات لحتّى حد.",
           "النصوص اللي تكتبها — صفحة الأستاذ، الحصة، التقييم — تتفحّص آليًا باش نلقاو نمرة، إيميل، رابط ولا إسم تطبيق مراسلة. في صفحتك وحصصك، التسجيل يترفض وتنجّم تصلّح. في التقييم، معلومات الاتصال تتنحّى والباقي يتنشر كيما هو. نحتفظو بنوع اللي تلقى، عمرنا ما نحتفظو بالنصّ روحو.",
-          "في صورة الإخلال، ننجّمو ننحّيو محتوى، نعلّقو ولا نحذفو حساب — وبلا إعلام مسبق كي تكون سلامة المستعملين، وبالخصوص القاصرين، في خطر.",
+          "في صورة الإخلال، ننجّمو ننحّيو محتوى ولا نعلّقو حساب — وبلا إعلام مسبق كي تكون سلامة المستعملين، وبالخصوص القاصرين، في خطر.",
         ],
       },
       {
         h: "9. توثيق الأساتذة",
         p: [
           "قبل ما يظهر للعموم، الأستاذ لازم يبعث وثيقة هوية (بطاقة تعريف وطنية ولا جواز سفر، وجه وظهر). الشهائد والوثائق الأخرى اختيارية وتزيد في الثقة.",
-          "الوثائق هاذي يشوفها إداري من تنجّم بصفة يدوية. ما تتنشرش عمرها. طريقة معالجتها، مدّة الاحتفاظ بيها وحذفها مشروحين في سياسة الخصوصية.",
+          "الوثائق هاذي يشوفها إداري من تنجّم بصفة يدوية، مع تصريحك إنّك ما تقرّيش في مؤسسة عمومية: من غيرو الملف ما يتبعثش. الوثائق ما تتنشرش عمرها. طريقة معالجتها، مدّة الاحتفاظ بيها وحذفها مشروحين في سياسة الخصوصية.",
           "شارة « موثّق » تعني برك إلّي وثائق الهوية تقدّمت واتشافت بالعين. ماهيش تحرّي قضائي، لا ترخيص من الدولة، ولا ضمان للكفاءة البيداغوجية ولا لحسن السلوك. ننجّمو نرفضو ولا ننحّيو التوثيق وقت ما نحبّو.",
         ],
       },
@@ -337,14 +344,14 @@ const copy: { fr: LegalCopy; ar: LegalCopy } = {
       {
         h: "14. تعليق الحساب وغلقه",
         p: [
-          "تنجّم تغلق حسابك وقت ما تحبّ كي تكتبلنا. ونجّمو نعلّقو ولا نغلقو حساب يخالف الشروط هاذي، ولا القانون، ولا يحطّ مستعملين آخرين في خطر.",
-          "الغلق وحدو ما يلغيش الحصص المحجوزة مع مستعملين آخرين؛ باش نعملو اللازم باش نعلمو الأطراف المعنيّة.",
+          `تنجّم تمسح حسابك وقت ما تحبّ من « حسابي ». ما ينجّمش يصير ما دامت عندك حصة جاية: ألغيها الأول، باش الطرف الآخر يتعلم. المسح يصير ${DELETION_GRACE_DAYS} يوم من بعد، وتنجّم تبدّل رايك قبل؛ شنوّة يتمسح وشنوّة يبقى مشروح في سياسة الخصوصية.`,
+          "ننجّمو نعلّقو حساب يخالف الشروط هاذي، ولا القانون، ولا يحطّ مستعملين آخرين في خطر. الحصص الجاية متاعو تتلغى وقتها بلا مصاريف، وتلامذة الأستاذ المعلّق يتعلمو اللي الحصة ما باش تصير.",
         ],
       },
       {
         h: "15. تغيير الشروط",
         p: [
-          "الشروط هاذي تنجّم تتبدّل، بالخصوص وقت تفعيل الخلاص. النسخة المعتمدة هي اللي منشورة في الصفحة هاذي. في صورة تغيير مهمّ، باش نعلموك في التطبيق ولا بـSMS قبل ما ينطبق.",
+          "الشروط هاذي تنجّم تتبدّل، بالخصوص وقت تفعيل الخلاص. النسخة المعتمدة هي اللي منشورة في الصفحة هاذي؛ والنسخة اللي كانت معمول بيها وقت عملت حسابك تتسجّل معاه. [يكمّلو المحامي: كيفاش نعلمو بتغيير مهمّ، وإذا لازم قبول جديد.]",
         ],
       },
       {
