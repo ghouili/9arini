@@ -3,12 +3,15 @@ import Image from "next/image";
 /* The brand mark. THE only place the logo file is referenced — every other file
    imports this, so a future asset swap (or the pending rename) is one edit.
 
-   ── Sizing, and why it is not left to CSS ──────────────────────────────────
-   `next/image` cannot resize anything in this project. Next 14 needs `sharp`
-   for that and it is not installed; /_next/image passes the original file
-   through untouched (verified: a request for w=64 returned the full 1.18 MB
-   source). So public/logo.png is emitted PRE-SIZED by scripts/brand/build-raster.py
-   and what is on disk is exactly what a visitor downloads — 34 kB, not 1.18 MB.
+   ── Served as a file, never through the image optimiser ────────────────────
+   public/logo.webp (and logo-white.webp) are emitted PRE-SIZED by
+   scripts/brand/build-raster.py at 2x the header mark — 5.6 kB / 3.1 kB — and
+   rendered `unoptimized`. The logo is on every page, above the fold, `priority`;
+   it must not wait on /_next/image. On 15 Sept the optimiser (sharp is installed
+   now) held up under 120 concurrent cold AVIF encodes without a stall, but pushed
+   /fr's HTML from 8ms to 2.6s while encoding, and an earlier test run saw image
+   requests hang with no reproduction since. A static file cannot stall that way.
+   The cost was measured: 5.8 kB WebP vs the optimiser's 5.2 kB AVIF at 2x.
 
    `height` is the prop because the mark is 1.44:1 and every call site is a
    horizontal row with a known bar height; width is derived so nobody can pick a
@@ -58,7 +61,7 @@ export function Logo({
   alt,
 }: Props) {
   const width = Math.round(height * ASPECT);
-  const src = theme === "light" ? "/logo-white.png" : "/logo.png";
+  const src = theme === "light" ? "/logo-white.webp" : "/logo.webp";
 
   const img = (
     <Image
@@ -66,8 +69,8 @@ export function Logo({
       width={width}
       height={height}
       priority={priority}
-      /* Not `sizes` — that only matters when the optimiser generates a srcset,
-         which it cannot do here. One file, one size. */
+      /* unoptimized: one pre-sized file, no /_next/image request (see above). */
+      unoptimized
       /* Empty for `full` (the wordmark beside it carries the name) and for a
          `mark` whose parent link is already labelled. Non-empty only when a
          caller passes real text, and then the image must NOT be aria-hidden or

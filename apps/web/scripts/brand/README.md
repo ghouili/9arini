@@ -10,8 +10,10 @@ npm run brand:build
 
 | output | size | notes |
 |---|---|---|
-| `public/logo.png` | 34 kB | the mark, cropped and pre-sized to 368×256 |
+| `public/logo.png` | 34 kB | the mark, cropped and pre-sized to 368×256 — the master for `og.png` |
 | `public/logo-white.png` | 12 kB | same mark, RGB replaced, **alpha untouched** |
+| `public/logo.webp` | 6 kB | 109×76 lossless — what `components/Logo.tsx` actually renders, `unoptimized` |
+| `public/logo-white.webp` | 3 kB | same, white |
 | `public/favicon.ico` | 5 kB | 16/32/48, cobalt tile with the mark knocked out |
 | `public/favicon-32.png` | 1 kB | same at 32px, for `<link rel=icon type=image/png>` |
 | `public/apple-touch-icon.png` | 14 kB | 180×180, **full-bleed, no alpha** — iOS masks it itself and renders transparency as black |
@@ -19,9 +21,8 @@ npm run brand:build
 
 ## Two scripts, on purpose
 
-**`build-raster.py`** (Pillow) does the pixel work. `sharp` is not installed and
-adding an npm dependency was out of scope; Pillow is already on the machine and
-this runs by hand when the logo changes, not in CI.
+**`build-raster.py`** (Pillow) does the pixel work, by hand when the logo
+changes, not in CI.
 
 **`build-og.mjs`** (Playwright) builds only the social card, because it contains
 Arabic — `تنجّم`, `الحصة الأولى مجانية`. Pillow cannot shape Arabic here
@@ -32,14 +33,14 @@ so it cannot drift from the design system.
 
 ## The constraint that shaped all of this
 
-`next/image` **cannot resize anything in this project.** Next 14 needs `sharp`
-for that; without it `/_next/image` passes the original straight through —
-verified by requesting `w=64` and getting the full 1,203,573-byte source back.
-
-So the file on disk *is* what every visitor downloads, which is why `logo.png` is
-emitted pre-sized at roughly 2× its largest on-screen use instead of at source
-resolution. If `sharp` is ever added, raise `TARGET_H` in `build-raster.py` and
-let Next do the work.
+**The logo never goes through `/_next/image`.** It is on every page, above the
+fold, and the header must not wait on an image optimiser. `sharp` is installed now
+and the optimiser works (15 Sept: 120 concurrent cold AVIF encodes, no stall,
+p95 2.7 s), but encoding pushed `/fr`'s HTML from 8 ms to 2.6 s, and an earlier
+test run saw image requests hang without a reproduction since. So `logo.webp` is
+pre-sized at 2× the header mark and served as a static file — 5.8 kB, against the
+optimiser's 5.2 kB AVIF. Accepted risk: any future *content* image that does use
+the optimiser inherits that CPU cost on a cold cache.
 
 ## When the logo changes
 

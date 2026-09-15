@@ -329,10 +329,10 @@ server {
     add_header Cache-Control "public, max-age=31536000, immutable";
   }
 
-  # apps/web/public/ holds six brand files (favicons, logo.png, og.png). They are
-  # NOT content-hashed, so a SHORT TTL: `immutable` here would pin a stale logo in
-  # every browser that ever loaded it, with no way to push a correction.
-  location ~ ^/(favicon\.ico|favicon-32\.png|apple-touch-icon\.png|logo\.png|logo-white\.png|og\.png)$ {
+  # apps/web/public/ holds eight brand files (favicons, logo.png/.webp, og.png). They
+  # are NOT content-hashed, so a SHORT TTL: `immutable` here would pin a stale logo
+  # in every browser that ever loaded it, with no way to push a correction.
+  location ~ ^/(favicon\.ico|favicon-32\.png|apple-touch-icon\.png|logo\.png|logo-white\.png|logo\.webp|logo-white\.webp|og\.png)$ {
     root /home/USER/tnajem-app/apps/web/public;
     access_log off;
     expires 1h;

@@ -4,24 +4,19 @@
     python scripts/brand/build-raster.py
 
 WHY PYTHON, IN A NODE REPO
-    `sharp` is not installed and adding it was out of scope. Pillow is already on
-    the machine, costs the project no npm dependency, and this runs by hand when
-    the logo changes — not in CI, not at build time.
+    When this was written `sharp` was not installed. It is now (apps/web
+    dependencies, for /_next/image), but the brand files stay a by-hand Pillow job:
+    it runs when the logo changes — not in CI, not at build time.
 
 WHY THE SOURCE FILE MOVED
     brand/logo-source.png is the 1.18 MB master and is NOT in public/, so it can
     never be served by accident. Everything in public/ is generated from it.
 
 THE ONE THING THAT MATTERS HERE
-    `next/image` cannot resize anything in this project: Next 14 needs `sharp`
-    for that, and without it /_next/image passes the original file straight
-    through (verified: a request for w=64 returned the full 1,203,573-byte PNG).
-    So the file on disk IS what every visitor downloads. That is why logo.png is
-    emitted pre-sized at roughly 2x its largest on-screen use rather than at
-    source resolution — the usual "ship a big source and let the optimiser sort
-    it out" assumption is false here.
-
-    If `sharp` is ever added, raise TARGET_H and let Next do the work.
+    The file on disk is what every visitor downloads. The on-page logo is
+    logo.webp / logo-white.webp, pre-sized and served unoptimized (see the note
+    in main()). logo.png stays the large master for build-og.mjs and anything
+    that needs a PNG.
 """
 import os
 from PIL import Image
@@ -108,6 +103,12 @@ def save_png(im, name, quantise=True):
     return p, os.path.getsize(p)
 
 
+def save_webp(im, name):
+    p = os.path.join(PUB, name)
+    im.save(p, "WEBP", lossless=True, method=6)
+    return p, os.path.getsize(p)
+
+
 def main():
     mark = load_mark()
     print(f"source mark: {mark.width}x{mark.height}  (aspect {mark.width/mark.height:.3f})")
@@ -120,6 +121,19 @@ def main():
     out = []
     out.append(save_png(ink, "logo.png"))
     out.append(save_png(white, "logo-white.png"))
+
+    # WHAT THE SITE ACTUALLY SHOWS: components/Logo.tsx renders these, unoptimized.
+    # The largest use is the 38px header mark; 2x that (76px tall) is the same
+    # density the optimiser's srcset topped out at. Served as-is rather than through
+    # /_next/image: the logo is on every page, and a stalled or CPU-starved
+    # optimiser (a cold AVIF encode after a deploy; 120 concurrent ones pushed /fr's
+    # HTML from 8ms to 2.6s on 15 Sept) must never be what the header waits on.
+    # Measured cost: 5.8 kB lossless WebP against the optimiser's 5.2 kB AVIF at 2x.
+    web_h = 76
+    web_w = round(mark.width * web_h / mark.height)
+    web_ink = mark.resize((web_w, web_h), Image.LANCZOS)
+    out.append(save_webp(web_ink, "logo.webp"))
+    out.append(save_webp(recolour(web_ink, WHITE), "logo-white.webp"))
 
     # iOS applies its own squircle mask and does NOT honour transparency — a
     # transparent PNG renders on black. Full-bleed, no rounding, no alpha.
