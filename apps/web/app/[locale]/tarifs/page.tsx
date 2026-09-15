@@ -5,6 +5,12 @@ import { COMMISSION_PCT, requirePlan, tnd } from "@tnajem/shared";
 import { isLocale, DEFAULT_LOCALE, type AppLocale } from "@/lib/locale";
 import { pageMetadata } from "@/lib/metadata";
 
+/* REQUEST-TIME ONLY. paymentsEnabled() is a runtime switch: prerendered, the
+   banner would state whatever PAYMENTS_ENABLED was on the build box — a claim about
+   money frozen into HTML. It used to be dynamic only by accident
+   (app/[locale]/not-found.tsx called headers()). */
+export const dynamic = "force-dynamic";
+
 /* /tarifs — the public pricing page.
 
    SERVER shell + client island, like /explore. Two reasons it is not a plain

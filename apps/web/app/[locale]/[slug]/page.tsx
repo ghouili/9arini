@@ -60,6 +60,18 @@ export const revalidate = 60;
    they share it). */
 export const dynamicParams = true;
 
+/* THIS IS WHAT MAKES `revalidate` REAL. Without generateStaticParams a dynamic
+   segment is rendered on every request and the ISR comment above was a wish: on
+   15 Sept every storefront hit answered "Cache-Control: private, no-store" and
+   .next/prerender-manifest.json listed no storefront at all. An empty list
+   prerenders nothing at build (no API needed on the build box) and turns every
+   slug into on-demand ISR: rendered on first request, then served from cache for
+   60s. Unknown slugs never reach this cache — middleware rewrites them to the
+   catch-all 404 before the page renders. */
+export function generateStaticParams(): { locale: string; slug: string }[] {
+  return [];
+}
+
 /** Reviews come from a "use server" module, so they get their own cache wrapper here. */
 const cachedTutorReviews = (slug: string) =>
   unstable_cache(

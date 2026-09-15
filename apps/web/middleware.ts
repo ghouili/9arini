@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { DEFAULT_LOCALE, isLocale, localeFromPath, stripLocale, LOCALE_HEADER } from "@/lib/locale";
-import { RESERVED_SLUGS } from "@tnajem/shared/validation";
+import { DEFAULT_LOCALE, isLocale, localeFromPath, stripLocale, type AppLocale } from "@/lib/locale";
+import { RESERVED_SLUGS, isValidSlug } from "@tnajem/shared/validation";
+import { createTutorLookup } from "@/lib/tutor-lookup";
+import { clientIpFrom } from "@/lib/client-ip";
+import { matchRoute, NOT_FOUND_SEGMENT } from "@/lib/route-table";
 
 /* Three jobs, in order:
 
@@ -15,27 +18,22 @@ import { RESERVED_SLUGS } from "@tnajem/shared/validation";
       is absent on a protected route. Real validation happens server-side via
       getSession(); the edge only checks presence and never touches Postgres.
 
-   3. UNKNOWN TUTOR SLUG → 404 STATUS. See tutorExists() below. */
+   3. EVERY 404 IS DECIDED HERE, with the status set before anything renders:
+        • a path that is no page (lib/route-table.ts)          → catch-all 404
+        • one segment that cannot be a slug, or a reserved name
+          with no page of its own (/fr/class, /fr/live)          → catch-all 404
+        • a well-formed slug no tutor has (lib/tutor-lookup.ts) → catch-all 404
+      "Catch-all 404" is a rewrite to app/[locale]/[...rest] with status 404: a
+      localized, server-rendered page that is never cached. A runtime notFound()
+      cannot do this job on Next 14.2 — it ships an empty body. */
 
 const SESSION_COOKIE = "tnajem_session";
 
-/* ── Why the 404 status is decided HERE and not in app/[locale]/[slug]/page.tsx ──
-   A tutor pastes tnajem.tn/<slug> into WhatsApp; one wrong character used to
-   land on a page that answered 200. On Next 14.2 a runtime notFound() in the page
-   fails the server render and ships `<html id="__next_error__"><body/>` — an EMPTY
-   body until the bundle arrives, which on 3G is a white screen. So the page keeps
-   rendering <NotFoundScreen> inline (server HTML, both locales, no JS needed) and
-   middleware — the one place that can still set the status — sets 404.
-
-   The answer comes from app/api/tutor-exists/[slug], which reads the page's own
-   unstable_cache entry: no extra database load, same invalidation. Only POSITIVE
-   answers are memoised here, briefly: caching "does not exist" would 404 a tutor
-   for up to the TTL right after an admin approves them — the exact moment they
-   share their link. Any failure to get a clean answer passes the request through
-   (a soft 404 on a dead link beats a hard 404 on a real tutor). */
-const KNOWN_TUTOR_TTL_MS = 30_000;
-const KNOWN_TUTOR_MAX = 5_000;
-const knownTutors = new Map<string, number>(); // slug → expiry
+const tutorLookup = createTutorLookup({
+  fetch: (url, init) => fetch(url, init),
+  now: Date.now,
+  log: (line) => console.warn(line),
+});
 
 function selfOrigin(req: NextRequest): string {
   if (process.env.NODE_ENV !== "production") return req.nextUrl.origin;
@@ -48,30 +46,11 @@ function selfOrigin(req: NextRequest): string {
   return `http://${loopback}:${process.env.PORT || "3000"}`;
 }
 
-async function tutorExists(slug: string, req: NextRequest): Promise<boolean | null> {
-  const until = knownTutors.get(slug);
-  if (until !== undefined && until > Date.now()) return true;
-
-  const abort = new AbortController();
-  const timer = setTimeout(() => abort.abort(), 2_000);
-  try {
-    const res = await fetch(`${selfOrigin(req)}/api/tutor-exists/${encodeURIComponent(slug)}`, {
-      cache: "no-store",
-      signal: abort.signal,
-    });
-    if (!res.ok) return null;
-    const { exists } = (await res.json()) as { exists?: unknown };
-    if (exists === true) {
-      if (knownTutors.size >= KNOWN_TUTOR_MAX) knownTutors.clear();
-      knownTutors.set(slug, Date.now() + KNOWN_TUTOR_TTL_MS);
-      return true;
-    }
-    return exists === false ? false : null;
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timer);
-  }
+/** Serve the localized 404 page under the requested URL, with a 404 status. */
+function notFound(req: NextRequest, locale: AppLocale, bare: string): NextResponse {
+  const url = req.nextUrl.clone();
+  url.pathname = `/${locale}/${NOT_FOUND_SEGMENT}${bare === "/" ? "" : bare}`;
+  return NextResponse.rewrite(url, { status: 404 });
 }
 
 /* Path prefixes (locale-stripped) that require a session. Mirrors the old matcher. */
@@ -100,15 +79,15 @@ export async function middleware(req: NextRequest) {
     const preferred = isLocale(cookieLoc) ? cookieLoc : DEFAULT_LOCALE;
     const url = req.nextUrl.clone();
     url.pathname = pathname === "/" ? `/${preferred}` : `/${preferred}${pathname}`;
-    if (pathname === "/") {
-      const headers = new Headers(req.headers);
-      headers.set(LOCALE_HEADER, preferred);
-      /* Vary: Cookie — the response body depends on NEXT_LOCALE, so a shared
-         cache must not serve one visitor's language to the next. */
-      const res = NextResponse.rewrite(url, { request: { headers } });
-      res.headers.set("Vary", "Cookie");
-      return res;
-    }
+    /* THE ROOT'S BODY MUST NOT DEPEND ON THE COOKIE. /fr is prerendered, so the
+       rewrite answers with "s-maxage=31536000" and Next REPLACES any Vary header set
+       here (it sends its own: RSC, Next-Router-State-Tree…). It used to rewrite to
+       the cookie's locale with "Vary: Cookie" — harmless while every page was
+       no-store, but once /fr became static a shared cache (a CDN honouring
+       s-maxage) could store one visitor's language and serve it to the next.
+       So: the default locale is a rewrite — no extra hop for the first visit, the
+       common case — and a stored non-default choice is a redirect. */
+    if (pathname === "/" && preferred === DEFAULT_LOCALE) return NextResponse.rewrite(url);
     return NextResponse.redirect(url);
   }
 
@@ -133,37 +112,34 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  /* Expose the resolved locale to the server render.
+  // 3. Real pages pass. Everything below this line is a tutor slug or a 404.
+  if (matchRoute(bare) !== null) return NextResponse.next();
 
-     app/[locale]/not-found.tsx cannot read `params` (Next does not pass them to a
-     not-found boundary) and it must stay a SERVER component — a client one is
-     shipped as a module reference and resolved in the browser, so none of its
-     markup reaches the HTML and every bad tutor link renders blank without JS.
-     A request header is the one channel that reaches it. */
-  const headers = new Headers(req.headers);
-  headers.set(LOCALE_HEADER, locale);
+  const segments = bare.slice(1).split("/").filter(Boolean);
+  if (segments.length !== 1 || RESERVED_SLUGS.includes(segments[0])) return notFound(req, locale, bare);
 
-  /* 3. One segment after the locale that is not a route is a tutor slug — every
-     top-level route is in RESERVED_SLUGS (e2e/not-found.spec.ts enforces it). */
-  const segment = bare.slice(1);
-  if (segment && !segment.includes("/") && !RESERVED_SLUGS.includes(segment)) {
-    let slug: string | null = null;
-    try {
-      slug = decodeURIComponent(segment);
-    } catch {
-      /* malformed escape — let the page handle it */
-    }
-    if (slug !== null && (await tutorExists(slug, req)) === false) {
-      return NextResponse.next({ status: 404, request: { headers } });
-    }
+  let slug: string;
+  try {
+    slug = decodeURIComponent(segments[0]);
+  } catch {
+    return notFound(req, locale, bare); // malformed escape: no tutor has it
   }
+  /* A string no signup could have produced (uppercase, a dot, 2 or 41 characters)
+     is answered without a lookup — it costs nothing and caches nothing. */
+  if (!isValidSlug(slug)) return notFound(req, locale, bare);
 
-  return NextResponse.next({ request: { headers } });
+  const answer = await tutorLookup.lookup(slug, { ip: clientIpFrom(req.headers), origin: selfOrigin(req) });
+  if (answer === "missing") return notFound(req, locale, bare);
+  /* "exists" renders the storefront. "unknown" (over budget, lookup failed) also
+     lets the storefront page answer: it renders the not-found screen inline if
+     there is no such tutor — a soft 404 beats a hard 404 on a real tutor. */
+  return NextResponse.next();
 }
 
 export const config = {
-  /* Run on everything EXCEPT: Next internals, API routes, and any path with a file
-     extension (robots.txt, sitemap.xml, llms.txt, favicon.*, og.png, /_next/*).
-     Tutor slugs never contain a dot, so no real page is excluded. */
-  matcher: ["/((?!api|_next/static|_next/image|.*\\..*).*)"],
+  /* Run on everything EXCEPT Next internals, API routes and root-level files with an
+     extension (robots.txt, sitemap.xml, llms.txt, favicon.*, og.png). The second
+     pattern brings dotted paths UNDER a locale back in: /fr/x.y is never a file, and
+     skipping it would let it reach the ISR storefront route unchecked. */
+  matcher: ["/((?!api|_next/static|_next/image|.*\\..*).*)", "/(fr|ar)/:path*"],
 };

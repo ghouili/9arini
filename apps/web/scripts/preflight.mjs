@@ -68,6 +68,18 @@ export async function preflight(mode) {
         "and it never falls back to demo data. Set API_URL (e.g. http://api:4000).",
       ]);
     }
+    /* A loopback LITERAL as the bind address breaks middleware rewrites (the site
+       root and every 404): Next's origin is http://127.0.0.1:PORT, NextURL turns
+       127.x into "localhost", and the rewrite is proxied to itself — over TLS when
+       nginx says X-Forwarded-Proto: https. See serve-standalone.mjs. */
+    const host = (process.env.HOSTNAME ?? "").trim();
+    if (/^(127(\.\d{1,3}){3}|::1|\[::1\])$/.test(host)) {
+      refuse([
+        `HOSTNAME is a loopback literal (${host}). Next proxies its own middleware rewrites`,
+        "to itself with that bind address, and GET / answers 500 behind nginx.",
+        "Use HOSTNAME=localhost (loopback only) or HOSTNAME=0.0.0.0 (containers).",
+      ]);
+    }
     console.log("  ✓ preflight: production — API_URL set, no demo mode");
     return;
   }

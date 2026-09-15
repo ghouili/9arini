@@ -234,6 +234,13 @@ pm2 save && pm2 startup                            # restart on reboot
 > The standalone entry point is `.next/standalone/**apps/web**/server.js`, not the
 > flat path every example assumes — `scripts/serve-standalone.mjs` locates it.
 
+> **Never set `HOSTNAME=127.0.0.1` for the web process.** It binds `localhost` by
+> default (loopback only, which is what nginx's `proxy_pass` needs). With the
+> `127.0.0.1` literal, Next proxies its own middleware rewrites back to itself —
+> behind nginx's `X-Forwarded-Proto: https` that proxy speaks TLS to a plain-HTTP
+> port, and `GET /` (the site root) answers **500**. The preflight refuses to start
+> with a loopback literal. Containers use `HOSTNAME=0.0.0.0` (the Dockerfile sets it).
+
 **systemd (alternative)** — two units. `/etc/systemd/system/tnajem-api.service`:
 ```
 [Unit]
@@ -337,6 +344,10 @@ server {
     proxy_pass http://127.0.0.1:3000;
     proxy_http_version 1.1;
     proxy_set_header Host $host;
+    # X-Real-IP OVERWRITES whatever the client sent; apps/web/lib/client-ip.ts reads
+    # it first (then the rightmost X-Forwarded-For entry — never the leftmost, which
+    # the client writes itself).
+    proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
     proxy_read_timeout 60s;

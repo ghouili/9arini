@@ -21,6 +21,11 @@ import { bilingual } from "@/lib/i18n";
 import { isLocale, DEFAULT_LOCALE } from "@/lib/locale";
 import { pageMetadata } from "@/lib/metadata";
 
+/* REQUEST-TIME ONLY. The OTP channel is a runtime environment switch and ?next=
+   differs per visitor; prerendered, both would be frozen at build. It used to be
+   dynamic only by accident (app/[locale]/not-found.tsx called headers()). */
+export const dynamic = "force-dynamic";
+
 /* No channel in the description: OTP_CHANNEL is a runtime switch (email today),
    and a search snippet cannot follow it. "A one-time code" is true either way. */
 const meta = bilingual({

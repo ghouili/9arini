@@ -8,6 +8,12 @@ import { UpgradeInner } from "@/components/onboarding/UpgradeInner";
 import { pageGuard, localeOf, localePath } from "@/lib/page-guard";
 import { isMinorBirthYear } from "@tnajem/shared";
 
+/* REQUEST-TIME ONLY. The guard reads the visitor's session and redirects on it.
+   Prerendered, a build would bake one answer — a redirect, or the inert state a
+   build box without an API gets — into HTML served to everybody. This used to be
+   dynamic only by accident (app/[locale]/not-found.tsx called headers()). */
+export const dynamic = "force-dynamic";
+
 export default async function UpgradePage({ params }: { params: { locale: string } }) {
   const locale = localeOf(params.locale);
   const guard = await pageGuard();

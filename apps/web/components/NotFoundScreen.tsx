@@ -1,7 +1,9 @@
 /* The branded "not found" screen, shared by the two ways a visitor reaches one:
 
-     • app/[locale]/not-found.tsx      — a URL that matches no route at all
-     • app/[locale]/[slug]/page.tsx    — a tutor slug that does not exist
+     • app/[locale]/[...rest]/page.tsx — middleware rewrites every 404 here: a URL
+                                          that is no page, or a slug no tutor has
+     • app/[locale]/[slug]/page.tsx    — the fallback when the middleware lookup
+                                          could not answer (fail-open)
 
    SERVER component, and deliberately free of any top-level client component or
    client hook, because this markup MUST be in the first HTML payload.

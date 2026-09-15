@@ -2,6 +2,7 @@ import "server-only";
 import { cookies, headers } from "next/headers";
 import { SESSION_COOKIE } from "@tnajem/shared/auth-core";
 import { revalidateTutor, revalidatePublicTutors } from "./cache";
+import { clientIpFrom } from "./client-ip";
 import type { ActionResult } from "@tnajem/shared/contracts";
 
 /* The proxy every ported server action calls.
@@ -49,13 +50,12 @@ import type { ActionResult } from "@tnajem/shared/contracts";
 
 const API_URL = process.env.API_URL ?? "http://127.0.0.1:4000";
 
-/** The client's address as Next resolved it. Rule 1. */
+/** The client's address as the proxy in front of us saw it. Rule 1.
+    It used to take the LEFTMOST X-Forwarded-For entry — the one the client writes
+    itself — so the OTP limiter's per-IP key was whatever the caller sent. */
 function forwardedFor(): string {
   try {
-    const h = headers();
-    const fwd = h.get("x-forwarded-for") ?? "";
-    const first = fwd.split(",")[0]?.trim();
-    return first || h.get("x-real-ip")?.trim() || "";
+    return clientIpFrom(headers());
   } catch {
     return ""; // outside a request scope
   }

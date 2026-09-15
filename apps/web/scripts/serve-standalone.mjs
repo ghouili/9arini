@@ -71,7 +71,15 @@ await cp(join(appRoot, "public"), join(serverDir, "public"), { recursive: true }
 
 const port = process.env.PORT || "3000";
 console.log(`standalone server on :${port}  (entry: ${join(serverDir, "server.js")})`);
+/* "localhost", NOT "127.0.0.1" — still loopback-only, but the literal breaks every
+   middleware rewrite. Next's server builds its own origin from HOSTNAME
+   (http://127.0.0.1:3000) while NextURL, inside middleware, rewrites any 127.x
+   host to "localhost" — so a rewrite never looks same-origin and Next PROXIES it
+   to itself. Behind nginx (X-Forwarded-Proto: https) that proxy speaks TLS to a
+   plain-HTTP port: on 15 Sept `GET /` — the site root, rewritten to /fr —
+   answered 500 with "EPROTO wrong version number", and every 404 rewrite looped
+   until the headers overflowed. preflight.mjs refuses a loopback literal. */
 spawn(process.execPath, [join(serverDir, "server.js")], {
   stdio: "inherit",
-  env: { ...process.env, PORT: port, HOSTNAME: process.env.HOSTNAME || "127.0.0.1" },
+  env: { ...process.env, PORT: port, HOSTNAME: process.env.HOSTNAME || "localhost" },
 }).on("exit", (c) => process.exit(c ?? 0));

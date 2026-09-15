@@ -24,6 +24,12 @@ import { getStudentPrefill } from "@/app/actions";
 import { STUDENT_LEVELS } from "@tnajem/shared";
 import type { StudentLevel, StudentProfile } from "@tnajem/shared";
 
+/* REQUEST-TIME ONLY. The guard reads the visitor's session and redirects on it.
+   Prerendered, a build would bake one answer — a redirect, or the inert state a
+   build box without an API gets — into HTML served to everybody. This used to be
+   dynamic only by accident (app/[locale]/not-found.tsx called headers()). */
+export const dynamic = "force-dynamic";
+
 const EMPTY: StudentProfile = { fullName: null, level: null, subjects: [], phone: null };
 
 export default async function StudentWelcomePage({

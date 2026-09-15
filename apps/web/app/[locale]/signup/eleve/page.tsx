@@ -22,6 +22,11 @@ import { bilingual } from "@/lib/i18n";
 import { isLocale, DEFAULT_LOCALE } from "@/lib/locale";
 import { pageMetadata } from "@/lib/metadata";
 
+/* REQUEST-TIME ONLY. The OTP channel is a runtime environment switch and ?next=
+   differs per visitor; prerendered, both would be frozen at build. It used to be
+   dynamic only by accident (app/[locale]/not-found.tsx called headers()). */
+export const dynamic = "force-dynamic";
+
 const meta = bilingual({
   fr: {
     title: "Créer mon compte élève",
