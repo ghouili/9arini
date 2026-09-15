@@ -1,12 +1,10 @@
 import { test, expect } from "@playwright/test";
 import { randomBytes } from "node:crypto";
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import { sql } from "./support/db";
 import { email, seedAdmin, seedProfile } from "./support/seed";
 import { recoverOtp, resetRateLimits } from "./support/otp";
 import { mintSession } from "./support/session";
-import { STORAGE_DIR } from "./support/env";
+import { e2eStore } from "./support/store";
 import { api, contextAs, specimenIdPng, notificationBodies } from "./support/journey";
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -76,8 +74,8 @@ test("tutor journey: signup → storefront → ID → approved → class → boo
     expect(t.status).toBe("pending");
     const [doc] = await sql<{ mime: string; storage_path: string }[]>`select mime, storage_path from verification_docs where tutor_id = ${tutorId}`;
     expect(doc.mime, "the stored type is the sniffed one").toBe("image/png");
-    const onDisk = await readFile(join(STORAGE_DIR, ...doc.storage_path.split("/")));
-    expect(onDisk.equals(png), "the file on disk is exactly what was uploaded").toBe(true);
+    const stored = await e2eStore().get(doc.storage_path);
+    expect(stored?.equals(png), "the stored object is exactly what was uploaded").toBe(true);
   });
 
   await test.step("an admin approves; the tutor is told", async () => {

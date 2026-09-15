@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { e2eStore } from "./support/store";
 import { sql } from "./support/db";
 import { seedProfile, seedTutor, seedAdmin } from "./support/seed";
 import { mintSession } from "./support/session";
@@ -164,12 +165,10 @@ test.describe("the original is never stored", () => {
     const [row] = await sql<{ avatar_path: string }[]>`
       select avatar_path from tutors where id = ${t.tutor.id}`;
 
-    const { readFile } = await import("node:fs/promises");
-    const { join } = await import("node:path");
-    const { STORAGE_DIR } = await import("./support/env");
 
     for (const size of ["sm", "md", "lg"]) {
-      const stored = await readFile(join(STORAGE_DIR, `${row.avatar_path}-${size}.webp`));
+      const stored = await e2eStore().get(`${row.avatar_path}-${size}.webp`);
+      if (!stored) throw new Error(`${size}: nothing stored`);
       const text = stored.toString("latin1");
       expect(text, `${size}: the EXIF canary survived re-encoding`).not.toContain(marker);
       expect(text, `${size}: an Exif block survived`).not.toContain("Exif");

@@ -75,17 +75,19 @@ export function resolveDocPath(baseDir: string, storagePath: string): string | n
      local  (default) files under STORAGE_DIR, layout unchanged, so existing files
             and rows keep working with no migration. Writes are ATOMIC (temp file +
             rename): a crash mid-upload leaves no half-written ID scan behind.
-     s3     not built yet — it needs a bucket and credentials (production
-            readiness Stage 3 stop point). STORAGE_DRIVER=s3 fails loudly at first
-            use rather than silently writing to local disk.
+     s3     any S3-compatible bucket (AWS S3, Cloudflare R2, MinIO), same keys
+            under an optional S3_PREFIX. Configured by S3_* (see .env.example);
+            missing configuration throws at first use, and the bucket is proven
+            reachable before any operation — see s3Store().
+   Any other STORAGE_DRIVER value throws: never a silent fallback to local disk.
 
    Nothing here ever produces a public URL: every read is streamed through an
-   authorised route. */
+   authorised route, and the bucket must stay private. */
 
 export type StoredObject = { stream: Readable; size: number };
 
 export interface ObjectStore {
-  readonly driver: "local";
+  readonly driver: "local" | "s3";
   /** Write (or replace) an object. Resolves once it is durably in place. */
   put(key: string, bytes: Uint8Array): Promise<void>;
   /** The whole object, or null if it does not exist. For small objects (ID scans). */
@@ -206,12 +208,196 @@ export function localStore(baseDir: string = storageBase()): ObjectStore {
   };
 }
 
-/** The store this process uses, chosen by STORAGE_DRIVER (default "local"). */
+/* ── S3-compatible driver ──────────────────────────────────────────────────── */
+
+export type S3Config = {
+  bucket: string;
+  region: string;
+  endpoint?: string;
+  accessKeyId: string;
+  secretAccessKey: string;
+  forcePathStyle: boolean;
+  prefix: string;
+};
+
+const S3_REQUIRED = ["S3_BUCKET", "S3_ACCESS_KEY_ID", "S3_SECRET_ACCESS_KEY"] as const;
+
+/** S3 settings from the environment. Throws naming the MISSING keys, never a value. */
+export function s3ConfigFromEnv(env: NodeJS.ProcessEnv = process.env): S3Config {
+  const missing = S3_REQUIRED.filter((k) => !env[k]?.trim());
+  if (missing.length) throw new Error(`STORAGE_DRIVER=s3 needs ${missing.join(", ")} (not set)`);
+  const prefix = (env.S3_PREFIX ?? "").trim().replace(/^\/+|\/+$/g, "");
+  if (prefix) {
+    try {
+      storageKey(prefix);
+    } catch {
+      throw new Error("S3_PREFIX is not a valid key prefix");
+    }
+  }
+  return {
+    bucket: env.S3_BUCKET!.trim(),
+    /* us-east-1 is what MinIO expects and R2 accepts as "auto". AWS needs the
+       bucket's real region, or every call fails with a redirect. */
+    region: env.S3_REGION?.trim() || "us-east-1",
+    endpoint: env.S3_ENDPOINT?.trim() || undefined,
+    accessKeyId: env.S3_ACCESS_KEY_ID!.trim(),
+    secretAccessKey: env.S3_SECRET_ACCESS_KEY!.trim(),
+    forcePathStyle: env.S3_FORCE_PATH_STYLE?.trim() === "true",
+    prefix,
+  };
+}
+
+type S3Sdk = typeof import("@aws-sdk/client-s3");
+type S3Error = { name?: string; Code?: string; $metadata?: { httpStatusCode?: number } };
+
+const s3Status = (e: unknown) => (e as S3Error).$metadata?.httpStatusCode;
+const s3Missing = (e: unknown) => {
+  const name = (e as S3Error).name ?? (e as S3Error).Code;
+  return name === "NoSuchKey" || name === "NotFound" || (s3Status(e) === 404 && name !== "NoSuchBucket");
+};
+/** An SDK error reduced to its kind and status. The message can carry the bucket
+    and key (a tutor id); neither belongs in a log line. */
+export function describeS3Error(e: unknown): string {
+  const err = e as S3Error & { code?: string };
+  return [err.name ?? err.Code ?? err.code ?? "Error", s3Status(e) ? String(s3Status(e)) : ""].filter(Boolean).join(" ");
+}
+
+export function s3Store(cfg: S3Config): ObjectStore {
+  /* The SDK is imported on first use, so a deployment on the local driver never
+     loads it. */
+  let conn: Promise<{ sdk: S3Sdk; client: InstanceType<S3Sdk["S3Client"]> }> | null = null;
+  let bucketChecked: Promise<void> | null = null;
+
+  const connect = () =>
+    (conn ??= import("@aws-sdk/client-s3").then((sdk) => ({
+      sdk,
+      client: new sdk.S3Client({
+        region: cfg.region,
+        endpoint: cfg.endpoint,
+        forcePathStyle: cfg.forcePathStyle,
+        credentials: { accessKeyId: cfg.accessKeyId, secretAccessKey: cfg.secretAccessKey },
+        maxAttempts: 3,
+        // Bounded, like the SMTP transport: a hung bucket must not hang an upload forever.
+        requestHandler: { connectionTimeout: 5_000, requestTimeout: 30_000 },
+      }),
+    })));
+
+  /* THE BUCKET IS PROVEN BEFORE ANY OPERATION, once per process.
+     A HEAD on a key answers 404 both for "no such object" and — HEAD has no body
+     to say otherwise — for "no such bucket". With a mistyped S3_BUCKET the
+     retention purge would therefore see every document as already gone and
+     delete every row, orphaning the real scans: the same hazard storageBase()
+     refuses for a missing STORAGE_DIR. HeadBucket fails loudly instead. A failure
+     is not cached, so the next call retries. */
+  const ready = async () => {
+    const c = await connect();
+    bucketChecked ??= c.client.send(new c.sdk.HeadBucketCommand({ Bucket: cfg.bucket })).then(
+      () => undefined,
+      (e) => {
+        bucketChecked = null;
+        throw Object.assign(new Error(`object store bucket is not reachable (${describeS3Error(e)})`), {
+          code: "BUCKET_UNREACHABLE",
+        });
+      },
+    );
+    await bucketChecked;
+    return c;
+  };
+  const objectKey = (key: string, legacy: boolean) => (cfg.prefix ? `${cfg.prefix}/` : "") + storageKey(key, { legacy });
+
+  const head = async (key: string): Promise<{ size: number } | null> => {
+    const k = objectKey(key, true);
+    const { sdk, client } = await ready();
+    try {
+      const res = await client.send(new sdk.HeadObjectCommand({ Bucket: cfg.bucket, Key: k }));
+      return { size: Number(res.ContentLength ?? 0) };
+    } catch (e) {
+      /* 403 is NOT "missing". Without s3:ListBucket, S3 answers 403 for an absent
+         key; treating that as missing would let the purge drop rows it cannot
+         see. It throws, and the purge keeps the row. */
+      if (s3Missing(e)) return null;
+      throw e;
+    }
+  };
+
+  return {
+    driver: "s3",
+    async put(key, bytes) {
+      const k = objectKey(key, false);
+      const { sdk, client } = await ready();
+      // A PUT is atomic in S3: readers see the old object or the new one.
+      await client.send(
+        new sdk.PutObjectCommand({
+          Bucket: cfg.bucket,
+          Key: k,
+          Body: bytes,
+          ContentLength: bytes.byteLength,
+          ContentType: "application/octet-stream",
+        }),
+      );
+    },
+    async get(key) {
+      const k = objectKey(key, true);
+      const { sdk, client } = await ready();
+      try {
+        const res = await client.send(new sdk.GetObjectCommand({ Bucket: cfg.bucket, Key: k }));
+        return res.Body ? Buffer.from(await res.Body.transformToByteArray()) : Buffer.alloc(0);
+      } catch (e) {
+        if (s3Missing(e)) return null;
+        throw e;
+      }
+    },
+    async open(key) {
+      const k = objectKey(key, true);
+      const { sdk, client } = await ready();
+      try {
+        const res = await client.send(new sdk.GetObjectCommand({ Bucket: cfg.bucket, Key: k }));
+        if (!res.Body) return null;
+        return { stream: res.Body as Readable, size: Number(res.ContentLength ?? 0) };
+      } catch (e) {
+        if (s3Missing(e)) return null;
+        throw e;
+      }
+    },
+    stat: head,
+    async delete(key) {
+      // DeleteObject succeeds for an absent key, so HEAD first for an honest count.
+      const existed = await head(key);
+      if (!existed) return "missing";
+      const { sdk, client } = await ready();
+      await client.send(new sdk.DeleteObjectCommand({ Bucket: cfg.bucket, Key: objectKey(key, true) }));
+      return "deleted";
+    },
+    async pruneEmpty() {
+      /* An object store has no folders to leave behind. */
+    },
+  };
+}
+
+/* ── selection ─────────────────────────────────────────────────────────────── */
+
+export const STORAGE_DRIVERS = ["local", "s3"] as const;
+
+/** The configured driver name, or null when STORAGE_DRIVER names no known driver. */
+export function storageDriverName(env: NodeJS.ProcessEnv = process.env): (typeof STORAGE_DRIVERS)[number] | null {
+  const d = (env.STORAGE_DRIVER ?? "").trim().toLowerCase() || "local";
+  return (STORAGE_DRIVERS as readonly string[]).includes(d) ? (d as (typeof STORAGE_DRIVERS)[number]) : null;
+}
+
+/* One store per process and configuration: an S3 client holds a connection pool,
+   and Next/tsx can evaluate this module more than once (same reason as the mail
+   transport). The cache key never leaves this process. */
+const g = globalThis as unknown as { __tnajemStore?: { sig: string; store: ObjectStore } };
+
+/** The store this process uses, chosen by STORAGE_DRIVER (default "local"). Throws
+    on an unknown driver or incomplete configuration — never falls back. */
 export function objectStore(): ObjectStore {
-  const driver = (process.env.STORAGE_DRIVER ?? "local").trim().toLowerCase() || "local";
-  if (driver === "local") return localStore();
-  throw new Error(
-    `STORAGE_DRIVER=${driver} is not available in this build. Only "local" is implemented; ` +
-      "an S3-compatible driver needs a bucket and credentials first.",
-  );
+  const driver = storageDriverName();
+  if (!driver) throw new Error("STORAGE_DRIVER is set to an unknown driver (expected local or s3)");
+  const e = process.env;
+  const sig = [driver, e.STORAGE_DIR, e.S3_BUCKET, e.S3_REGION, e.S3_ENDPOINT, e.S3_PREFIX, e.S3_FORCE_PATH_STYLE, e.S3_ACCESS_KEY_ID, e.S3_SECRET_ACCESS_KEY].join(" ");
+  if (g.__tnajemStore?.sig === sig) return g.__tnajemStore.store;
+  const store = driver === "local" ? localStore() : s3Store(s3ConfigFromEnv());
+  g.__tnajemStore = { sig, store };
+  return store;
 }

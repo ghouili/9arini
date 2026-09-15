@@ -113,14 +113,43 @@ describe("localStore", () => {
 });
 
 describe("objectStore — driver selection", () => {
-  test("an unbuilt driver fails loudly instead of writing to local disk", () => {
-    const prev = process.env.STORAGE_DRIVER;
-    process.env.STORAGE_DRIVER = "s3";
+  const KEYS = ["STORAGE_DRIVER", "S3_BUCKET", "S3_ACCESS_KEY_ID", "S3_SECRET_ACCESS_KEY", "S3_PREFIX"];
+  function withEnv(vars: Record<string, string>, fn: () => void) {
+    const prev = Object.fromEntries(KEYS.map((k) => [k, process.env[k]]));
+    for (const k of KEYS) delete process.env[k];
+    Object.assign(process.env, vars);
     try {
-      assert.throws(() => objectStore(), /not available in this build/);
+      fn();
     } finally {
-      if (prev === undefined) delete process.env.STORAGE_DRIVER;
-      else process.env.STORAGE_DRIVER = prev;
+      for (const k of KEYS) {
+        if (prev[k] === undefined) delete process.env[k];
+        else process.env[k] = prev[k];
+      }
     }
+  }
+
+  test("an unknown driver fails loudly instead of writing to local disk", () => {
+    withEnv({ STORAGE_DRIVER: "gcs" }, () => assert.throws(() => objectStore(), /unknown driver/));
+  });
+  test("s3 with keys missing names the keys and never a value", () => {
+    withEnv({ STORAGE_DRIVER: "s3", S3_BUCKET: "tnajem-private-docs" }, () => {
+      assert.throws(
+        () => objectStore(),
+        (e: Error) =>
+          /S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY/.test(e.message) && !e.message.includes("tnajem-private-docs"),
+      );
+    });
+  });
+  test("a prefix that could climb out of its folder is refused", () => {
+    withEnv(
+      { STORAGE_DRIVER: "s3", S3_BUCKET: "b", S3_ACCESS_KEY_ID: "k", S3_SECRET_ACCESS_KEY: "s", S3_PREFIX: "../other-app" },
+      () => assert.throws(() => objectStore(), /S3_PREFIX/),
+    );
+  });
+  test("complete s3 settings build an s3 store without touching the network", () => {
+    withEnv(
+      { STORAGE_DRIVER: "s3", S3_BUCKET: "b", S3_ACCESS_KEY_ID: "k", S3_SECRET_ACCESS_KEY: "s" },
+      () => assert.equal(objectStore().driver, "s3"),
+    );
   });
 });

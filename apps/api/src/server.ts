@@ -3,7 +3,7 @@ import cookie from "@fastify/cookie";
 import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
 import { randomUUID } from "node:crypto";
-import { sql as rawSql } from "@tnajem/db";
+import { sql as rawSql, objectStore } from "@tnajem/db";
 import { warnIfSecretMissing } from "@tnajem/shared/auth-core";
 import { APP_TIME_ZONE } from "@tnajem/shared";
 import {
@@ -137,7 +137,7 @@ if (isMain || process.env.API_FORCE_START === "1") {
   const app = await buildServer();
   try {
     await app.listen({ port: PORT, host: HOST });
-    app.log.info({ port: PORT, host: HOST, prod: IS_PROD }, "tnajem-api listening");
+    app.log.info({ port: PORT, host: HOST, prod: IS_PROD, storage: objectStore().driver }, "tnajem-api listening");
   } catch (err) {
     app.log.error(err, "failed to start");
     process.exit(1);

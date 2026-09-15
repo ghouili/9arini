@@ -7,6 +7,7 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { sql } from "./db";
 import { RUN_ID } from "./env";
+import { e2eStore } from "./store";
 
 /* Uniqueness must not depend on a counter. globalSetup runs in its OWN process,
    so process.env.E2E_RUN_ID does not reach the workers, and a per-process counter
@@ -138,25 +139,21 @@ export async function seedAdmin(): Promise<{ id: string }> {
   return row;
 }
 
-/** A verification doc row plus the real file on disk under STORAGE_DIR. */
+/** A verification doc row plus the real object in the store the API reads. */
 export async function seedVerificationDoc(tutorId: string): Promise<{ id: string; fileName: string }> {
-  const { mkdir, writeFile } = await import("node:fs/promises");
-  const { join } = await import("node:path");
-  const { STORAGE_DIR } = await import("./env");
   // A 1x1 PNG — must pass the doc route's SAFE_MIME check.
   const png = Buffer.from(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
     "base64",
   );
   const fileName = "id_front-e2e.png";
-  const dir = join(STORAGE_DIR, "verification", tutorId);
-  await mkdir(dir, { recursive: true });
-  await writeFile(join(dir, fileName), png);
+  const key = `verification/${tutorId}/${fileName}`;
+  await e2eStore().put(key, png);
 
   const [row] = await sql<{ id: string }[]>`
     insert into verification_docs (id, tutor_id, kind, file_name, storage_path, mime, size_bytes)
     values (${randomUUID()}, ${tutorId}, 'id_front', ${fileName},
-            ${["verification", tutorId, fileName].join("/")}, 'image/png', ${png.length})
+            ${key}, 'image/png', ${png.length})
     returning id`;
   return { id: row.id, fileName };
 }

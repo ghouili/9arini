@@ -2,6 +2,7 @@ import { config } from "dotenv";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { existsSync, readFileSync } from "node:fs";
+import { objectStore } from "@tnajem/db/storage";
 
 /* Config, loaded from the REPO ROOT rather than cwd.
 
@@ -119,6 +120,16 @@ export function assertBootConfig(): void {
   if (!process.env.DATABASE_URL?.trim()) missing.push("DATABASE_URL");
   if (IS_PROD && !process.env.AUTH_SECRET?.trim()) missing.push("AUTH_SECRET");
   if (IS_PROD && CORS_ORIGINS.length === 0) missing.push("CORS_ORIGINS");
+  /* The object store, resolved now rather than at the first upload: an unknown
+     STORAGE_DRIVER, S3 settings with keys missing, or (production) no STORAGE_DIR
+     would otherwise surface as a tutor whose ID scan failed to save. Resolving it
+     makes no network call, so boot does not depend on the bucket being up;
+     db:check proves the round-trip. The messages name keys, never values. */
+  try {
+    objectStore();
+  } catch (e) {
+    missing.push(`storage: ${(e as Error).message}`);
+  }
   if (missing.length) {
     console.error(`[tnajem-api] FATAL CONFIG: missing ${missing.join(", ")}. Refusing to start.`);
     process.exit(1);

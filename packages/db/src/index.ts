@@ -14,8 +14,10 @@ export * from "./schema";
 export { createDb } from "./client";
 export type { DbHandle, CreateDbOptions, Database, Sql } from "./client";
 
-export { storageBase, storageKey, localStore, objectStore } from "./storage";
-export type { ObjectStore, StoredObject } from "./storage";
+export {
+  storageBase, storageKey, localStore, s3Store, s3ConfigFromEnv, objectStore, storageDriverName, describeS3Error, STORAGE_DRIVERS,
+} from "./storage";
+export type { ObjectStore, StoredObject, S3Config } from "./storage";
 
 export { notify, REMINDER_CADENCE } from "./notify";
 export type { NotifyInput, NotifyDb, ReminderStep, ReminderPayload } from "./notify";

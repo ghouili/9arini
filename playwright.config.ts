@@ -10,6 +10,11 @@ const BASE = process.env.E2E_BASE_URL ?? "http://localhost:3210";
 const SERVER_TZ: Record<string, string> = process.env.E2E_SERVER_TZ ? { TZ: process.env.E2E_SERVER_TZ } : {};
 const REUSE = !process.env.CI && !process.env.E2E_SERVER_TZ;
 
+/* E2E_STORAGE_DRIVER=s3 runs the API on the s3 driver (S3_* come from the environment)
+   and e2e/support/store.ts reads the same bucket. Default: local files. */
+const STORAGE_ENV: Record<string, string> =
+  process.env.E2E_STORAGE_DRIVER === "s3" ? { STORAGE_DRIVER: "s3" } : { STORAGE_DRIVER: "local" };
+
 export default defineConfig({
   testDir: "./e2e",
   /* workers:1 — three things are process-global no matter how independent the
@@ -47,6 +52,7 @@ export default defineConfig({
       timeout: 120_000,
       env: {
         ...SERVER_TZ,
+        ...STORAGE_ENV,
         API_PORT: "4000",
         STORAGE_DIR: resolve(process.env.E2E_STORAGE_DIR ?? ".e2e-storage"),
         ADMIN_EMAILS: "e2e-admin@tnajem.invalid",

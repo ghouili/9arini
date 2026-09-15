@@ -189,14 +189,45 @@ history, and each time the purge deleted rows while orphaning the files.
 
 Every read, write and delete of an upload (ID scans, materials, photos) goes
 through one object store, `objectStore()` in `packages/db/src/storage.ts`, chosen by
-`STORAGE_DRIVER`. This build has **only `local`** (the default): files under
-`STORAGE_DIR`, laid out exactly as the database keys say
-(`verification/<tutorId>/…`, `materials/<tutorId>/…`, `avatars/<tutorId>/…`), written
-atomically (temp file, then rename). That means **one API instance per volume**:
-two instances on two machines would each see half the files. Running more than one
-instance needs either a shared volume or the S3-compatible driver, which is not
-built yet (it needs a bucket and credentials). `npm run db:check` round-trips a
-sentinel through the same driver.
+`STORAGE_DRIVER`. Keys are the database paths (`verification/<tutorId>/…`,
+`materials/<tutorId>/…`, `avatars/<tutorId>/…`). Whichever driver you pick,
+`npm run db:check` round-trips a sentinel through it.
+
+**`local` (default).** Files under `STORAGE_DIR`, written atomically (temp file,
+then rename). This means **one API instance per volume**: two instances on two
+machines would each see half the files.
+
+**`s3`** (AWS S3, Cloudflare R2, MinIO). Needed as soon as there's more than one
+API instance, or a host without a persistent disk. Set `S3_BUCKET`,
+`S3_ACCESS_KEY_ID` and `S3_SECRET_ACCESS_KEY`, plus `S3_ENDPOINT` for R2/MinIO (see
+`.env.example`).
+- **The bucket must be private**: no public access and no public URL. Every read
+  is streamed through an authorised API route.
+- The key the API uses needs `s3:GetObject`, `s3:PutObject` and `s3:DeleteObject`
+  on `arn:aws:s3:::<bucket>/*`, **and `s3:ListBucket` on the bucket itself**.
+  Without `ListBucket`, S3 answers 403 instead of 404 for an absent object, and the
+  API checks the bucket with `HeadBucket` before its first operation. That check
+  is deliberate: with a mistyped bucket name, every document would look "already
+  gone", and the retention purge would delete the rows and orphan the real scans.
+  A wrong bucket or key now fails loudly instead.
+- Moving from `local` to `s3`: copy the tree with its paths unchanged (for example
+  `rclone copy /var/lib/tnajem/storage r2:<bucket>/<S3_PREFIX>`), run `db:check` on
+  the new settings, then switch `STORAGE_DRIVER` and restart.
+
+**Proven on 15 Sept 2026** against MinIO RELEASE.2025-09-07 (local container):
+- Driver contract, all checks passed:
+  - 1 MiB byte-exact round-trip, streaming and size;
+  - absent objects return null;
+  - an anonymous GET gets 403;
+  - prefix isolation;
+  - a wrong bucket and wrong credentials throw instead of answering "missing";
+  - 8 concurrent writes to one key leave one whole object.
+- The API on `STORAGE_DRIVER=s3` passed the admin, avatar, materials,
+  journey-admin and journey-tutor specs: 40/40, 97 objects in the bucket, nothing
+  written to local disk.
+
+To rerun the specs against a bucket: start the API with the `S3_*` settings,
+then `E2E_STORAGE_DRIVER=s3 npx playwright test …`.
 
 ```
 sudo mkdir -p /var/lib/tnajem/storage && sudo chown $USER /var/lib/tnajem/storage
@@ -597,6 +628,11 @@ local driver). Back them up **in the same job, files first, then the dump**:
 
 For the same reason, don't schedule the backup at the same time as the retention
 purge.
+
+On the `s3` driver, copy the bucket to a second bucket at a **different provider or
+account** with the same ordering (`rclone sync r2:<bucket> backup:<bucket>`, then
+the dump). Bucket versioning alone does not count: it doesn't survive losing the
+account.
 ```
 # nightly, as the app user, away from the purge window (example: 02:30)
 rsync -a /var/lib/tnajem/storage/ /var/backups/tnajem/storage/   # then encrypt + ship

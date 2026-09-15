@@ -22,7 +22,7 @@ loadEnv();
 
 import postgres from "postgres";
 import { verifyMail, closeMail } from "@tnajem/shared/mail";
-import { objectStore, type ObjectStore } from "../src/storage";
+import { describeS3Error, objectStore, storageDriverName, type ObjectStore } from "../src/storage";
 import { randomBytes } from "node:crypto";
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
@@ -63,7 +63,18 @@ function checkEnv() {
   console.log("\nConfiguration");
   requireKey("DATABASE_URL", "always", "Nothing can start without it.");
   requireKey("API_URL", "always", "The web app has nothing to call without it (demo mode needs TNAJEM_DEMO=1).");
-  requireKey("STORAGE_DIR", "always", "Unset, every workspace resolves a different cwd-relative store.");
+  const driver = storageDriverName();
+  if (!driver) fail("STORAGE_DRIVER", "set to an unknown driver (expected local or s3)");
+  else if (driver === "local") {
+    ok("STORAGE_DRIVER", keyState("STORAGE_DRIVER") === "set" ? "local" : "local (default)");
+    requireKey("STORAGE_DIR", "always", "Unset, every workspace resolves a different cwd-relative store.");
+  } else {
+    ok("STORAGE_DRIVER", "s3");
+    for (const k of ["S3_BUCKET", "S3_ACCESS_KEY_ID", "S3_SECRET_ACCESS_KEY"]) requireKey(k, "always", "Required by the s3 driver.");
+    for (const k of ["S3_ENDPOINT", "S3_REGION", "S3_FORCE_PATH_STYLE", "S3_PREFIX"]) {
+      console.log(`  · ${k} — ${keyState(k)} (optional)`);
+    }
+  }
 
   const secret = process.env.AUTH_SECRET?.trim() ?? "";
   if (!secret) fail("AUTH_SECRET", `${keyState("AUTH_SECRET")}. Every OTP hash depends on it: openssl rand -hex 32`);
@@ -156,7 +167,7 @@ async function checkDatabase() {
    uploads will actually hit — not merely a directory that happens to be writable. */
 async function checkStorage() {
   console.log("\nDocument store");
-  const driver = (process.env.STORAGE_DRIVER ?? "local").trim().toLowerCase() || "local";
+  const driver = storageDriverName();
   if (driver === "local" && !process.env.STORAGE_DIR?.trim()) {
     return fail("put/get/stream/delete", "skipped — STORAGE_DIR is not set");
   }
@@ -165,8 +176,9 @@ async function checkStorage() {
   let store: ObjectStore;
   try {
     store = objectStore();
-  } catch {
-    return fail("put/get/stream/delete", `STORAGE_DRIVER=${driver} is not available in this build`);
+  } catch (e) {
+    // objectStore() messages name keys, never values.
+    return fail("put/get/stream/delete", `skipped — ${(e as Error).message}`);
   }
   try {
     await store.put(key, body);
@@ -184,7 +196,8 @@ async function checkStorage() {
     if (removed !== "deleted" || after !== null) return fail("put/get/stream/delete", "the object survived delete");
     ok("put/get/stream/delete", `sentinel round-tripped through the ${store.driver} driver`);
   } catch (e) {
-    fail("put/get/stream/delete", `failed (${(e as { code?: string }).code ?? (e as Error).name})`);
+    const code = (e as { code?: string }).code;
+    fail("put/get/stream/delete", `failed (${code === "BUCKET_UNREACHABLE" ? (e as Error).message : code ?? describeS3Error(e)})`);
     await store.delete(key).catch(() => {});
   }
 }
