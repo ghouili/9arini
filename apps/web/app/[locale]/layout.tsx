@@ -29,7 +29,8 @@ import "../globals.css";
 const displayFont = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--font-display" });
 const bodyFont = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["400", "600", "700"], variable: "--font-body" });
 const arabicFont = IBM_Plex_Sans_Arabic({ subsets: ["arabic"], weight: ["400", "600", "700"], variable: "--font-ar" });
-/* Same family, one weight: all French pages need of it is the brand mark. */
+/* Same family, one weight: what French pages need of it is the brand mark and any
+   Arabic user text (globals.css: [dir="auto"]:dir(rtl) on LTR pages). */
 const arabicMark = IBM_Plex_Sans_Arabic({ subsets: ["arabic"], weight: ["400"], variable: "--font-ar" });
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://tnajem.tn";

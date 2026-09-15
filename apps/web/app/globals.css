@@ -330,7 +330,20 @@
   .brand-mark{display:flex;align-items:center;gap:10px;min-width:0;font-family:var(--fd);font-size:20px;letter-spacing:-.4px}
   .brand-mark img{flex:none;display:block;object-fit:contain}
   .brand-word{min-width:0;white-space:nowrap}
-  .brand-mark .ar{color:var(--blue);font-family:var(--fa)}
+  /* letter-spacing:0 — Arabic is a joined script; the -.4px tracking the Latin
+     wordmark wants pulls the letters of تنجّم apart (or breaks the joins, depending
+     on the browser). It is only set on /fr, where .brand-mark carries it. */
+  .brand-mark .ar{color:var(--blue);font-family:var(--fa);letter-spacing:0}
+  /* ARABIC A FRENCH PAGE DID NOT WRITE — a tutor's bio, a name, a review. User text
+     renders with dir="auto" (components/UserText), so an Arabic string resolves to
+     RTL and :dir(rtl) picks it out. Without this it fell through Plus Jakarta Sans
+     (no Arabic glyphs) to the system Arial: CSS.getPlatformFontsForNode on
+     /fr/leila-primaire, 15 Sept, "ArialMT ×42". The face is already on /fr for the
+     wordmark (one weight, 400; bolder Arabic is synthesized from it). Putting the
+     Arabic family in the Latin stacks does NOT work: next/font declares every subset
+     of the family, Latin included, so it would take over the French text too.
+     Browsers without :dir() (pre-2023) keep the old fallback. */
+  html[dir="ltr"] [dir="auto"]:dir(rtl){font-family:var(--fa);letter-spacing:0}
   /* .nav-links/.nav-spacer/.nav-right/.nav-menu-btn/.nav-menu deleted (zero
      usages). SiteHeader owns its own scoped .qh-* nav: the old .nav-menu had no
      max-height, no Escape/outside-click close, and a hardcoded top:64px, and the
