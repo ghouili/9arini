@@ -57,7 +57,8 @@ export const viewport: Viewport = {
 
 /* Locale is now in the URL, so metadata is locale-aware (og:locale, description).
    metadataBase makes the relative canonical/og URLs in child pages absolute. */
-export async function generateMetadata({ params }: { params: { locale: string } }): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const params = await props.params;
   const locale: AppLocale = isLocale(params.locale) ? params.locale : DEFAULT_LOCALE;
   const ar = locale === "ar";
   const description = ar ? DESCRIPTION_AR : DESCRIPTION;
@@ -102,13 +103,15 @@ export async function generateMetadata({ params }: { params: { locale: string } 
   };
 }
 
-export default function LocaleLayout({
+export default async function LocaleLayout({
   children,
-  params,
+  params: paramsPromise,
 }: {
   children: ReactNode;
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }) {
+  const params = await paramsPromise;
+
   // Guard the segment: only /fr and /ar are real locales. Anything else 404s rather
   // than rendering a page in an undefined language. (middleware also redirects, but
   // a direct hit to /xx must not slip a bad lang attribute into <html>.)

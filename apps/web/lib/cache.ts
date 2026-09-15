@@ -121,7 +121,10 @@ export function getCachedPublicTutorRefs(): Promise<PublicTutorRef[]> {
 export function revalidateTutor(slug: string | null | undefined): void {
   if (!slug) return;
   try {
-    revalidateTag(tutorTag(slug));
+    /* { expire: 0 }: gone NOW, the Next 14 behaviour. Next 16's recommended "max"
+       profile serves the stale page while it refetches, and the stale page of a
+       tutor an admin has just rejected is exactly what must not be served. */
+    revalidateTag(tutorTag(slug), { expire: 0 });
   } catch {
     /* Called outside a request scope (a cron/CLI context) — nothing to revalidate. */
   }
@@ -130,7 +133,7 @@ export function revalidateTutor(slug: string | null | undefined): void {
 /** The tutor left or joined the public set: refresh the sitemap too. Approve/reject only. */
 export function revalidatePublicTutors(): void {
   try {
-    revalidateTag(PUBLIC_TUTORS_TAG);
+    revalidateTag(PUBLIC_TUTORS_TAG, { expire: 0 });
   } catch {
     /* see above */
   }

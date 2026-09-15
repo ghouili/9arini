@@ -124,6 +124,7 @@ export function UpgradeInner({ needsBirthYear }: { needsBirthYear: boolean }) {
       /* Hard navigation, not router.push: becomeTutor rewrote the role-hint cookie
          and <SiteHeader> reads it once, post-hydration. A client-side push would
          leave the header showing student navigation on the tutor's first screen. */
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.href = `/${locale}/onboarding`;
       return;
     }

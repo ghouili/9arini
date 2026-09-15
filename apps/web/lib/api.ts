@@ -53,17 +53,17 @@ const API_URL = process.env.API_URL ?? "http://127.0.0.1:4000";
 /** The client's address as the proxy in front of us saw it. Rule 1.
     It used to take the LEFTMOST X-Forwarded-For entry — the one the client writes
     itself — so the OTP limiter's per-IP key was whatever the caller sent. */
-function forwardedFor(): string {
+async function forwardedFor(): Promise<string> {
   try {
-    return clientIpFrom(headers());
+    return clientIpFrom(await headers());
   } catch {
     return ""; // outside a request scope
   }
 }
 
-function sessionToken(): string | undefined {
+async function sessionToken(): Promise<string | undefined> {
   try {
-    return cookies().get(SESSION_COOKIE)?.value;
+    return (await cookies()).get(SESSION_COOKIE)?.value;
   } catch {
     return undefined;
   }
@@ -89,9 +89,9 @@ async function request(path: string, opts: CallOptions): Promise<unknown> {
   const headersOut: Record<string, string> = { "content-type": "application/json" };
 
   if (!opts.anonymous) {
-    const token = sessionToken();
+    const token = await sessionToken();
     if (token) headersOut.cookie = `${SESSION_COOKIE}=${token}`;
-    const ip = forwardedFor();
+    const ip = await forwardedFor();
     if (ip) headersOut["x-forwarded-for"] = ip; // OVERWRITE, never append
   }
 
@@ -158,8 +158,8 @@ export async function callAnonymous<T>(path: string, revalidate = 60): Promise<T
     already holds the files in this process once, and reading them again here
     would double peak memory on the same box. */
 export async function callMultipart<T>(path: string, form: FormData): Promise<T> {
-  const token = sessionToken();
-  const ip = forwardedFor();
+  const token = await sessionToken();
+  const ip = await forwardedFor();
   const res = await fetch(`${API_URL}${path}`, {
     method: "POST",
     headers: {

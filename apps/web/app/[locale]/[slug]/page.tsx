@@ -9,7 +9,7 @@ import { isLocale, DEFAULT_LOCALE, type AppLocale } from "@/lib/locale";
 import { dict } from "@/lib/i18n";
 import { tutorStanding, isOpenForBooking } from "@tnajem/shared";
 
-type Props = { params: { locale: string; slug: string } };
+type Props = { params: Promise<{ locale: string; slug: string }> };
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://tnajem.tn";
 
@@ -92,7 +92,8 @@ function clamp(s: string, max: number) {
 /* This is the single most-shared page in the product: tutors paste their link on
    WhatsApp, TikTok and Insta. The preview card has to say WHO the tutor is and
    WHAT they teach — not "Tnajem — apprends avec ton prof". */
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata(props: Props): Promise<Metadata> {
+  const params = await props.params;
   // Same cached read as the page body → the OG-card crawler (WhatsApp fetches the
   // link preview once per share) does not add a second round of queries.
   const data = await getCachedStorefront(params.slug);
@@ -165,7 +166,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 // via the cached data layer (falls back to demo data when no API_URL is set).
 // Reviews are fetched here (server-side) so the storefront ships them in the first
 // paint — no client round-trip on a 3G phone.
-export default async function StorefrontPage({ params }: Props) {
+export default async function StorefrontPage(props: Props) {
+  const params = await props.params;
   // Still parallel: on a cold cache the two reads overlap, so the miss costs one
   // round trip's latency, not two.
   const [data, reviews] = await Promise.all([
@@ -184,7 +186,7 @@ export default async function StorefrontPage({ params }: Props) {
      tutor pastes their link into WhatsApp); a typo'd or retired slug has to
      still say what happened and offer a way onward, on a 3G Android, with no JS.
 
-     The STATUS is still a real 404: middleware.ts asks app/api/tutor-exists
+     The STATUS is still a real 404: proxy.ts asks app/api/tutor-exists
      (same cache entry as this read) and sets it before this render starts. It
      used to be a 200 — that was reversed by the 14 Sept review, because a soft
      404 gives Google unlimited duplicate URLs on the route that must rank. */

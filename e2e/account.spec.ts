@@ -32,6 +32,6 @@ test("the account screen shows the signed-in identity", async ({ browser }) => {
 
 test("a signed-out visitor does not reach the account screen", async ({ page }) => {
   await page.goto("/fr/account");
-  // middleware.ts bounces guests to /auth?next=<relative path>.
+  // proxy.ts bounces guests to /auth?next=<relative path>.
   await expect(page).toHaveURL(/\/auth/);
 });

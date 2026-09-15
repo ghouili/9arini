@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties, use } from "react";
 import { useLocalizedRouter } from "@/components/Link";
 import { Link } from "@/components/Link";
 import { useLocale } from "@/components/LocaleProvider";
@@ -41,7 +41,7 @@ const copy = bilingual({
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 type Gate = { canJoin: boolean; role?: "tutor" | "student"; meetUrl?: string; reason?: string };
-type Props = { params: { id: string } };
+type Props = { params: Promise<{ id: string }> };
 
 /* Real countdown against the class's actual start timestamp — no hardcoded 2 min. */
 function LiveCountdown({ ts }: { ts: number }) {
@@ -72,7 +72,8 @@ function LiveCountdown({ ts }: { ts: number }) {
   );
 }
 
-export default function LiveLobbyPage({ params }: Props) {
+export default function LiveLobbyPage(props: Props) {
+  const params = use(props.params);
   const { t, locale } = useLocale();
   const c = copy[locale];
   const router = useLocalizedRouter();

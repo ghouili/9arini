@@ -5,7 +5,7 @@ import { useCallback, useRef, useState } from "react";
    Replaces blocking alert() calls. Uses the .toast class from globals.css. */
 export function useToast() {
   const [msg, setMsg] = useState<string | null>(null);
-  const timer = useRef<ReturnType<typeof setTimeout>>();
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const showToast = useCallback((m: string) => {
     setMsg(m);

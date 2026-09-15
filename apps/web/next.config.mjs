@@ -87,7 +87,13 @@ function securityHeaders() {
 const nextConfig = {
   env: { TNAJEM_DEMO_ACTIVE: demoActive ? "1" : "" },
 
-  /* NO FIXTURE TEXT IN A PRODUCTION BUNDLE. Every production compile (server,
+  /* WEBPACK, NOT TURBOPACK. Next 16 builds with Turbopack by default and refuses a
+     custom webpack() config under it; the scripts pass --webpack. The replacement
+     below is what keeps the invented demo tutors out of production bundles, and
+     guardrails.mjs §6 proves it on every build — moving bundlers is a change to
+     that guarantee, made separately and proven again, not a side effect.
+
+     NO FIXTURE TEXT IN A PRODUCTION BUNDLE. Every production compile (server,
      client, edge) gets lib/demo-fixtures.empty.ts in place of the invented tutors.
      Gating the calls on demoEnabled was not enough: the minifier kept the fixture
      bodies, and the 15 Sept build shipped them in the /explore client chunk. */
@@ -103,7 +109,23 @@ const nextConfig = {
   },
 
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders() }];
+    return [
+      { source: "/:path((?!api/admin/doc/).*)", headers: securityHeaders() },
+      /* THE ID-SCAN ROUTE IS EXCLUDED from the site-wide set, and gets no CSP here.
+         Since Next 15/16, a header named in this config REPLACES the same header set
+         by a route handler (on 14 the handler won). The site-wide CSP therefore
+         overwrote the document's `default-src 'none'; sandbox` — the one policy that
+         stops a crafted file rendering as an active page in the admin's session —
+         with the app's permissive page policy (and its Referrer-Policy over the
+         document's no-referrer). e2e/admin.spec.ts caught it. The route passes the
+         API's headers through; only the ones the API does not set are added here. */
+      {
+        source: "/api/admin/doc/:id",
+        headers: securityHeaders().filter(
+          (h) => !["Content-Security-Policy", "Referrer-Policy", "X-Content-Type-Options"].includes(h.key),
+        ),
+      },
+    ];
   },
 
   output: "standalone", // self-contained server build for Docker/Render/Railway
@@ -126,51 +148,34 @@ const nextConfig = {
   productionBrowserSourceMaps: false,
 
   images: {
-    /* No remote hosts on purpose: uploads (ID docs) are served only through the
-       admin-gated route, and there is no CDN yet. Add `remotePatterns` in the
-       same change that introduces object storage — never a bare `domains: ["*"]`,
-       which turns /_next/image into an open image proxy anyone can use to
-       launder traffic through our server. */
+    /* THE OPTIMIZER IS OFF. Every image in the app (Logo, Avatar) already renders
+       `unoptimized`, so /_next/image served nobody — yet it answered, and it is
+       the entry point of GHSA-2xp9-vwfh-vxw4 (remote code execution through sharp's
+       libheif on an AVIF). It could also be pointed at our own routes: tutor-uploaded
+       materials are same-origin, so "local images only" did not mean "our images
+       only". An endpoint with no user is attack surface and nothing else.
+
+       Turning it back on is a decision, not a default: it needs a patched Next and
+       sharp, an allow-list of the paths it may read (images.localPatterns), and
+       never the materials or avatar routes. */
+    unoptimized: true,
     remotePatterns: [],
 
-    /* Modern formats first. AVIF is ~30-50% smaller than JPEG at the same quality
-       and every Android Chrome since 85 supports it; Next falls back to WebP then
-       the original for anything older. This is the single biggest byte win the
-       day avatars/intro-video thumbnails become real images (today the storefront
-       renders initials, so it costs nothing to have this ready). */
-    formats: ["image/avif", "image/webp"],
-
-    /* Device widths trimmed to what Tunisian phones actually report. The default
-       list runs to 3840px (4K desktop); generating and caching those variants for
-       a market that is overwhelmingly 360-430px CSS-wide is wasted CPU on the
-       VPS and, worse, risks serving a 2048px image to a phone that only needed
-       640px because the widths bracket badly. */
-    deviceSizes: [360, 414, 640, 750, 828, 1080, 1200, 1920],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256],
-
-    /* Cache an optimised image for 30 days minimum. Image optimisation is CPU
-       work on the same box that serves the pages; under a viral spike we do not
-       want to be re-encoding the same avatar for every visitor. */
-    minimumCacheTTL: 60 * 60 * 24 * 30,
-
     /* SVGs are never optimised, they are passed through — a hostile SVG is a
-       script. Explicitly off (also the default) because the day someone lets
-       tutors upload an avatar, this is the line that stops stored XSS. */
+       script. Explicitly off (also the default). */
     dangerouslyAllowSVG: false,
   },
 
-  experimental: {
-    /* MONOREPO. Without this, Next infers the tracing root from the nearest
-       lockfile and either misses packages/* (they are symlinks in the root
-       node_modules) or traces the whole repo -- including tools/ui-audit/shots*,
-       which is hundreds of megabytes of PNGs.
+  /* MONOREPO. Without this, Next infers the tracing root from the nearest
+     lockfile and either misses packages/* (they are symlinks in the root
+     node_modules) or traces the whole repo -- including tools/ui-audit/shots*,
+     which is hundreds of megabytes of PNGs. Top-level since Next 15. */
+  outputFileTracingRoot: REPO_ROOT,
+  outputFileTracingExcludes: {
+    "/**": ["tools/ui-audit/**", "e2e/**", "**/*.png", ".storage/**", ".e2e-storage/**", "backups/**"],
+  },
 
-       NOTE it lives under `experimental` on Next 14 (it moves to top level in
-       Next 15), so every Next 15 snippet you find is wrong for this repo. */
-    outputFileTracingRoot: join(dirname(fileURLToPath(import.meta.url)), "../../"),
-    outputFileTracingExcludes: {
-      "/**": ["tools/ui-audit/**", "e2e/**", "**/*.png", ".storage/**", ".e2e-storage/**"],
-    },
+  experimental: {
     // Verification doc uploads (ID/diploma images or PDFs) exceed the 1MB default.
     serverActions: { bodySizeLimit: "12mb" },
   },

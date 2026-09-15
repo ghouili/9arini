@@ -27,6 +27,8 @@ export default function AccountPage() {
 
   async function handleLogout() {
     await logout();
+    // Hard navigation on purpose: a full reload drops every client cache of the signed-in user.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.href = "/";
   }
 

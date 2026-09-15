@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { Link } from "@/components/Link";
 import { Spinner } from "@/components/ui";
 import { SiteShell } from "@/components/SiteShell";
@@ -154,7 +154,8 @@ const PAGE_CSS = `
   }
 `;
 
-export default function ClassDetailPage({ params }: { params: { id: string } }) {
+export default function ClassDetailPage(props: { params: Promise<{ id: string }> }) {
+  const params = use(props.params);
   const { t, locale } = useLocale();
   const c = copy[locale];
   const [cls, setCls] = useState<ClassItem | null | undefined>(undefined);

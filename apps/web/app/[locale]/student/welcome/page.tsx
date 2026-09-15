@@ -32,13 +32,11 @@ export const dynamic = "force-dynamic";
 
 const EMPTY: StudentProfile = { fullName: null, level: null, subjects: [], phone: null };
 
-export default async function StudentWelcomePage({
-  params,
-  searchParams,
-}: {
-  params: { locale: string };
-  searchParams: { next?: string | string[] };
+export default async function StudentWelcomePage(props: {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<{ next?: string | string[] }>;
 }) {
+  const [params, searchParams] = await Promise.all([props.params, props.searchParams]);
   const locale = localeOf(params.locale);
   const raw = Array.isArray(searchParams.next) ? searchParams.next[0] : searchParams.next;
   const next = safeNext(raw ?? null);
@@ -48,7 +46,7 @@ export default async function StudentWelcomePage({
   // Demo mode / UI audit harness: render the screen with an empty form.
   if (guard.kind === "inert") return <StudentWelcomeInner next={next} initial={EMPTY} />;
 
-  // middleware.ts already bounces guests off /student/*; this is the belt to its
+  // proxy.ts already bounces guests off /student/*; this is the belt to its
   // braces, and it preserves the destination they were heading for.
   if (guard.kind === "guest") {
     redirect(localePath(locale, "/auth", localePath(locale, "/student/welcome", next)));

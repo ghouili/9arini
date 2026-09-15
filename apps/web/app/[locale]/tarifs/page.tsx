@@ -27,7 +27,8 @@ export const dynamic = "force-dynamic";
    The prices below are the FINAL model but are NOT being charged. Every surface
    that names them must label them as future; see TarifsInner. */
 
-export async function generateMetadata({ params }: { params: { locale: string } }): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const params = await props.params;
   const locale: AppLocale = isLocale(params.locale) ? params.locale : DEFAULT_LOCALE;
   const ar = locale === "ar";
   const title = ar ? "الأسعار" : "Tarifs";

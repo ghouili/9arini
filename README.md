@@ -11,7 +11,7 @@ Mobile-first, bilingual **FR / العربية with full RTL**, on the cobalt/san
 This is an **npm-workspaces monorepo**. The browser talks to `apps/web`; only `apps/api` and the migration runner hold database credentials.
 
 ```
-apps/web        Next.js 14 (App Router). Server components + server actions.
+apps/web        Next.js 16 (App Router, webpack build). Server components + server actions.
                 Owns NO database: every action is a one-hop fetch to the API.
 apps/api        Fastify. Owns the schema, the session table, the rate limiter,
                 the admin allow-list and the identity documents.
@@ -94,10 +94,10 @@ approves or rejects in `/admin/verifications` — gated by **`ADMIN_EMAILS`**, n
 all. **Only `status = "verified"` tutors are public** — on `/explore`, on
 `/[slug]`, and in the sitemap.
 
-An unverified tutor's storefront returns **200, not 404**, and renders a branded
-not-found body with `robots: noindex`. That is deliberate: Next 14 renders a
-runtime `notFound()` client-side only, so the 404 path shipped a 6-byte body — a
-white screen on a slow connection.
+An unverified tutor's storefront returns **404**, decided in `apps/web/proxy.ts`
+before anything renders, with a localized not-found body and `robots: noindex`.
+The page never calls a runtime `notFound()`: on Next 14 that shipped a 6-byte body
+— a white screen on a slow connection.
 
 **Reviews are real.** One review per (student, class), writable only by a student
 who actually booked it, only after the class started. `tutors.rating` /
@@ -240,7 +240,7 @@ and the marker is not decorative — an unmarked one is a lie a tutor pays for:
 | `npm run db:check` | database reachable, every numbered migration applied, document store writable, config keys set/missing — never prints a value. `-- --production` applies production rules |
 | `npm run build` | builds both apps |
 | `npm start` / `start:standalone` | serves the web build. **Both run the same script**, deliberately: `next start` does not work with `output:"standalone"` — it logs *Ready*, listens, and never answers a request — so `start` pointing at it was a command that looked like it worked and hung. It now runs the standalone server, which is what production runs. |
-| `npm run lint` | ESLint (`next/core-web-vitals`), `--max-warnings=0`. `no-img-element` is an **error**: "next/image only" is an invariant, and `next lint` exits 0 on warnings. |
+| `npm run lint` | ESLint 9 flat config (`apps/web/eslint.config.mjs`, `eslint-config-next/core-web-vitals`), `--max-warnings=0`. `no-img-element` is an **error**: "next/image only" is an invariant. |
 | `npm run typecheck` | every workspace + `e2e/` |
 | `npm run test` | API unit tests, then the Playwright suite |
 | `npm run test:e2e:docker` | the same Playwright suite against `docker compose` |

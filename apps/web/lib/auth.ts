@@ -44,8 +44,8 @@ warnIfSecretMissing();
    only ever decides which link renders. Every server-side check re-derives
    identity from the httpOnly session cookie, so forging this buys nothing but a
    nav link that bounces you to /auth. The API never sees it. */
-export function setRoleHint(role: string, expires?: Date): void {
-  cookies().set(ROLE_HINT_COOKIE, role, {
+export async function setRoleHint(role: string, expires?: Date): Promise<void> {
+  (await cookies()).set(ROLE_HINT_COOKIE, role, {
     httpOnly: false,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
@@ -60,15 +60,15 @@ export function setRoleHint(role: string, expires?: Date): void {
     A second writer with a different sameSite, path or secure would produce two
     cookies with one name and an intermittently logged-out user — miserable to
     diagnose, so there is exactly one. */
-export function adoptSession(token: string, expiresAt: Date, role?: string): void {
-  cookies().set(SESSION_COOKIE, token, {
+export async function adoptSession(token: string, expiresAt: Date, role?: string): Promise<void> {
+  (await cookies()).set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
     expires: expiresAt,
   });
-  if (role) setRoleHint(role, expiresAt);
+  if (role) await setRoleHint(role, expiresAt);
 }
 
 /** Clear both cookies. The API deletes the session ROW; this is the other half.
@@ -76,21 +76,22 @@ export function adoptSession(token: string, expiresAt: Date, role?: string): voi
     signed in, and a deleted row with a live cookie keeps the browser sending a
     token that no longer resolves. */
 export async function destroySession(): Promise<void> {
-  cookies().delete(SESSION_COOKIE);
-  cookies().delete(ROLE_HINT_COOKIE);
+  const jar = await cookies();
+  jar.delete(SESSION_COOKIE);
+  jar.delete(ROLE_HINT_COOKIE);
 }
 
 /* Demo mode only, and it refuses to run in production. The sentinel is not a
    session: apps/api matches it against the sessions table and finds nothing. It
    exists so the ui-audit harness can walk signed-in screens with no backend. */
-export function setDemoCookie(role?: string): void {
+export async function setDemoCookie(role?: string): Promise<void> {
   if (process.env.NODE_ENV === "production") return;
-  cookies().set(SESSION_COOKIE, "demo", {
+  (await cookies()).set(SESSION_COOKIE, "demo", {
     httpOnly: true,
     sameSite: "lax",
     secure: false,
     path: "/",
     expires: new Date(Date.now() + SESSION_DAYS * 86_400_000),
   });
-  if (role) setRoleHint(role);
+  if (role) await setRoleHint(role);
 }

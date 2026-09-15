@@ -708,7 +708,7 @@ doesn't exist yet.
   **the day you set it, ungranted tutors drop to `gratuit` — one open class.**
   Move the tutors you mean to keep unlimited onto plans *before* flipping it.
   Every grant and revoke is written to `admin_actions`.
-- An unverified tutor's storefront returns **200 with a branded not-found body and
-  `robots: noindex`**, not a 404. Do not "fix" this: the 404 path renders
-  client-side only in Next 14 and shipped a 6-byte body.
+- An unverified tutor's storefront returns **404 with a localized not-found body and
+  `robots: noindex`**, decided in `apps/web/proxy.ts` before rendering. Do not move
+  it to a runtime `notFound()`: on Next 14 that shipped a 6-byte body.
 - Payments stay off (`PAYMENTS_ENABLED` unset) until legal/INPDP sign-off.

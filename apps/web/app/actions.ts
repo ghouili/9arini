@@ -95,7 +95,7 @@ export async function requestOtp(input: { identifier: string; locale?: string })
 export async function verifyOtp(input: { identifier: string; code: string; role?: "tutor" | "student"; locale?: string; birthYear?: number }):
   Promise<{ ok: boolean; role?: string; needsConsent?: boolean; created?: boolean; roleMismatch?: boolean; needsProfile?: boolean; hasStorefront?: boolean; error?: string; retryAfter?: number }> {
   if (demoFallback) {
-    setDemoCookie(input.role === "tutor" ? "tutor" : "student");
+    await setDemoCookie(input.role === "tutor" ? "tutor" : "student");
     const demoRole = input.role ?? "student";
     // Demo mode mirrors the real gate: a student is a minor unless they gave an
     // adult birth year, in which case consent is skipped.
@@ -124,7 +124,7 @@ export async function verifyOtp(input: { identifier: string; code: string; role?
   }>("/auth/otp/verify", input);
 
   if (res.ok && res.session) {
-    adoptSession(res.session.token, new Date(res.session.expiresAt), res.role);
+    await adoptSession(res.session.token, new Date(res.session.expiresAt), res.role);
   }
   const { session: _session, ...rest } = res;
   return rest;
@@ -190,7 +190,7 @@ export async function becomeTutor(input: { confirm: boolean; birthYear?: number 
   if (!input?.confirm) return { ok: false, error: "not-confirmed" };
 
   if (demoFallback) {
-    setDemoCookie("tutor"); // demo has no profile row; the cookie IS the state
+    await setDemoCookie("tutor"); // demo has no profile row; the cookie IS the state
     return { ok: true, demo: true };
   }
 
@@ -201,7 +201,7 @@ export async function becomeTutor(input: { confirm: boolean; birthYear?: number 
      cannot do, and it is a forgeable UI hint the API has no business knowing
      about. The endpoint returns the new role so we know when to set it. */
   const res = await call<ActionResult & { role?: string }>("/profile/become-tutor", input);
-  if (res.ok && res.role) setRoleHint(res.role);
+  if (res.ok && res.role) await setRoleHint(res.role);
   return { ok: res.ok, error: res.error };
 }
 

@@ -12,7 +12,7 @@ export function ClassTools({ cls, dark }: { cls: ClassItem; dark?: boolean }) {
     cls.meet_url && { Icon: Video, label: t.tools.join, href: cls.meet_url, color: "var(--green)" },
     cls.whiteboard_url && { Icon: Board, label: t.tools.whiteboard, href: cls.whiteboard_url, color: "var(--blue)" },
     cls.quiz_url && { Icon: Quiz, label: t.tools.quiz, href: cls.quiz_url, color: "var(--ochre)" },
-  ].filter(Boolean) as { Icon: (p: { className?: string }) => JSX.Element; label: string; href: string; color: string }[];
+  ].filter(Boolean) as { Icon: (p: { className?: string }) => React.JSX.Element; label: string; href: string; color: string }[];
 
   if (!items.length) return null;
   const tileBg = dark ? "rgba(255,255,255,.08)" : "var(--paper)";

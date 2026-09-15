@@ -16,7 +16,7 @@
         specifically. Before this rung existed, a brand-new tutor who arrived via
         /checkout was sent straight back to the checkout and never saw onboarding
         at all — ?next= (rung 4) silently outranked the role home (rung 5).
-     4. ?next=. The page middleware.ts (or /live) bounced them off of.
+     4. ?next=. The page proxy.ts (or /live) bounced them off of.
      5. The role's home. For a tutor who ALREADY has a storefront that is
         /dashboard, not /onboarding: they are not onboarding, they are working.
 

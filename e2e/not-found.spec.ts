@@ -12,7 +12,7 @@ import { seedTutor } from "./support/seed";
    storefront and a working "Réserver". Two things are pinned here, and neither
    is allowed to buy the other:
 
-     1. The STATUS is 404 (middleware.ts sets it — a runtime notFound() on
+     1. The STATUS is 404 (proxy.ts sets it — a runtime notFound() on
         Next 14.2 would ship an empty <body>, see app/[locale]/[slug]/page.tsx).
      2. The BODY is in the server HTML: the check runs with JavaScript OFF.
 

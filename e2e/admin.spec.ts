@@ -58,12 +58,11 @@ test.describe("admin document access", () => {
     expect(h["content-security-policy"]).toContain("sandbox");
     expect(h["x-content-type-options"]).toBe("nosniff");
     expect(h["cache-control"]).toContain("no-store");
-    /* toContain, not toBe: next.config.mjs sets a global
-       Referrer-Policy: strict-origin-when-cross-origin and the route appends its
-       own, so the browser receives "strict-origin-when-cross-origin,
-       no-referrer". For Referrer-Policy the last recognised token wins, so the
-       effective policy IS no-referrer -- but the header is not that string alone. */
-    expect(h["referrer-policy"]).toContain("no-referrer");
+    /* Exactly, and alone. On Next 16 a header named in next.config.mjs replaces the
+       route's own, so the site-wide strict-origin-when-cross-origin (and the page
+       CSP) silently took over this response until the doc route was excluded from
+       the site-wide set. toBe, so a merged or replaced value fails here. */
+    expect(h["referrer-policy"]).toBe("no-referrer");
     expect(h["content-disposition"]).toBeTruthy();
   });
 

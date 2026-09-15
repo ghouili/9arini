@@ -16,7 +16,7 @@ import { matchRoute, NOT_FOUND_SEGMENT } from "@/lib/route-table";
 
    2. AUTH GUARD (presence only). Redirects to /<locale>/auth when the session cookie
       is absent on a protected route. Real validation happens server-side via
-      getSession(); the edge only checks presence and never touches Postgres.
+      getSession(); the proxy only checks presence and never touches Postgres.
 
    3. EVERY 404 IS DECIDED HERE, with the status set before anything renders:
         • a path that is no page (lib/route-table.ts)          → catch-all 404
@@ -25,7 +25,8 @@ import { matchRoute, NOT_FOUND_SEGMENT } from "@/lib/route-table";
         • a well-formed slug no tutor has (lib/tutor-lookup.ts) → catch-all 404
       "Catch-all 404" is a rewrite to app/[locale]/[...rest] with status 404: a
       localized, server-rendered page that is never cached. A runtime notFound()
-      cannot do this job on Next 14.2 — it ships an empty body. */
+      could not do this job on Next 14.2 (it shipped an empty body); the decision
+      stays here on Next 16, where it is already made before rendering starts. */
 
 const SESSION_COOKIE = "tnajem_session";
 
@@ -56,7 +57,7 @@ function notFound(req: NextRequest, locale: AppLocale, bare: string): NextRespon
 /* Path prefixes (locale-stripped) that require a session. Mirrors the old matcher. */
 const PROTECTED = ["/dashboard", "/onboarding", "/account", "/student", "/checkout", "/live", "/admin", "/messages", "/guardian"];
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const locale = localeFromPath(pathname);
 

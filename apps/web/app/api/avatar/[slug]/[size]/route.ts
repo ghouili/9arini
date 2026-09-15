@@ -26,9 +26,10 @@ const PASSTHROUGH_HEADERS = ["content-type", "cache-control", "x-content-type-op
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { slug: string; size: string } },
+  props: { params: Promise<{ slug: string; size: string }> }
 ): Promise<Response> {
-  const token = cookies().get(SESSION_COOKIE)?.value;
+  const params = await props.params;
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
 
   const upstream = await fetch(
     `${API_URL}/tutors/${encodeURIComponent(params.slug)}/avatar/${encodeURIComponent(params.size)}`,

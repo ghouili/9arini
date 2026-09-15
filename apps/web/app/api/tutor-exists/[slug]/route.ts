@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCachedStorefront } from "@/lib/cache";
 
-/* Does this slug serve a public storefront? Asked by middleware.ts, which cannot
+/* Does this slug serve a public storefront? Asked by proxy.ts, which cannot
    read the data layer itself (edge runtime), so that an unknown slug is answered
    with a real 404 status while the page still renders <NotFoundScreen> in the
    server HTML.
@@ -15,7 +15,8 @@ import { getCachedStorefront } from "@/lib/cache";
    during an API blip is worse than a soft 404 on a dead link. */
 export const dynamic = "force-dynamic";
 
-export async function GET(_req: Request, { params }: { params: { slug: string } }) {
+export async function GET(_req: Request, props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   try {
     const data = await getCachedStorefront(params.slug);
     return NextResponse.json({ exists: data !== null }, { headers: { "Cache-Control": "no-store" } });

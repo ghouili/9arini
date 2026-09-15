@@ -39,16 +39,14 @@ const meta = bilingual({
   },
 });
 
-export async function generateMetadata({ params }: { params: { locale: string } }): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const params = await props.params;
   const locale = isLocale(params.locale) ? params.locale : DEFAULT_LOCALE;
   return pageMetadata({ locale, path: "/signup/prof", ...meta[locale] });
 }
 
-export default function SignupTutorPage({
-  searchParams,
-}: {
-  searchParams: { next?: string | string[] };
-}) {
+export default async function SignupTutorPage(props: { searchParams: Promise<{ next?: string | string[] }> }) {
+  const searchParams = await props.searchParams;
   const raw = Array.isArray(searchParams.next) ? searchParams.next[0] : searchParams.next;
   return <SignupInner role="tutor" next={safeNext(raw ?? null)} channel={otpChannel()} />;
 }

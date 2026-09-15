@@ -32,11 +32,9 @@ const PASSTHROUGH_HEADERS = [
   "referrer-policy",
 ];
 
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: { id: string } },
-): Promise<Response> {
-  const token = cookies().get(SESSION_COOKIE)?.value;
+export async function GET(_req: NextRequest, props: { params: Promise<{ id: string }> }): Promise<Response> {
+  const params = await props.params;
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
 
   const upstream = await fetch(`${API_URL}/materials/${encodeURIComponent(params.id)}/file`, {
     headers: token ? { cookie: `${SESSION_COOKIE}=${token}` } : {},

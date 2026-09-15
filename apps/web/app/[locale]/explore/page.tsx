@@ -35,7 +35,8 @@ export const revalidate = 60;
    behaviour. e2e/isr.spec.ts records the measurement. */
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata({ params }: { params: { locale: string } }): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const params = await props.params;
   const locale: AppLocale = isLocale(params.locale) ? params.locale : DEFAULT_LOCALE;
   const ar = locale === "ar";
   const title = ar ? "استكشف الأساتذة المؤكّدين" : "Explorer les profs vérifiés";

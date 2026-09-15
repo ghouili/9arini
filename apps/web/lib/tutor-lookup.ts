@@ -1,7 +1,7 @@
 /* ══════════════════════════════════════════════════════════════════════════════
    "Does this tutor slug exist?" — the middleware's one question, asked cheaply.
 
-   middleware.ts needs the answer BEFORE the page renders, because it is the only
+   proxy.ts needs the answer BEFORE the page renders, because it is the only
    place that can set a 404 status (a runtime notFound() on Next 14.2 ships an empty
    body — see app/[locale]/[slug]/page.tsx). The answer comes from
    app/api/tutor-exists/[slug], which reads the storefront's own unstable_cache

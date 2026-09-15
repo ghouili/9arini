@@ -9,7 +9,7 @@ import { saveConsent } from "@/app/actions";
 import { SiteShell } from "@/components/SiteShell";
 import { safeNext } from "@tnajem/shared";
 
-/* Guardian consent sits in the middle of a flow: middleware.ts / /live bounce a
+/* Guardian consent sits in the middle of a flow: proxy.ts / /live bounce a
    guest to /auth?next=<path> (e.g. /checkout?class=x), the OTP is verified, and a
    MINOR is routed here before they may use the app. ?next= is forwarded to this
    page; we hand the student back to it once consent is signed, instead of dumping

@@ -20,7 +20,7 @@ export const WIDTHS = [320, 380, 768, 1280];
 
    The old sentinel was `tnajem_session=demo`. It is not a session: getSession()
    matches it against the `sessions` table and finds nothing whenever a database is
-   configured, and middleware.ts rejects the literal string outright in production.
+   configured, and proxy.ts rejects the literal string outright in production.
    So every `auth: true` route was really being measured in its SIGNED-OUT state —
    which was survivable while those pages rendered an empty panel, and stopped being
    survivable when /onboarding, /onboarding/verify, /student/welcome and

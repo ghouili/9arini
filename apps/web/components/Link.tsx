@@ -7,7 +7,7 @@ import { withLocale } from "@/lib/locale";
 
 /* Drop-in replacements for next/link + next/navigation's useRouter that prefix
    same-origin string paths with the ACTIVE locale (/explore → /fr/explore). This is
-   an OPTIMIZATION, not a correctness requirement: middleware.ts redirects any
+   an OPTIMIZATION, not a correctness requirement: proxy.ts redirects any
    unprefixed path to the locale-prefixed one anyway, so a missed link costs one
    redirect hop, never a broken route. Swapping the imports app-wide just avoids the
    hop. External URLs, anchors and already-prefixed paths pass through untouched. */

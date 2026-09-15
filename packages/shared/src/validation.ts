@@ -117,7 +117,7 @@ export const RESERVED_SLUGS: readonly string[] = [
   "signup",
   /* Routes that shipped WITHOUT being reserved. A tutor could claim "tarifs" and
      get a storefront nobody can reach (Next serves the static route first) — and
-     since middleware.ts now answers 404 for any unreserved one-segment path that
+     since proxy.ts now answers 404 for any unreserved one-segment path that
      is not a tutor, an unreserved route would 404 outright. e2e/not-found.spec.ts
      fails if any folder under app/[locale]/ is missing from this list. */
   "pour-les-profs", "tarifs", "guardian",
@@ -288,7 +288,7 @@ export function vOptionalPhone(raw: unknown): Valid<string | null> {
    function exported from a "use client" module is replaced by a client REFERENCE
    when a server component imports it — calling it server-side throws
    "is not a function" — so the sanitiser has to sit in a plain module.
-   middleware.ts and /live bounce guests here with ?next=<path> (e.g. /live/abc,
+   proxy.ts and /live bounce guests here with ?next=<path> (e.g. /live/abc,
    /checkout?class=x). That value is attacker-controllable, so we only ever follow
    it when it is a *relative, same-origin* path:
      • must start with a single "/"

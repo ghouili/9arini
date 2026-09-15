@@ -19,7 +19,8 @@ import { pageGuard, localeOf, localePath } from "@/lib/page-guard";
    dynamic only by accident (app/[locale]/not-found.tsx called headers()). */
 export const dynamic = "force-dynamic";
 
-export default async function VerifyPage({ params }: { params: { locale: string } }) {
+export default async function VerifyPage(props: { params: Promise<{ locale: string }> }) {
+  const params = await props.params;
   const locale = localeOf(params.locale);
   const guard = await pageGuard();
 

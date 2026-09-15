@@ -42,7 +42,7 @@ test("an unverified tutor's storefront exposes nothing and is noindex", async ({
 
   /* 404 — this used to assert 200, deliberately: a runtime notFound() on Next
      14.2 ships an empty <body>, so the page renders <NotFoundScreen> inline. That
-     is still true; the 14 Sept review reversed only the STATUS, which middleware.ts
+     is still true; the 14 Sept review reversed only the STATUS, which proxy.ts
      now sets. e2e/not-found.spec.ts pins the readable no-JS body. What this test
      protects is unchanged: an unverified tutor's details never reach the page,
      and the URL stays out of the index. */
