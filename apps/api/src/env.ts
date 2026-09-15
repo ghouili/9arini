@@ -3,6 +3,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { existsSync, readFileSync } from "node:fs";
 import { objectStore } from "@tnajem/db/storage";
+import { docEncryptionConfigured } from "@tnajem/db/doc-crypto";
 
 /* Config, loaded from the REPO ROOT rather than cwd.
 
@@ -147,6 +148,14 @@ export function assertBootConfig(): void {
     process.exit(1);
   }
   if (IS_PROD && proxies.length === 0) missing.push("TRUSTED_PROXIES");
+  /* Identity documents are sealed at rest; production does not start without the
+     key, and a malformed key stops every environment. The message names the key. */
+  try {
+    if (IS_PROD && !docEncryptionConfigured()) missing.push("DOC_ENCRYPTION_KEY");
+  } catch (e) {
+    console.error(`[tnajem-api] FATAL CONFIG: ${(e as Error).message}. Refusing to start.`);
+    process.exit(1);
+  }
   /* The object store, resolved now rather than at the first upload: an unknown
      STORAGE_DRIVER, S3 settings with keys missing, or (production) no STORAGE_DIR
      would otherwise surface as a tutor whose ID scan failed to save. Resolving it

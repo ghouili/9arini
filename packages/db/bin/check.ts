@@ -23,6 +23,7 @@ loadEnv();
 import postgres from "postgres";
 import { verifyMail, closeMail } from "@tnajem/shared/mail";
 import { describeS3Error, objectStore, storageDriverName, type ObjectStore } from "../src/storage";
+import { docEncryptionConfigured, openDoc, sealDoc } from "../src/doc-crypto";
 import { randomBytes } from "node:crypto";
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
@@ -81,6 +82,24 @@ function checkEnv() {
   else if (secret === PUBLIC_DEV_SECRET) fail("AUTH_SECRET", "set, but to the PUBLIC development default. Generate one: openssl rand -hex 32");
   else if (secret.length < 32) (production ? fail : warn)("AUTH_SECRET", "set, but shorter than 32 characters");
   else ok("AUTH_SECRET", "set, not the public default, 32+ characters");
+
+  /* The key identity documents are sealed with. Reported as set / missing / malformed —
+     and a round-trip proves it works, without ever printing it. */
+  try {
+    if (docEncryptionConfigured()) {
+      const probe = Buffer.from("db:check");
+      const back = openDoc("_check/probe", sealDoc("_check/probe", probe)).plaintext;
+      if (back.equals(probe)) ok("DOC_ENCRYPTION_KEY", "set, 32 bytes, seal/open round-trip OK");
+      else fail("DOC_ENCRYPTION_KEY", "set, but a seal/open round-trip returned different bytes");
+    } else {
+      (production ? fail : warn)("DOC_ENCRYPTION_KEY", `${keyState("DOC_ENCRYPTION_KEY")}. ID scans are stored unencrypted without it (the API refuses to start in production): openssl rand -hex 32`);
+    }
+  } catch {
+    fail("DOC_ENCRYPTION_KEY", "set, but not 32 bytes (64 hex characters, or base64)");
+  }
+  if (keyState("DOC_ENCRYPTION_KEY_PREVIOUS") === "set") {
+    warn("DOC_ENCRYPTION_KEY_PREVIOUS", "set: a key rotation is in progress. Run npm run db:encrypt-docs, then remove it.");
+  }
 
   if (process.env.TNAJEM_DEMO === "1") {
     (production ? fail : warn)("TNAJEM_DEMO", "set to 1 — demo data is development-only");

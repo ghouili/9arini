@@ -48,24 +48,20 @@ test.describe("admin journey", () => {
     const card = page.locator("article.av-card").filter({ hasText: tutor.slug });
     await expect(card).toHaveCount(1);
 
-    // Open the document the way an admin does: the "Ouvrir" link, in a new tab.
-    // Listen on the CONTEXT before clicking: the new tab can receive its response
-    // before a page-level waitForResponse would be attached.
-    const docResponsePromise = ctx.waitForEvent("response", (r) => r.url().includes(`/api/admin/doc/${doc.id}`));
-    const [docTab] = await Promise.all([
-      ctx.waitForEvent("page"),
+    /* Open the document the way an admin does: the link on the card. Since Stage 4 it
+       is a signed, short-lived link and the document DOWNLOADS (Content-Disposition:
+       attachment) — the stored object is encrypted, so matching bytes also prove the
+       API decrypted exactly what the tutor uploaded. */
+    const [download] = await Promise.all([
+      page.waitForEvent("download"),
       card.getByRole("link", { name: /Identité \(recto\)/ }).click(),
     ]);
-    const docResponse = await docResponsePromise;
-    expect(docResponse.status()).toBe(200);
-    expect(docResponse.headers()["content-type"]).toBe("image/png");
-    expect(docResponse.headers()["cache-control"]).toContain("no-store");
-    expect((await docResponse.body()).equals(png), "the admin sees exactly the bytes the tutor uploaded").toBe(true);
-    await docTab.waitForLoadState("load");
-    const shot = testInfo.outputPath("admin-opens-uploaded-id.png");
-    await docTab.screenshot({ path: shot });
-    await testInfo.attach("admin opens the uploaded ID document", { path: shot, contentType: "image/png" });
-    await docTab.close();
+    const saved = testInfo.outputPath(`admin-downloads-${download.suggestedFilename()}`);
+    await download.saveAs(saved);
+    const { readFile } = await import("node:fs/promises");
+    expect((await readFile(saved)).equals(png), "the admin receives exactly the bytes the tutor uploaded").toBe(true);
+    await testInfo.attach("the ID document the admin downloaded", { path: saved, contentType: "image/png" });
+    expect(await auditActions(doc.id), "the read is on record").toContain("verification.doc.read");
 
     await card.getByRole("button", { name: /Approuver/ }).click();
     await expect.poll(async () => (await sql<{ status: string }[]>`select status from tutors where id = ${tutor.id}`)[0].status, { timeout: 15_000 }).toBe("verified");

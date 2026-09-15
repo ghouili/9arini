@@ -436,7 +436,8 @@ export type PendingTutor = {
   pitch: string | null;
   links: VerificationLinks;
   submittedAt: string | null;
-  docs: { id: string; kind: string; fileName: string }[];
+  /** url: a signed link valid for minutes and only for the admin it was issued to. */
+  docs: { id: string; kind: string; fileName: string; url: string }[];
 };
 
 /** An account as an ADMIN sees it on /admin/accounts (GET /admin/accounts?email=).

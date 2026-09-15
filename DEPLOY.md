@@ -57,6 +57,7 @@ AUTH_SECRET=<run: openssl rand -hex 32>
 ADMIN_EMAILS=you@example.com               # who may approve tutors at /admin/verifications
 STORAGE_DIR=/var/lib/tnajem/storage        # PERSISTENT, ABSOLUTE — see below
 CRON_SECRET=<run: openssl rand -hex 32>    # protects /cron/purge — see §7
+DOC_ENCRYPTION_KEY=<run: openssl rand -hex 32>  # seals ID scans at rest — see below; LOSE IT = scans unreadable
 CORS_ORIGINS=https://tnajem.tn,https://www.tnajem.tn
 TRUSTED_PROXIES=127.0.0.1                  # the web tier's address — REQUIRED, see below
 API_PORT=4000
@@ -88,6 +89,26 @@ MAIL_FROM_NAME=Tnajem
 every key as set / empty / missing (never a value), connects to the database,
 confirms every numbered migration is applied, and round-trips a file through
 `STORAGE_DIR`. It exits 1 on anything production cannot run without.
+
+**`DOC_ENCRYPTION_KEY` seals every identity document at rest** (AES-256-GCM, a
+fresh IV per file, the storage path bound in so a file moved onto another tutor's
+path fails to open). The API refuses to start in production without it, and refuses
+to serve an unencrypted document there. Store it in your secret manager and **never
+in the same place as the storage backups** — a backup plus its key is a disclosure.
+Lose it and every stored scan is unreadable; tutors would have to upload again.
+
+- **Encrypting files that predate this** (a dev or staging copy):
+  `npm run db:encrypt-docs -- --dry-run`, then without `--dry-run`. Counts only.
+- **Rotating the key:** set the new key as `DOC_ENCRYPTION_KEY` and the old one as
+  `DOC_ENCRYPTION_KEY_PREVIOUS`, restart the API (both open, the new one seals),
+  run `npm run db:encrypt-docs`, then remove the previous key and restart.
+
+**How an admin opens a document.** Never by its id: the review queue gives each
+admin, for each document, a link that works for **10 minutes** and only with **that
+admin's session** (an expired link answers 410 and says to reload the page). The
+document **downloads** (`Content-Disposition: attachment`), and every read writes
+an `admin_actions` row (`verification.doc.read`, with the request id) **before** a
+byte is sent — if the row cannot be written, nothing is sent.
 
 **The web server refuses to start on a bad config.** `apps/web/scripts/preflight.mjs`
 runs before `server.js` (the Dockerfile `CMD`, and `npm run start:standalone`) and

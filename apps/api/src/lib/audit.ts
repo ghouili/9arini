@@ -24,6 +24,23 @@ import { db } from "../db";
    number 98123456" has copied that number into a new table, which is precisely
    what contact_leak_flags is careful not to do. Say what was done, not what it
    contained. */
+/** The variant that THROWS. For disclosures (reading an identity document), where
+    "no record" must mean "no disclosure" — the opposite trade from auditAdmin. */
+export async function auditAdminStrict(
+  adminProfileId: string,
+  action: string,
+  subject: { kind: string; id: string },
+  note?: string | null,
+): Promise<void> {
+  await db.insert(adminActions).values({
+    adminProfileId,
+    action,
+    subjectKind: subject.kind,
+    subjectId: subject.id,
+    note: note ?? null,
+  });
+}
+
 export async function auditAdmin(
   adminProfileId: string | null,
   action: string,
@@ -41,6 +58,6 @@ export async function auditAdmin(
   } catch (err) {
     /* eslint-disable-next-line no-console -- there is no request logger here, and
        a silent audit failure is the one thing this module must not do. */
-    console.error("[tnajem-api] AUDIT WRITE FAILED", { action, subject }, err);
+    console.error("[tnajem-api] AUDIT WRITE FAILED", { action, subject }, (err as { code?: string }).code ?? (err as Error).name);
   }
 }

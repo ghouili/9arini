@@ -32,14 +32,24 @@ const PASSTHROUGH_HEADERS = [
   "x-content-type-options",
   "cache-control",
   "referrer-policy",
+  // Ties an admin-reported problem to the API log line and the audit row.
+  "x-request-id",
 ];
 
-export async function GET(_req: NextRequest, props: { params: Promise<{ id: string }> }): Promise<Response> {
+export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }): Promise<Response> {
   const params = await props.params;
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
 
+  /* The signed link's two parameters, and nothing else, are forwarded. The API
+     checks them (apps/api/src/lib/doc-links.ts); this route still decides nothing. */
+  const link = new URLSearchParams();
+  for (const k of ["exp", "sig"]) {
+    const v = req.nextUrl.searchParams.get(k);
+    if (v) link.set(k, v);
+  }
+
   const upstream = await fetch(
-    `${API_URL}/admin/doc/${encodeURIComponent(params.id)}`,
+    `${API_URL}/admin/doc/${encodeURIComponent(params.id)}${link.size ? `?${link}` : ""}`,
     {
       headers: token ? { cookie: `${SESSION_COOKIE}=${token}` } : {},
       cache: "no-store",

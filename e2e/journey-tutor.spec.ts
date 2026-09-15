@@ -5,6 +5,7 @@ import { email, seedAdmin, seedProfile } from "./support/seed";
 import { recoverOtp, resetRateLimits } from "./support/otp";
 import { mintSession } from "./support/session";
 import { e2eStore } from "./support/store";
+import { openForE2E } from "./support/doc-crypto";
 import { api, contextAs, specimenIdPng, notificationBodies } from "./support/journey";
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -75,7 +76,12 @@ test("tutor journey: signup → storefront → ID → approved → class → boo
     const [doc] = await sql<{ mime: string; storage_path: string }[]>`select mime, storage_path from verification_docs where tutor_id = ${tutorId}`;
     expect(doc.mime, "the stored type is the sniffed one").toBe("image/png");
     const stored = await e2eStore().get(doc.storage_path);
-    expect(stored?.equals(png), "the stored object is exactly what was uploaded").toBe(true);
+    if (!stored) throw new Error("nothing stored for the uploaded ID");
+    /* ENCRYPTED AT REST: the object is sealed, holds no run of the scan, and opens
+       back to exactly what was uploaded — with the key, and only with it. */
+    expect(stored.subarray(0, 5).toString("ascii"), "the stored object is sealed").toBe("TNJE1");
+    expect(stored.indexOf(png.subarray(0, 32)), "no plaintext of the scan in storage").toBe(-1);
+    expect(openForE2E(doc.storage_path, stored).equals(png), "it opens to exactly the uploaded bytes").toBe(true);
   });
 
   await test.step("an admin approves; the tutor is told", async () => {

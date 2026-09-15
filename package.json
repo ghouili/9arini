@@ -21,6 +21,7 @@
     "db:check": "npm run db:check -w @tnajem/db --",
     "db:backup": "npm run db:backup -w @tnajem/db --",
     "db:restore": "npm run db:restore -w @tnajem/db --",
+    "db:encrypt-docs": "npm run db:encrypt-docs -w @tnajem/db --",
     "verify": "npm run typecheck && npm run lint && node tools/ui-audit/contrast.mjs && node tools/ui-audit/guardrails.mjs",
     "db:purge": "npm run db:purge -w @tnajem/db --",
     "db:seed": "npm run db:seed -w @tnajem/db --",

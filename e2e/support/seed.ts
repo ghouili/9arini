@@ -8,6 +8,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { sql } from "./db";
 import { RUN_ID } from "./env";
 import { e2eStore } from "./store";
+import { sealForE2E } from "./doc-crypto";
 
 /* Uniqueness must not depend on a counter. globalSetup runs in its OWN process,
    so process.env.E2E_RUN_ID does not reach the workers, and a per-process counter
@@ -148,7 +149,8 @@ export async function seedVerificationDoc(tutorId: string): Promise<{ id: string
   );
   const fileName = "id_front-e2e.png";
   const key = `verification/${tutorId}/${fileName}`;
-  await e2eStore().put(key, png);
+  // Sealed, as every document the API writes is (packages/db/src/doc-crypto.ts).
+  await e2eStore().put(key, sealForE2E(key, png));
 
   const [row] = await sql<{ id: string }[]>`
     insert into verification_docs (id, tutor_id, kind, file_name, storage_path, mime, size_bytes)

@@ -18,6 +18,8 @@ export {
   storageBase, storageKey, localStore, s3Store, s3ConfigFromEnv, objectStore, storageDriverName, describeS3Error, STORAGE_DRIVERS,
 } from "./storage";
 export type { ObjectStore, StoredObject, S3Config } from "./storage";
+export { sealDoc, openDoc, isSealedDoc, docEncryptionConfigured, DocCryptoError, __resetDocKeyCache } from "./doc-crypto";
+export type { OpenedDoc } from "./doc-crypto";
 
 export { notify, REMINDER_CADENCE } from "./notify";
 export type { NotifyInput, NotifyDb, ReminderStep, ReminderPayload } from "./notify";

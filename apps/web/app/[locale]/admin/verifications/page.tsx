@@ -338,9 +338,9 @@ export default function AdminVerificationsPage() {
                             return (
                               <a
                                 key={d.id}
-                                href={`/api/admin/doc/${d.id}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                                href={d.url}
+                                /* No new tab: the document downloads (Content-Disposition:
+                                   attachment), and a tab would open empty. */
                                 title={d.fileName}
                                 className={`av-doc${required ? " av-doc-req" : ""}`}
                               >

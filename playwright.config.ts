@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 import { resolve } from "node:path";
-import "./e2e/support/env";
+import { E2E_DOC_KEY } from "./e2e/support/env";
 
 const BASE = process.env.E2E_BASE_URL ?? "http://localhost:3210";
 
@@ -56,6 +56,8 @@ export default defineConfig({
         /* EXPLICIT. The API treats an unset NODE_ENV as production, and this suite
            relies on development behaviour (no mail provider, dev trust of loopback). */
         NODE_ENV: "development",
+        // Test-only key (e2e/support/env.ts): seeded documents are sealed with it.
+        DOC_ENCRYPTION_KEY: E2E_DOC_KEY,
         API_PORT: "4000",
         STORAGE_DIR: resolve(process.env.E2E_STORAGE_DIR ?? ".e2e-storage"),
         ADMIN_EMAILS: "e2e-admin@tnajem.invalid",

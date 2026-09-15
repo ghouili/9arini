@@ -22,6 +22,11 @@ export const API_URL = process.env.E2E_API_URL ?? "";
 
 export const AUTH_SECRET = process.env.AUTH_SECRET ?? "";
 
+/* The document-encryption key of the API the suite starts. TEST-ONLY and public on
+   purpose: it protects nothing but fixtures, and the specs need it to seal seeded
+   documents and to read back what the API stored. Never use it anywhere else. */
+export const E2E_DOC_KEY = process.env.E2E_DOC_ENCRYPTION_KEY ?? "6d1a38b62351d421eeaf1d35fd3bd016876b34d301d1921c9cfe69583d171cff";
+
 /** Every seeded row carries this, so teardown can find them and nothing else. */
 export const RUN_ID = process.env.E2E_RUN_ID ?? "local";
 
