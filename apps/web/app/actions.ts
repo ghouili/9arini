@@ -10,7 +10,7 @@ import { revalidateTutor, revalidatePublicTutors } from "@/lib/cache";
 import { call, callAnonymous, callMultipart } from "@/lib/api";
 import { demoFallback } from "@/lib/backend";
 import { paymentsEnabled, tutorBalanceTnd } from "@tnajem/shared/payments";
-import { liveRoomUrl, resolveMeetUrl } from "@tnajem/shared/live";
+import { liveRoomUrl } from "@tnajem/shared/live";
 import {
   vText, vOptionalText, vInt, vPrice, vFutureDate, vOptionalUrl, vSlug, vRating, vPhone,
   vUuid, isUuid, safeFileName, vBirthYear, isMinorBirthYear, vOptionalPhone,
@@ -768,7 +768,7 @@ export async function canJoinClass(classId: string): Promise<{
      URL — demoFallback is false there, so this falls through to the API. */
   if (demoFallback) {
     return demoEnabled
-      ? { canJoin: true, role: "student", meetUrl: liveRoomUrl(classId) }
+      ? { canJoin: true, role: "student", meetUrl: liveRoomUrl(`demo-${classId}`) } // demo only: no token exists
       : { canJoin: false, reason: "not-found" };
   }
   // PORTED to apps/api (GET /classes/:id/join).

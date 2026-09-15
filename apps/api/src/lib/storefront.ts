@@ -69,10 +69,10 @@ export async function getStorefrontData(slug: string): Promise<Storefront | null
       seats_left: Math.max(0, (c.seats ?? 0) - (c.seatsTaken ?? 0)),
       // EFFECTIVE. The tutor's opt-in is the master switch — see isEffectivelyFreeFirst.
       is_free_first: isEffectivelyFreeFirst(t.offersFreeFirstSession, c.isFreeFirst),
-      meet_url: c.meetUrl ?? undefined,
-      whiteboard_url: c.whiteboardUrl ?? undefined,
-      quiz_url: c.quizUrl ?? undefined,
-      replay_url: c.replayUrl ?? undefined,
+      /* NO ROOM LINKS. This payload is anonymous and feeds an ISR-cached public
+         page; it used to carry the tutor's own meet/whiteboard/quiz/replay URLs to
+         anyone who opened the storefront. They ship only from GET /classes/:id and
+         /classes/:id/join, to the owning tutor or a student with a live booking. */
       status: c.status ?? "scheduled",
     };
   };

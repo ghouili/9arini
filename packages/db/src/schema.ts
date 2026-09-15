@@ -227,6 +227,9 @@ export const classes = pgTable("classes", {
      this is the whole rule; a per-booking flag would need writing to every row on
      every reschedule and would drift the first time one write failed. */
   rescheduledAt: timestamp("rescheduled_at", { withTimezone: true }),
+  /* The private name of this class's fallback live room (0018). Never on a public
+     page — see packages/shared/src/live.ts. Unique index in the SQL file. */
+  roomToken: uuid("room_token").notNull().defaultRandom(),
   meetUrl: text("meet_url"),
   whiteboardUrl: text("whiteboard_url"),
   quizUrl: text("quiz_url"),

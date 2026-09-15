@@ -380,6 +380,7 @@ export async function bookingRoutes(app: FastifyInstance): Promise<void> {
         title: classes.title,
         scheduledAt: classes.scheduledAt,
         status: classes.status,
+        roomToken: classes.roomToken,
         meetUrl: classes.meetUrl,
         replayUrl: classes.replayUrl,
         tutorName: tutors.fullName,
@@ -406,8 +407,9 @@ export async function bookingRoutes(app: FastifyInstance): Promise<void> {
         ts: d.getTime(),
         isFree: Boolean(r.isFree),
         status: r.status ?? "scheduled",
-        // Never blank: falls back to the room derived from the class id.
-        meetUrl: resolveMeetUrl({ id: r.classId, meetUrl: r.meetUrl }),
+        // Never blank: falls back to the class's private token room. This list is the
+        // student's own live bookings, so the room is theirs to have.
+        meetUrl: resolveMeetUrl({ roomToken: r.roomToken, meetUrl: r.meetUrl }),
         replayUrl: r.replayUrl ?? undefined,
       };
     });

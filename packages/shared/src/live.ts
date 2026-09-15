@@ -1,26 +1,32 @@
-/* Live class rooms — deterministic, never blank.
+/* Live class rooms — never blank, never guessable.
 
-   The old flow only worked if a tutor pasted a meet URL when creating the class;
-   leave it empty and the student's "Rejoindre" button pointed at nothing. Now a
-   room always exists: it's derived from the class id, so tutor and student
-   compute the exact same URL without any row being written.
+   A room always exists: a class without its own URL gets a Jitsi room named after
+   its ROOM TOKEN (classes.room_token, a random UUID — 0018_class_room_token.sql).
+   It used to be named after the class id, which is printed on every public
+   storefront (/class/<id>), so anyone could build the room URL of a live class
+   without the API. The token is never on a public page: it reaches only the owning
+   tutor or a student with a live booking (GET /classes/:id, /classes/:id/join,
+   /student/dashboard).
 
    A tutor CAN still bring their own room (Zoom, Google Meet, their school's
-   Jitsi) by setting classes.meet_url — that always wins.
+   Jitsi) by setting classes.meet_url — that always wins, and it is just as private.
+
+   Residual risk: a meet.jit.si room has no authentication — whoever holds the link
+   is in. Gating that for real needs a JWT-protected Jitsi (JaaS or self-hosted).
 
    Uses a NEXT_PUBLIC_ env var only, so this module is safe on the client too
    (no `server-only` guard on purpose — the live page renders the join button). */
 
 const DEFAULT_BASE = "https://meet.jit.si/tnajem-";
 
-/** The fallback room for a class: same id → same room, forever. */
-export function liveRoomUrl(classId: string): string {
+/** The fallback room for a class, from its private room token. */
+export function liveRoomUrl(roomToken: string): string {
   const base = process.env.NEXT_PUBLIC_DEFAULT_MEET_BASE ?? DEFAULT_BASE;
-  return base + classId;
+  return base + roomToken;
 }
 
-/** Resolve the room a class actually uses: the tutor's own URL if set, else the derived one. */
-export function resolveMeetUrl(cls: { id: string; meetUrl?: string | null; meet_url?: string | null }): string {
-  const own = (cls.meetUrl ?? cls.meet_url ?? "").trim();
-  return own || liveRoomUrl(cls.id);
+/** Resolve the room a class actually uses: the tutor's own URL if set, else its token room. */
+export function resolveMeetUrl(cls: { roomToken: string; meetUrl?: string | null }): string {
+  const own = (cls.meetUrl ?? "").trim();
+  return own || liveRoomUrl(cls.roomToken);
 }
