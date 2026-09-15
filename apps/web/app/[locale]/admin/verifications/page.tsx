@@ -16,6 +16,7 @@ const copy = bilingual({
   fr: {
     eyebrow: "ADMIN",
     title: "Vérifications en attente",
+    toAccounts: "Bloquer ou débloquer un compte",
     count: (n: number) => (n === 1 ? "1 demande" : `${n} demandes`),
     loading: "Chargement des demandes…",
     deniedTitle: "Accès réservé",
@@ -38,7 +39,11 @@ const copy = bilingual({
     openDoc: "Ouvrir",
     approve: "Approuver",
     reject: "Refuser",
-    notePlaceholder: "Motif du refus (optionnel)",
+    notePlaceholder: "Motif du refus — le prof le lira",
+    noteRequired: "Écris le motif du refus (5 caractères minimum) : le prof doit savoir quoi corriger.",
+    noteTooLong: "Le motif ne peut pas dépasser 500 caractères.",
+    notPending: "Cette demande a déjà été traitée.",
+    selfDecision: "Tu ne peux pas décider de ton propre dossier.",
     approved: "Tuteur approuvé ✓",
     rejected: "Demande refusée",
     error: "Une erreur s'est produite. Réessaie.",
@@ -46,6 +51,7 @@ const copy = bilingual({
   ar: {
     eyebrow: "أدمين",
     title: "الطلبات اللي تستنّى",
+    toAccounts: "احظر ولا نحّي الحظر على حساب",
     count: (n: number) => (n === 1 ? "طلب واحد" : `${n} طلبات`),
     loading: "قاعدين نحمّلو الطلبات…",
     deniedTitle: "الدخول محجوز",
@@ -68,7 +74,11 @@ const copy = bilingual({
     openDoc: "حلّ",
     approve: "اقبل",
     reject: "ارفض",
-    notePlaceholder: "سبب الرفض (اختياري)",
+    notePlaceholder: "سبب الرفض — المعلّم باش يقراه",
+    noteRequired: "اكتب سبب الرفض (5 حروف على الأقل) : المعلّم لازم يعرف شنوّة يصلّح.",
+    noteTooLong: "السبب ما ينجّمش يفوت 500 حرف.",
+    notPending: "الطلب هذا تعالج قبل.",
+    selfDecision: "ما تنجّمش تقرّر في ملفّك إنت.",
     approved: "المعلّم تقبل ✓",
     rejected: "الطلب تنرفض",
     error: "صار مشكل. عاود.",
@@ -145,7 +155,7 @@ export default function AdminVerificationsPage() {
       setItems((list) => list.filter((t) => t.tutorId !== tutorId));
       showToast(c.approved);
     } else {
-      showToast(c.error);
+      showToast(refusalMessage(res.error));
       setBusy((b) => {
         const next = { ...b };
         delete next[tutorId];
@@ -154,14 +164,31 @@ export default function AdminVerificationsPage() {
     }
   }
 
+  /* The server's refusal, in words an admin can act on. A generic "error" used to
+     cover "already decided by someone else" and "you forgot the reason" alike. */
+  function refusalMessage(code: string | undefined): string {
+    switch (code) {
+      case "note-required": return c.noteRequired;
+      case "note-too-long": return c.noteTooLong;
+      case "not-pending": return c.notPending;
+      case "self-approval-forbidden": return c.selfDecision;
+      default: return c.error;
+    }
+  }
+
   async function handleReject(tutorId: string) {
+    const note = notes[tutorId]?.trim() ?? "";
+    if (note.length < 5) {
+      showToast(c.noteRequired);
+      return;
+    }
     setBusy((b) => ({ ...b, [tutorId]: "reject" }));
-    const res = await rejectTutor({ tutorId, note: notes[tutorId]?.trim() || undefined });
+    const res = await rejectTutor({ tutorId, note });
     if (res.ok) {
       setItems((list) => list.filter((t) => t.tutorId !== tutorId));
       showToast(c.rejected);
     } else {
-      showToast(c.error);
+      showToast(refusalMessage(res.error));
       setBusy((b) => {
         const next = { ...b };
         delete next[tutorId];
@@ -187,6 +214,11 @@ export default function AdminVerificationsPage() {
                 <Users className="w-[15px] h-[15px]" />
                 {c.count(items.length)}
               </div>
+            )}
+            {!loading && admin && (
+              <p className="mt-2.5">
+                <Link href="/admin/accounts" className="linklike">{c.toAccounts}</Link>
+              </p>
             )}
           </div>
 
@@ -371,6 +403,9 @@ export default function AdminVerificationsPage() {
                             }
                             placeholder={c.notePlaceholder}
                             aria-label={c.notePlaceholder}
+                            required
+                            minLength={5}
+                            maxLength={500}
                             disabled={disabled}
                           />
                         </label>

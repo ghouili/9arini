@@ -3,7 +3,7 @@ import { z } from "zod";
 import { mkdir, writeFile, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
-  eq, inArray, sql as raw,
+  and, eq, inArray, sql as raw,
   tutors, verificationDocs, notify,
   storageBase, resolveDocPath,
 } from "@tnajem/db";
@@ -12,8 +12,8 @@ import { docKind } from "@tnajem/db";
 /** The enum values, derived from the schema rather than re-typed. */
 type DocKind = (typeof docKind.enumValues)[number];
 import {
-  vUuid, vOptionalText, vOptionalUrl, safeFileName, isUuid,
-  adminNotifyEmails,
+  vUuid, vText, vOptionalText, vOptionalUrl, safeFileName, isUuid,
+  adminNotifyEmails, sniffMime,
   type PendingTutor, type TutorVerification,
 } from "@tnajem/shared";
 import { mailEnabled, sendMail } from "@tnajem/shared/mail";
@@ -21,6 +21,7 @@ import { db } from "../db";
 import { getSession } from "../lib/session";
 import { requireAdmin } from "../lib/admin";
 import { checkRateLimit } from "../lib/rate-limit";
+import { auditAdmin } from "../lib/audit";
 
 /* uploads + admin — the most sensitive surface in the product. These endpoints
    accept, store and stream Tunisian national ID cards.
@@ -42,31 +43,10 @@ const DOC_FIELDS: { field: string; kind: DocKind; required?: boolean }[] = [
   { field: "roleProof", kind: "role_proof" },
 ];
 
-/* Content sniffing. `File.type` is the Content-Type the CLIENT chose, so it is a
-   claim, not a fact — an .exe renamed to .pdf announces application/pdf. These are
-   the magic bytes actually on disk. The SNIFFED type is what gets stored; the
-   client's claim is never persisted. */
-function sniffMime(buf: Buffer): string | null {
-  if (buf.length < 12) return null;
-  if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return "image/jpeg";
-  if (
-    buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47 &&
-    buf[4] === 0x0d && buf[5] === 0x0a && buf[6] === 0x1a && buf[7] === 0x0a
-  ) return "image/png";
-  if (buf.subarray(0, 5).toString("latin1") === "%PDF-") return "application/pdf";
-  if (
-    buf.subarray(0, 4).toString("latin1") === "RIFF" &&
-    buf.subarray(8, 12).toString("latin1") === "WEBP"
-  ) return "image/webp";
-  // ISO-BMFF (HEIC/HEIF): bytes 4..8 = "ftyp", brand at 8..12
-  if (buf.subarray(4, 8).toString("latin1") === "ftyp") {
-    const brand = buf.subarray(8, 12).toString("latin1");
-    if (["heic", "heix", "hevc", "heim", "heis", "hevm", "mif1", "msf1"].includes(brand)) {
-      return "image/heic";
-    }
-  }
-  return null;
-}
+/* Content sniffing lives in ONE place: packages/shared/src/uploads.ts (sniffMime),
+   shared with materials and avatars and unit-tested there. This file used to carry
+   a second copy of it with no test of its own. `File.type` is the client's claim;
+   the SNIFFED type is what gets stored. */
 
 /* Content-Type allow-list for the READ path. Anything not on it is served as
    application/octet-stream + attachment, so an unexpected byte stream can never be
@@ -75,6 +55,8 @@ const SAFE_MIME = /^(image\/(jpeg|png|webp|heic|heif)|application\/pdf)$/;
 
 const tutorIdBody = z.object({ tutorId: z.string() });
 const rejectBody = z.object({ tutorId: z.string(), note: z.string().optional() });
+/** A refusal reason the tutor will read in their notification. */
+const REJECT_NOTE_MIN = 5;
 
 export async function adminRoutes(app: FastifyInstance): Promise<void> {
   /* ── POST /verification (multipart) ──────────────────────────────────────── */
@@ -367,14 +349,17 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     if (t.profileId && t.profileId === session.profile.id) {
       return { ok: false, error: "self-approval-forbidden" };
     }
-    // Only a SUBMITTED application can be approved — otherwise a draft tutor who
-    // never uploaded an ID could be waved through by a misclick.
-    if (t.status !== "pending") return { ok: false, error: "not-pending" };
-
-    await db
+    /* Only a SUBMITTED application can be approved — otherwise a draft tutor who
+       never uploaded an ID could be waved through by a misclick. The status is
+       re-checked IN the UPDATE: two admins deciding the same application at once
+       used to both "win", the second silently overwriting the first decision. */
+    const [decided] = await db
       .update(tutors)
       .set({ status: "verified", verified: true, reviewedAt: new Date(), reviewNote: null })
-      .where(eq(tutors.id, tutorId.value));
+      .where(and(eq(tutors.id, tutorId.value), eq(tutors.status, "pending")))
+      .returning({ id: tutors.id });
+    if (!decided) return { ok: false, error: "not-pending" };
+    await auditAdmin(session.profile.id, "verification.approve", { kind: "tutor", id: t.id });
 
     if (t.profileId) {
       await notify(db, t.profileId, {
@@ -400,26 +385,39 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     const session = await requireAdmin(req);
     if (!session) return { ok: false, error: "forbidden" };
 
-    const note = vOptionalText(parsed.data.note, { field: "note", max: 500 });
-    if (!note.ok) return { ok: false, error: note.error };
+    /* A REASON IS REQUIRED. The tutor reads it in their notification and has to
+       act on it; "your application was not validated" with nothing to fix is a
+       dead end, and an unexplained refusal is not something we can stand behind. */
+    const note = vText(parsed.data.note, { field: "note", max: 500, min: REJECT_NOTE_MIN });
+    if (!note.ok) return { ok: false, error: note.error === "note-too-long" ? "note-too-long" : "note-required" };
     const tutorId = vUuid(parsed.data.tutorId, { field: "tutor" });
     if (!tutorId.ok) return { ok: false, error: "not-found" };
 
     const [t] = await db.select().from(tutors).where(eq(tutors.id, tutorId.value)).limit(1);
     if (!t) return { ok: false, error: "not-found" };
+    if (t.profileId && t.profileId === session.profile.id) {
+      return { ok: false, error: "self-approval-forbidden" };
+    }
 
-    await db
+    /* PENDING ONLY. This used to take any tutor, so "reject" doubled as an
+       undocumented way to un-verify a live tutor — no reason required, no audit
+       row, their bookings untouched. Taking a verified tutor down is an account
+       block (routes/admin-accounts.ts), which says what happens to their classes. */
+    const [decided] = await db
       .update(tutors)
       .set({ status: "rejected", verified: false, reviewedAt: new Date(), reviewNote: note.value })
-      .where(eq(tutors.id, tutorId.value));
+      .where(and(eq(tutors.id, tutorId.value), eq(tutors.status, "pending")))
+      .returning({ id: tutors.id });
+    if (!decided) return { ok: false, error: "not-pending" };
+    /* The reason stays in tutors.review_note; the audit row records the decision,
+       not a second copy of text written about a person. */
+    await auditAdmin(session.profile.id, "verification.reject", { kind: "tutor", id: t.id });
 
     if (t.profileId) {
       await notify(db, t.profileId, {
         kind: "verification_rejected",
         title: "Dossier à compléter",
-        body: note.value
-          ? `Ton dossier n'a pas été validé : ${note.value}. Tu peux corriger et renvoyer.`
-          : "Ton dossier n'a pas été validé. Vérifie tes documents et renvoie ta demande.",
+        body: `Ton dossier n'a pas été validé : ${note.value}. Tu peux corriger et renvoyer.`,
         href: "/onboarding/verify",
         sms: "Tnajem : ton dossier de vérification doit être complété. Détails dans ton espace prof.",
       });
