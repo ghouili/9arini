@@ -125,13 +125,13 @@ export function assertBootConfig(): void {
      would otherwise surface as a tutor whose ID scan failed to save. Resolving it
      makes no network call, so boot does not depend on the bucket being up;
      db:check proves the round-trip. The messages name keys, never values. */
+  let storageProblem: string | null = null;
   try {
     objectStore();
   } catch (e) {
-    missing.push(`storage: ${(e as Error).message}`);
+    storageProblem = (e as Error).message.replace(/\.$/, "");
   }
-  if (missing.length) {
-    console.error(`[tnajem-api] FATAL CONFIG: missing ${missing.join(", ")}. Refusing to start.`);
-    process.exit(1);
-  }
+  if (missing.length) console.error(`[tnajem-api] FATAL CONFIG: missing ${missing.join(", ")}. Refusing to start.`);
+  if (storageProblem) console.error(`[tnajem-api] FATAL CONFIG: storage — ${storageProblem}. Refusing to start.`);
+  if (missing.length || storageProblem) process.exit(1);
 }
