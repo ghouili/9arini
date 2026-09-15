@@ -1,5 +1,5 @@
 import { randomInt } from "node:crypto";
-import { desc, eq, otpCodes, sql as raw } from "@tnajem/db";
+import { and, eq, otpCodes, sql as raw } from "@tnajem/db";
 import {
   hashOtpCode,
   safeEq,
@@ -64,29 +64,43 @@ export async function createOtp(identifier: string): Promise<string | null> {
   });
 }
 
-/** Verify and CONSUME a code. Deletes the row on success, so a code is single-use. */
-export async function verifyOtpCode(identifier: string, code: string): Promise<boolean> {
-  const [row] = await db
-    .select()
-    .from(otpCodes)
-    .where(eq(otpCodes.identifier, identifier))
-    .orderBy(desc(otpCodes.createdAt))
-    .limit(1);
-  if (!row) return false;
-  if (new Date(row.expiresAt) < new Date()) return false;
-  if ((row.attempts ?? 0) >= MAX_ATTEMPTS) return false;
+/** Verify and CONSUME a code: true for exactly one caller, however many race.
 
-  const ok = safeEq(row.codeHash, hashOtpCode(identifier, code));
-  if (!ok) {
-    /* Increment in SQL, not from the value we read. Two concurrent wrong guesses
-       would otherwise both write attempts = n+1 and only cost the attacker one
-       try against a 5-guess budget. */
-    await db
-      .update(otpCodes)
-      .set({ attempts: raw`coalesce(${otpCodes.attempts}, 0) + 1` })
-      .where(eq(otpCodes.id, row.id));
-    return false;
-  }
-  await db.delete(otpCodes).where(eq(otpCodes.identifier, identifier));
-  return true;
+    ── WHY IT IS TWO ATOMIC STATEMENTS ───────────────────────────────────────
+    It used to read the row, compare, then update or delete. Under concurrency
+    that was two holes (both measured by e2e/otp-race.spec.ts):
+      • parallel CORRECT verifies all passed the read before the delete landed,
+        so one code minted several sessions — and a first-time signup inserted
+        the same profile twice and answered 500;
+      • parallel WRONG guesses all read attempts < 5 before any increment
+        landed, so the 5-guess budget did not bind a burst.
+
+    1. RESERVE AN ATTEMPT in one UPDATE … WHERE attempts < MAX AND not expired.
+       Concurrent updaters of the row queue on its lock and each re-checks the
+       WHERE against the committed value, so at most MAX_ATTEMPTS reservations
+       ever succeed — right guesses count too, as they always did.
+    2. On a match, DELETE … RETURNING. Only the caller whose delete actually
+       removed the row wins; a second correct guess finds nothing to delete. */
+export async function verifyOtpCode(identifier: string, code: string): Promise<boolean> {
+  const reserved = await db
+    .update(otpCodes)
+    .set({ attempts: raw`coalesce(${otpCodes.attempts}, 0) + 1` })
+    .where(
+      and(
+        eq(otpCodes.identifier, identifier),
+        raw`coalesce(${otpCodes.attempts}, 0) < ${MAX_ATTEMPTS}`,
+        raw`${otpCodes.expiresAt} > now()`,
+      ),
+    )
+    .returning({ id: otpCodes.id, codeHash: otpCodes.codeHash });
+
+  const expected = hashOtpCode(identifier, code);
+  const match = reserved.find((r) => safeEq(r.codeHash, expected));
+  if (!match) return false;
+
+  const consumed = await db
+    .delete(otpCodes)
+    .where(eq(otpCodes.identifier, identifier))
+    .returning({ id: otpCodes.id });
+  return consumed.some((r) => r.id === match.id);
 }

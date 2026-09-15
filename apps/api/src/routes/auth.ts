@@ -210,11 +210,21 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       // the user supplies it — the phone is an optional CONTACT collected during
       // onboarding, not a login credential.
       const identity = channel === "email" ? { email: id } : { phone: id };
-      [profile] = await db
+      /* ON CONFLICT DO NOTHING, then read. A concurrent request that also owns this
+         identity may have created the profile a moment ago; the unique index turns
+         that into a no-op here instead of an unhandled 500 (it used to be one). */
+      const [inserted] = await db
         .insert(profiles)
         .values({ ...identity, role: requestedRole, locale, birthYear })
+        .onConflictDoNothing()
         .returning();
-      created = true;
+      if (inserted) {
+        profile = inserted;
+        created = true;
+      } else {
+        [profile] = await db.select().from(profiles).where(eq(idColumn, id)).limit(1);
+        if (!profile) return { ok: false, error: "invalid-code" };
+      }
     } else if (profile.role === "student" && profile.birthYear == null && birthYear != null) {
       /* One-time fill of an UNKNOWN age: lets a student who predates this field
          set it. Never overwrites a known value, so a minor cannot re-auth
