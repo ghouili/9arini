@@ -1,9 +1,7 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { timingSafeEqual } from "node:crypto";
-import { purgeExpiredVerificationDocs, purgeExpiredAuthRows } from "@tnajem/db";
+import { runRetention } from "@tnajem/db";
 import { db } from "../db";
-import { purgeDeletedAccounts } from "./moderation";
-import { expireSubscriptions } from "../lib/entitlements";
 
 /* The retention purge, moved from apps/web/app/api/cron/purge.
 
@@ -43,41 +41,36 @@ export async function cronRoutes(app: FastifyInstance): Promise<void> {
 
     const dryRun = req.query?.dryRun === "1";
 
-    /* The two jobs run INDEPENDENTLY: a failure purging documents must not stop
-       expired sessions and OTP codes being swept, and vice versa. */
-    const docs = await purgeExpiredVerificationDocs(db, { dryRun });
-    const authRows = await purgeExpiredAuthRows(db, { dryRun });
-    /* Step 15. Third INDEPENDENT job, same reason as the first two: an account
-       whose 30-day grace has expired must be erased even if the document purge
-       fails, and vice versa. */
-    const accounts = await purgeDeletedAccounts(db, { dryRun });
-    /* Step 16. FOURTH independent job. It is bookkeeping, not enforcement: the
-       entitlement resolver already treats a past expiry as dead, so a night this
-       does not run costs nobody an entitlement they paid for and gives nobody one
-       they did not. What it settles is the table — freeing the partial unique
-       index and keeping an admin from being shown an "active" row that ran out
-       in March. */
-    const subs = await expireSubscriptions(db, { dryRun });
+    /* THE SAME RUN AS `npm run db:purge` (packages/db/src/retention.ts::runRetention):
+       four independent jobs — ID documents past the window, expired auth rows,
+       accounts past their deletion grace, expired subscriptions. One failing never
+       stops the others. Per-document lines (ids only, never file names) go to the
+       server log; they used to be promised there and never written. */
+    const run = await runRetention(db, { dryRun, log: (line) => req.log.info({ job: "retention" }, line) });
+    const docs = run.documents;
 
-    /* COUNTS ONLY in the response body. docs.removed[] carries tutor and document
-       ids; that stays in the server log and never crosses the wire — this
-       endpoint is reachable by anyone holding the bearer token, and the ids are a
-       map of who uploaded what. */
+    /* COUNTS ONLY in the response body. The removed-document list carries tutor and
+       document ids; that stays in the server log and never crosses the wire. */
+    const failed = run.failedJobs.length > 0 || (docs?.errors.length ?? 0) > 0;
     const body = {
-      ok: docs.errors.length === 0,
+      ok: !failed,
       dryRun,
-      documents: {
-        tutorsAffected: docs.tutorsAffected,
-        docsDeleted: docs.docsDeleted,
-        filesDeleted: docs.filesDeleted,
-        filesMissing: docs.filesMissing,
-        errors: docs.errors.length,
-      },
-      auth: authRows,
-      accounts,
-      subscriptions: subs,
+      documents: docs
+        ? {
+            tutorsAffected: docs.tutorsAffected,
+            docsDeleted: docs.docsDeleted,
+            filesDeleted: docs.filesDeleted,
+            filesMissing: docs.filesMissing,
+            errors: docs.errors.length,
+          }
+        : null,
+      auth: run.auth,
+      accounts: run.accounts,
+      subscriptions: run.subscriptions,
+      failedJobs: run.failedJobs.map((f) => f.job),
     };
-    return reply.code(docs.errors.length ? 500 : 200).send(body);
+    if (failed) req.log.error({ failedJobs: run.failedJobs.map((f) => f.job), documentErrors: docs?.errors.length ?? 0 }, "retention purge had failures");
+    return reply.code(failed ? 500 : 200).send(body);
   };
 
   // GET and POST both: cron runners differ, and the job is idempotent either way.

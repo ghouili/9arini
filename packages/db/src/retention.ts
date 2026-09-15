@@ -31,7 +31,7 @@ import { join } from "node:path";
    agreed only because all three happened to run with the same cwd. */
 import { storageBase, resolveDocPath } from "./storage";
 export { storageBase };
-import { otpCodes, rateLimits, sessions, tutors, verificationDocs } from "./schema";
+import { otpCodes, profiles, rateLimits, sessions, subscriptions, tutors, verificationDocs } from "./schema";
 
 export const RETENTION_DAYS = 90;
 
@@ -302,4 +302,123 @@ export async function purgeExpiredAuthRows(
       `rate_limits=${res.rateLimitsDeleted}`,
   );
   return res;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   JOBS 3 AND 4 — moved here from apps/api so the CLI can run them too.
+
+   `npm run db:purge` used to run jobs 1 and 2 only, while POST /cron/purge ran all
+   four — and DEPLOY.md and .env.example said "run EITHER". A host that chose the
+   CLI never erased an account whose deletion grace had expired, and /privacy
+   promises that erasure. Both entry points now call runRetention() below.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/** Days between "supprimer mon compte" and the erasure (Step 15). */
+export const DELETION_GRACE_DAYS = 30;
+
+/* THE ACCOUNT PURGE (Step 15). A hard DELETE of the profile row; everything that
+   hangs off it goes by the foreign keys — which is exactly why 0016 rebuilt two:
+     reviews.student_id       SET NULL, so the review survives WITHOUT its author;
+     cancellations.booking_id SET NULL, so the money ledger survives.
+   Sessions, notifications, consents, guardian links, bookings and the profile
+   itself (e-mail, phone) go. */
+export async function purgeDeletedAccounts(
+  db: PurgeDb,
+  opts: { dryRun?: boolean; log?: (line: string) => void } = {},
+): Promise<{ due: number; purged: number }> {
+  const log = opts.log ?? (() => {});
+  const due: { id: string }[] = await db
+    .select({ id: profiles.id })
+    .from(profiles)
+    .where(
+      and(
+        eq(profiles.deletionStatus, "requested"),
+        sql`${profiles.deletionRequestedAt} < now() - (${DELETION_GRACE_DAYS} * interval '1 day')`,
+      ),
+    )
+    .limit(500);
+
+  if (opts.dryRun || due.length === 0) {
+    log(`account-retention${opts.dryRun ? " (dry-run)" : ""}: due=${due.length}`);
+    return { due: due.length, purged: 0 };
+  }
+
+  let purged = 0;
+  for (const p of due) {
+    /* One at a time rather than a single DELETE … IN (…): a constraint failure on
+       one account must not abandon the rest. A failure leaves the row `requested`,
+       so it is simply due again tomorrow — and it is LOGGED (id only), because a
+       silently stuck erasure is a broken promise nobody sees. */
+    try {
+      await db.delete(profiles).where(eq(profiles.id, p.id));
+      purged += 1;
+    } catch (err) {
+      log(`account-retention: could not purge profile ${p.id} (${(err as { code?: string }).code ?? (err as Error).name})`);
+    }
+  }
+  log(`account-retention: due=${due.length} purged=${purged}`);
+  return { due: due.length, purged };
+}
+
+/* THE SUBSCRIPTION EXPIRY SWEEP (Step 16). Bookkeeping, not enforcement: the
+   entitlement resolver already treats a past expiry as dead. This flips the status
+   so the partial unique index frees up and an admin is not shown an "active" row
+   that ran out in March. */
+export async function expireSubscriptions(
+  db: PurgeDb,
+  opts: { dryRun?: boolean; log?: (line: string) => void } = {},
+): Promise<{ due: number; expired: number }> {
+  const log = opts.log ?? (() => {});
+  const where = and(
+    eq(subscriptions.status, "active"),
+    sql`${subscriptions.expiresAt} is not null and ${subscriptions.expiresAt} <= now()`,
+  );
+  const due: { id: string }[] = await db.select({ id: subscriptions.id }).from(subscriptions).where(where).limit(1000);
+  if (opts.dryRun || due.length === 0) {
+    log(`subscription-expiry${opts.dryRun ? " (dry-run)" : ""}: due=${due.length}`);
+    return { due: due.length, expired: 0 };
+  }
+  const res: { id: string }[] = await db.update(subscriptions).set({ status: "expired" }).where(where).returning({ id: subscriptions.id });
+  log(`subscription-expiry: expired=${res.length}`);
+  return { due: due.length, expired: res.length };
+}
+
+export type RetentionRun = {
+  dryRun: boolean;
+  documents: PurgeResult | null;
+  auth: AuthPurgeResult | null;
+  accounts: { due: number; purged: number } | null;
+  subscriptions: { due: number; expired: number } | null;
+  /** A job that THREW (as opposed to per-document errors inside job 1). */
+  failedJobs: { job: string; error: string }[];
+};
+
+/* THE ONE RETENTION RUN, for `npm run db:purge` and POST /cron/purge alike.
+
+   Four INDEPENDENT jobs: each is wrapped, so a failure in one (a missing
+   STORAGE_DIR, a locked table) never stops the others — an expired account is
+   erased even on the night the document store is unreachable. The caller decides
+   what a failure means (exit code, HTTP status); `failedJobs` says which. */
+export async function runRetention(
+  db: PurgeDb,
+  opts: { dryRun?: boolean; retentionDays?: number; log?: (line: string) => void } = {},
+): Promise<RetentionRun> {
+  const dryRun = opts.dryRun ?? false;
+  const log = opts.log;
+  const failedJobs: RetentionRun["failedJobs"] = [];
+  async function job<T>(name: string, run: () => Promise<T>): Promise<T | null> {
+    try {
+      return await run();
+    } catch (err) {
+      const error = `${(err as Error).name}: ${(err as Error).message}`.slice(0, 300);
+      failedJobs.push({ job: name, error });
+      log?.(`${name}: FAILED — ${error}`);
+      return null;
+    }
+  }
+  const documents = await job("documents", () => purgeExpiredVerificationDocs(db, { dryRun, retentionDays: opts.retentionDays, log }));
+  const auth = await job("auth", () => purgeExpiredAuthRows(db, { dryRun, log }));
+  const accounts = await job("accounts", () => purgeDeletedAccounts(db, { dryRun, log }));
+  const subs = await job("subscriptions", () => expireSubscriptions(db, { dryRun, log }));
+  return { dryRun, documents, auth, accounts, subscriptions: subs, failedJobs };
 }

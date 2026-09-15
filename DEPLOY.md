@@ -470,9 +470,13 @@ period must be honoured even if the document purge fails, and vice versa.
    status so the one-active-grant index frees up and an admin is not shown an
    "active" plan that ran out in March.
 
-`packages/db/src/retention.ts` implements the first two; `routes/moderation.ts` and
-`lib/entitlements.ts` the last two. The CLI and the HTTP route each run **all
-four**, and all four are idempotent, so overlapping runs are harmless. Pick **one**.
+All four live in `packages/db/src/retention.ts`, and **both entry points call the
+same `runRetention()`**: `npm run db:purge` and `POST /cron/purge` are one run. (Until
+15 Sept the CLI ran only the first two while this page said "pick either" — a host
+scheduling the CLI never erased a closed account.) Each job is wrapped, so one
+failing never stops the others; any failure makes the CLI exit **1** and the route
+answer **500** with the failed job names — alert on that. All four are idempotent,
+so overlapping runs are harmless. Pick **one**.
 
 > **The endpoint moved.** It used to be `POST /api/cron/purge` on the *web* app.
 > That route no longer exists — the web app owns no database. It is now
@@ -485,9 +489,10 @@ four**, and all four are idempotent, so overlapping runs are harmless. Pick **on
 `/cron/purge` accepts `GET` and `POST`, authenticates a `CRON_SECRET` bearer token
 in constant time, and **refuses to run (503) if `CRON_SECRET` is unset** — it will
 never expose an unauthenticated destructive endpoint. `?dryRun=1` previews without
-deleting. The response body carries **counts only**; the tutor and document ids stay
-in the server log, because anyone holding the token can call this and the ids are a
-map of who uploaded what.
+deleting. The response body carries **counts only** (and `failedJobs`); the per-job
+lines — document and tutor ids, never file names — go to the API log as
+`{"job":"retention", …}`, because anyone holding the token can call this and the ids
+are a map of who uploaded what.
 
 The API listens on loopback (§3, `API_HOST=127.0.0.1`), so the cron runs **on the
 box**:
@@ -505,7 +510,7 @@ Under docker compose: `docker compose exec api node -e "fetch('http://127.0.0.1:
 `/etc/systemd/system/tnajem-purge.service`:
 ```
 [Unit]
-Description=Tnajem — purge expired ID documents (INPDP, 90 days)
+Description=Tnajem — retention purge (ID documents, auth rows, closed accounts, expired plans)
 After=network.target postgresql.service
 [Service]
 Type=oneshot
@@ -531,6 +536,17 @@ npm run db:purge -- --dry-run                # confirm it finds what you expect
 ```
 **The trailing `--` is required.** `npm run db:purge --dry-run` swallows the flag
 and runs a **real purge** — that has already happened once here.
+
+### Option C — a PaaS scheduler (Render cron job, Railway cron, Fly machines)
+
+Run the CLI as the scheduled command, from the repo root, with the same environment
+as the API (`DATABASE_URL`, `STORAGE_DIR` on the same persistent volume):
+```
+npm run db:purge
+```
+It exits non-zero on any failure, which is what these schedulers alert on. If the
+scheduler cannot mount the storage volume, use Option A against the running API
+instead — a purge that cannot see the files would count every document "already gone".
 
 **Verify it actually ran** — check the log/journal after the first night. A purge cron
 that silently fails is indistinguishable from one you never wrote.

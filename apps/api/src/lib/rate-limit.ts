@@ -57,7 +57,10 @@ async function rateLimitDb(key: string, limit: number, windowMs: number): Promis
   try {
     const [row] = await db
       .insert(rateLimits)
-      .values({ key, count: 1, resetAt: new Date(Date.now() + windowMs) })
+      /* The DATABASE clock on the first insert too. It was new Date(Date.now()+…) —
+         the app clock — while the header promised skew-proof windows: two instances
+         a few seconds apart opened windows that ended at different times. */
+      .values({ key, count: 1, resetAt: raw`now() + ${windowMs} * interval '1 millisecond'` })
       .onConflictDoUpdate({
         target: rateLimits.key,
         set: {
@@ -77,7 +80,13 @@ async function rateLimitDb(key: string, limit: number, windowMs: number): Promis
     }
     return { ok: true, retryAfter: 0 };
   } catch (e) {
-    console.error("[tnajem-api] rate_limits upsert failed — falling back to in-process limiter", e);
+    /* The error CODE only. A driver error can echo the statement's parameters, and
+       a key is often an identity (otp:vfy:id:<email>) — this line bypasses pino's
+       redaction, so it must carry nothing personal. */
+    console.error(
+      "[tnajem-api] rate_limits upsert failed — falling back to in-process limiter:",
+      (e as { code?: string }).code ?? (e as Error).name,
+    );
     return rateLimitInProcess(key, limit, windowMs);
   }
 }

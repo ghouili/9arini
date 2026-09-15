@@ -6,31 +6,29 @@ loadEnv();
 
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { otpCodes, rateLimits, sessions, tutors, verificationDocs } from "../src/schema";
-import {
-  purgeExpiredAuthRows, purgeExpiredVerificationDocs, RETENTION_DAYS, storageBase,
-} from "../src/retention";
+import * as schema from "../src/schema";
+import { runRetention, RETENTION_DAYS, DELETION_GRACE_DAYS } from "../src/retention";
 
-/* Retention purge — CLI entry point. Runs TWO jobs:
+/* Retention purge — CLI entry point. THE SAME RUN AS POST /cron/purge.
  *
  *   1. ID documents past the 90-day window (files + verification_docs rows) — the
  *      /privacy promise.
- *   2. Expired auth rows (sessions + otp_codes) — pure housekeeping on two tables
- *      that otherwise grow by one row per login / per OTP, forever.
+ *   2. Expired auth rows (sessions, otp_codes, stale rate_limits).
+ *   3. Accounts whose 30-day deletion grace has expired (Step 15).
+ *   4. Subscriptions past their expiry (Step 16) — bookkeeping only.
  *
- *   npm run db:purge               # run both
+ * It used to run jobs 1 and 2 ONLY, while the docs said the CLI and the HTTP cron
+ * were interchangeable: a host scheduling the CLI never erased a deleted account.
+ * Both now call runRetention() in packages/db/src/retention.ts.
+ *
+ *   npm run db:purge               # run all four
  *   npm run db:purge -- --dry-run  # show what would go, change nothing
  *   npm run db:purge -- --days=30  # override the ID-document window (default 90)
  *
- * --days applies to the ID-document window only: an auth row's own expires_at IS
- * its retention policy, so there is no window to tune.
+ * --days applies to the ID-document window only. Exit code 1 if any job failed or
+ * any document could not be removed — a scheduler should alert on it.
  *
- * Standalone script, same pattern as lib/db/seed.ts: connects to Postgres
- * directly instead of importing lib/db/index.ts, which is guarded by
- * `server-only` and throws when run via tsx outside the Next runtime.
- *
- * Idempotent — safe to run on a cron (daily is plenty). The equivalent HTTP
- * entry point for platform schedulers is app/api/cron/purge/route.ts.
+ * Never prints STORAGE_DIR, DATABASE_URL or a file name. Idempotent — daily is plenty.
  */
 async function main() {
   const args = process.argv.slice(2);
@@ -45,44 +43,54 @@ async function main() {
 
   const url = process.env.DATABASE_URL;
   if (!url) {
-    console.error("✗ DATABASE_URL not set. Start your local Postgres and set it in .env.local.");
+    console.error("✗ DATABASE_URL is not set (repo-root .env).");
     process.exit(1);
   }
 
-  const sql = postgres(url, { max: 1 });
-  const db = drizzle(sql, { schema: { tutors, verificationDocs, sessions, otpCodes, rateLimits } });
+  const sql = postgres(url, { max: 1, onnotice: () => {} });
+  const db = drizzle(sql, { schema });
 
   console.log(
-    `Retention purge — storage=${storageBase()}${dryRun ? " · DRY RUN (nothing will be deleted)" : ""}`,
+    `Retention purge — STORAGE_DIR ${process.env.STORAGE_DIR?.trim() ? "set" : "NOT SET"}` +
+      `${dryRun ? " · DRY RUN (nothing will be deleted)" : ""}`,
   );
 
-  const res = await purgeExpiredVerificationDocs(db, {
-    dryRun,
-    retentionDays,
-    log: (line) => console.log(line),
-  });
+  const run = await runRetention(db, { dryRun, retentionDays, log: (line) => console.log(`  ${line}`) });
+  const d = run.documents;
+  const a = run.auth;
 
-  for (const err of res.errors) console.error(`✗ ${err}`);
-
+  console.log("");
   console.log(
-    dryRun
-      ? `✓ Dry run: ${res.docsDeleted} document(s) from ${res.tutorsAffected} tutor(s) are past the ${res.retentionDays}-day window.`
-      : `✓ Purged ${res.docsDeleted} document row(s) / ${res.filesDeleted} file(s) from ${res.tutorsAffected} tutor(s).`,
+    d
+      ? dryRun
+        ? `✓ 1 documents     ${d.docsDeleted} document(s) from ${d.tutorsAffected} tutor(s) are past the ${d.retentionDays}-day window`
+        : `✓ 1 documents     purged ${d.docsDeleted} row(s) / ${d.filesDeleted} file(s) from ${d.tutorsAffected} tutor(s)${d.filesMissing ? ` (${d.filesMissing} file(s) already gone)` : ""}`
+      : "✗ 1 documents     job failed",
   );
-
-  /* Second job: expired sessions + OTP codes. Runs even if the document purge
-     reported errors — the two are independent, and a disk problem on one tutor's
-     scan is no reason to let two forever-growing tables keep growing. */
-  const auth = await purgeExpiredAuthRows(db, { dryRun, log: (line) => console.log(line) });
-
+  for (const err of d?.errors ?? []) console.error(`    ✗ ${err}`);
   console.log(
-    dryRun
-      ? `✓ Dry run: ${auth.sessionsDeleted} expired session(s), ${auth.otpCodesDeleted} expired OTP code(s) and ${auth.rateLimitsDeleted} stale rate-limit row(s) would be deleted.`
-      : `✓ Purged ${auth.sessionsDeleted} expired session(s), ${auth.otpCodesDeleted} expired OTP code(s) and ${auth.rateLimitsDeleted} stale rate-limit row(s).`,
+    a
+      ? `✓ 2 auth rows     ${dryRun ? "would delete" : "deleted"} ${a.sessionsDeleted} session(s), ${a.otpCodesDeleted} OTP code(s), ${a.rateLimitsDeleted} rate-limit row(s)`
+      : "✗ 2 auth rows     job failed",
   );
+  console.log(
+    run.accounts
+      ? `✓ 3 accounts      ${run.accounts.due} past the ${DELETION_GRACE_DAYS}-day deletion grace${dryRun ? "" : `, ${run.accounts.purged} erased`}`
+      : "✗ 3 accounts      job failed",
+  );
+  console.log(
+    run.subscriptions
+      ? `✓ 4 subscriptions ${run.subscriptions.due} past expiry${dryRun ? "" : `, ${run.subscriptions.expired} marked expired`}`
+      : "✗ 4 subscriptions job failed",
+  );
+  for (const f of run.failedJobs) console.error(`✗ ${f.job}: ${f.error}`);
 
   await sql.end();
-  process.exit(res.errors.length > 0 ? 1 : 0);
+  const failed = run.failedJobs.length > 0 || (d?.errors.length ?? 0) > 0;
+  process.exit(failed ? 1 : 0);
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+main().catch((e) => {
+  console.error(`✗ purge crashed: ${(e as Error).name}`);
+  process.exit(1);
+});

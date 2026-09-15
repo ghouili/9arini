@@ -22,9 +22,13 @@ export type { NotifyInput, NotifyDb, ReminderStep, ReminderPayload } from "./not
 export {
   purgeExpiredVerificationDocs,
   purgeExpiredAuthRows,
+  purgeDeletedAccounts,
+  expireSubscriptions,
+  runRetention,
   RETENTION_DAYS,
+  DELETION_GRACE_DAYS,
 } from "./retention";
-export type { PurgeResult, AuthPurgeResult, PurgeDb } from "./retention";
+export type { PurgeResult, AuthPurgeResult, PurgeDb, RetentionRun } from "./retention";
 
 /* The query-builder surface the app uses. Re-exported so no consumer imports
    drizzle-orm directly — see the header. Add to this list rather than reaching

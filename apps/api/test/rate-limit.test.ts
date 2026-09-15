@@ -4,6 +4,8 @@ import "../src/env";
 import { rateLimits, eq, like } from "@tnajem/db";
 import { db, sql } from "../src/db";
 import { checkRateLimit, rateLimitInProcess } from "../src/lib/rate-limit";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 /* The limiter has to keep working after the split, and it has to keep working
    DURABLY: under Fastify there is no single process that sees all traffic, so the
@@ -77,6 +79,30 @@ describe("durable rate limiter", () => {
     assert.equal(res.ok, true);
     const [row] = await db.select().from(rateLimits).where(eq(rateLimits.key, key));
     assert.equal(row.count, 1, "an elapsed window resets to 1, it does not keep climbing");
+  });
+});
+
+describe("the limit survives a process restart", () => {
+  /* Proven with a SEPARATE Node process (test/fixtures/rate-limit-probe.ts): it
+     shares nothing with this one but the database. If the limiter were the
+     in-process Map, the fresh process would start a fresh window and let the call
+     through, which is exactly what an API restart or a second instance would do. */
+  test("a window spent in this process is still spent in a brand-new one", async () => {
+    const key = `${KEY_PREFIX}restart:${Date.now()}`;
+    for (let i = 0; i < 3; i++) assert.equal((await checkRateLimit(key, 3, 60_000)).ok, true);
+
+    const probe = spawnSync(
+      process.execPath,
+      ["--import", "tsx", fileURLToPath(new URL("./fixtures/rate-limit-probe.ts", import.meta.url)), key, "3", "60000"],
+      { encoding: "utf8", env: process.env, timeout: 60_000 },
+    );
+    assert.equal(probe.status, 0, `the probe process failed: ${probe.stderr}`);
+    const answer = JSON.parse(probe.stdout) as { ok: boolean; retryAfter: number };
+    assert.equal(answer.ok, false, "a new process must still see the spent window");
+    assert.ok(answer.retryAfter > 0 && answer.retryAfter <= 60);
+
+    const [row] = await db.select().from(rateLimits).where(eq(rateLimits.key, key));
+    assert.equal(row.count, 4, "the call from the other process was counted in the same row");
   });
 });
 

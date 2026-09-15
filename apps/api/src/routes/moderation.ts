@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { and, desc, eq, gt, isNull, sql as raw, bookings, classes, profiles, reports, tutors } from "@tnajem/db";
+import { and, desc, eq, gt, isNull, sql as raw, bookings, classes, profiles, reports, tutors, DELETION_GRACE_DAYS } from "@tnajem/db";
 import {
   isUuid,
   vText,
@@ -23,7 +23,8 @@ import { auditAdmin } from "../lib/audit";
    regret is having done it irreversibly. A grace period costs us a nullable
    column and costs them nothing; skipping it costs somebody their booking
    history because of an argument with a tutor on a Tuesday. */
-export const DELETION_GRACE_DAYS = 30;
+/* ONE value, shared with the purge job: packages/db/src/retention.ts. */
+export { DELETION_GRACE_DAYS };
 
 const reportBody = z.object({
   subjectKind: z.enum(["tutor", "class", "review", "message", "material", "other"]),
@@ -231,50 +232,6 @@ export async function moderationRoutes(app: FastifyInstance): Promise<void> {
   });
 }
 
-/* ══════════════════════════════════════════════════════════════════════════════
-   THE PURGE. Called by the retention cron, never by a request.
-   ══════════════════════════════════════════════════════════════════════════════
-   A hard DELETE of the profile row, and everything that hangs off it goes by the
-   foreign keys — which is exactly why 0016 rebuilt two of them:
-
-     reviews.student_id       SET NULL, so the review survives WITHOUT its author.
-                              A tutor's rating must not move because a student
-                              left, silently and unexplainably.
-     cancellations.booking_id SET NULL, so the money ledger survives the bookings
-                              cascading away. A ledger the counterparty can erase
-                              by closing their account is not a ledger.
-
-   Everything genuinely personal does go: sessions, notifications, consents,
-   guardian links, bookings, and the profile itself with its e-mail and phone. */
-export async function purgeDeletedAccounts(
-  database: typeof db,
-  opts: { dryRun?: boolean } = {},
-): Promise<{ due: number; purged: number }> {
-  const due = await database
-    .select({ id: profiles.id })
-    .from(profiles)
-    .where(
-      and(
-        eq(profiles.deletionStatus, "requested"),
-        raw`${profiles.deletionRequestedAt} < now() - (${DELETION_GRACE_DAYS} * interval '1 day')`,
-      ),
-    )
-    .limit(500);
-
-  if (opts.dryRun || due.length === 0) return { due: due.length, purged: 0 };
-
-  let purged = 0;
-  for (const p of due) {
-    /* One at a time rather than a single DELETE ... IN (...): a constraint
-       failure on one account must not abandon the rest, and this job runs
-       unattended once a night. */
-    try {
-      await database.delete(profiles).where(eq(profiles.id, p.id));
-      purged += 1;
-    } catch {
-      /* Left for the next run. The row keeps its `requested` status, so nothing
-         is lost — it is simply still due tomorrow. */
-    }
-  }
-  return { due: due.length, purged };
-}
+/* The account purge job moved to @tnajem/db (retention.ts) so `npm run db:purge` runs
+   it too; POST /cron/purge calls it through runRetention(). */
+export { purgeDeletedAccounts } from "@tnajem/db";

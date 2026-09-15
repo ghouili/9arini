@@ -88,43 +88,8 @@ export async function openClassCount(tutorId: string): Promise<number> {
   return row?.n ?? 0;
 }
 
-/* ── THE EXPIRY SWEEP ────────────────────────────────────────────────────────
-
-   The RESOLVER is authoritative: a grant is dead the second its expiry passes,
-   with no wait for a job to run. This sweep only settles the bookkeeping — it
-   flips the status so the partial unique index frees up and so an admin reading
-   the table is not shown an "active" row that expired in March.
-
-   It is a separate job on the retention cron for the same reason the other three
-   are separate: one failing must not stop the others. */
-export async function expireSubscriptions(
-  database: typeof db,
-  opts: { dryRun?: boolean } = {},
-): Promise<{ due: number; expired: number }> {
-  const due = await database
-    .select({ id: subscriptions.id })
-    .from(subscriptions)
-    .where(
-      and(
-        eq(subscriptions.status, "active"),
-        raw`${subscriptions.expiresAt} is not null and ${subscriptions.expiresAt} <= now()`,
-      ),
-    )
-    .limit(1000);
-  if (opts.dryRun || due.length === 0) return { due: due.length, expired: 0 };
-
-  const res = await database
-    .update(subscriptions)
-    .set({ status: "expired" })
-    .where(
-      and(
-        eq(subscriptions.status, "active"),
-        raw`${subscriptions.expiresAt} is not null and ${subscriptions.expiresAt} <= now()`,
-      ),
-    )
-    .returning({ id: subscriptions.id });
-  return { due: due.length, expired: res.length };
-}
+/* THE EXPIRY SWEEP moved to @tnajem/db (retention.ts) so the CLI purge runs it too. */
+export { expireSubscriptions } from "@tnajem/db";
 
 /* THE /explore ORDERING WEIGHT, projected from the shared catalogue into SQL.
 
