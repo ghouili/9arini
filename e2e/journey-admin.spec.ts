@@ -18,6 +18,7 @@ import { api, contextAs, specimenIdPng, notificationBodies, auditActions } from 
 async function uploadId(tutorProfileId: string, png: Buffer, fileName = "cin-recto.png") {
   const form = new FormData();
   form.append("idFront", new Blob([new Uint8Array(png)], { type: "image/png" }), fileName);
+  form.append("notPublicTeacher", "yes"); // Décret 2015-1619 declaration (Stage 5)
   const res = await fetch(`${process.env.E2E_API_URL ?? "http://127.0.0.1:4000"}/verification`, {
     method: "POST",
     headers: { cookie: `tnajem_session=${await mintSession(tutorProfileId)}` },

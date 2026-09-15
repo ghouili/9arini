@@ -6,6 +6,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { Shield, Check, Upload, User, Eye, Bulb } from "@/components/icons";
 import { SiteShell } from "@/components/SiteShell";
 import { getMyVerification, submitVerification } from "@/app/actions";
+import { PUBLIC_TEACHER_DECLARATION } from "@tnajem/shared";
 import { OnboardingProgress } from "@/components/OnboardingProgress";
 import { UserText } from "@/components/UserText";
 import type { TutorVerification, Locale, OnboardingState } from "@tnajem/shared";
@@ -80,6 +81,9 @@ const copy = bilingual({
       "Tes documents servent uniquement à la vérification — stockés en sécurité, jamais publiés.",
     // actions
     submit: "Envoyer pour vérification",
+    declarationTitle: "Déclaration",
+    declarationHelp: "Obligatoire (décret n° 2015-1619). Une personne qui enseigne dans un établissement public ne peut pas proposer ses cours ici.",
+    errDeclaration: "Coche la déclaration pour envoyer ton dossier.",
     submitting: "Envoi…",
     loadingStatus: "Chargement de ton dossier…",
     uploadingLive: "Envoi de tes documents en cours. Ne ferme pas cette page.",
@@ -166,6 +170,9 @@ const copy = bilingual({
     inpdp:
       "وثائقك يخدمو كان للتأكيد — محفوظين في الأمان، عمرهم ما يتنشرو.",
     submit: "ابعث للتأكيد",
+    declarationTitle: "تصريح",
+    declarationHelp: "إجباري (الأمر عدد 1619 لسنة 2015). اللي يقرّي في مؤسسة عمومية ما ينجّمش يعرض دروسو هوني.",
+    errDeclaration: "علّم على التصريح باش تبعث ملفك.",
     submitting: "قاعد يتبعث…",
     loadingStatus: "ملفك قاعد يتحمّل…",
     uploadingLive: "وثائقك قاعدة تتبعث. ما تسكّرش الصفحة هاذي.",
@@ -246,7 +253,8 @@ export function VerifyInner({ state }: { state: OnboardingState | null }) {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [demo, setDemo] = useState(false);
-  const [error, setError] = useState<null | "id" | "size" | "type" | "auth" | "store" | "generic">(null);
+  const [error, setError] = useState<null | "id" | "size" | "type" | "auth" | "store" | "declaration" | "generic">(null);
+  const [declared, setDeclared] = useState(false);
 
   // chosen file names, keyed by FormData field
   const [files, setFiles] = useState<Record<string, File | null>>({});
@@ -321,11 +329,16 @@ export function VerifyInner({ state }: { state: OnboardingState | null }) {
       fileInputs.current.idFront?.focus();
       return;
     }
+    if (!declared) {
+      setError("declaration");
+      return;
+    }
     setError(null);
     setSubmitting(true);
 
     const form = e.currentTarget;
     const fd = new FormData();
+    fd.append("notPublicTeacher", "yes");
 
     // text / number / url fields (append as strings; FormData picks current values)
     const textKeys = [
@@ -361,6 +374,7 @@ export function VerifyInner({ state }: { state: OnboardingState | null }) {
           case "bad-file-type": setError("type"); break;
           case "not-authenticated": setError("auth"); break;
           case "no-storefront": setError("store"); break;
+          case "declaration-required": setError("declaration"); break;
           default: setError("generic");
         }
       }
@@ -655,12 +669,31 @@ export function VerifyInner({ state }: { state: OnboardingState | null }) {
           </div>
         </SectionPanel>
 
+        {/* ============ DÉCRET 2015-1619 ============ */}
+        <div className="panel panel-pad mb-4">
+          <h2 className="font-display text-[16px] font-bold mb-2">{c.declarationTitle}</h2>
+          <label className="flex gap-2.5 items-start text-[14px] leading-[1.6] min-h-11">
+            <input
+              type="checkbox"
+              name="notPublicTeacher"
+              className="mt-1 w-5 h-5 flex-none"
+              checked={declared}
+              onChange={(e) => { setDeclared(e.target.checked); if (e.target.checked && error === "declaration") setError(null); }}
+              aria-describedby="declaration-help"
+              aria-invalid={error === "declaration" || undefined}
+            />
+            <span>{PUBLIC_TEACHER_DECLARATION[locale]}</span>
+          </label>
+          <p id="declaration-help" className="text-[12.5px] text-muted leading-[1.6] mt-1.5 mb-0">{c.declarationHelp}</p>
+        </div>
+
         {/* ============ ERRORS (non-id) ============ */}
         {error && error !== "id" && (
           <div role="alert" className="rise py-[13px] px-4 mb-4 bg-rose50 rounded-brand text-rose text-[13.5px] font-semibold leading-[1.55]">
             {error === "size" && c.errFileSize}
             {error === "type" && c.errFileType}
             {error === "generic" && c.errGeneric}
+            {error === "declaration" && c.errDeclaration}
             {error === "auth" && (
               <>
                 {c.errAuthLine}{" "}

@@ -169,6 +169,10 @@ export const tutors = pgTable("tutors", {
   facebookUrl: text("facebook_url"),
   websiteUrl: text("website_url"),
   submittedAt: timestamp("submitted_at", { withTimezone: true }),
+  /* Décret 2015-1619 (0024): the tutor declared they do not teach in a public
+     school, when, and under which wording version. Set with every submission. */
+  publicTeacherDeclaredAt: timestamp("public_teacher_declared_at", { withTimezone: true }),
+  publicTeacherDeclarationVersion: text("public_teacher_declaration_version"),
   reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
   reviewNote: text("review_note"),
   payoutMethod: payoutMethod("payout_method"),

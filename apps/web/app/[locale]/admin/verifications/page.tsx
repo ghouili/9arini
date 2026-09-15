@@ -31,6 +31,9 @@ const copy = bilingual({
     experience: "Expérience",
     years: (n: number) => `${n} ${n === 1 ? "an" : "ans"}`,
     institution: "Établissement",
+    declaration: "Décret 2015-1619",
+    declared: (d: string, v: string) => `Déclare ne pas enseigner dans le public (le ${d}, texte ${v}). Vérifie que l'établissement indiqué n'est pas une école publique où la personne enseigne.`,
+    notDeclared: "Aucune déclaration (dossier antérieur) : ne pas valider avant de l'avoir obtenue.",
     languages: "Langues",
     pitch: "Présentation",
     notProvided: "Non renseigné",
@@ -68,6 +71,9 @@ const copy = bilingual({
     experience: "الخبرة",
     years: (n: number) => `${n} ${n === 1 ? "عام" : "أعوام"}`,
     institution: "المؤسسة",
+    declaration: "الأمر 2015-1619",
+    declared: (d: string, v: string) => `يصرّح إنو ما يقرّيش في العمومي (نهار ${d}، نص ${v}). ثبّت اللي المؤسسة المذكورة موش مدرسة عمومية يقرّي فيها.`,
+    notDeclared: "ما فمّاش تصريح (ملف قديم): ما تقبلوش قبل ما تتحصّل عليه.",
     languages: "اللغات",
     pitch: "التقديم",
     notProvided: "موش متعمّر",
@@ -322,6 +328,14 @@ export default function AdminVerificationsPage() {
                         <span className="av-value">{t.languages ? <UserText>{t.languages}</UserText> : c.notProvided}</span>
                       </div>
                     </div>
+
+                    {/* Décret 2015-1619: the declaration, read against the institution above. */}
+                    <p className="text-[13px] leading-[1.6] my-3" data-e2e="decree-line">
+                      <span className="av-label">{c.declaration} · </span>
+                      {t.publicTeacherDeclaration
+                        ? c.declared(formatInTunis(t.publicTeacherDeclaration.declaredAt, locale, { day: "numeric", month: "long", year: "numeric" }), t.publicTeacherDeclaration.version)
+                        : <b className="text-rose">{c.notDeclared}</b>}
+                    </p>
 
                     {/* Pitch */}
                     {t.pitch && (

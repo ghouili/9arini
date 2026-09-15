@@ -438,6 +438,8 @@ export type PendingTutor = {
   pitch: string | null;
   links: VerificationLinks;
   submittedAt: string | null;
+  /** Décret 2015-1619: the tutor's declaration, or null if the application predates it. */
+  publicTeacherDeclaration: { declaredAt: string; version: string } | null;
   /** url: a signed link valid for minutes and only for the admin it was issued to. */
   docs: { id: string; kind: string; fileName: string; url: string }[];
 };
