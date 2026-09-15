@@ -6,7 +6,7 @@ import {
   notify,
 } from "@tnajem/db";
 import {
-  vUuid, isMinorBirthYear, MONTHS_FR,
+  vUuid, isMinorBirthYear, classWhen, notificationWhen,
   type StudentDashboard,
   isEffectivelyFreeFirst,
   cancellationOutcome,
@@ -175,10 +175,7 @@ export async function bookingRoutes(app: FastifyInstance): Promise<void> {
     /* Notifications AFTER the commit. notify() never throws, and it does SMS I/O:
        running it inside the transaction would hold the seat lock open across a
        network round-trip, pinning one of the pool's connections. */
-    const when = new Date(cls.scheduledAt);
-    const whenLabel = when.toLocaleString("fr-FR", {
-      day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
-    });
+    const whenLabel = notificationWhen(cls.scheduledAt); // Tunis time, stored in the body
 
     await notify(db, uid, {
       kind: "booking_confirmed",
@@ -332,10 +329,7 @@ export async function bookingRoutes(app: FastifyInstance): Promise<void> {
     if (!released) return { ok: true }; // already cancelled — idempotent
 
     if (tut?.profileId) {
-      const when = new Date(cls.scheduledAt);
-      const whenLabel = when.toLocaleString("fr-FR", {
-        day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
-      });
+      const whenLabel = notificationWhen(cls.scheduledAt); // Tunis time, stored in the body
       /* The tutor is told WHEN it happened relative to the deadline, because that
          is the whole difference between a cancellation they can refill and one
          they cannot. It says nothing about a payment: nothing is charged, and a
@@ -400,14 +394,15 @@ export async function bookingRoutes(app: FastifyInstance): Promise<void> {
 
     const items = rows.map((r) => {
       const d = new Date(r.scheduledAt);
+      const { day, month, time } = classWhen(d); // Tunis time
       return {
         bookingId: r.bookingId,
         classId: r.classId,
         title: r.title,
         tutorName: r.tutorName,
-        day: String(d.getDate()),
-        month: MONTHS_FR[d.getMonth()] ?? "",
-        time: d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+        day,
+        month,
+        time,
         ts: d.getTime(),
         isFree: Boolean(r.isFree),
         status: r.status ?? "scheduled",

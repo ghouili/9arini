@@ -31,14 +31,8 @@ import {
 } from "@/components/icons";
 import { SiteShell } from "@/components/SiteShell";
 import { UserText } from "@/components/UserText";
-import { tutorStanding, isOpenForBooking, type Storefront, type TutorReviews, type ClassItem } from "@tnajem/shared";
+import { tutorStanding, isOpenForBooking, monthLabel, formatNumericDate, type Storefront, type TutorReviews, type ClassItem } from "@tnajem/shared";
 
-/** Month label map FR → AR (short). Demo data uses FR short labels. */
-const monthAr: Record<string, string> = {
-  JANV: "جانفي", FÉVR: "فيفري", MARS: "مارس", AVR: "أفريل",
-  MAI: "ماي", JUIN: "جوان", JUIL: "جويل", AOÛT: "أوت",
-  SEPT: "سبتمبر", OCT: "أكتوبر", NOV: "نوفمبر", DÉC: "ديسمبر",
-};
 
 /* Component-local copy (FR + Tunisian Derija). lib/i18n.ts is owned elsewhere, so
    any new string lives here — same pattern as app/pour-les-profs/page.tsx.
@@ -152,13 +146,10 @@ function initialsOf(name: string | null) {
   return (first + last).toUpperCase();
 }
 
-/** Deterministic (UTC) date — identical on the server and after hydration. */
+/** Deterministic date in Tunis — identical on the server and after hydration, and the
+    same calendar day the reviewer saw (it used to be the UTC day). */
 function fmtDate(iso: string) {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  const dd = String(d.getUTCDate()).padStart(2, "0");
-  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
-  return `${dd}/${mm}/${d.getUTCFullYear()}`;
+  return Number.isNaN(Date.parse(iso)) ? "" : formatNumericDate(iso);
 }
 
 export function StorefrontView({
@@ -206,10 +197,7 @@ export function StorefrontView({
     students: tutor.students_count,
   });
 
-  function localMonth(m: string) {
-    if (locale === "ar") return monthAr[m] ?? m;
-    return m;
-  }
+  const localMonth = (m: string) => monthLabel(m, locale);
 
   /* One price renderer for every surface, so the storefront can never show
      "1ère gratuite" and "15 TND" side by side as if both applied. A free-first

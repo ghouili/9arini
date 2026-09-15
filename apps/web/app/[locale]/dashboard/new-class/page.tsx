@@ -51,6 +51,8 @@ const copy = bilingual({
   fr: {
     lead: "Un titre, une date, ton prix. Ta classe apparaît sur ta page, et les élèves réservent en un clic.",
     priceHelp: "Tu fixes ton prix. Tu gardes 100 % — pendant le pilote l'élève te paie directement.",
+    // The API reads the typed time as Tunis time, wherever the tutor is (packages/shared/src/time.ts).
+    dateHelp: "Heure de Tunisie.",
     verifNote: "Ta classe se publie une fois ton compte vérifié.",
     verifCta: "Vérifier mon compte",
     descPh: "ex. Méthodes + annales. On fait 3 exercices types ensemble.",
@@ -67,6 +69,7 @@ const copy = bilingual({
   ar: {
     lead: "عنوان، وقت، وثمنك. الحصة تبان في صفحتك، والتلامذة يحجزو بكليكة.",
     priceHelp: "إنتي تحدّد ثمنك. تحتفظ بـ 100 % — في فترة التجربة التلميذ يخلّصك مباشرة.",
+    dateHelp: "بتوقيت تونس.",
     verifNote: "الحصة تتنشر كي يتثبّت حسابك.",
     verifCta: "ثبّت حسابي",
     descPh: "مثال: مناهج + امتحانات. نعملو 3 تمارين نموذجية مع بعضنا.",
@@ -253,7 +256,7 @@ export default function NewClassPage() {
                   </Field>
 
                   {/* Date & time */}
-                  <Field label={t.createClass.date} error={errorFor("date")}>
+                  <Field label={t.createClass.date} help={c.dateHelp} error={errorFor("date")}>
                     <div className="inp">
                       <input
                         type="datetime-local"

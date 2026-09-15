@@ -11,6 +11,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { eq } from "drizzle-orm";
 import { tutors, classes, packs } from "./schema";
+import { tunisWallTimeFromNow } from "@tnajem/shared";
 
 /* Seed the LOCAL DEV DB with a demo tutor + classes + packs.
    Standalone script: connects directly to Postgres and does NOT import
@@ -67,12 +68,9 @@ async function main() {
     reviewedAt: new Date(),
   }).returning();
 
-  const soon = (days: number, h: number, m: number) => {
-    const d = new Date();
-    d.setDate(d.getDate() + days);
-    d.setHours(h, m, 0, 0);
-    return d;
-  };
+  /* 18:00 IN TUNIS, not 18:00 wherever the seed happens to run. setHours() used
+     the process timezone, so seeding from a UTC box put the demo class at 19:00. */
+  const soon = (days: number, h: number, m: number) => tunisWallTimeFromNow(days, h, m);
 
   await db.insert(classes).values([
     {

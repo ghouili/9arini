@@ -5,6 +5,7 @@ import multipart from "@fastify/multipart";
 import { randomUUID } from "node:crypto";
 import { sql as rawSql } from "@tnajem/db";
 import { warnIfSecretMissing } from "@tnajem/shared/auth-core";
+import { APP_TIME_ZONE } from "@tnajem/shared";
 import {
   PORT,
   HOST,
@@ -109,7 +110,15 @@ export async function buildServer(): Promise<FastifyInstance> {
        (Docker's HEALTHCHECK reads .db, see apps/api/Dockerfile) and a 503 with an
        empty body would tell an operator strictly less than a 200 that says
        db:false. Anything routing on this must read the JSON. */
-    return { ok: true, db: dbOk, version: VERSION };
+    /* tz: the zone every class time is shown and parsed in (always Africa/Tunis)
+       next to the zone this process happens to run in — they are allowed to
+       differ, and an operator chasing a "wrong hour" report should see both. */
+    return {
+      ok: true,
+      db: dbOk,
+      version: VERSION,
+      tz: { app: APP_TIME_ZONE, process: Intl.DateTimeFormat().resolvedOptions().timeZone },
+    };
   });
 
   return app;

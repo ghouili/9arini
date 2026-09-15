@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useLocale } from "@/components/LocaleProvider";
 import { cancelClass, rescheduleClass } from "@/app/actions";
 import { bilingual } from "@/lib/i18n";
+import { toWallInput } from "@tnajem/shared";
 
 /* CANCEL OR MOVE A CLASS (Step 11), from the tutor's own dashboard.
 
@@ -28,6 +29,7 @@ const copy = bilingual({
     cancelling: "Annulation…",
 
     confirmMove: "Nouvelle date et heure",
+    tunisTime: "Heure de Tunisie.",
     moveBody:
       "Personne n'est désinscrit : les élèves sont prévenus du nouvel horaire. Ceux qui avaient déjà réservé pourront annuler sans frais, même à moins de 48h — ils n'avaient pas choisi ce créneau.",
     confirmMoveCta: "Déplacer la séance",
@@ -54,6 +56,7 @@ const copy = bilingual({
     cancelling: "قاعد يلغي…",
 
     confirmMove: "التاريخ والوقت الجداد",
+    tunisTime: "بتوقيت تونس.",
     moveBody:
       "حتّى حد ما يتشطب: التلامذة يتعلمو بالوقت الجديد. واللي كانو حاجزين ينجّمو يلغيو بلا مصاريف، حتى كان أقلّ من 48 ساعة — ما اختاروش الوقت هذا.",
     confirmMoveCta: "بدّل الوقت",
@@ -69,7 +72,7 @@ const copy = bilingual({
 
 type Mode = "idle" | "confirm-cancel" | "confirm-move";
 
-export function ClassActions({ classId, onChanged }: { classId: string; onChanged: () => void }) {
+export function ClassActions({ classId, startsAt, onChanged }: { classId: string; startsAt: string; onChanged: () => void }) {
   const { locale } = useLocale();
   const c = copy[locale];
   const [mode, setMode] = useState<Mode>("idle");
@@ -100,7 +103,11 @@ export function ClassActions({ classId, onChanged }: { classId: string; onChange
   async function doMove() {
     if (busy || !when) return;
     setBusy(true);
-    const res = await rescheduleClass({ classId, scheduledAt: new Date(when).toISOString() })
+    /* The WALL TIME, as typed. The API reads it as Tunis time — the same rule as
+       creating a class. This used to be new Date(when).toISOString(), which
+       converted in the tutor's browser timezone: a tutor in Paris in summer
+       moving a class to "18:00" put it at 17:00 in Tunis. */
+    const res = await rescheduleClass({ classId, scheduledAt: when })
       .catch(() => null);
     setBusy(false);
     if (!res?.ok) { setMsg({ kind: "err", text: messageFor(res?.error) }); return; }
@@ -114,7 +121,12 @@ export function ClassActions({ classId, onChanged }: { classId: string; onChange
     <div className="mt-2">
       {mode === "idle" && (
         <div className="flex gap-2 flex-wrap">
-          <button type="button" onClick={() => setMode("confirm-move")} className="btn btn-ghost btn-sm">
+          <button
+            type="button"
+            // Start from the class's current time, in Tunis — not an empty picker.
+            onClick={() => { setWhen(toWallInput(startsAt)); setMode("confirm-move"); }}
+            className="btn btn-ghost btn-sm"
+          >
             {c.reschedule}
           </button>
           <button type="button" onClick={() => setMode("confirm-cancel")} className="btn btn-ghost btn-sm">
@@ -154,9 +166,11 @@ export function ClassActions({ classId, onChanged }: { classId: string; onChange
             type="datetime-local"
             value={when}
             onChange={(e) => setWhen(e.target.value)}
-            className="w-full text-[14px] rounded-[12px] p-3 mb-2.5"
+            aria-describedby={`when-tz-${classId}`}
+            className="w-full text-[14px] rounded-[12px] p-3 mb-1"
             style={{ border: "1px solid var(--line)", background: "var(--paper)" }}
           />
+          <p id={`when-tz-${classId}`} className="text-[13px] text-muted mb-2.5">{c.tunisTime}</p>
           <div className="flex gap-2 flex-wrap">
             <button type="button" onClick={doMove} disabled={busy || !when} className="btn btn-ink btn-sm">
               {busy ? c.moving : c.confirmMoveCta}

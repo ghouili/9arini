@@ -9,6 +9,7 @@ import {
   type DeletionState,
 } from "@/app/actions";
 import { bilingual } from "@/lib/i18n";
+import { formatLongDate } from "@tnajem/shared";
 
 /* CLOSING YOUR ACCOUNT (Step 15).
 
@@ -138,9 +139,7 @@ export function DeleteAccount() {
   }
 
   if (state.requested && state.purgeAt) {
-    const when = new Date(state.purgeAt).toLocaleDateString(locale === "ar" ? "ar-TN" : "fr-FR", {
-      day: "2-digit", month: "long", year: "numeric",
-    });
+    const when = formatLongDate(state.purgeAt, locale); // the Tunis calendar day
     return (
       <div className="panel panel-pad">
         <h2 className="font-display text-[16px] font-bold mb-1.5">{c.pendingTitle}</h2>

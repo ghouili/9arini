@@ -7,7 +7,7 @@ import {
   isUuid,
   isMinorBirthYear,
   publicDisplayName,
-  MONTHS_FR,
+  classWhen,
   type GuardianChild,
   type MessageThreadDetail,
 } from "@tnajem/shared";
@@ -152,10 +152,7 @@ export async function guardianRoutes(app: FastifyInstance): Promise<void> {
           return {
             classId: u.classId,
             title: u.title,
-            starts_at: d.toISOString(),
-            day: String(d.getDate()),
-            month: MONTHS_FR[d.getMonth()],
-            time: d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+            ...classWhen(d), // Tunis time
             tutorName: publicDisplayName(u.tutorName),
           };
         }),

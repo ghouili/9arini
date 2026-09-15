@@ -7,7 +7,7 @@ import { SiteShell } from "@/components/SiteShell";
 import { Shield, Clock, Forward } from "@/components/icons";
 import { UserText } from "@/components/UserText";
 import { getMyChildren, getChildThreads } from "@/app/actions";
-import type { GuardianChild, MessageThreadSummary } from "@tnajem/shared";
+import { monthLabel, type GuardianChild, type MessageThreadSummary } from "@tnajem/shared";
 import { bilingual } from "@/lib/i18n";
 
 /* THE PARENT'S VIEW (Step 14).
@@ -114,7 +114,7 @@ function ChildCard({ child }: { child: GuardianChild }) {
               <div className="min-w-0">
                 <UserText as="div" className="text-[14px] font-semibold">{u.title}</UserText>
                 <div className="text-[13px] text-muted mt-0.5">
-                  <time dateTime={u.starts_at}>{u.day} {u.month} · {u.time}</time> · {c.with} <UserText>{u.tutorName}</UserText>
+                  <time dateTime={u.starts_at}>{u.day} {monthLabel(u.month, locale)} · {u.time}</time> · {c.with} <UserText>{u.tutorName}</UserText>
                 </div>
               </div>
             </li>

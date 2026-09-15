@@ -8,7 +8,7 @@ import { SiteShell } from "@/components/SiteShell";
 import { Shield, Forward } from "@/components/icons";
 import { UserText } from "@/components/UserText";
 import { getChildThread } from "@/app/actions";
-import type { MessageThreadDetail } from "@tnajem/shared";
+import { formatShortDateTime, type MessageThreadDetail } from "@tnajem/shared";
 import { bilingual } from "@/lib/i18n";
 
 /* A PARENT READING THEIR CHILD'S CONVERSATION (Step 14).
@@ -147,9 +147,7 @@ export default function GuardianThreadPage() {
                     <UserText as="p" className="text-[14px] leading-[1.6] whitespace-pre-wrap break-words">{m.body}</UserText>
                     <div className="flex items-center gap-2 flex-wrap mt-1">
                       <span className="text-[12px] text-muted">
-                        {new Date(m.at).toLocaleString(locale === "ar" ? "ar-TN" : "fr-FR", {
-                          day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
-                        })}
+                        {formatShortDateTime(m.at, locale) /* Tunis time */}
                       </span>
                       {m.masked && (
                         <span className="text-[12px] font-bold" style={{ color: "var(--ochre-ink)" }}>

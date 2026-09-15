@@ -1,4 +1,4 @@
-import { MONTHS_FR, type Storefront, type ClassItem, type Pack } from "@tnajem/shared";
+import { classWhen, tunisWallTimeFromNow, type Storefront, type ClassItem, type Pack } from "@tnajem/shared";
 
 /* The demo fixtures themselves — fictitious tutors, classes and a pack.
 
@@ -19,23 +19,10 @@ import { MONTHS_FR, type Storefront, type ClassItem, type Pack } from "@tnajem/s
    by September the demo storefront was selling June's classes as "Prochaine
    séance". They are now built relative to the moment they are read (the same
    +2 days 18:00 / +4 days 17:00 as packages/db/src/seed.ts) and can never
-   expire. A module-level constant would freeze the dates at server start. */
-function at(daysFromNow: number, hour: number, minute: number): Date {
-  const d = new Date();
-  d.setDate(d.getDate() + daysFromNow);
-  d.setHours(hour, minute, 0, 0);
-  return d;
-}
-
-/** Display strings derived exactly like the API derives them (apps/api/src/lib/storefront.ts). */
-function when(d: Date): Pick<ClassItem, "starts_at" | "day" | "month" | "time"> {
-  return {
-    starts_at: d.toISOString(),
-    day: String(d.getDate()),
-    month: MONTHS_FR[d.getMonth()],
-    time: d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
-  };
-}
+   expire. A module-level constant would freeze the dates at server start.
+   Tunis wall times, formatted exactly like the API formats them. */
+const at = (daysFromNow: number, hour: number, minute: number): Date => tunisWallTimeFromNow(daysFromNow, hour, minute);
+const when = (d: Date): Pick<ClassItem, "starts_at" | "day" | "month" | "time"> => classWhen(d);
 
 export const devClasses = (): ClassItem[] => [
   { id: "c1", tutor_id: "yassine", tutor_name: "Yassine Khelifi", title: "Intégrales — révision express", description: "Méthodes + annales. On fait 3 exercices types ensemble.", ...when(at(2, 18, 0)), duration_min: 90, price_tnd: 15, seats: 20, seats_left: 8, is_free_first: true, status: "scheduled", meet_url: "https://meet.jit.si/tnajem-c1", whiteboard_url: "https://bitpaper.io/", quiz_url: "https://www.wooclap.com/" },

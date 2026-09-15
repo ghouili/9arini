@@ -1,7 +1,7 @@
 import { and, asc, eq, classes as classesT, packs as packsT, tutors } from "@tnajem/db";
 import {
   initials,
-  MONTHS_FR,
+  classWhen,
   isEffectivelyFreeFirst,
   type Storefront,
   type Tutor,
@@ -61,10 +61,8 @@ export async function getStorefrontData(slug: string): Promise<Storefront | null
       tutor_name: t.fullName,
       title: c.title,
       description: c.description ?? undefined,
-      starts_at: d.toISOString(),
-      day: String(d.getDate()),
-      month: MONTHS_FR[d.getMonth()],
-      time: d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+      // starts_at + day/month/time, all in Tunis — never this process's timezone.
+      ...classWhen(d),
       duration_min: c.durationMin ?? 90,
       price_tnd: Number(c.priceTnd),
       seats: c.seats ?? 0,

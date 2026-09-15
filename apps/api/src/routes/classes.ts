@@ -7,7 +7,7 @@ import {
 } from "@tnajem/db";
 import {
   vText, vOptionalText, vFutureDate, vInt, vPrice, vOptionalUrl, isUuid,
-  MONTHS_FR,
+  classWhen, notificationWhen,
   type ClassItem, type DashboardResult, type DashboardBooking,
   isEffectivelyFreeFirst,
   canOpenAnotherClass,
@@ -237,10 +237,7 @@ export async function classRoutes(app: FastifyInstance): Promise<void> {
       tutor_name: tut?.fullName ?? "",
       title: c.title,
       description: c.description ?? undefined,
-      starts_at: d.toISOString(),
-      day: String(d.getDate()),
-      month: MONTHS_FR[d.getMonth()],
-      time: d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+      ...classWhen(d), // Tunis time
       duration_min: c.durationMin ?? 90,
       price_tnd: Number(c.priceTnd),
       seats: c.seats ?? 0,
@@ -360,9 +357,7 @@ export async function classRoutes(app: FastifyInstance): Promise<void> {
       await recomputeTutorStats(c.tutorId, tx);
     });
 
-    const whenLabel = new Date(c.scheduledAt).toLocaleString("fr-FR", {
-      day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
-    });
+    const whenLabel = notificationWhen(c.scheduledAt); // Tunis time, stored in the body
     for (const b of live) {
       await notify(db, b.studentId, {
         kind: "booking_cancelled",
@@ -433,9 +428,7 @@ export async function classRoutes(app: FastifyInstance): Promise<void> {
         ),
       );
 
-    const whenLabel = when.value.toLocaleString("fr-FR", {
-      day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
-    });
+    const whenLabel = notificationWhen(when.value); // Tunis time, stored in the body
     for (const b of live) {
       /* The notification SAYS they can cancel free. A student who cannot make the
          new time needs to know that before they go looking for the deadline. */
@@ -505,10 +498,7 @@ export async function classRoutes(app: FastifyInstance): Promise<void> {
       return {
         id: c.id,
         title: c.title,
-        starts_at: d.toISOString(),
-        day: String(d.getDate()),
-        month: MONTHS_FR[d.getMonth()] ?? "",
-        time: d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+        ...classWhen(d), // Tunis time
         price_tnd: Number(c.priceTnd),
         seats: c.seats ?? 0,
         seats_left: Math.max(0, (c.seats ?? 0) - (c.seatsTaken ?? 0)),

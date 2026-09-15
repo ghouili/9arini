@@ -7,15 +7,9 @@ import { Calendar, Clock, Users, Shield, Gift, Back } from "@/components/icons";
 import { useLocale } from "@/components/LocaleProvider";
 import { UserText } from "@/components/UserText";
 import { getClass, getExploreTutors } from "@/app/actions";
-import { isOpenForBooking, type ClassItem, type ExploreTutor } from "@tnajem/shared";
+import { isOpenForBooking, monthLabel, type ClassItem, type ExploreTutor } from "@tnajem/shared";
 import { bilingual } from "@/lib/i18n";
 
-/** Month label map FR → AR (short) — same table as the storefront/checkout. */
-const monthAr: Record<string, string> = {
-  JANV: "جانفي", FÉVR: "فيفري", MARS: "مارس", AVR: "أفريل",
-  MAI: "ماي", JUIN: "جوان", JUIL: "جويل", AOÛT: "أوت",
-  SEPT: "سبتمبر", OCT: "أكتوبر", NOV: "نوفمبر", DÉC: "ديسمبر",
-};
 
 /* Page-local copy (lib/i18n.ts is shared). One shared key is deliberately unused:
      • t.common.seats   → "${n} places", which reads "1 places" and, at 0, still
@@ -225,7 +219,7 @@ export default function ClassDetailPage({ params }: { params: { id: string } }) 
         .filter(Boolean)
         .join(" · ")
     : "";
-  const month = locale === "ar" ? monthAr[cls.month] ?? cls.month : cls.month;
+  const month = monthLabel(cls.month, locale);
   /* A class that has started, finished or been cancelled offers no booking, however
      many seats it has left. This page used to check seats only, so a past class
      still carried "Réserver". The server refuses it too (POST /bookings). */

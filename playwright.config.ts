@@ -4,6 +4,12 @@ import "./e2e/support/env";
 
 const BASE = process.env.E2E_BASE_URL ?? "http://localhost:3210";
 
+/* E2E_SERVER_TZ runs BOTH servers in that timezone (e2e/timezone.spec.ts): a class
+   time must not depend on where the process runs. When it is set, an already
+   running server is never reused — it would be in whatever zone it started in. */
+const SERVER_TZ: Record<string, string> = process.env.E2E_SERVER_TZ ? { TZ: process.env.E2E_SERVER_TZ } : {};
+const REUSE = !process.env.CI && !process.env.E2E_SERVER_TZ;
+
 export default defineConfig({
   testDir: "./e2e",
   /* workers:1 — three things are process-global no matter how independent the
@@ -37,9 +43,10 @@ export default defineConfig({
     {
       command: "npm run build -w @tnajem/api && npm run start -w @tnajem/api",
       url: "http://127.0.0.1:4000/health",
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: REUSE,
       timeout: 120_000,
       env: {
+        ...SERVER_TZ,
         API_PORT: "4000",
         STORAGE_DIR: resolve(process.env.E2E_STORAGE_DIR ?? ".e2e-storage"),
         ADMIN_EMAILS: "e2e-admin@tnajem.invalid",
@@ -69,9 +76,10 @@ export default defineConfig({
     {
       command: "npm run build -w @tnajem/web && npm run start:standalone -w @tnajem/web",
       url: "http://localhost:3210/fr",
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: REUSE,
       timeout: 300_000,
       env: {
+        ...SERVER_TZ,
         PORT: "3210",
         /* ABSOLUTE, always. Next's standalone server.js chdir()s to its own
            directory, so a relative STORAGE_DIR resolves to

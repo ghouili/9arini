@@ -15,7 +15,7 @@ import { UserText } from "@/components/UserText";
 import { buildTutorSteps, STEP_COPY } from "@/lib/onboarding-steps";
 import type { OnboardingStep, StepState } from "@/lib/onboarding-steps";
 import type { DashboardData, DashboardBooking, NotificationItem, DashboardResult } from "@tnajem/shared";
-import { initials } from "@tnajem/shared";
+import { initials, monthLabel, formatLongDate } from "@tnajem/shared";
 import { bilingual } from "@/lib/i18n";
 
 /* Page-local copy (never edit lib/i18n.ts from here). FR + Derija, RTL-safe.
@@ -549,11 +549,7 @@ function PlanPanel({ d, c, locale }: { d: DashboardData; c: CopyDict; locale: "f
   const p = d.plan;
   const until =
     p.expiresAt
-      ? new Date(p.expiresAt).toLocaleDateString(locale === "ar" ? "ar-TN" : "fr-FR", {
-          day: "2-digit",
-          month: "long",
-          year: "numeric",
-        })
+      ? formatLongDate(p.expiresAt, locale) // the Tunis calendar day, not the browser's
       : null;
 
   return (
@@ -918,7 +914,7 @@ function RealDashboard(
                 </div>
                 <div className="flex-1 min-w-0">
                   <UserText as="div" style={{ fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{cl.title}</UserText>
-                  <time className="block text-[13px] text-muted mt-0.5" dateTime={cl.starts_at}>{cl.day} {cl.month} · {cl.time}</time>
+                  <time className="block text-[13px] text-muted mt-0.5" dateTime={cl.starts_at}>{cl.day} {monthLabel(cl.month, locale)} · {cl.time}</time>
                 </div>
                 <div className="text-end flex-none ms-auto">
                   <div className="qd-num font-display font-bold text-ink">{cl.price_tnd} TND</div>
@@ -931,7 +927,7 @@ function RealDashboard(
                   on one that already ran is a button whose only outcome is an
                   error message. */}
               {cl.status === "scheduled" && (
-                <ClassActions classId={cl.id} onChanged={onChanged} />
+                <ClassActions classId={cl.id} startsAt={cl.starts_at} onChanged={onChanged} />
               )}
             </div>
           ))}

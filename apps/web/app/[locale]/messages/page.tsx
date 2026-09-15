@@ -7,7 +7,7 @@ import { SiteShell } from "@/components/SiteShell";
 import { Forward, Shield } from "@/components/icons";
 import { UserText } from "@/components/UserText";
 import { getThreads } from "@/app/actions";
-import type { MessageThreadSummary } from "@tnajem/shared";
+import { formatShortDate, type MessageThreadSummary } from "@tnajem/shared";
 import { bilingual } from "@/lib/i18n";
 
 /* THE INBOX. Step 8b — the channel that replaces the contact details Step 8
@@ -55,11 +55,7 @@ const copy = bilingual({
 
 function whenLabel(iso: string | null, locale: string): string {
   if (!iso) return "";
-  const d = new Date(iso);
-  return d.toLocaleDateString(locale === "ar" ? "ar-TN" : "fr-FR", {
-    day: "2-digit",
-    month: "short",
-  });
+  return formatShortDate(iso, locale === "ar" ? "ar" : "fr"); // Tunis time
 }
 
 export default function MessagesPage() {

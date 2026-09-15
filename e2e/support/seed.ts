@@ -68,9 +68,11 @@ export async function seedClass(opts: {
   isFreeFirst?: boolean;
   priceTnd?: number;
   hoursFromNow?: number;
+  /** An exact instant, for specs that assert on the displayed time. Wins over hoursFromNow. */
+  at?: Date;
 }): Promise<{ id: string; title: string }> {
   const t = tag();
-  const when = new Date(Date.now() + (opts.hoursFromNow ?? 72) * 3600_000);
+  const when = opts.at ?? new Date(Date.now() + (opts.hoursFromNow ?? 72) * 3600_000);
   const [row] = await sql`
     insert into classes (id, tutor_id, title, description, scheduled_at, duration_min,
                          price_tnd, seats, seats_taken, is_free_first, status)

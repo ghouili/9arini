@@ -10,6 +10,7 @@
    Error strings are stable machine codes (`invalid-title`, `slug-reserved`, …)
    so the UI can localize them; never user-facing prose. Pure module — safe on
    both server and client (no DB, no env). */
+import { parseScheduleInput } from "./time";
 
 export type Valid<T> = { ok: true; value: T } | { ok: false; error: string };
 
@@ -62,11 +63,15 @@ export function vPrice(raw: unknown, opts: { field: string; max?: number }): Val
   return ok(Math.round(n * 100) / 100);
 }
 
-/** ISO-ish date string that parses AND is not in the past (small clock-skew grace). */
+/** A class start time that parses AND is not in the past (small clock-skew grace).
+    A wall time ("2026-09-20T18:00", what a datetime-local input sends) is 18:00 IN
+    TUNIS, whatever timezone this process runs in; an explicit Z/offset is taken
+    as written. It used to be `new Date(raw)`, which read a wall time in the
+    server's own timezone. */
 export function vFutureDate(raw: unknown, opts: { field: string; graceMin?: number }): Valid<Date> {
   if (typeof raw !== "string" || !raw.trim()) return bad(`invalid-${opts.field}`);
-  const d = new Date(raw);
-  if (Number.isNaN(d.getTime())) return bad(`invalid-${opts.field}`);
+  const d = parseScheduleInput(raw);
+  if (!d) return bad(`invalid-${opts.field}`);
   const grace = (opts.graceMin ?? 1) * 60_000;
   if (d.getTime() < Date.now() - grace) return bad(`${opts.field}-in-past`);
   // Sanity ceiling: nobody schedules a Bac revision 5 years out.
@@ -350,8 +355,5 @@ export function initials(name: string): string {
   return ((p[0]?.[0] ?? "") + (p.length > 1 ? p[p.length - 1][0] : "")).toUpperCase() || "?";
 }
 
-/** Month abbreviations used by the storefront class cards. */
-export const MONTHS_FR = [
-  "JANV", "FÉVR", "MARS", "AVR", "MAI", "JUIN",
-  "JUIL", "AOÛT", "SEPT", "OCT", "NOV", "DÉC",
-] as const;
+/* MONTHS_FR moved to ./time.ts (with the Arabic labels and every Tunis-time
+   formatter); the barrel still exports it. */

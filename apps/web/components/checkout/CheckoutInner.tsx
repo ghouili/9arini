@@ -7,16 +7,9 @@ import { Check, Calendar, Clock, Users, Shield, Back } from "@/components/icons"
 import { Spinner } from "@/components/ui";
 import { UserText } from "@/components/UserText";
 import { getClass, reserveSeat } from "@/app/actions";
-import { isOpenForBooking, type ClassItem } from "@tnajem/shared";
+import { isOpenForBooking, monthLabel, type ClassItem } from "@tnajem/shared";
 import { bilingual } from "@/lib/i18n";
 
-/** Month label map FR → AR (short) — same table as the storefront. Class rows
-    carry FR short labels, so an Arabic checkout used to read "23 JUIN". */
-const monthAr: Record<string, string> = {
-  JANV: "جانفي", FÉVR: "فيفري", MARS: "مارس", AVR: "أفريل",
-  MAI: "ماي", JUIN: "جوان", JUIL: "جويل", AOÛT: "أوت",
-  SEPT: "سبتمبر", OCT: "أكتوبر", NOV: "نوفمبر", DÉC: "ديسمبر",
-};
 
 /* Payments are OFF for the pilot (lib/payments.ts). This screen is a free
    seat reservation, not a checkout: no rails, no card, no "paiement sécurisé".
@@ -379,7 +372,7 @@ export default function CheckoutInner() {
     );
   }
 
-  const month = locale === "ar" ? monthAr[cls.month] ?? cls.month : cls.month;
+  const month = monthLabel(cls.month, locale);
   const whenLine = `${cls.day} ${month} · ${cls.time}`;
   /* Started, finished or cancelled → nothing to confirm. Checked at render against
      the clock; if the class starts while this screen is open, the button still

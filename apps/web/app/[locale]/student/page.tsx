@@ -9,7 +9,7 @@ import type { StudentClass, StudentDashboard } from "@tnajem/shared";
 /* The 48h window and the 40% rate come from the ONE place that defines them.
    A component hardcoding 0.4 is a component that disagrees with the server the
    first time the rate moves — and this one renders the number to a student. */
-import { CANCEL_FREE_WINDOW_MS, CANCEL_FREE_WINDOW_HOURS, LATE_CANCEL_RETAINED_PCT } from "@tnajem/shared";
+import { CANCEL_FREE_WINDOW_MS, CANCEL_FREE_WINDOW_HOURS, LATE_CANCEL_RETAINED_PCT, monthLabel } from "@tnajem/shared";
 import { SiteShell } from "@/components/SiteShell";
 import { MessageBookingButton } from "@/components/MessageBookingButton";
 import { UserText } from "@/components/UserText";
@@ -321,7 +321,7 @@ function UpcomingCard({ item, hero, onChanged }: { item: StudentClass; hero: boo
 
       <div className="flex items-center gap-2.5 flex-wrap text-on-dark text-[13px] font-semibold">
         <span className="inline-flex items-center gap-1.5">
-          <Clock /> <time dateTime={new Date(item.ts).toISOString()}>{item.day} {item.month} · {item.time}</time>
+          <Clock /> <time dateTime={new Date(item.ts).toISOString()}>{item.day} {monthLabel(item.month, locale)} · {item.time}</time>
         </span>
         {item.isFree && <Chip kind="free">{c.free}</Chip>}
       </div>
@@ -525,7 +525,7 @@ export default function StudentPage() {
                         <div className="flex-1 min-w-0">
                           <UserText as="div" style={{ fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</UserText>
                           <div className="muted text-[13px] mt-0.5">
-                            <time dateTime={new Date(item.ts).toISOString()}>{item.day} {item.month} · {item.time}</time> · {t.student.with} <UserText>{item.tutorName}</UserText>
+                            <time dateTime={new Date(item.ts).toISOString()}>{item.day} {monthLabel(item.month, locale)} · {item.time}</time> · {t.student.with} <UserText>{item.tutorName}</UserText>
                           </div>
                         </div>
                         {item.replayUrl ? (

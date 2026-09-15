@@ -30,8 +30,6 @@ type DocKind = "id_front" | "id_back" | "selfie" | "diploma" | "certificate" | "
    it, and a single named constant is easier to audit than scattered string compares. */
 const IS_PROD = process.env.NODE_ENV === "production";
 
-const DASH_MONTHS = ["JANV", "FÉVR", "MARS", "AVR", "MAI", "JUIN", "JUIL", "AOÛT", "SEPT", "OCT", "NOV", "DÉC"];
-
 /* Server actions = the write/auth path. Callable from client components.
    In demo mode (no API_URL, dev only) they degrade gracefully so the UI still works.
    Every input goes through lib/validation.ts — actions are a public surface. */

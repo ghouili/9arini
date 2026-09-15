@@ -28,6 +28,8 @@ export * from "./profile-input";
 export * from "./free-first";
 export * from "./standing";
 export * from "./class-time";
+/* Africa/Tunis formatting and parsing. Pure Intl, no dependencies. */
+export * from "./time";
 export * from "./cancellation";
 /* Zero contact exchange: the allow-list and the text scanner. Both pure. */
 export * from "./public-profile";

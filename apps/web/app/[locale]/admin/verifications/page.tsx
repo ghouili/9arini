@@ -8,7 +8,7 @@ import { SiteShell } from "@/components/SiteShell";
 import { Shield, Check, Eye, Users, Forward } from "@/components/icons";
 import { UserText } from "@/components/UserText";
 import { getPendingVerifications, approveTutor, rejectTutor } from "@/app/actions";
-import type { PendingTutor } from "@tnajem/shared";
+import { formatInTunis, type PendingTutor } from "@tnajem/shared";
 import { bilingual } from "@/lib/i18n";
 
 /* Self-contained bilingual copy (FR + Tunisian Derija). Does NOT touch lib/i18n.ts. */
@@ -103,14 +103,8 @@ function initials(name: string): string {
 }
 
 function formatDate(iso: string | null, locale: "fr" | "ar"): string | null {
-  if (!iso) return null;
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return null;
-  return new Intl.DateTimeFormat(locale === "ar" ? "ar-TN" : "fr-FR", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }).format(d);
+  if (!iso || Number.isNaN(Date.parse(iso))) return null;
+  return formatInTunis(iso, locale, { day: "numeric", month: "long", year: "numeric" });
 }
 
 export default function AdminVerificationsPage() {
