@@ -83,6 +83,17 @@ MAIL_FROM_NAME=Tnajem
 # PAYMENTS_ENABLED=1
 ```
 
+**Check it before you start anything:** `npm run db:check -- --production` reports
+every key as set / empty / missing (never a value), connects to the database,
+confirms every numbered migration is applied, and round-trips a file through
+`STORAGE_DIR`. It exits 1 on anything production cannot run without.
+
+**The web server refuses to start on a bad config.** `apps/web/scripts/preflight.mjs`
+runs before `server.js` (the Dockerfile `CMD`, and `npm run start:standalone`) and
+exits 1 without `API_URL` or with `TNAJEM_DEMO=1`. There is no demo data in
+production, by construction. It does not ask for `AUTH_SECRET`: the web app never
+reads it — only the API does, and the API refuses to boot without it.
+
 **`API_URL` must not be `NEXT_PUBLIC_`.** The browser never calls the API; the web
 server does, from inside the box. Prefixing it would bake a private address into
 the client bundle and invite someone to "fix" it by exposing port 4000 publicly.

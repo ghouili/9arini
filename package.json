@@ -18,6 +18,8 @@
     "test:e2e": "playwright test",
     "test:e2e:docker": "playwright test --config=e2e/docker.config.ts",
     "db:sql": "npm run db:sql -w @tnajem/db --",
+    "db:check": "npm run db:check -w @tnajem/db --",
+    "verify": "npm run typecheck && npm run lint && node tools/ui-audit/contrast.mjs && node tools/ui-audit/guardrails.mjs",
     "db:purge": "npm run db:purge -w @tnajem/db --",
     "db:seed": "npm run db:seed -w @tnajem/db --",
     "db:studio": "npm run db:studio -w @tnajem/db --",

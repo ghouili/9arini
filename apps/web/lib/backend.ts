@@ -19,18 +19,12 @@ export const backendReady: boolean = Boolean(process.env.API_URL?.trim());
 
 /* WHEN MAY A PORTED ACTION FALL BACK TO DEMO DATA?
 
-   Only when there is no backend at all AND we are not in production. In
-   production the web app must always call the API and let a real failure surface
-   as a real failure.
+   Only when someone ASKED for demo mode (TNAJEM_DEMO=1), in development, with no
+   API configured — the state that puts a "MODE DÉMO" banner on every page.
+   Missing API_URL alone is no longer enough: that used to be what a plain
+   `npm run dev` looked like, and it served invented tutors without a word.
 
-     demoFallback === true   dev with no API — the ui-audit harness and
-                             `next build` keep working
-     demoFallback === false  everything else -> call the API */
+     demoFallback === true   dev + TNAJEM_DEMO=1 + no API
+     demoFallback === false  everything else -> call the API, and let a missing
+                             API fail as a real failure (lib/data.ts) */
 export const demoFallback: boolean = !backendReady && demoEnabled;
-
-/* Kept separate on purpose: a PRODUCTION process with no backend and no demo
-   fallback must degrade to an honest error, never to fabricated data. That is the
-   rule lib/data.ts::DatabaseNotConfiguredError already enforces for the
-   storefront, and it is why demoEnabled is part of the condition above rather
-   than backendReady alone. */
-export const backendMissingInProd: boolean = !backendReady && !demoEnabled;

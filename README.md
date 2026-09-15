@@ -48,9 +48,10 @@ curl -sf localhost:4000/health               # {"ok":true,"db":true,...}
 npm install
 cp .env.example .env            # DATABASE_URL, AUTH_SECRET, STORAGE_DIR (absolute)
 npm run db:sql                  # apply packages/db/sql/ — idempotent, transactional
+npm run db:check                # DB reachable, every migration applied, store writable, keys set
 npm run db:seed                 # optional: one demo tutor for local dev
 npm run dev:api                 # Fastify on :4000
-npm run dev                     # Next on :3000
+npm run dev                     # Next on :3000 — refuses to start without API_URL
 ```
 
 You need a **Postgres 18** running. Browse the data with `npm run db:studio`.
@@ -61,12 +62,12 @@ You need a **Postgres 18** running. Browse the data with `npm run db:studio`.
 > `packages/db/sql/`. `packages/db/sql/0000_init.sql` is the baseline, so a fresh
 > database is created by `db:sql` alone.
 
-**Without `API_URL`** the web app still boots **in development** on in-memory
-fixtures (`apps/web/lib/demo.ts`), so you can see every screen with zero setup.
-That fallback is **hard-disabled in production** — see *Demo mode* below. Note the
-condition is `API_URL`, not `DATABASE_URL`: the web app no longer has one, and
-leaving the old check in place would have emptied the catalogue silently the day
-the credential was removed.
+**Without `API_URL`, `npm run dev` refuses to start** and says why. To see every
+screen with no backend at all, ask for demo data explicitly:
+`TNAJEM_DEMO=1 npm run dev` — fictitious tutors, with a *MODE DÉMO* banner on
+every page. Demo mode is **impossible in production** — see *Demo mode* below.
+Both apps read the one repo-root `.env`; the web app used not to, which is how a
+plain `npm run dev` ended up silently serving invented tutors.
 
 ---
 
@@ -234,7 +235,9 @@ and the marker is not decorative — an unmarked one is a lie a tutor pays for:
 
 | script | what it does |
 | --- | --- |
-| `npm run dev` / `dev:api` | Next on :3000 / Fastify on :4000 |
+| `npm run dev` / `dev:api` | Next on :3000 / Fastify on :4000. `dev` runs `apps/web/scripts/preflight.mjs` first and refuses to start without `API_URL` unless `TNAJEM_DEMO=1` |
+| `npm run verify` | typecheck · lint · contrast · guardrails (guardrails needs a production build of the web app) |
+| `npm run db:check` | database reachable, every numbered migration applied, document store writable, config keys set/missing — never prints a value. `-- --production` applies production rules |
 | `npm run build` | builds both apps |
 | `npm start` / `start:standalone` | serves the web build. **Both run the same script**, deliberately: `next start` does not work with `output:"standalone"` — it logs *Ready*, listens, and never answers a request — so `start` pointing at it was a command that looked like it worked and hung. It now runs the standalone server, which is what production runs. |
 | `npm run lint` | ESLint (`next/core-web-vitals`), `--max-warnings=0`. `no-img-element` is an **error**: "next/image only" is an invariant, and `next lint` exits 0 on warnings. |
@@ -267,20 +270,25 @@ cookie (`e2e/support/session.ts`) — there is **no test-only endpoint** in the
 production build. It refuses to run against any database that is not on this
 machine.
 
-## Demo mode (development only)
+## Demo mode (opt-in, development only)
 
-With no `API_URL`, **in development**, `apps/web/lib/data.ts` serves the fixtures
-in `apps/web/lib/demo.ts` and any slug resolves to the demo storefront. Handy;
-also a loaded gun.
+With `TNAJEM_DEMO=1` and no `API_URL`, **in development**, `apps/web/lib/data.ts`
+serves the fixtures in `apps/web/lib/demo.ts`: three fictitious tutors, each at its
+own slug, every one "Nouveau" (no rating, no student count). Handy; also a loaded
+gun — so it is never silent and never production:
 
-The demo tutor is described as *verified, 4.9★, 1,240 students*. None of it is
-real. So the gate is the **environment**, not the configuration:
-
-- `demoEnabled === (process.env.NODE_ENV !== "production")`.
-- In a production build the fixtures are **inert** (empty arrays; a zeroed,
-  unverified, unrated storefront) — the fake rating is not even in the bundle.
-- `getStorefront()` **throws** in production when there is no backend. It does not
-  return `null`: a site-wide 404 storm would tell Google to deindex every real
+- `demoEnabled` is true only for `NODE_ENV !== "production"` **and**
+  `TNAJEM_DEMO=1` **and** no `API_URL` (computed in `next.config.mjs`, inlined at
+  build time).
+- Every page carries a **MODE DÉMO — données fictives** banner
+  (`components/DemoBanner.tsx`, rendered by the locale layout).
+- `scripts/preflight.mjs` refuses to start `dev` with neither `API_URL` nor
+  `TNAJEM_DEMO=1`, and refuses to start the production server without `API_URL`
+  or with `TNAJEM_DEMO=1`.
+- In a production build the fixtures are **inert** (empty arrays, null
+  storefronts) — they are not even in the bundle.
+- `getStorefront()` **throws** when there is no backend outside demo mode. It does
+  not return `null`: a site-wide 404 storm would tell Google to deindex every real
   tutor page, while a 5xx honestly says "we are broken" — and pages us.
 
 ## Before real users

@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { LocaleProvider } from "@/components/LocaleProvider";
 import { JsonLd } from "@/components/JsonLd";
+import { DemoBanner } from "@/components/DemoBanner";
 import { LOCALES, DEFAULT_LOCALE, isLocale, dir, type AppLocale } from "@/lib/locale";
 import "../globals.css";
 
@@ -124,6 +125,7 @@ export default function LocaleLayout({
       }
     >
       <body>
+        <DemoBanner locale={locale} />
         {/* Site-wide structured data — truthful + static; identifies the Tnajem entity
             and site to search engines and AI assistants. No SearchAction (search is
             client-side; a search endpoint would be a claim we can't back yet). */}

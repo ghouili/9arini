@@ -1,8 +1,27 @@
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { config as loadDotenv } from "dotenv";
 /** @type {import('next').NextConfig} */
 
+/* ── ONE ENV FILE, AT THE REPO ROOT ──────────────────────────────────────────────
+   Next only reads .env* from its own folder (apps/web), and there is none there —
+   so `npm run dev` never saw API_URL and silently served DEMO DATA that looks
+   real. On a product with a truth rule that is the worst possible failure mode.
+   Load the root files the same way apps/api/src/env.ts does: .env.local, then
+   .env, neither overriding a value already in the environment (so a host's
+   injected secrets, or `API_URL= npm run dev`, always win). Silent when absent:
+   the Docker build has no .env and must not need one. */
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "../..");
+loadDotenv({ path: join(REPO_ROOT, ".env.local") });
+loadDotenv({ path: join(REPO_ROOT, ".env") });
+
 const isProd = process.env.NODE_ENV === "production";
+
+/* DEMO MODE IS OPT-IN, and only ever in development. It is active when someone
+   asked for it (TNAJEM_DEMO=1) AND there is no API to call. Inlined into both
+   bundles as a build-time constant so the banner (a client-safe component) and
+   the data layer agree. scripts/preflight.mjs refuses to start otherwise. */
+const demoActive = !isProd && process.env.TNAJEM_DEMO === "1" && !process.env.API_URL?.trim();
 
 /* ── Content-Security-Policy ───────────────────────────────────────────────────
    Why 'unsafe-inline' rather than a nonce, deliberately:
@@ -66,6 +85,23 @@ function securityHeaders() {
    tutor's storefront from a WhatsApp link. Every kilobyte and every round trip
    on that path is the product. */
 const nextConfig = {
+  env: { TNAJEM_DEMO_ACTIVE: demoActive ? "1" : "" },
+
+  /* NO FIXTURE TEXT IN A PRODUCTION BUNDLE. Every production compile (server,
+     client, edge) gets lib/demo-fixtures.empty.ts in place of the invented tutors.
+     Gating the calls on demoEnabled was not enough: the minifier kept the fixture
+     bodies, and the 15 Sept build shipped them in the /explore client chunk. */
+  webpack(config, { dev, webpack }) {
+    if (!dev) {
+      config.plugins.push(
+        new webpack.NormalModuleReplacementPlugin(/[\\/]demo-fixtures(\.ts)?$/, (resource) => {
+          resource.request = resource.request.replace(/demo-fixtures(\.ts)?$/, "demo-fixtures.empty.ts");
+        }),
+      );
+    }
+    return config;
+  },
+
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders() }];
   },

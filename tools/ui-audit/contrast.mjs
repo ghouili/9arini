@@ -81,6 +81,7 @@ const PAIRS = [
   ["Accent text", "--ochre-ink", "--sand", "normal", "step line", "student/page.tsx:165"],
   ["Accent text", "--ochre-ink", "--cream", "normal", "step line", "verify/page.tsx:340"],
   ["Accent text", "--ochre-ink", "--ochre-tint", "normal", "TONES pill", "page.tsx:174"],
+  ["Accent text", "--ochre-ink", "--ochre-tint", "normal", "MODE DÉMO banner 14px", "DemoBanner.tsx:28"],
 
   // ── large display text (h1 clamp(30,5.5vw,56) → large) ──
   ["Display", "--ochre-ink", "--cream", "large", "h1 highlight (verifie)", "page.tsx:319"],

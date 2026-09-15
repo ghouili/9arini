@@ -7,11 +7,11 @@ import type { Storefront, Tutor, ClassItem, Pack } from "@tnajem/shared";
 /* ══════════════════════════════════════════════════════════════════════════════
    Server-side reads.
 
-   Two modes, and only two:
+   Two modes, and only two, when there is no API_URL:
 
-     • DEVELOPMENT, no API_URL → demo fixtures (lib/demo.ts). Genuinely
-       useful: the whole UI runs with zero setup.
-     • PRODUCTION, no API_URL  → a hard error. NOT fixtures.
+     • DEMO MODE (dev + TNAJEM_DEMO=1) → demo fixtures (lib/demo.ts), with a
+       banner on every page saying so.
+     • ANYTHING ELSE                   → a hard error. NOT fixtures.
 
    The second rule is the important one. `backendReady` is false whenever API_URL
    is missing — including on a misconfigured deploy or after a rotated secret. The
@@ -27,15 +27,12 @@ import type { Storefront, Tutor, ClassItem, Pack } from "@tnajem/shared";
    one that gets us paged.
    ══════════════════════════════════════════════════════════════════════════════ */
 
-/** True only when serving fixtures is allowed: dev, and no database configured. */
-export const demoFallbackActive: boolean = demoFallback;
-
-/** Thrown when production boots with no backend. Surfaces as app/error.tsx (500). */
+/** Thrown when a read runs with no backend outside demo mode. Surfaces as app/error.tsx (500). */
 export class DatabaseNotConfiguredError extends Error {
   constructor(op: string) {
     super(
-      `[Tnajem] API_URL is not set — refusing to serve demo data from ${op} in production. ` +
-        "Fix the deployment env; the demo fallback is development-only by design.",
+      `[Tnajem] API_URL is not set — refusing to serve demo data from ${op}. ` +
+        "Fix the environment; demo data is served only in development with TNAJEM_DEMO=1.",
     );
     this.name = "DatabaseNotConfiguredError";
   }
@@ -43,15 +40,16 @@ export class DatabaseNotConfiguredError extends Error {
 
 /** Single choke point for every "no backend" branch below.
 
-    The condition moved from dbReady to backendReady when apps/web stopped owning
-    the database: the question is no longer "is a database configured?" but "is
-    there an API to call?". The rule it enforces is unchanged and is the important
-    part — a PRODUCTION process with no backend must throw, never fabricate a
-    tutor. A site-wide 404 storm would tell Google to deindex every real tutor
-    page, while a 5xx honestly says "we are broken" and pages someone. */
-function assertNotProdWithoutDb(op: string): void {
+    It used to sit INSIDE `if (demoFallback)`, whose condition already implied
+    demoEnabled — so its `if (backendReady || demoEnabled) return` always
+    returned and the throw was unreachable. A production process with no API_URL
+    fell through to fetch() against the 127.0.0.1 default instead. It now runs
+    before any fixture is considered: no backend and no demo mode → throw. A
+    site-wide 404 storm would tell Google to deindex every real tutor page, while
+    a 5xx honestly says "we are broken" and pages someone. */
+function assertBackendOrDemo(op: string): void {
   if (backendReady || demoEnabled) return;
-  console.error(`[Tnajem] FATAL: ${op} called in production with no API_URL.`);
+  console.error(`[Tnajem] FATAL: ${op} called with no API_URL outside demo mode.`);
   throw new DatabaseNotConfiguredError(op);
 }
 
@@ -62,10 +60,8 @@ const initials = (name: string) => {
 };
 
 export async function getStorefront(slug: string): Promise<Storefront | null> {
-  if (demoFallback) {
-    assertNotProdWithoutDb("getStorefront");   // prod + no DB → throw, never fabricate
-    return demoStorefrontFor(slug);            // dev only: that slug's fixture, or not found
-  }
+  assertBackendOrDemo("getStorefront");        // no API and no demo mode → throw, never fabricate
+  if (demoFallback) return demoStorefrontFor(slug); // demo mode only: that slug's fixture, or not found
 
   /* PORTED to apps/api (GET /tutors/:slug/storefront).
 

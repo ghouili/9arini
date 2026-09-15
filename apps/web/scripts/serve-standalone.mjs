@@ -21,9 +21,24 @@ import { cp, access, readdir } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { preflight } from "./preflight.mjs";
 
 const appRoot = dirname(dirname(fileURLToPath(import.meta.url))); // apps/web
 const standalone = join(appRoot, ".next", "standalone");
+
+/* This is the LOCAL production runner (Docker runs preflight + server.js
+   directly), so read the repo-root .env like every other process here — a plain
+   `npm run start:standalone` would otherwise have no API_URL and be refused.
+   Values already in the environment win, which is how the Playwright config pins
+   its own. */
+try {
+  const { config } = await import("dotenv");
+  config({ path: join(appRoot, "../..", ".env.local") });
+  config({ path: join(appRoot, "../..", ".env") });
+} catch {
+  /* no dotenv — rely on the real environment */
+}
+await preflight("start");
 
 /** Depth-first hunt for the traced server.js (flat or nested). */
 async function findServer(dir, depth = 0) {

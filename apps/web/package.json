@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/preflight.mjs dev",
     "dev": "next dev",
     "build": "next build",
     "start": "node scripts/serve-standalone.mjs",

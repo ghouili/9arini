@@ -57,6 +57,9 @@ COPY --from=build --chown=node:node /repo/apps/web/.next/standalone ./
 # `curl | grep "<h1"` health check.
 COPY --from=build --chown=node:node /repo/apps/web/.next/static ./apps/web/.next/static
 COPY --from=build --chown=node:node /repo/apps/web/public       ./apps/web/public
+# Refuses to start without API_URL, or with TNAJEM_DEMO=1. Plain node, no
+# dependencies: the runner has no dotenv and no TypeScript.
+COPY --from=build --chown=node:node /repo/apps/web/scripts/preflight.mjs ./apps/web/scripts/preflight.mjs
 
 # The node images ship a non-root `node` user (uid 1000). Never run as root.
 USER node
@@ -65,4 +68,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:3000/fr').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
-CMD ["node", "apps/web/server.js"]
+# `exec` hands PID 1 to the server, so SIGTERM from the orchestrator reaches Node.
+CMD ["sh", "-c", "node apps/web/scripts/preflight.mjs start && exec node apps/web/server.js"]

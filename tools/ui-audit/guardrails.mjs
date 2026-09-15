@@ -269,6 +269,74 @@ section("variant classes survive the Tailwind purge");
 }
 
 
+/* -- 6. no demo fixture reaches a production build ---------------------------- */
+section("6. no demo fixture text in the production build");
+{
+  /* The fixtures describe tutors who do not exist. Gating the calls on demoEnabled
+     kept them off the page but not out of the bundle — the 15 Sept production build
+     shipped them in the /explore client chunk — so next.config.mjs now swaps
+     lib/demo-fixtures.ts for an empty stub. This proves the swap still happens.
+
+     Needles come from the fixture file itself, so a renamed tutor is still caught —
+     each searched raw AND in the minifier's escaped spellings ("Int\xe9grales"),
+     and only literals that appear in no other source file (an "ex. Yassine
+     Khelifi" placeholder is not a fixture). A check with fewer than 3 needles
+     fails rather than passing on nothing. */
+  const NEXT_DIR = join(WEB_ROOT, ".next");
+  const fixturesFile = join(WEB_ROOT, "lib", "demo-fixtures.ts");
+  const fixtures = readFileSync(fixturesFile, "utf8");
+  const others = [join(WEB_ROOT, "app"), join(WEB_ROOT, "components"), join(WEB_ROOT, "lib")]
+    .flatMap((d) => walk(d))
+    .filter((p) => !/demo-fixtures/.test(p))
+    .map((p) => readFileSync(p, "utf8"))
+    .join("\n");
+  const needles = [
+    ...new Set(
+      [...fixtures.matchAll(/\b(?:slug|full_name|tutor_name|title|subject|bio|description|meet_url):\s*"([^"]{6,})"/g)]
+        .map((m) => m[1])
+        .filter((s) => !others.includes(s)),
+    ),
+  ];
+  const hex2 = (c) => c.charCodeAt(0).toString(16).padStart(2, "0");
+  const hex4 = (c) => c.charCodeAt(0).toString(16).padStart(4, "0");
+  /** The spellings a minifier may emit for one literal: raw; Latin-1 as \xNN; everything as \x/\u. */
+  const spellings = (s) => [...new Set([
+    s,
+    s.replace(/[\x80-\xff]/g, (c) => "\\x" + hex2(c)),
+    s.replace(/[\x80-\xff]/g, (c) => "\\x" + hex2(c)).replace(/[^\x00-\xff]/g, (c) => "\\u" + hex4(c)),
+  ])];
+  let builtId = "";
+  try { builtId = readFileSync(join(NEXT_DIR, "BUILD_ID"), "utf8").trim(); } catch { /* reported below */ }
+  if (!builtId) {
+    fail("no production build under apps/web/.next (no BUILD_ID) - run `npm run build -w @tnajem/web` first");
+  } else if (needles.length < 3) {
+    fail(`only ${needles.length} usable needle(s) extracted from ${rel(fixturesFile)} - the check would prove nothing`);
+  } else {
+    const js = (dir, out = []) => {
+      let entries = [];
+      try { entries = readdirSync(dir, { withFileTypes: true }); } catch { return out; }
+      for (const e of entries) {
+        const p = join(dir, e.name);
+        if (e.isDirectory()) { if (e.name !== "cache" && e.name !== "standalone") js(p, out); }
+        else if (/\.(js|html|rsc|body|json)$/.test(e.name)) out.push(p);
+      }
+      return out;
+    };
+    const built = [...js(join(NEXT_DIR, "static")), ...js(join(NEXT_DIR, "server"))];
+    let hits = 0;
+    for (const f of built) {
+      const text = readFileSync(f, "utf8");
+      for (const n of needles) {
+        if (spellings(n).some((v) => text.includes(v))) {
+          hits++;
+          fail(`fixture text "${n}" found in ${rel(f)} - lib/demo-fixtures.ts reached a production build`);
+        }
+      }
+    }
+    if (!hits) console.log(`  ok    ${needles.length} fixture needle(s) absent from ${built.length} built file(s)`);
+  }
+}
+
 console.log(`\n  ${fails} guardrail violation(s)\n`);
 if (fails) process.exit(1);
 console.log("  OK — RTL logical-only, FR/AR parity exact, no hardcoded French, no untokenised colour.\n");
