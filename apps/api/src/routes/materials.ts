@@ -24,6 +24,7 @@ import { processAvatar, AVATAR_SIZES } from "../lib/avatar";
 import { assertNoContactInfo, CONTACT_ERROR } from "../lib/contact-guard";
 import { checkRateLimit, ipBucket } from "../lib/rate-limit";
 import { requireAdmin } from "../lib/admin";
+import { auditAdmin } from "../lib/audit";
 
 /* MATERIALS (Step 10) — worksheets, corrections and videos a tutor attaches.
 
@@ -60,6 +61,13 @@ const MAX_MATERIAL_BYTES = 8 * 1024 * 1024;
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 const OK_AVATAR_MIME = /^image\/(png|jpeg|webp|heic)$/;
 const MAX_MATERIALS_PER_TUTOR = 200;
+/* A BYTE QUOTA THAT COUNTS REMOVED FILES. The count cap above only sees live rows,
+   and deleting a material only marks it, so upload → delete → upload filled the
+   disk or bucket without limit (security review, 15 Sept 2026). The quota is the
+   most a tutor could ever keep live — 200 files at the 8 MB ceiling — so it takes
+   nothing a tutor was promised; it only stops the loop. Removed files are not yet
+   deleted from storage: their retention is a legal decision (Stage 5). */
+const MAX_MATERIAL_STORED_BYTES = MAX_MATERIALS_PER_TUTOR * 8 * 1024 * 1024;
 
 /* Deliberately narrower than the ID-document allow-list: no HEIC. A worksheet is
    a PDF or an image a browser can actually render, and HEIC is neither on most
@@ -161,6 +169,16 @@ export async function materialRoutes(app: FastifyInstance): Promise<void> {
       .where(and(eq(materials.tutorId, mine.id), isNull(materials.removedAt)));
     if (existing >= MAX_MATERIALS_PER_TUTOR) return { ok: false, error: "too-many-materials" };
 
+    const rl = await checkRateLimit(`material:upload:${mine.id}`, 30, 60 * 60_000);
+    if (!rl.ok) return { ok: false, error: "too-many-requests" };
+
+    const [{ bytes: storedBytes } = { bytes: 0 }] = await db
+      .select({ bytes: raw<number>`coalesce(sum(${materials.sizeBytes}), 0)::bigint` })
+      .from(materials)
+      .where(eq(materials.tutorId, mine.id));
+    const quotaLeft = MAX_MATERIAL_STORED_BYTES - Number(storedBytes);
+    if (quotaLeft <= 0) return { ok: false, error: "storage-quota-reached" };
+
     const fields = new Map<string, string>();
     let file: { fileName: string; bytes: Buffer; mime: string } | null = null;
 
@@ -250,6 +268,7 @@ export async function materialRoutes(app: FastifyInstance): Promise<void> {
     /* Persist. Key materials/<tutorId>/<file> in the object store, never public/.
        `mine.id` comes from the session's own tutor row, so a tutor can only write
        into their own folder. */
+    if (file && file.bytes.length > quotaLeft) return { ok: false, error: "storage-quota-reached" };
     const safe = `${Date.now()}-${safeFileName(file!.fileName, 60)}`;
     const key = `materials/${mine.id}/${safe}`;
     await objectStore().put(key, file!.bytes);
@@ -560,6 +579,7 @@ export async function materialRoutes(app: FastifyInstance): Promise<void> {
         slug: tutors.slug,
         fullName: tutors.fullName,
         updatedAt: tutors.avatarUpdatedAt,
+        avatarPath: tutors.avatarPath,
       })
       .from(tutors)
       .where(eq(tutors.avatarStatus, "pending"))
@@ -570,12 +590,39 @@ export async function materialRoutes(app: FastifyInstance): Promise<void> {
       slug: r.slug,
       fullName: r.fullName,
       updatedAt: r.updatedAt ? new Date(r.updatedAt).toISOString() : null,
+      /* Which photo this row is about: the decision must name it back. */
+      version: r.avatarPath ? r.avatarPath.split("/").pop() : null,
     }));
+  });
+
+  /* ── GET /admin/avatars/:tutorId/:size — a pending photo, for its reviewer ───
+     The public photo route serves a pending photo to its owner only, so no admin
+     could see the face they were asked to approve. no-store: it may be rejected
+     in the next minute. */
+  app.get<{ Params: { tutorId: string; size: string } }>("/admin/avatars/:tutorId/:size", async (req, reply) => {
+    const session = await requireAdmin(req);
+    if (!session) return reply.code(403).send({ error: "forbidden" });
+    const size = AVATAR_SIZES.find((s) => s.name === req.params.size);
+    if (!size || !isUuid(req.params.tutorId)) return reply.code(404).send({ error: "not-found" });
+    const [t] = await db
+      .select({ avatarPath: tutors.avatarPath })
+      .from(tutors)
+      .where(eq(tutors.id, req.params.tutorId))
+      .limit(1);
+    if (!t?.avatarPath) return reply.code(404).send({ error: "not-found" });
+    const stored = await openStored(`${t.avatarPath}-${size.name}.webp`, req.log);
+    if (stored === "unavailable") return reply.code(503).send({ error: "unavailable" });
+    if (!stored) return reply.code(404).send({ error: "not-found" });
+    reply.header("content-type", "image/webp");
+    reply.header("x-content-type-options", "nosniff");
+    reply.header("cache-control", "private, no-store");
+    reply.header("content-length", stored.size);
+    return reply.send(stored.stream);
   });
 
   /* ── POST /admin/avatars/:tutorId — approve or reject ────────────────────── */
   app.post<{ Params: { tutorId: string } }>("/admin/avatars/:tutorId", async (req, reply) => {
-    const parsed = z.object({ approve: z.boolean() }).safeParse(req.body);
+    const parsed = z.object({ approve: z.boolean(), version: z.string() }).safeParse(req.body);
     if (!parsed.success) return reply.code(400).send({ error: "bad-request" });
 
     const session = await requireAdmin(req);
@@ -583,16 +630,26 @@ export async function materialRoutes(app: FastifyInstance): Promise<void> {
     if (!isUuid(req.params.tutorId)) return { ok: false, error: "not-found" };
 
     const [t] = await db
-      .select({ id: tutors.id, slug: tutors.slug, avatarStatus: tutors.avatarStatus })
+      .select({ id: tutors.id, slug: tutors.slug, avatarStatus: tutors.avatarStatus, avatarPath: tutors.avatarPath })
       .from(tutors)
       .where(eq(tutors.id, req.params.tutorId))
       .limit(1);
-    if (!t || t.avatarStatus == null) return { ok: false, error: "not-found" };
+    if (!t || t.avatarStatus == null || !t.avatarPath) return { ok: false, error: "not-found" };
 
-    await db
+    /* THE PHOTO THAT WAS REVIEWED, AND ONLY A PENDING ONE. This approved whatever
+       was current — a photo swapped in after the admin looked, or one rejected
+       earlier (security review, 15 Sept 2026). The version and the status are
+       conditions of the UPDATE itself. */
+    const reviewedPath = `${t.avatarPath.slice(0, t.avatarPath.lastIndexOf("/") + 1)}${parsed.data.version}`;
+    const [decided] = await db
       .update(tutors)
       .set({ avatarStatus: parsed.data.approve ? "approved" : "rejected" })
-      .where(eq(tutors.id, t.id));
+      .where(and(eq(tutors.id, t.id), eq(tutors.avatarStatus, "pending"), eq(tutors.avatarPath, reviewedPath)))
+      .returning({ id: tutors.id });
+    if (!decided) {
+      return { ok: false, error: t.avatarStatus === "pending" ? "changed-since-review" : "not-pending" };
+    }
+    await auditAdmin(session.profile.id, parsed.data.approve ? "avatar.approve" : "avatar.reject", { kind: "tutor", id: t.id });
 
     /* An approval changes a PUBLIC page and the catalogue, so both caches go. */
     return { ok: true, revalidate: { tutors: [t.slug], publicTutors: true } };

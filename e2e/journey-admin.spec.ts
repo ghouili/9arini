@@ -70,7 +70,9 @@ test.describe("admin journey", () => {
 
     // A decided application cannot be decided again.
     const adminToken = await mintSession(admin.id);
-    expect(await api("/admin/verifications/approve", adminToken, { tutorId: tutor.id })).toMatchObject({ ok: false, error: "not-pending" });
+    const [sub] = await sql<{ submitted_at: Date }[]>`select submitted_at from tutors where id = ${tutor.id}`;
+    expect(await api("/admin/verifications/approve", adminToken, { tutorId: tutor.id, submittedAt: new Date(sub.submitted_at).toISOString() }))
+      .toMatchObject({ ok: false, error: "not-pending" });
     expect(await api("/admin/verifications/reject", adminToken, { tutorId: tutor.id, note: "Photo illisible" }), "reject can no longer un-verify a live tutor")
       .toMatchObject({ ok: false, error: "not-pending" });
     await ctx.close();

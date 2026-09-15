@@ -59,10 +59,14 @@ async function avatarStatus(slug: string, size = "md", token?: string): Promise<
 }
 
 async function moderate(tutorId: string, approve: boolean, adminToken: string) {
+  /* The decision names the photo version the admin reviewed (Stage 4): here, the
+     current one. security-moderation.spec.ts covers a stale version. */
+  const [row] = await sql<{ avatar_path: string | null }[]>`select avatar_path from tutors where id = ${tutorId}`;
+  const version = row?.avatar_path?.split("/").pop() ?? "";
   const res = await fetch(`${API}/admin/avatars/${tutorId}`, {
     method: "POST",
     headers: { "content-type": "application/json", cookie: `tnajem_session=${adminToken}` },
-    body: JSON.stringify({ approve }),
+    body: JSON.stringify({ approve, version }),
   });
   return res.json() as Promise<{ ok: boolean; error?: string }>;
 }

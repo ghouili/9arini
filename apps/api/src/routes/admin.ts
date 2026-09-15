@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {
-  and, eq, inArray, sql as raw,
+  and, eq, inArray, isNull, sql as raw,
   tutors, verificationDocs, notify,
   objectStore, storageKey,
   docEncryptionConfigured, sealDoc, openDoc, DocCryptoError,
@@ -54,6 +54,8 @@ const DOC_FIELDS: { field: string; kind: DocKind; required?: boolean }[] = [
 const SAFE_MIME = /^(image\/(jpeg|png|webp|heic|heif)|application\/pdf)$/;
 
 const tutorIdBody = z.object({ tutorId: z.string() });
+/* submittedAt: the version of the application the admin actually looked at. */
+const approveBody = z.object({ tutorId: z.string(), submittedAt: z.string().nullable() });
 const rejectBody = z.object({ tutorId: z.string(), note: z.string().optional() });
 /** A refusal reason the tutor will read in their notification. */
 const REJECT_NOTE_MIN = 5;
@@ -357,7 +359,7 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
 
   /* ── POST /admin/verifications/approve ───────────────────────────────────── */
   app.post("/admin/verifications/approve", async (req, reply) => {
-    const parsed = tutorIdBody.safeParse(req.body);
+    const parsed = approveBody.safeParse(req.body);
     if (!parsed.success) return reply.code(400).send({ error: "bad-request" });
 
     const session = await requireAdmin(req);
@@ -378,12 +380,32 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
        never uploaded an ID could be waved through by a misclick. The status is
        re-checked IN the UPDATE: two admins deciding the same application at once
        used to both "win", the second silently overwriting the first decision. */
+    /* APPROVE WHAT WAS REVIEWED. The queue shows a submission as of submittedAt;
+       a resubmission (new documents, new links) moves it. Approving used to accept
+       whatever was current at click time, so a tutor could swap the dossier between
+       the admin opening it and approving it (security review, 15 Sept 2026). The
+       admin's version is part of the UPDATE's condition, like the status. */
+    /* null is a real version: a pending row with no submission time (older rows).
+       It must then still be null. Omitting the field is a 400. */
+    const reviewed = parsed.data.submittedAt === null ? null : new Date(parsed.data.submittedAt);
+    if (reviewed && Number.isNaN(reviewed.getTime())) return reply.code(400).send({ error: "bad-request" });
     const [decided] = await db
       .update(tutors)
       .set({ status: "verified", verified: true, reviewedAt: new Date(), reviewNote: null })
-      .where(and(eq(tutors.id, tutorId.value), eq(tutors.status, "pending")))
+      .where(
+        and(
+          eq(tutors.id, tutorId.value),
+          eq(tutors.status, "pending"),
+          reviewed
+            ? raw`date_trunc('milliseconds', ${tutors.submittedAt}) = ${reviewed.toISOString()}::timestamptz`
+            : isNull(tutors.submittedAt),
+        ),
+      )
       .returning({ id: tutors.id });
-    if (!decided) return { ok: false, error: "not-pending" };
+    if (!decided) {
+      const [now] = await db.select({ status: tutors.status }).from(tutors).where(eq(tutors.id, tutorId.value)).limit(1);
+      return { ok: false, error: now?.status === "pending" ? "changed-since-review" : "not-pending" };
+    }
     await auditAdmin(session.profile.id, "verification.approve", { kind: "tutor", id: t.id });
 
     if (t.profileId) {

@@ -43,6 +43,7 @@ const copy = bilingual({
     noteRequired: "Écris le motif du refus (5 caractères minimum) : le prof doit savoir quoi corriger.",
     noteTooLong: "Le motif ne peut pas dépasser 500 caractères.",
     notPending: "Cette demande a déjà été traitée.",
+    changedSinceReview: "Le dossier a changé depuis que tu l'as ouvert. Recharge la page et revois-le avant de valider.",
     selfDecision: "Tu ne peux pas décider de ton propre dossier.",
     approved: "Tuteur approuvé ✓",
     rejected: "Demande refusée",
@@ -78,6 +79,7 @@ const copy = bilingual({
     noteRequired: "اكتب سبب الرفض (5 حروف على الأقل) : المعلّم لازم يعرف شنوّة يصلّح.",
     noteTooLong: "السبب ما ينجّمش يفوت 500 حرف.",
     notPending: "الطلب هذا تعالج قبل.",
+    changedSinceReview: "الملف تبدّل من وقت ما حليتو. عاود حمّل الصفحة وثبّت فيه قبل ما تقبلو.",
     selfDecision: "ما تنجّمش تقرّر في ملفّك إنت.",
     approved: "المعلّم تقبل ✓",
     rejected: "الطلب تنرفض",
@@ -148,9 +150,10 @@ export default function AdminVerificationsPage() {
     };
   }, []);
 
-  async function handleApprove(tutorId: string) {
+  async function handleApprove(tutorId: string, submittedAt: string | null) {
     setBusy((b) => ({ ...b, [tutorId]: "approve" }));
-    const res = await approveTutor({ tutorId });
+    // The version on screen: the API refuses to approve a dossier that changed since.
+    const res = await approveTutor({ tutorId, submittedAt });
     if (res.ok) {
       setItems((list) => list.filter((t) => t.tutorId !== tutorId));
       showToast(c.approved);
@@ -171,6 +174,7 @@ export default function AdminVerificationsPage() {
       case "note-required": return c.noteRequired;
       case "note-too-long": return c.noteTooLong;
       case "not-pending": return c.notPending;
+      case "changed-since-review": return c.changedSinceReview;
       case "self-approval-forbidden": return c.selfDecision;
       default: return c.error;
     }
@@ -382,7 +386,7 @@ export default function AdminVerificationsPage() {
                       <div className="av-approve">
                         <Button
                           variant="green"
-                          onClick={() => handleApprove(t.tutorId)}
+                          onClick={() => handleApprove(t.tutorId, t.submittedAt)}
                           disabled={disabled}
                         >
                           {state === "approve" ? (
