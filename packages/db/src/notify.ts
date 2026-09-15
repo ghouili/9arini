@@ -34,6 +34,9 @@ export type NotifyInput = {
   title: string;
   body: string;
   href?: string | null;
+  /** The profile the body NAMES, when that is not the recipient — so erasing that
+      person can rewrite this row (packages/db/src/erasure.ts). */
+  aboutProfileId?: string | null;
   sms?: string; // when set + provider configured → also texted to the profile's phone
 };
 
@@ -50,6 +53,7 @@ export async function notify(
       title: input.title,
       body: input.body,
       href: input.href ?? null,
+      aboutProfileId: input.aboutProfileId ?? null,
     });
 
     if (input.sms && smsEnabled()) {

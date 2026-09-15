@@ -129,6 +129,8 @@ export async function adminAccountRoutes(app: FastifyInstance): Promise<void> {
     const [p] = await db.select().from(profiles).where(eq(profiles.id, profileId.value)).limit(1);
     if (!p) return { ok: false, error: "not-found" };
     if (p.id === session.profile.id) return { ok: false, error: "cannot-block-self" };
+    // An erased account has nothing left to block, and must not be brought back.
+    if (p.purgedAt) return { ok: false, error: "account-erased" };
     const channel = otpChannel();
     if (isAllowlistedAdmin(p, adminAuthIdentities(process.env, channel), channel)) {
       return { ok: false, error: "cannot-block-admin" };
@@ -246,7 +248,8 @@ export async function adminAccountRoutes(app: FastifyInstance): Promise<void> {
       const [row] = await tx
         .update(profiles)
         .set({ blockedAt: null, blockedReason: null, blockedBy: null })
-        .where(eq(profiles.id, profileId.value))
+        // Never on an erased account: unblocking would un-suspend its tutor record.
+        .where(and(eq(profiles.id, profileId.value), isNull(profiles.purgedAt)))
         .returning({ id: profiles.id });
       if (!row) return null;
       const [t] = await tx

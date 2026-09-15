@@ -121,6 +121,11 @@ export const profiles = pgTable("profiles", {
   blockedAt: timestamp("blocked_at", { withTimezone: true }),
   blockedReason: text("blocked_reason"),
   blockedBy: uuid("blocked_by"),
+  /* ERASURE (0022). A tombstone: the row stays so nothing that belongs to someone
+     else cascades away, and a CHECK guarantees it carries no identity. */
+  purgedAt: timestamp("purged_at", { withTimezone: true }),
+  /* The inactivity clock (0022), moved by getSession at most every 15 minutes. */
+  lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
 
 
 });
@@ -178,6 +183,8 @@ export const tutors = pgTable("tutors", {
   /* Set while the tutor's ACCOUNT is blocked (0019): the storefront is off every
      public read and unbookable. The verification decision (status) is untouched. */
   suspendedAt: timestamp("suspended_at", { withTimezone: true }),
+  /* The tutor record of an erased account (0022): scrubbed, suspended, slug retired. */
+  erasedAt: timestamp("erased_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
   /* /explore: `where status = 'verified' order by rating desc` (getExploreTutors),
@@ -812,6 +819,9 @@ export const notifications = pgTable("notifications", {
   title: text("title").notNull(),
   body: text("body").notNull(),
   href: text("href"),
+  /* Whom the body names, when it names someone other than the recipient (0022), so
+     erasing that person can rewrite this row. FK ON DELETE SET NULL in the SQL. */
+  aboutProfileId: uuid("about_profile_id"),
   readAt: timestamp("read_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
@@ -823,6 +833,13 @@ export const notifications = pgTable("notifications", {
      the index a future unread-badge count would use. */
   profileReadIdx: index("notifications_profile_id_read_at_idx").on(t.profileId, t.readAt),
 }));
+
+/* Slugs erased tutors held (0022), stored as a hash: an old storefront address must
+   never be claimable by someone else, and the slug is often the person's name. */
+export const retiredSlugs = pgTable("retired_slugs", {
+  slugHash: text("slug_hash").primaryKey(),
+  retiredAt: timestamp("retired_at", { withTimezone: true }).notNull().defaultNow(),
+});
 
 // ---- Auth ----
 export const sessions = pgTable("sessions", {

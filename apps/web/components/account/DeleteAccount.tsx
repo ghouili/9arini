@@ -9,7 +9,7 @@ import {
   type DeletionState,
 } from "@/app/actions";
 import { bilingual } from "@/lib/i18n";
-import { formatLongDate } from "@tnajem/shared";
+import { DELETION_GRACE_DAYS, formatLongDate } from "@tnajem/shared";
 
 /* CLOSING YOUR ACCOUNT (Step 15).
 
@@ -19,10 +19,13 @@ import { formatLongDate } from "@tnajem/shared";
 
      1. IT IS REVERSIBLE FOR 30 DAYS. The commonest reason to close an account is
         a bad day; the commonest regret is having done it irreversibly.
-     2. REVIEWS STAY, WITHOUT THE NAME. Someone expecting their words to vanish
+     2. WHAT GOES AND WHAT STAYS, exactly as packages/db/src/erasure.ts does it and
+        /privacy §3 says it. The account is anonymised, not deleted: a tutor's roster
+        and the cancellation ledger keep an anonymous seat.
+     3. REVIEWS STAY, WITHOUT THE NAME. Someone expecting their words to vanish
         deserves to know they will not — a tutor's public rating is not theirs to
         retract by leaving, and finding that out later feels like a betrayal.
-     3. IT IS BLOCKED WHILE BOOKED, and the message says which side is blocking.
+     4. IT IS BLOCKED WHILE BOOKED, and the message says which side is blocking.
         "Something went wrong" on a deletion request reads as the product
         refusing to let you go.
 
@@ -33,15 +36,15 @@ const copy = bilingual({
   fr: {
     title: "Supprimer mon compte",
     body:
-      "Tu peux fermer ton compte quand tu veux. On te laisse 30 jours pour changer d'avis — pendant ce délai, tu peux tout annuler en revenant ici.",
+      `Tu peux fermer ton compte quand tu veux. On te laisse ${DELETION_GRACE_DAYS} jours pour changer d'avis — pendant ce délai, tu peux tout annuler en revenant ici.`,
     whatGoes:
-      "Ensuite, ton compte, tes réservations, tes messages et tes informations sont supprimés définitivement.",
+      "Ensuite, ton nom, ton e-mail, ton téléphone et ton année de naissance sont effacés, tu es déconnecté de tous tes appareils, et les messages que tu as écrits sont supprimés. Si tu es prof : ta page est retirée, et tes pièces d'identité, tes documents partagés et ta photo sont effacés de nos serveurs.",
     whatStays:
-      "Ce qui reste : les avis que tu as écrits, sans ton nom. La note d'un prof ne doit pas changer parce qu'un élève est parti — ton avis devient anonyme, il n'est pas effacé.",
+      "Ce qui reste, sans rien qui permette de te reconnaître : les avis que tu as écrits (sans ton nom — la note d'un prof ne doit pas changer parce qu'un élève est parti), la trace des places réservées pour l'historique du prof et le registre des annulations, et un message que quelqu'un a signalé, gardé comme preuve.",
 
     ask: "Supprimer mon compte",
     confirmTitle: "Confirmer la suppression ?",
-    confirmBody: "Ton compte sera supprimé dans 30 jours. Tu peux annuler à tout moment d'ici là.",
+    confirmBody: `Ton compte sera supprimé dans ${DELETION_GRACE_DAYS} jours. Tu peux annuler à tout moment d'ici là. Tes autres appareils sont déconnectés dès maintenant.`,
     confirmCta: "Oui, lancer la suppression",
     keep: "Garder mon compte",
     working: "…",
@@ -60,15 +63,15 @@ const copy = bilingual({
   ar: {
     title: "امسح حسابي",
     body:
-      "تنجّم تسكّر حسابك وقت ما تحب. نخلّيولك 30 يوم باش تبدّل رايك — في المدّة هاذي تنجّم تلغي كل شي كي ترجع لهوني.",
+      `تنجّم تسكّر حسابك وقت ما تحب. نخلّيولك ${DELETION_GRACE_DAYS} يوم باش تبدّل رايك — في المدّة هاذي تنجّم تلغي كل شي كي ترجع لهوني.`,
     whatGoes:
-      "من بعد، حسابك، حجوزاتك، رسائلك ومعلوماتك يتمسحو نهائيًا.",
+      "من بعد، إسمك، الإيميل، التليفون وسنة ميلادك يتمسحو، تخرج من الأجهزة الكل، والرسائل اللي كتبتهم يتمسحو. كان إنت أستاذ: صفحتك تتنحّى، ووثائق هويتك، الملفات اللي شاركتهم وتصويرتك يتمسحو من السيرفرات متاعنا.",
     whatStays:
-      "اللي يبقى: التقييمات اللي كتبتهم، بلا إسمك. نقطة الأستاذ ما لازمش تتبدّل خاطر تلميذ مشى — تقييمك يولّي مجهول، ما يتمسحش.",
+      "اللي يبقى، بلا حتى حاجة تعرّف بيك: التقييمات اللي كتبتهم (بلا إسمك — نقطة الأستاذ ما لازمش تتبدّل خاطر تلميذ مشى)، أثر البلايص المحجوزة لتاريخ الأستاذ وسجل الإلغاءات، ورسالة بلّغ عليها حد، تتحفظ كدليل.",
 
     ask: "امسح حسابي",
     confirmTitle: "تأكّد المسح ؟",
-    confirmBody: "حسابك يتمسح بعد 30 يوم. تنجّم تلغي وقت ما تحب قبل.",
+    confirmBody: `حسابك يتمسح بعد ${DELETION_GRACE_DAYS} يوم. تنجّم تلغي وقت ما تحب قبل. الأجهزة الأخرى تخرج من توّا.`,
     confirmCta: "إي، ابدا المسح",
     keep: "خلّي حسابي",
     working: "…",

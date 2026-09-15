@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {
   and, desc, eq, ilike, inArray, isNull, or, sql as raw,
-  classes, profiles, reviews, subscriptions, tutors,
+  classes, profiles, reviews, subscriptions, tutors, isSlugRetired,
 } from "@tnajem/db";
 import {
   vSlug, vText, vOptionalText, vOptionalPhone,
@@ -126,6 +126,9 @@ export async function tutorRoutes(app: FastifyInstance): Promise<void> {
         .where(eq(tutors.slug, effectiveSlug))
         .limit(1);
       if (bySlug && bySlug.profileId !== uid) return { ok: false, error: "slug-taken" };
+      /* An erased tutor's address is never handed to someone else: that is how a
+         stranger would impersonate them to the students who kept the link. */
+      if (await isSlugRetired(db, effectiveSlug)) return { ok: false, error: "slug-taken" };
     }
 
     const rl = await checkRateLimit(`profile:write:${uid}`, 20, 60 * 60_000);

@@ -28,7 +28,9 @@
  */
 import { and, eq, inArray, isNotNull, lt, or, sql } from "drizzle-orm";
 import { SESSION_IDLE_DAYS } from "@tnajem/shared/auth-core";
-import { DELETION_GRACE_DAYS, ID_DOCUMENT_RETENTION_DAYS } from "@tnajem/shared/legal";
+import { DELETION_GRACE_DAYS, ID_DOCUMENT_RETENTION_DAYS, INACTIVE_ACCOUNT_RETENTION_DAYS } from "@tnajem/shared/legal";
+import { adminAuthIdentities } from "@tnajem/shared/admin";
+import { eraseAccount, inactiveAccountsDue } from "./erasure";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 /* ONE object store, in ./storage, shared with the uploader and the admin doc
    route. There used to be three copies of the base-directory lookup; they agreed
@@ -332,16 +334,26 @@ export async function purgeExpiredAuthRows(
 /** Days between "supprimer mon compte" and the erasure (Step 15). @tnajem/shared/legal. */
 export { DELETION_GRACE_DAYS };
 
-/* THE ACCOUNT PURGE (Step 15). A hard DELETE of the profile row; everything that
-   hangs off it goes by the foreign keys — which is exactly why 0016 rebuilt two:
-     reviews.student_id       SET NULL, so the review survives WITHOUT its author;
-     cancellations.booking_id SET NULL, so the money ledger survives.
-   Sessions, notifications, consents, guardian links, bookings and the profile
-   itself (e-mail, phone) go. */
+/* THE ACCOUNT ERASURE (Step 15, anonymised since Stage 5 — see ./erasure.ts).
+
+   Two ways an account becomes due, one erasure:
+     requested  the 30-day grace after "supprimer mon compte" has passed;
+     inactive   nobody has used the account for INACTIVE_ACCOUNT_RETENTION_DAYS
+                (LEGAL-REVIEW, @tnajem/shared/legal). Allow-listed admins are never due.
+   One at a time: a failure (or a deferral — an upcoming class, a file storage would
+   not delete) leaves the account due again tomorrow, and is LOGGED by id. */
+export type AccountRetentionResult = {
+  due: number;
+  purged: number;
+  deferred: number;
+  inactiveDue: number;
+  inactiveErased: number;
+};
+
 export async function purgeDeletedAccounts(
   db: PurgeDb,
-  opts: { dryRun?: boolean; log?: (line: string) => void } = {},
-): Promise<{ due: number; purged: number }> {
+  opts: { dryRun?: boolean; log?: (line: string) => void; store?: ObjectStore } = {},
+): Promise<AccountRetentionResult> {
   const log = opts.log ?? (() => {});
   const due: { id: string }[] = await db
     .select({ id: profiles.id })
@@ -353,27 +365,36 @@ export async function purgeDeletedAccounts(
       ),
     )
     .limit(500);
+  const admins = adminAuthIdentities(process.env, "email");
+  const inactive = await inactiveAccountsDue(db, {
+    retentionDays: INACTIVE_ACCOUNT_RETENTION_DAYS,
+    excludeEmails: admins,
+  });
+  const result: AccountRetentionResult = { due: due.length, purged: 0, deferred: 0, inactiveDue: inactive.length, inactiveErased: 0 };
 
-  if (opts.dryRun || due.length === 0) {
-    log(`account-retention${opts.dryRun ? " (dry-run)" : ""}: due=${due.length}`);
-    return { due: due.length, purged: 0 };
+  if (opts.dryRun || (due.length === 0 && inactive.length === 0)) {
+    log(`account-retention${opts.dryRun ? " (dry-run)" : ""}: due=${due.length} inactive=${inactive.length}`);
+    return result;
   }
 
-  let purged = 0;
-  for (const p of due) {
-    /* One at a time rather than a single DELETE … IN (…): a constraint failure on
-       one account must not abandon the rest. A failure leaves the row `requested`,
-       so it is simply due again tomorrow — and it is LOGGED (id only), because a
-       silently stuck erasure is a broken promise nobody sees. */
-    try {
-      await db.delete(profiles).where(eq(profiles.id, p.id));
-      purged += 1;
-    } catch (err) {
-      log(`account-retention: could not purge profile ${p.id} (${(err as { code?: string }).code ?? (err as Error).name})`);
+  for (const [list, reason] of [[due, "requested"], [inactive, "inactive"]] as const) {
+    for (const p of list) {
+      try {
+        const r = await eraseAccount(db, p.id, { reason, store: opts.store, log });
+        if (r.outcome === "erased") {
+          if (reason === "requested") result.purged += 1;
+          else result.inactiveErased += 1;
+        } else if (r.outcome === "deferred") {
+          result.deferred += 1;
+          log(`account-retention: profile ${p.id} deferred (${r.why})`);
+        }
+      } catch (err) {
+        log(`account-retention: could not erase profile ${p.id} (${(err as { code?: string }).code ?? (err as Error).name})`);
+      }
     }
   }
-  log(`account-retention: due=${due.length} purged=${purged}`);
-  return { due: due.length, purged };
+  log(`account-retention: due=${due.length} erased=${result.purged} inactive=${inactive.length} inactive-erased=${result.inactiveErased} deferred=${result.deferred}`);
+  return result;
 }
 
 /* THE SUBSCRIPTION EXPIRY SWEEP (Step 16). Bookkeeping, not enforcement: the
@@ -403,7 +424,7 @@ export type RetentionRun = {
   dryRun: boolean;
   documents: PurgeResult | null;
   auth: AuthPurgeResult | null;
-  accounts: { due: number; purged: number } | null;
+  accounts: AccountRetentionResult | null;
   subscriptions: { due: number; expired: number } | null;
   /** A job that THREW (as opposed to per-document errors inside job 1). */
   failedJobs: { job: string; error: string }[];

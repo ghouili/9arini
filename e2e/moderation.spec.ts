@@ -200,7 +200,10 @@ test.describe("account deletion — the grace period", () => {
 });
 
 test.describe("account deletion — the purge", () => {
-  test("the profile and its identity are GONE", async () => {
+  /* ANONYMISED, NOT DELETED (Stage 5). The row used to be DELETEd, which cascaded
+     away other people's records; it is now a tombstone a CHECK keeps identity-free.
+     e2e/deletion.spec.ts covers files in storage and the name in every response. */
+  test("the identity is GONE; the row that remains is an identity-free tombstone", async () => {
     const me = await seedProfile({ role: "student", birthYear: 1995 });
     const [before] = await sql<{ email: string }[]>`select email from profiles where id = ${me.id}`;
     await post("/account/delete", {}, await mintSession(me.id));
@@ -208,8 +211,11 @@ test.describe("account deletion — the purge", () => {
 
     expect((await runPurge()).purged).toBeGreaterThan(0);
 
-    const [n] = await sql<{ n: number }[]>`select count(*)::int n from profiles where id = ${me.id}`;
-    expect(n.n, "a 'deleted' account whose row still exists is not deleted").toBe(0);
+    const [tomb] = await sql<{ email: string | null; full_name: string | null; purged_at: Date | null }[]>`
+      select email, full_name, purged_at from profiles where id = ${me.id}`;
+    expect(tomb.purged_at, "erased").toBeTruthy();
+    expect(tomb.email).toBeNull();
+    expect(tomb.full_name).toBeNull();
     const [e] = await sql<{ n: number }[]>`
       select count(*)::int n from profiles where email = ${before.email}`;
     expect(e.n, "and the e-mail must not survive anywhere in the table").toBe(0);
@@ -239,7 +245,12 @@ test.describe("account deletion — the purge", () => {
     expect(rows, "the review must survive its author").toHaveLength(1);
     expect(rows[0].rating).toBe(5);
     expect(rows[0].text).toBe("Excellent cours.");
-    expect(rows[0].student_id, "but it must lose the author — anonymised, not deleted").toBeNull();
+    /* The review keeps its anonymous seat (the tombstone id), and that tombstone
+       carries no name: the author is gone, the review is not. */
+    const [author] = await sql<{ full_name: string | null; purged_at: Date | null }[]>`
+      select full_name, purged_at from profiles where id = ${rows[0].student_id}`;
+    expect(author.purged_at, "but it must lose the author — anonymised, not deleted").toBeTruthy();
+    expect(author.full_name).toBeNull();
 
     const feed = (await get(`/tutors/${tutor.slug}/reviews`)) as { items: { studentName: string | null }[] };
     expect(feed.items).toHaveLength(1);
@@ -271,7 +282,12 @@ test.describe("account deletion — the purge", () => {
       select booking_id, retained_tnd, actor_profile_id from cancellations where class_id = ${klass.id}`;
     expect(rows, "the ledger row must outlive the account").toHaveLength(1);
     expect(Number(rows[0].retained_tnd)).toBe(12); // 40% of 30
-    expect(rows[0].booking_id, "detached from the deleted booking").toBeNull();
-    expect(rows[0].actor_profile_id, "and carrying nothing that identifies a person").toBeNull();
+    /* The booking shell is KEPT now (Stage 5): the ledger still points at it, and
+       the actor is the erased tombstone — an id that identifies nobody. */
+    expect(rows[0].booking_id, "the booking shell survives the account").toBe(booking.id);
+    const [actor] = await sql<{ email: string | null; full_name: string | null; purged_at: Date | null }[]>`
+      select email, full_name, purged_at from profiles where id = ${rows[0].actor_profile_id}`;
+    expect(actor, "and carrying nothing that identifies a person").toMatchObject({ email: null, full_name: null });
+    expect(actor.purged_at).toBeTruthy();
   });
 });

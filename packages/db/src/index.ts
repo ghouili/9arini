@@ -22,6 +22,8 @@ export { sealDoc, openDoc, isSealedDoc, docEncryptionConfigured, DocCryptoError,
 export type { OpenedDoc } from "./doc-crypto";
 
 export { notify, REMINDER_CADENCE } from "./notify";
+export { eraseAccount, isSlugRetired, slugHash, inactiveAccountsDue, ERASED_NAME } from "./erasure";
+export type { ErasureResult, ErasureReason, ErasureDb } from "./erasure";
 export type { NotifyInput, NotifyDb, ReminderStep, ReminderPayload } from "./notify";
 
 export {

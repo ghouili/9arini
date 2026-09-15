@@ -14,6 +14,7 @@ import {
 } from "@tnajem/shared";
 import { resolveMeetUrl } from "@tnajem/shared/live";
 import { rotateRoomToken } from "../lib/room-rotation";
+import { publicDisplayName } from "@tnajem/shared";
 import { paymentsEnabled } from "@tnajem/shared/payments";
 import { db } from "../db";
 import { getSession } from "../lib/session";
@@ -184,16 +185,21 @@ export async function bookingRoutes(app: FastifyInstance): Promise<void> {
     await notify(db, uid, {
       kind: "booking_confirmed",
       title: "Place réservée ✅",
-      body: `${cls.title} — ${whenLabel}${tut ? ` avec ${tut.fullName}` : ""}.`,
+      body: `${cls.title} — ${whenLabel}${tut?.fullName ? ` avec ${tut.fullName}` : ""}.`,
       href: `/class/${cls.id}`,
+      // Names the tutor: rewritten if that account is ever erased.
+      aboutProfileId: tut?.profileId ?? null,
       sms: `Tnajem : ta place pour « ${cls.title} » le ${whenLabel} est réservée. Lien de la séance dans ton espace élève.`,
     });
     if (tut?.profileId) {
       await notify(db, tut.profileId, {
         kind: "new_booking",
         title: "Nouvelle réservation 🎉",
-        body: `${session.profile.fullName ?? "Un élève"} a réservé « ${cls.title} » (${whenLabel}).`,
+        /* First name only, like every other place a counterparty is named (Step 8),
+           and aboutProfileId so an erasure can rewrite it. */
+        body: `${publicDisplayName(session.profile.fullName) ?? "Un élève"} a réservé « ${cls.title} » (${whenLabel}).`,
         href: "/dashboard",
+        aboutProfileId: uid,
       });
     }
 
@@ -347,8 +353,9 @@ export async function bookingRoutes(app: FastifyInstance): Promise<void> {
       await notify(db, tut.profileId, {
         kind: "booking_cancelled",
         title: "Annulation",
-        body: `${session.profile.fullName ?? "Un élève"} a annulé sa place pour « ${cls.title} » (${whenLabel}). La place est de nouveau libre.${lateNote}`,
+        body: `${publicDisplayName(session.profile.fullName) ?? "Un élève"} a annulé sa place pour « ${cls.title} » (${whenLabel}). La place est de nouveau libre.${lateNote}`,
         href: "/dashboard",
+        aboutProfileId: uid,
       });
     }
 

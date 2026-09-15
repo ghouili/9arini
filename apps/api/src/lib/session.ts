@@ -39,6 +39,8 @@ export async function createSession(profileId: string): Promise<{ token: string;
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 86_400_000);
   // The cookie gets the token; the table gets its hash (0020). See sessionTokenHash.
   await db.insert(sessions).values({ tokenHash: sessionTokenHash(token), profileId, expiresAt });
+  // A login is activity: it restarts the inactive-account clock (@tnajem/shared/legal).
+  await db.update(profiles).set({ lastSeenAt: new Date() }).where(eq(profiles.id, profileId));
 
   /* Opportunistic GC of this profile's expired rows — the sessions table
      otherwise grows forever (every login on every device leaves a row behind).
@@ -101,7 +103,10 @@ export async function getSession(req: FastifyRequest): Promise<Session | null> {
 
   if (Date.now() - new Date(row.lastSeenAt).getTime() > LAST_SEEN_RESOLUTION_MS) {
     try {
-      await db.update(sessions).set({ lastSeenAt: new Date() }).where(eq(sessions.tokenHash, tokenHash));
+      const now = new Date();
+      await db.update(sessions).set({ lastSeenAt: now }).where(eq(sessions.tokenHash, tokenHash));
+      // The same clock drives inactive-account erasure (INACTIVE_ACCOUNT_RETENTION_DAYS).
+      await db.update(profiles).set({ lastSeenAt: now }).where(eq(profiles.id, row.id));
     } catch (e) {
       // Best-effort: a missed touch shortens the idle window by minutes, never lengthens it.
       req.log.warn({ code: (e as { code?: string }).code ?? (e as Error).name }, "session touch failed");
