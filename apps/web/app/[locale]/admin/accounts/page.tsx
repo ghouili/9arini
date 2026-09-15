@@ -45,7 +45,7 @@ const copy = bilingual({
     reasonLabel: "Motif du blocage (visible par les admins uniquement)",
     reasonRequired: "Écris le motif du blocage (5 caractères minimum).",
     cancelUpcoming: (classes: number, bookings: number) =>
-      `Annuler ses ${classes} cours et ${bookings} réservation(s) à venir. Chaque élève est prévenu que la séance n'aura pas lieu et ne doit rien.`,
+      `Annuler aussi ce qui est à venir : ${[classes ? `${classes} cours` : "", bookings ? `${bookings} réservation${bookings > 1 ? "s" : ""}` : ""].filter(Boolean).join(" et ")}. Chaque élève concerné est prévenu que la séance n'aura pas lieu et ne doit rien.`,
     mustCancel: "Ce compte a des cours ou des réservations à venir : coche la case pour les annuler avec le blocage.",
     block: "Bloquer le compte",
     unblock: "Débloquer",
@@ -81,7 +81,7 @@ const copy = bilingual({
     reasonLabel: "سبب الحظر (يشوفوه الأدمين برك)",
     reasonRequired: "اكتب سبب الحظر (5 حروف على الأقل).",
     cancelUpcoming: (classes: number, bookings: number) =>
-      `ألغي الـ ${classes} حصص والـ ${bookings} حجوزات الجاية متاعو. كل تلميذ يتعلم اللي الحصة ما باش تصير وما عليه والو.`,
+      `ألغي زادة اللي جاي : ${[classes ? `${classes} حصة` : "", bookings ? `${bookings} حجز` : ""].filter(Boolean).join(" و ")}. كل تلميذ معني يتعلم اللي الحصة ما باش تصير وما عليه والو.`,
     mustCancel: "الحساب هذا عندو حصص ولا حجوزات جاية: علّم على الخانة باش يتلغاو مع الحظر.",
     block: "احظر الحساب",
     unblock: "نحّي الحظر",

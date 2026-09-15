@@ -124,6 +124,11 @@ test.describe("admin journey", () => {
 
     expect((await request.get(`/fr/${tutor.slug}`)).status(), "live before the block").toBe(200);
     expect(await api("/admin/accounts/block", adminToken, { profileId: admin.id, reason: "test self" })).toMatchObject({ ok: false, error: "cannot-block-self" });
+    // The server refuses on its own, not only the page: no silent cancellation of a live class.
+    expect(await api("/admin/accounts/block", adminToken, { profileId: tutorProfile.id, reason: "Signalements répétés" }))
+      .toMatchObject({ ok: false, error: "has-upcoming", upcomingClasses: 1, upcomingBookings: 0 });
+    expect(await api("/admin/accounts/block", adminToken, { profileId: tutorProfile.id, reason: "ok" }), "a reason is required")
+      .toMatchObject({ ok: false, error: "reason-required" });
 
     const ctx = await contextAs(browser, admin.id);
     const page = await ctx.newPage();

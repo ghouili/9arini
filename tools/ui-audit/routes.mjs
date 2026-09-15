@@ -239,6 +239,8 @@ export const ROUTES = [
   /* Step 16. The plan grant surface. `admin`, or the shot would be the "Accès
      réservé" panel filed under the name of the screen it is refusing. */
   { path: "/admin/plans", name: "admin-plans", auth: "admin" },
+  /* Production readiness Stage 2: account blocks. Audited from day one. */
+  { path: "/admin/accounts", name: "admin-accounts", auth: "admin" },
 
   /* ── Stage C screens that shipped with no audit coverage at all ─────────────
      Found by the final verification pass: four real, reachable screens had never
