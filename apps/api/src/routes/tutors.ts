@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {
-  and, desc, eq, ilike, inArray, or, sql as raw,
+  and, desc, eq, ilike, inArray, isNull, or, sql as raw,
   classes, profiles, reviews, subscriptions, tutors,
 } from "@tnajem/db";
 import {
@@ -219,7 +219,7 @@ export async function tutorRoutes(app: FastifyInstance): Promise<void> {
     const rows = await db
       .select({ slug: tutors.slug, createdAt: tutors.createdAt })
       .from(tutors)
-      .where(eq(tutors.status, "verified"));
+      .where(and(eq(tutors.status, "verified"), isNull(tutors.suspendedAt))); // A blocked account's storefront is suspended (0019): off every public read.
     return rows.map((r) => ({
       slug: r.slug,
       lastModified: r.createdAt ? new Date(r.createdAt) : new Date(),
@@ -237,7 +237,7 @@ export async function tutorRoutes(app: FastifyInstance): Promise<void> {
     /* Match the storefront: a non-verified tutor has no public page, so it must
        have no public review feed either — otherwise reviews leak the existence and
        reputation of a rejected tutor to anyone who guesses the slug. */
-    if (t.status !== "verified") return empty;
+    if (t.status !== "verified" || t.suspendedAt) return empty; // A blocked account's storefront is suspended (0019): off every public read.
 
     /* Only the reviewer's FIRST NAME ships (publicDisplayName) — never
        profiles.phone, never the raw full name, never the reviewer's profile id.
@@ -305,7 +305,7 @@ export async function tutorRoutes(app: FastifyInstance): Promise<void> {
       const subject = (req.query.subject ?? "").trim();
       const q = (req.query.q ?? "").trim().slice(0, 60);
 
-      const conds = [eq(tutors.status, "verified")];
+      const conds = [eq(tutors.status, "verified"), isNull(tutors.suspendedAt)]; // A blocked account's storefront is suspended (0019): off every public read.
       if (subject) conds.push(ilike(tutors.subject, `%${subject}%`));
       if (q) {
         const like = `%${q}%`;

@@ -439,6 +439,23 @@ export type PendingTutor = {
   docs: { id: string; kind: string; fileName: string }[];
 };
 
+/** An account as an ADMIN sees it on /admin/accounts (GET /admin/accounts?email=).
+    The admin typed the address, so it is echoed back; nothing else identifying. */
+export type AdminAccount = {
+  id: string;
+  email: string | null;
+  role: string;
+  name: string | null;
+  blockedAt: string | null;     // ISO
+  blockedReason: string | null;
+  /** On the ADMIN_EMAILS allowlist — cannot be blocked from this page. */
+  isAdmin: boolean;
+  tutor: { slug: string; status: string; suspended: boolean } | null;
+  /** Scheduled, not yet started. A block refuses while either is > 0 unless asked to cancel them. */
+  upcomingClasses: number;
+  upcomingBookings: number;
+};
+
 /** What getMe() returns: the caller's OWN profile summary.
 
     email and phone are present here and that is correct even under the Step 8

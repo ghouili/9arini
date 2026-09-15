@@ -236,6 +236,11 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     // NOTE: an existing profile's role is deliberately NOT overwritten from input
     // — otherwise anyone could flip their own role by re-authenticating.
 
+    /* A BLOCKED ACCOUNT CANNOT SIGN IN. Checked after the code is proven, so this
+       answer only ever reaches the person who owns the address — it is not an
+       oracle for whether someone else's account is blocked. */
+    if (profile.blockedAt) return { ok: false, error: "account-blocked" };
+
     const { token, expiresAt } = await createSession(profile.id);
 
     let needsConsent = false;

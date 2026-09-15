@@ -22,7 +22,7 @@ import type {
   MessageThreadSummary, MessageThreadDetail, MaterialItem, GuardianChild,
 } from "@tnajem/shared";
 import { STUDENT_LEVELS, parseStudentProfile } from "@tnajem/shared";
-import type { Me } from "@tnajem/shared";
+import type { Me, AdminAccount } from "@tnajem/shared";
 
 type DocKind = "id_front" | "id_back" | "selfie" | "diploma" | "certificate" | "role_proof" | "other";
 
@@ -775,3 +775,25 @@ export async function canJoinClass(classId: string): Promise<{
   return call(`/classes/${encodeURIComponent(classId)}/join`, undefined, "GET");
 }
 
+
+/* ---------- Account blocks (admin, production readiness Stage 2) ----------
+   PORTED-FIRST: the gate, the refusals and every consequence live in
+   apps/api/src/routes/admin-accounts.ts. call() replays the revalidate envelope,
+   so a blocked tutor's storefront and sitemap entry go dark immediately. */
+export async function findAccount(email: string): Promise<{ ok: boolean; error?: string; account?: AdminAccount | null }> {
+  if (demoFallback) return { ok: false, error: "forbidden" };
+  return call(`/admin/accounts?email=${encodeURIComponent(email)}`, undefined, "GET");
+}
+
+export async function blockAccount(input: { profileId: string; reason: string; cancelUpcoming: boolean }): Promise<{
+  ok: boolean; error?: string; already?: boolean;
+  cancelledClasses?: number; cancelledBookings?: number; upcomingClasses?: number; upcomingBookings?: number;
+}> {
+  if (demoFallback) return { ok: false, error: "forbidden" };
+  return call("/admin/accounts/block", input);
+}
+
+export async function unblockAccount(input: { profileId: string }): Promise<{ ok: boolean; error?: string }> {
+  if (demoFallback) return { ok: false, error: "forbidden" };
+  return call("/admin/accounts/unblock", input);
+}

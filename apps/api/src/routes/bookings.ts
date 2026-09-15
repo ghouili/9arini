@@ -97,7 +97,7 @@ export async function bookingRoutes(app: FastifyInstance): Promise<void> {
        direct /class/<id> link and taking real bookings from minors — the id was all
        you needed. The gate has to live on the booking path, not only on discovery. */
     const [tut] = await db.select().from(tutors).where(eq(tutors.id, cls.tutorId)).limit(1);
-    if (!tut || tut.status !== "verified") return { ok: false, error: "unavailable" };
+    if (!tut || tut.status !== "verified" || tut.suspendedAt) return { ok: false, error: "unavailable" }; // A blocked account's storefront is suspended (0019): off every public read.
     if (tut.profileId === uid) return { ok: false, error: "own-class" }; // no self-booking
 
     /* ---- Atomic seat claim ----

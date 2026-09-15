@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { and, eq, gt, lt, profiles, sessions } from "@tnajem/db";
+import { and, eq, gt, isNull, lt, profiles, sessions } from "@tnajem/db";
 import { SESSION_COOKIE, SESSION_DAYS } from "@tnajem/shared/auth-core";
 import { db } from "../db";
 import { COOKIE_DOMAIN, IS_PROD } from "../env";
@@ -71,7 +71,10 @@ export async function getSession(req: FastifyRequest): Promise<Session | null> {
     })
     .from(sessions)
     .innerJoin(profiles, eq(profiles.id, sessions.profileId))
-    .where(and(eq(sessions.token, token), gt(sessions.expiresAt, new Date())))
+    /* A BLOCKED account has no session, whatever cookie it holds. Blocking also
+       deletes the rows (routes/admin-accounts.ts); this is what makes a session
+       minted a moment before the block — or restored from a backup — worthless. */
+    .where(and(eq(sessions.token, token), gt(sessions.expiresAt, new Date()), isNull(profiles.blockedAt)))
     .limit(1);
 
   if (!row) return null;

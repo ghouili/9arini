@@ -115,6 +115,12 @@ export const profiles = pgTable("profiles", {
      Null means no request — the state of every account that has never asked. */
   deletionRequestedAt: timestamp("deletion_requested_at", { withTimezone: true }),
   deletionStatus: deletionStatus("deletion_status"),
+  /* ACCOUNT BLOCK (0019). Set by an admin; a blocked account has no session and
+     cannot log in. The reason is admin-only. blocked_by → profiles(id) ON DELETE
+     SET NULL lives in the SQL file (a self-reference drizzle types awkwardly). */
+  blockedAt: timestamp("blocked_at", { withTimezone: true }),
+  blockedReason: text("blocked_reason"),
+  blockedBy: uuid("blocked_by"),
 
 
 });
@@ -169,6 +175,9 @@ export const tutors = pgTable("tutors", {
      Terms §5 already says a tutor "peut choisir"; until now the product did not
      let them. */
   offersFreeFirstSession: boolean("offers_free_first_session").notNull().default(false),
+  /* Set while the tutor's ACCOUNT is blocked (0019): the storefront is off every
+     public read and unbookable. The verification decision (status) is untouched. */
+  suspendedAt: timestamp("suspended_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
   /* /explore: `where status = 'verified' order by rating desc` (getExploreTutors),

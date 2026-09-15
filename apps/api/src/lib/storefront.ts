@@ -26,6 +26,7 @@ export async function getStorefrontData(slug: string): Promise<Storefront | null
   const [t] = await db.select().from(tutors).where(eq(tutors.slug, slug)).limit(1);
   if (!t) return null;
   if (t.status !== "verified") return null; // pending/unverified tutors aren't public
+  if (t.suspendedAt) return null; // A blocked account's storefront is suspended (0019): off every public read.
 
   /* Only classes still on sale, soonest first — the storefront's "Prochaine
      séance" is the first bookable row of this list, so the order is the product. */

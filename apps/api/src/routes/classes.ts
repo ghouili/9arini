@@ -21,6 +21,7 @@ import { resolveMeetUrl } from "@tnajem/shared/live";
 import { db } from "../db";
 import { getSession } from "../lib/session";
 import { recomputeTutorStats } from "../lib/stats";
+import { cancelClassForEveryone } from "../lib/class-cancel";
 import { assertNoContactInfo, CONTACT_ERROR } from "../lib/contact-guard";
 import { planForTutor, openClassCount, planStateForTutor } from "../lib/entitlements";
 
@@ -223,7 +224,7 @@ export async function classRoutes(app: FastifyInstance): Promise<void> {
     /* A non-verified tutor's class is visible only to the tutor themselves and to
        students who already hold a booking — so a tutor whose status changed after
        people booked does not strand them. */
-    if (tut?.status !== "verified" && !entitled) return null;
+    if ((tut?.status !== "verified" || tut?.suspendedAt) && !entitled) return null; // A blocked account's storefront is suspended (0019): off every public read.
 
     const d = new Date(c.scheduledAt);
 
@@ -297,77 +298,14 @@ export async function classRoutes(app: FastifyInstance): Promise<void> {
       return { ok: false, error: "already-started" };
     }
 
-    /* Read the live bookings BEFORE the transaction, so the notifications after it
-       know who to tell. notify() does I/O and must never run inside a write tx. */
-    const live = await db
-      .select({ id: bookings.id, studentId: bookings.studentId, isFree: bookings.isFree })
-      .from(bookings)
-      .where(
-        and(
-          eq(bookings.classId, c.id),
-          raw`coalesce(${bookings.status}, 'reserved') <> 'cancelled'`,
-        ),
-      );
-
-    const now = Date.now();
-    await db.transaction(async (tx) => {
-      await tx
-        .update(classes)
-        /* Seats to zero rather than decremented per booking: the class is gone, so
-           there is no arithmetic left to get wrong. */
-        .set({ status: "cancelled", seatsTaken: 0 })
-        .where(eq(classes.id, c.id));
-
-      await tx
-        .update(bookings)
-        .set({ status: "cancelled" })
-        .where(
-          and(
-            eq(bookings.classId, c.id),
-            raw`coalesce(${bookings.status}, 'reserved') <> 'cancelled'`,
-          ),
-        );
-
-      for (const b of live) {
-        const outcome = cancellationOutcome({
-          scheduledAt: c.scheduledAt,
-          amountTnd: b.isFree ? 0 : Number(c.priceTnd ?? 0),
-          now,
-          waived: true, // the tutor cancelled — the student owes nothing
-        });
-        await tx
-          .insert(cancellations)
-          .values({
-            bookingId: b.id,
-            classId: c.id,
-            actorProfileId: session.profile.id,
-            actor: "tutor",
-            hoursBeforeStart: (outcome.msBeforeStart / 3_600_000).toFixed(2),
-            late: outcome.late,
-            amountTnd: outcome.amountTnd.toFixed(2),
-            retainedTnd: outcome.retainedTnd.toFixed(2),
-            releasedTnd: outcome.releasedTnd.toFixed(2),
-            retainedPct: outcome.retainedPct.toFixed(3),
-            paymentsEnabled: paymentsEnabled(),
-            reason: reason.value ?? "cancelled-by-tutor",
-          })
-          .onConflictDoNothing();
-      }
-
-      await recomputeTutorStats(c.tutorId, tx);
+    const cancelled = await cancelClassForEveryone(c, {
+      actor: "tutor",
+      actorProfileId: session.profile.id,
+      reason: reason.value ?? "cancelled-by-tutor",
+      notifyBody: (title, when) => `« ${title} » (${when}) est annulée par le prof. Tu ne dois rien.`,
     });
 
-    const whenLabel = notificationWhen(c.scheduledAt); // Tunis time, stored in the body
-    for (const b of live) {
-      await notify(db, b.studentId, {
-        kind: "booking_cancelled",
-        title: "Séance annulée",
-        body: `« ${c.title} » (${whenLabel}) est annulée par le prof. Tu ne dois rien.`,
-        href: "/student",
-      });
-    }
-
-    return { ok: true, cancelled: live.length, revalidate: { tutors: [c.slug] } };
+    return { ok: true, cancelled, revalidate: { tutors: [c.slug] } };
   });
 
   /* ── POST /classes/:id/reschedule — the TUTOR moves it ──────────────────────

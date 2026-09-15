@@ -63,6 +63,7 @@ const COPY = {
     errBadCode: "Code incorrect ou expiré. Vérifie les 6 chiffres, ou demande un nouveau code.",
     errTooManyAttempts: (secs: number) =>
       `Trop d'essais. Réessaie dans ${Math.max(1, Math.ceil(secs / 60))} minutes.`,
+    errBlocked: "Ce compte a été suspendu par l'équipe Tnajem. Tu ne peux pas te connecter.",
     alreadySent: "Un code t'a déjà été envoyé et il est encore valable — saisis-le ci-dessous.",
     haveCode: "J'ai déjà un code",
     studentPerks: [
@@ -122,6 +123,7 @@ const COPY = {
     errBadCode: "الكود موش صحيح ولا سالا. شوف الـ 6 أرقام، ولا اطلب كود جديد.",
     errTooManyAttempts: (secs: number) =>
       `برشا محاولات. عاود بعد ${Math.max(1, Math.ceil(secs / 60))} دقايق.`,
+    errBlocked: "الحساب هذا وقّفو فريق Tnajem. ما تنجّمش تدخل.",
     alreadySent: "فما كود تبعثلك وما زال صالح — حطّو تحت.",
     haveCode: "عندي كود",
     studentPerks: [
@@ -338,6 +340,8 @@ export function SignupInner({
         return;
       }
       if (res.error === "invalid-code") { invalid("code", c.errBadCode); return; }
+      // Only ever reaches the owner of the address: the API checks it after the code is proven.
+      if (res.error === "account-blocked") { setError(c.errBlocked); return; }
       setError(t.extra.error);
       return;
     }

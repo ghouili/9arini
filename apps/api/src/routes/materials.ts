@@ -283,11 +283,11 @@ export async function materialRoutes(app: FastifyInstance): Promise<void> {
   /* ── GET /tutors/:slug/materials — what THIS viewer may see ──────────────── */
   app.get<{ Params: { slug: string } }>("/tutors/:slug/materials", async (req): Promise<MaterialItem[]> => {
     const [tutor] = await db
-      .select({ id: tutors.id, status: tutors.status })
+      .select({ id: tutors.id, status: tutors.status, suspendedAt: tutors.suspendedAt })
       .from(tutors)
       .where(eq(tutors.slug, req.params.slug))
       .limit(1);
-    if (!tutor || tutor.status !== "verified") return [];
+    if (!tutor || tutor.status !== "verified" || tutor.suspendedAt) return []; // A blocked account's storefront is suspended (0019): off every public read.
 
     /* SESSION-DEPENDENT, so this endpoint is NOT part of the anonymous ISR set —
        it is fetched with cache:"no-store" by the storefront's client component,

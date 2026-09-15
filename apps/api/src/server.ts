@@ -31,6 +31,7 @@ import { materialRoutes } from "./routes/materials";
 import { guardianRoutes } from "./routes/guardian";
 import { moderationRoutes } from "./routes/moderation";
 import { subscriptionRoutes } from "./routes/subscriptions";
+import { adminAccountRoutes } from "./routes/admin-accounts";
 
 export async function buildServer(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -86,6 +87,7 @@ export async function buildServer(): Promise<FastifyInstance> {
   await app.register(guardianRoutes);
   await app.register(moderationRoutes);
   await app.register(subscriptionRoutes);
+  await app.register(adminAccountRoutes);
   await app.register(cronRoutes);
 
   app.get("/health", async (req) => {
