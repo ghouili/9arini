@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {
-  and, desc, eq, gt, inArray, isNull, sql as raw, bookings, classes, materials, messages, profiles, reports, reviews, tutors,
+  and, desc, eq, gt, inArray, isNull, sql as raw, bookings, classes, materials, messages, messageThreads, profiles, reports, reviews, tutors,
   DELETION_GRACE_DAYS,
 } from "@tnajem/db";
 import {
@@ -72,6 +72,18 @@ async function subjectContext(items: { kind: string; id: string | null }[]): Pro
       .innerJoin(tutors, eq(materials.tutorId, tutors.id))
       .where(inArray(materials.id, materialIds))) {
       out.set(`material:${m.id}`, { label: m.title, href: link(m.slug, m.status === "verified" && !m.suspendedAt) });
+    }
+  }
+  const messageIds = ids("message");
+  if (messageIds.length) {
+    for (const m of await db
+      .select({ id: messages.id, body: messages.body, minor: messageThreads.studentIsMinor })
+      .from(messages)
+      .innerJoin(messageThreads, eq(messages.threadId, messageThreads.id))
+      .where(inArray(messages.id, messageIds))) {
+      /* The evidence itself, and whether a minor is in the conversation: an admin must
+         see both to judge it. Conversations have no admin page, so no link. */
+      out.set(`message:${m.id}`, { label: `${m.minor ? "[−18] " : ""}${m.body.slice(0, 300)}`, href: null });
     }
   }
   const reviewIds = ids("review");

@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { sql } from "./support/db";
 import { seedAdmin, seedClass, seedProfile, seedTutor } from "./support/seed";
 import { contextAs, api } from "./support/journey";
+import { mintSession } from "./support/session";
 import { e2eStore } from "./support/store";
 
 /* REPORTING, FROM THE PAGES PEOPLE ACTUALLY LAND ON (production readiness Stage 5).
@@ -73,6 +74,38 @@ test.describe("report: reachable without an account", () => {
   test("a report about something that does not exist is refused", async () => {
     const res = await api("/reports", undefined, { subjectKind: "tutor", subjectId: randomUUID(), reason: "Une page qui n'existe pas du tout." });
     expect(res).toEqual({ ok: false, error: "not-found" });
+  });
+});
+
+test.describe("report: a message reported in a conversation reaches a person", () => {
+  test("the report opens in the admin queue with the message text and the minor flag", async ({ browser }) => {
+    const tutorProfile = await seedProfile({ role: "tutor", birthYear: 1985 });
+    const tutor = await seedTutor({ profileId: tutorProfile.id, status: "verified" });
+    const klass = await seedClass({ tutorId: tutor.id, hoursFromNow: 72 });
+    const child = await seedProfile({ role: "student", birthYear: new Date().getFullYear() - 14 });
+    await sql`insert into consents (id, minor_id, guardian_name, guardian_phone, consent_text, policy_version)
+              values (gen_random_uuid(), ${child.id}, 'Parent', '+21620000000', 'e2e', 'e2e')`;
+    const childToken = await mintSession(child.id);
+    const tutorToken = await mintSession(tutorProfile.id);
+    expect((await api("/bookings", childToken, { classId: klass.id })).ok).toBe(true);
+    const [bk] = await sql<{ id: string }[]>`select id from bookings where class_id = ${klass.id} and student_id = ${child.id}`;
+    const threadId = (await api("/threads", childToken, { bookingId: bk.id })).threadId as string;
+    const text = `Viens seul après le cours ${randomUUID().slice(0, 6)}`;
+    expect((await api(`/threads/${threadId}/messages`, tutorToken, { body: text })).ok).toBe(true);
+    const [msg] = await sql<{ id: string }[]>`select id from messages where thread_id = ${threadId} and body = ${text}`;
+
+    expect((await api(`/messages/${msg.id}/report`, childToken, { reason: "Ça me met mal à l'aise." })).ok).toBe(true);
+    expect((await api(`/messages/${msg.id}/report`, childToken, {})).ok, "pressing twice is one report").toBe(true);
+    const [n] = await sql<{ n: number }[]>`select count(*)::int n from reports where subject_kind = 'message' and subject_id = ${msg.id}`;
+    expect(n.n).toBe(1);
+
+    const ctx = await contextAs(browser, (await seedAdmin()).id);
+    const page = await ctx.newPage();
+    await page.goto("/fr/admin/moderation", { waitUntil: "networkidle" });
+    const item = page.locator("[data-e2e=report-item]").filter({ hasText: text });
+    await expect(item).toContainText("[−18]");
+    await expect(item).toContainText("Ça me met mal à l'aise.");
+    await ctx.close();
   });
 });
 

@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {
   and, asc, desc, eq, or, sql as raw,
-  bookings, classes, messages, messageReports, messageThreads, profiles, tutors,
+  bookings, classes, messages, messageReports, messageThreads, profiles, reports, tutors,
   notify,
 } from "@tnajem/db";
 import {
@@ -384,10 +384,24 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
        twice is one report, and a queue that double-counts is one nobody trusts.
        It returns ok either way so the UI can confirm without the user wondering
        whether it worked. */
-    await db
+    const [filed] = await db
       .insert(messageReports)
       .values({ messageId: msg.id, reporterProfileId: session.profile.id, reason: reason.value })
-      .onConflictDoNothing();
+      .onConflictDoNothing()
+      .returning({ id: messageReports.id });
+
+    /* INTO THE MODERATION QUEUE. message_reports alone was read by nothing: no admin
+       screen listed it, so a minor reporting a message from a tutor reached no one
+       (Stage 5). The first report by this person on this message also opens a
+       report an admin works on /admin/moderation, with the message text as context. */
+    if (filed) {
+      await db.insert(reports).values({
+        subjectKind: "message",
+        subjectId: msg.id,
+        reporterProfileId: session.profile.id,
+        reason: reason.value ?? "Message signalé dans une conversation (sans commentaire).",
+      });
+    }
 
     return { ok: true };
   });
