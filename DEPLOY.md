@@ -534,6 +534,15 @@ period must be honoured even if the document purge fails, and vice versa.
    status so the one-active-grant index frees up and an admin is not shown an
    "active" plan that ran out in March.
 
+**Docker compose schedules it for you**: the `retention` service calls
+`POST /cron/purge` once at start and every 24 hours, and prints each run with its
+HTTP status. On §A (plain Node) you schedule it yourself, below. The API refuses to
+start in production without `CRON_SECRET`.
+
+After job 1, a purged document leaves only a `verification_traces` row (kind, upload
+date, decision, decision date): the trace `/privacy` §5 describes. No file, name or
+path. `e2e/privacy-retention.spec.ts` proves the file is gone from storage.
+
 All four live in `packages/db/src/retention.ts`, and **both entry points call the
 same `runRetention()`**: `npm run db:purge` and `POST /cron/purge` are one run. (Until
 15 Sept the CLI ran only the first two while this page said "pick either" — a host

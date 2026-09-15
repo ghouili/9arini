@@ -86,7 +86,7 @@ services:
       # must delete this line, or add sslmode= to the URL.
       DB_SSL: ${DB_SSL:-0}
       AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET is required — openssl rand -hex 32}
-      CRON_SECRET: ${CRON_SECRET:-}
+      CRON_SECRET: ${CRON_SECRET:?CRON_SECRET is required — openssl rand -hex 32}
       ADMIN_EMAILS: ${ADMIN_EMAILS:-}
       OTP_CHANNEL: ${OTP_CHANNEL:-email}
       # EXACT allow-list. Never "*", never a reflected Origin — credentials here
@@ -120,6 +120,28 @@ services:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
+
+  # THE RETENTION PURGE, SCHEDULED. /privacy promises ID scans are deleted at most
+  # 90 days after the decision and closed accounts erased after the 30-day grace;
+  # without a scheduler neither happens. Once at start, then every 24 hours, through
+  # the API (POST /cron/purge, bearer CRON_SECRET) — the same run as npm run db:purge.
+  # A failed run is printed with its HTTP status; alert on it (DEPLOY.md §7).
+  retention:
+    image: curlimages/curl:8.16.0
+    environment:
+      CRON_SECRET: ${CRON_SECRET:?CRON_SECRET is required — openssl rand -hex 32}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        while :; do
+          code=$$(curl -s -o /tmp/purge.json -w '%{http_code}' -X POST -H "Authorization: Bearer $$CRON_SECRET" http://api:4000/cron/purge)
+          echo "retention purge: HTTP $$code $$(cat /tmp/purge.json)"
+          sleep 86400
+        done
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
 
   web:
     build:

@@ -1,4 +1,5 @@
 import { createHash, timingSafeEqual } from "node:crypto";
+import { SESSION_DAYS, SESSION_IDLE_DAYS } from "./legal";
 
 /* The parts of authentication that BOTH apps/web and apps/api must agree on,
    byte for byte.
@@ -29,8 +30,8 @@ export const ROLE_HINT_COOKIE = "tnajem_role";
 /* Two clocks on every session. ABSOLUTE: 30 days from login, whatever happens.
    IDLE: a session nobody has used for SESSION_IDLE_DAYS stops working, so a
    forgotten login on a shared or lost phone does not stay open for a month. */
-export const SESSION_DAYS = 30;
-export const SESSION_IDLE_DAYS = 14;
+// Values live in ./legal (LEGAL-REVIEW); re-exported where auth code expects them.
+export { SESSION_DAYS, SESSION_IDLE_DAYS };
 
 /** What the sessions table stores for a cookie token: sha256, hex. Never the token. */
 export function sessionTokenHash(token: string): string {

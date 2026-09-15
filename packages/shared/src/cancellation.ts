@@ -26,12 +26,12 @@
    The `paymentsEnabled` column on the ledger exists exactly so that a future
    reader can tell a "would have been" row from a real one. Do not drop it. */
 
-/** Free-cancellation window. 48 hours, up from 24. */
-export const CANCEL_FREE_WINDOW_HOURS = 48;
-export const CANCEL_FREE_WINDOW_MS = CANCEL_FREE_WINDOW_HOURS * 60 * 60 * 1000;
+import { CANCEL_FREE_WINDOW_HOURS, LATE_CANCEL_RETAINED_PCT } from "./legal";
 
-/** Share of the seat's value retained for the tutor on a late cancellation. */
-export const LATE_CANCEL_RETAINED_PCT = 0.4;
+/** Free-cancellation window (48 hours, up from 24) and the share of a seat's value
+    retained on a late cancellation. Both are Terms §7 values: they live in ./legal. */
+export { CANCEL_FREE_WINDOW_HOURS, LATE_CANCEL_RETAINED_PCT };
+export const CANCEL_FREE_WINDOW_MS = CANCEL_FREE_WINDOW_HOURS * 60 * 60 * 1000;
 
 export type CancellationOutcome = {
   /** True when the cancellation lands inside the 48-hour window. */

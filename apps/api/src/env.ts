@@ -148,6 +148,10 @@ export function assertBootConfig(): void {
     process.exit(1);
   }
   if (IS_PROD && proxies.length === 0) missing.push("TRUSTED_PROXIES");
+  /* The retention purge keeps promises /privacy makes (ID scans gone after 90 days,
+     accounts erased after the grace). Without CRON_SECRET the endpoint refuses to
+     run, so a production API without it has a legal promise nobody can keep. */
+  if (IS_PROD && !process.env.CRON_SECRET?.trim()) missing.push("CRON_SECRET");
   /* Identity documents are sealed at rest; production does not start without the
      key, and a malformed key stops every environment. The message names the key. */
   try {

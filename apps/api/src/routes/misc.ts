@@ -9,6 +9,7 @@ import {
   normalizePhone, isValidPhone,
   type NotificationItem, type NotificationKind,
   normalizeEmail, isValidEmail,
+  CONSENT_TEXT,
 } from "@tnajem/shared";
 import { resolveMeetUrl } from "@tnajem/shared/live";
 import { db } from "../db";
@@ -186,7 +187,7 @@ export async function miscRoutes(app: FastifyInstance): Promise<void> {
       guardianName: name.value,
       guardianPhone: normalized,
       guardianEmail,
-      consentText: "Consentement du parent/tuteur pour un compte de moins de 18 ans (INPDP).",
+      consentText: CONSENT_TEXT, // @tnajem/shared/legal, LEGAL-REVIEW
     };
 
     if (existing) {

@@ -21,6 +21,8 @@
    regression. Verify with `npm run ui:weight` after touching this file. */
 
 export * from "./types";
+/* Every legal value (LEGAL-REVIEW). Pure constants — safe in the barrel. */
+export * from "./legal";
 export * from "./validation";
 export * from "./admin";
 export * from "./profile-input";

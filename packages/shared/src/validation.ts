@@ -11,6 +11,7 @@
    so the UI can localize them; never user-facing prose. Pure module — safe on
    both server and client (no DB, no env). */
 import { parseScheduleInput } from "./time";
+import { MINOR_AGE_YEARS } from "./legal";
 
 export type Valid<T> = { ok: true; value: T } | { ok: false; error: string };
 
@@ -213,7 +214,7 @@ export function vBirthYear(raw: unknown, now: Date = new Date()): number | null 
     Unknown → true (fail safe: consent required). Adults (>= 18) → false. */
 export function isMinorBirthYear(birthYear: number | null | undefined, now: Date = new Date()): boolean {
   if (birthYear == null) return true;
-  return now.getFullYear() - birthYear < 18;
+  return now.getFullYear() - birthYear < MINOR_AGE_YEARS; // ./legal, LEGAL-REVIEW
 }
 
 /* ---------- Email (the login identity) ----------

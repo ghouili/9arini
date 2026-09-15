@@ -10,6 +10,10 @@
  * File first, row second — if the unlink fails we keep the row so the next run
  * retries it (a row without a file is a lie; a file without a row is a leak).
  *
+ * The row is replaced by a verification_traces row (0021) in the same
+ * transaction: kind, upload date, decision, decision date — what /privacy says
+ * is kept, and nothing else.
+ *
  * Tutors in "draft" or "pending" are NEVER touched: the admin queue still needs
  * their documents. Tutors with a NULL reviewed_at are skipped too (no decision
  * date = no retention clock).
@@ -24,15 +28,17 @@
  */
 import { and, eq, inArray, isNotNull, lt, or, sql } from "drizzle-orm";
 import { SESSION_IDLE_DAYS } from "@tnajem/shared/auth-core";
+import { DELETION_GRACE_DAYS, ID_DOCUMENT_RETENTION_DAYS } from "@tnajem/shared/legal";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 /* ONE object store, in ./storage, shared with the uploader and the admin doc
    route. There used to be three copies of the base-directory lookup; they agreed
    only because all three happened to run with the same cwd. */
 import { localStore, objectStore, storageBase, storageKey, type ObjectStore } from "./storage";
 export { storageBase };
-import { otpCodes, profiles, rateLimits, sessions, subscriptions, tutors, verificationDocs } from "./schema";
+import { otpCodes, profiles, rateLimits, sessions, subscriptions, tutors, verificationDocs, verificationTraces } from "./schema";
 
-export const RETENTION_DAYS = 90;
+/** The ID-document window. The value lives in @tnajem/shared/legal (LEGAL-REVIEW). */
+export const RETENTION_DAYS = ID_DOCUMENT_RETENTION_DAYS;
 
 /** Decided states — the retention clock only starts once a human has ruled. */
 const DECIDED = ["verified", "rejected"] as const;
@@ -109,6 +115,7 @@ export async function purgeExpiredVerificationDocs(
       tutorId: verificationDocs.tutorId,
       kind: verificationDocs.kind,
       storagePath: verificationDocs.storagePath,
+      uploadedAt: verificationDocs.createdAt,
       status: tutors.status,
       reviewedAt: tutors.reviewedAt,
     })
@@ -153,7 +160,18 @@ export async function purgeExpiredVerificationDocs(
 
     if (!dryRun) {
       try {
-        await db.delete(verificationDocs).where(eq(verificationDocs.id, row.docId));
+        // The trace and the deletion are one fact: both or neither.
+        await db.transaction(async (tx) => {
+          await tx.insert(verificationTraces).values({
+            tutorId: row.tutorId,
+            kind: row.kind,
+            uploadedAt: row.uploadedAt,
+            decision: row.status,
+            decidedAt: row.reviewedAt,
+            reason: "retention",
+          });
+          await tx.delete(verificationDocs).where(eq(verificationDocs.id, row.docId));
+        });
       } catch (e) {
         result.errors.push(`doc ${row.docId}: row delete failed — ${(e as Error).message}`);
         continue;
@@ -311,8 +329,8 @@ export async function purgeExpiredAuthRows(
    promises that erasure. Both entry points now call runRetention() below.
    ══════════════════════════════════════════════════════════════════════════════ */
 
-/** Days between "supprimer mon compte" and the erasure (Step 15). */
-export const DELETION_GRACE_DAYS = 30;
+/** Days between "supprimer mon compte" and the erasure (Step 15). @tnajem/shared/legal. */
+export { DELETION_GRACE_DAYS };
 
 /* THE ACCOUNT PURGE (Step 15). A hard DELETE of the profile row; everything that
    hangs off it goes by the foreign keys — which is exactly why 0016 rebuilt two:

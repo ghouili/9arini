@@ -212,6 +212,22 @@ export const verificationDocs = pgTable("verification_docs", {
   tutorIdIdx: index("verification_docs_tutor_id_idx").on(t.tutorId),
 }));
 
+/* What is left once a document is purged (0021): its kind, the dates and the
+   decision — the "trace minimale" /privacy §5 promises. No file, no name, no path. */
+export const verificationTraces = pgTable("verification_traces", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tutorId: uuid("tutor_id").notNull().references(() => tutors.id, { onDelete: "cascade" }),
+  kind: docKind("kind").notNull(),
+  uploadedAt: timestamp("uploaded_at", { withTimezone: true }).notNull(),
+  decision: tutorStatus("decision").notNull(),
+  decidedAt: timestamp("decided_at", { withTimezone: true }),
+  purgedAt: timestamp("purged_at", { withTimezone: true }).notNull().defaultNow(),
+  /** "retention" (the 90-day window) or "account-erased". */
+  reason: text("reason").notNull().default("retention"),
+}, (t) => ({
+  tutorIdx: index("verification_traces_tutor_id_idx").on(t.tutorId),
+}));
+
 export const classes = pgTable("classes", {
   id: uuid("id").primaryKey().defaultRandom(),
   tutorId: uuid("tutor_id").notNull().references(() => tutors.id, { onDelete: "cascade" }),
