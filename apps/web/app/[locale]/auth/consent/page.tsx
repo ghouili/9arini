@@ -8,6 +8,12 @@ import { Shield, Phone, User, Mail } from "@/components/icons";
 import { saveConsent } from "@/app/actions";
 import { SiteShell } from "@/components/SiteShell";
 import { safeNext } from "@tnajem/shared";
+import { bilingual } from "@/lib/i18n";
+
+const extra = bilingual({
+  fr: { withdrawn: "Ton parent ou tuteur a retiré son accord. Lui seul peut le redonner, depuis son espace parent." },
+  ar: { withdrawn: "وليّك سحب موافقتو. هو برك ينجّم يرجّعها، من فضاء الولي متاعو." },
+});
 
 /* Guardian consent sits in the middle of a flow: proxy.ts / /live bounce a
    guest to /auth?next=<path> (e.g. /checkout?class=x), the OTP is verified, and a
@@ -49,7 +55,7 @@ export default function ConsentPage() {
 }
 
 function ConsentInner() {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const router = useLocalizedRouter();
   const searchParams = useSearchParams();
   const next = safeNext(searchParams.get("next"));
@@ -95,6 +101,7 @@ function ConsentInner() {
       emailRef.current?.focus();
       return;
     }
+    if (res.error === "consent-withdrawn") { setError(extra[locale].withdrawn); return; }
     setError(t.extra.error);
   }
 

@@ -75,6 +75,11 @@ const COPY = {
     byLabel: "Année de naissance de l'élève",
     byPh: "Choisir…",
     byNote: "Pour un élève de moins de 18 ans, l'accord d'un parent ou tuteur est demandé avant la 1ʳᵉ séance.",
+    termsBefore: "En créant ton compte, tu acceptes les ",
+    termsLink: "conditions d'utilisation",
+    termsAnd: " et la ",
+    privacyLink: "politique de confidentialité",
+    termsAfter: ".",
 
     sentTo: (p: string) => `Code envoyé au ${p}`,
     changeNumber: "Changer de numéro",
@@ -135,6 +140,11 @@ const COPY = {
     byLabel: "سنة ولادة التلميذ",
     byPh: "اختر…",
     byNote: "للتلميذ اللي عمرو أقلّ من 18 سنة، تتطلب موافقة الولي قبل الحصة الأولى.",
+    termsBefore: "كي تعمل حسابك، تقبل ",
+    termsLink: "شروط الاستعمال",
+    termsAnd: " و",
+    privacyLink: "سياسة الخصوصية",
+    termsAfter: ".",
 
     sentTo: (p: string) => `الكود تبعث لـ ${p}`,
     changeNumber: "بدّل النمرة",
@@ -486,6 +496,16 @@ export function SignupInner({
                 {notice}
               </p>
             )}
+
+            {/* What creating the account accepts, before it is created: the API records
+                the terms version with the account (profiles.terms_version). */}
+            <p className="text-[12px] text-muted leading-[1.6] mb-3 text-start" data-e2e="signup-terms">
+              {c.termsBefore}
+              <Link href="/terms" className="linklike">{c.termsLink}</Link>
+              {c.termsAnd}
+              <Link href="/privacy" className="linklike">{c.privacyLink}</Link>
+              {c.termsAfter}
+            </p>
 
             {!codeSent ? (
               <>

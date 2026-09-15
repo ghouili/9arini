@@ -6,8 +6,8 @@ import { Spinner } from "@/components/ui";
 import { SiteShell } from "@/components/SiteShell";
 import { Shield, Clock, Forward } from "@/components/icons";
 import { UserText } from "@/components/UserText";
-import { getMyChildren, getChildThreads } from "@/app/actions";
-import { monthLabel, type GuardianChild, type MessageThreadSummary } from "@tnajem/shared";
+import { getMyChildren, getChildThreads, withdrawConsent, grantConsent } from "@/app/actions";
+import { formatInTunis, monthLabel, type GuardianChild, type MessageThreadSummary } from "@tnajem/shared";
 import { bilingual } from "@/lib/i18n";
 
 /* THE PARENT'S VIEW (Step 14).
@@ -34,7 +34,7 @@ const copy = bilingual({
       "Un compte parent est lié par l'adresse e-mail indiquée sur l'autorisation parentale. Si tu ne vois rien ici, c'est probablement qu'une autre adresse a été saisie — ton enfant peut refaire l'autorisation depuis son compte.",
 
     readOnly:
-      "Lecture seule. Tu peux voir et lire, mais pas écrire à la place de ton enfant ni annuler ses séances.",
+      "Tu peux voir et lire, mais pas écrire à la place de ton enfant ni réserver pour lui. Une seule décision t'appartient : ton accord, que tu peux retirer ou redonner.",
     notContact:
       "Les coordonnées des profs ne sont jamais partagées, pas plus avec toi qu'avec ton enfant. Tout passe par la messagerie de Tnajem.",
 
@@ -48,6 +48,19 @@ const copy = bilingual({
     noThreads: "Aucune conversation pour l'instant.",
     loading: "Chargement…",
     minor: "Moins de 18 ans",
+
+    consentTitle: "Ton accord",
+    consentGiven: (d: string, v: string) => `Donné le ${d} (politique de confidentialité, version ${v}).`,
+    consentWithdrawn: (d: string) => `Retiré le ${d}. Ton enfant ne peut plus réserver de séance.`,
+    withdraw: "Retirer mon accord",
+    withdrawConfirm:
+      "Ton enfant ne pourra plus réserver, et ses séances à venir seront annulées sans frais (chaque prof est prévenu qu'une place s'est libérée). Tu pourras redonner ton accord ici.",
+    withdrawYes: "Oui, retirer mon accord",
+    keep: "Garder mon accord",
+    withdrawn: (n: number) => (n > 0 ? `Accord retiré. ${n} séance(s) à venir annulée(s).` : "Accord retiré."),
+    grant: "Redonner mon accord",
+    granted: "Accord redonné. Ton enfant peut de nouveau réserver.",
+    consentError: "Ça n'a pas marché. Réessaie.",
   },
   ar: {
     eyebrow: "فضاء الولي",
@@ -59,7 +72,7 @@ const copy = bilingual({
       "حساب الولي يترابط بالإيميل اللي تكتب في موافقة الولي. كان ما تشوف شي هوني، غالبا تكتب إيميل آخر — ولدك ينجّم يعاود الموافقة من حسابو.",
 
     readOnly:
-      "قراية برك. تنجّم تشوف وتقرا، أما ما تنجّمش تكتب في بلاصة ولدك ولا تلغي حصصو.",
+      "تنجّم تشوف وتقرا، أما ما تنجّمش تكتب في بلاصة ولدك ولا تحجزلو. قرار واحد متاعك: موافقتك، تنجّم تسحبها ولا ترجّعها.",
     notContact:
       "معلومات الاتصال متاع الأساتذة عمرها ما تتشارك، لا معاك لا مع ولدك. كل شي يعدّي من مراسلة Tnajem.",
 
@@ -72,10 +85,78 @@ const copy = bilingual({
     noThreads: "ما فمّاش محادثات لتوّا.",
     loading: "قاعد يحمّل…",
     minor: "أقلّ من 18 سنة",
+
+    consentTitle: "موافقتك",
+    consentGiven: (d: string, v: string) => `تعطات نهار ${d} (سياسة الخصوصية، نسخة ${v}).`,
+    consentWithdrawn: (d: string) => `تسحبت نهار ${d}. ولدك ما عادش ينجّم يحجز حصص.`,
+    withdraw: "اسحب موافقتي",
+    withdrawConfirm:
+      "ولدك ما عادش باش ينجّم يحجز، والحصص الجاية متاعو تتلغى بلا مصاريف (كل أستاذ يتعلم اللي بلاصة تسرّحت). تنجّم ترجّع موافقتك من هوني.",
+    withdrawYes: "إي، اسحب موافقتي",
+    keep: "خلّي موافقتي",
+    withdrawn: (n: number) => (n > 0 ? `الموافقة تسحبت. ${n} حصة جاية تلغات.` : "الموافقة تسحبت."),
+    grant: "رجّع موافقتي",
+    granted: "الموافقة رجعت. ولدك ينجّم يحجز من جديد.",
+    consentError: "ما مشاتش. عاود.",
   },
 });
 
-function ChildCard({ child }: { child: GuardianChild }) {
+function ConsentBlock({ child, onChanged }: { child: GuardianChild; onChanged: () => Promise<void> }) {
+  const { locale } = useLocale();
+  const c = copy[locale];
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  if (!child.consent) return null;
+  const date = (iso: string) => formatInTunis(iso, locale, { day: "numeric", month: "long", year: "numeric" });
+
+  async function act(kind: "withdraw" | "grant") {
+    setBusy(true);
+    setMessage(null);
+    try {
+      if (kind === "withdraw") {
+        const res = await withdrawConsent(child.id);
+        setMessage(res.ok ? c.withdrawn(res.releasedBookings ?? 0) : c.consentError);
+      } else {
+        const res = await grantConsent(child.id);
+        setMessage(res.ok ? c.granted : c.consentError);
+      }
+      setConfirming(false);
+      await onChanged();
+    } catch {
+      setMessage(c.consentError);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-3 pt-3 border-t border-line" data-e2e="consent-block">
+      <h3 className="text-[13px] font-semibold mb-1">{c.consentTitle}</h3>
+      <p className="text-[13px] text-muted leading-[1.6] mb-2">
+        {child.consent.withdrawnAt
+          ? c.consentWithdrawn(date(child.consent.withdrawnAt))
+          : c.consentGiven(date(child.consent.signedAt), child.consent.policyVersion)}
+      </p>
+      {message && <p role="status" className="text-[13px] font-semibold mb-2">{message}</p>}
+      {child.consent.withdrawnAt ? (
+        <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => act("grant")}>{c.grant}</button>
+      ) : confirming ? (
+        <div className="flex flex-col gap-2">
+          <p className="text-[13px] leading-[1.6] m-0">{c.withdrawConfirm}</p>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className="btn btn-ink btn-sm" disabled={busy} onClick={() => act("withdraw")}>{c.withdrawYes}</button>
+            <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => setConfirming(false)}>{c.keep}</button>
+          </div>
+        </div>
+      ) : (
+        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirming(true)}>{c.withdraw}</button>
+      )}
+    </div>
+  );
+}
+
+function ChildCard({ child, onChanged }: { child: GuardianChild; onChanged: () => Promise<void> }) {
   const { locale } = useLocale();
   const c = copy[locale];
   const [open, setOpen] = useState(false);
@@ -161,6 +242,8 @@ function ChildCard({ child }: { child: GuardianChild }) {
           )}
         </ul>
       )}
+
+      <ConsentBlock child={child} onChanged={onChanged} />
     </div>
   );
 }
@@ -171,12 +254,14 @@ export default function GuardianPage() {
   const [children, setChildren] = useState<GuardianChild[] | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    getMyChildren()
-      .then((k) => setChildren(k ?? []))
-      .catch(() => setChildren([]))
-      .finally(() => setLoading(false));
+  const refresh = useCallback(async () => {
+    const k = await getMyChildren().catch(() => null);
+    setChildren(k ?? []);
   }, []);
+
+  useEffect(() => {
+    refresh().finally(() => setLoading(false));
+  }, [refresh]);
 
   return (
     <SiteShell>
@@ -204,7 +289,7 @@ export default function GuardianPage() {
               <span className="sr-only">{c.loading}</span>
             </div>
           ) : children && children.length > 0 ? (
-            children.map((k) => <ChildCard key={k.id} child={k} />)
+            children.map((k) => <ChildCard key={k.id} child={k} onChanged={refresh} />)
           ) : (
             <div className="panel panel-pad text-center">
               <h2 className="font-display text-[16px] font-bold mb-1.5">{c.emptyTitle}</h2>

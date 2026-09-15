@@ -9,7 +9,7 @@ import {
   normalizePhone, isValidPhone,
   type NotificationItem, type NotificationKind,
   normalizeEmail, isValidEmail,
-  CONSENT_TEXT,
+  CONSENT_TEXT, CONSENT_POLICY_VERSION,
 } from "@tnajem/shared";
 import { resolveMeetUrl } from "@tnajem/shared/live";
 import { db } from "../db";
@@ -183,11 +183,18 @@ export async function miscRoutes(app: FastifyInstance): Promise<void> {
       .where(eq(consents.minorId, session.profile.id))
       .limit(1);
 
+    /* WITHDRAWN BY THE GUARDIAN: only the guardian gives it back (their account,
+       /guardian). Otherwise a minor could undo the withdrawal by re-typing the form. */
+    if (existing?.withdrawnAt) return { ok: false, error: "consent-withdrawn" };
+
     const values = {
       guardianName: name.value,
       guardianPhone: normalized,
       guardianEmail,
       consentText: CONSENT_TEXT, // @tnajem/shared/legal, LEGAL-REVIEW
+      // The version it is given under, and the moment: refreshed on every re-signing.
+      policyVersion: CONSENT_POLICY_VERSION,
+      signedAt: new Date(),
     };
 
     if (existing) {

@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { eq, profiles, consents, tutors } from "@tnajem/db";
+import { and, eq, isNull, profiles, consents, tutors } from "@tnajem/db";
 import {
   otpChannel,
   OTP_RESEND_COOLDOWN_SEC,
@@ -13,6 +13,7 @@ import {
   isValidPhone,
   isMinorBirthYear,
   vBirthYear,
+  TERMS_VERSION,
 } from "@tnajem/shared";
 import { mailEnabled, sendMail } from "@tnajem/shared/mail";
 import { smsEnabled, sendSms } from "@tnajem/shared/sms";
@@ -223,7 +224,9 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
          that into a no-op here instead of an unhandled 500 (it used to be one). */
       const [inserted] = await db
         .insert(profiles)
-        .values({ ...identity, role: requestedRole, locale, birthYear })
+        /* The terms this account is created under (0023). The signup screen says that
+           creating the account accepts them, with links: this is the record of it. */
+        .values({ ...identity, role: requestedRole, locale, birthYear, termsVersion: TERMS_VERSION, termsAcceptedAt: new Date() })
         .onConflictDoNothing()
         .returning();
       if (inserted) {
@@ -256,7 +259,11 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
        unknown age fails safe (isMinorBirthYear treats null as minor), matching
        reserveSeat's gate. */
     if (profile.role === "student" && isMinorBirthYear(profile.birthYear)) {
-      const [c] = await db.select().from(consents).where(eq(consents.minorId, profile.id)).limit(1);
+      const [c] = await db
+        .select({ id: consents.id })
+        .from(consents)
+        .where(and(eq(consents.minorId, profile.id), isNull(consents.withdrawnAt)))
+        .limit(1);
       needsConsent = !c;
     }
 

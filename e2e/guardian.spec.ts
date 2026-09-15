@@ -68,9 +68,9 @@ async function family(opts: { tutorPhone?: string } = {}) {
   const booking = await seedBooking({ classId: klass.id, studentId: child.id });
 
   // The consent the parent signed, carrying their address. This is the link.
-  await sql`insert into consents (id, minor_id, guardian_name, guardian_phone, guardian_email, consent_text)
+  await sql`insert into consents (id, minor_id, guardian_name, guardian_phone, guardian_email, consent_text, policy_version)
             values (gen_random_uuid(), ${child.id}, 'Sonia Karoui', '+21620000000',
-                    ${await emailOf(parent.id)}, 'Seeded by the E2E suite.')`;
+                    ${await emailOf(parent.id)}, 'Seeded by the E2E suite.', 'e2e')`;
 
   const childToken = await mintSession(child.id);
   const threadId = (await post("/threads", childToken, { bookingId: booking.id })).threadId as string;
@@ -116,9 +116,9 @@ test.describe("the link resolves on sign-in", () => {
        trail. */
     const minorYear = new Date().getFullYear() - 15;
     const child = await seedProfile({ role: "student", birthYear: minorYear });
-    await sql`insert into consents (id, minor_id, guardian_name, guardian_phone, guardian_email, consent_text)
+    await sql`insert into consents (id, minor_id, guardian_name, guardian_phone, guardian_email, consent_text, policy_version)
               values (gen_random_uuid(), ${child.id}, 'Self', '+21620000001',
-                      ${await emailOf(child.id)}, 'Seeded by the E2E suite.')`;
+                      ${await emailOf(child.id)}, 'Seeded by the E2E suite.', 'e2e')`;
     const kids = await get("/guardian/children", await mintSession(child.id));
     expect(kids).toEqual([]);
     const [n] = await sql<{ n: number }[]>`

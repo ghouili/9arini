@@ -2,17 +2,20 @@ import type { FastifyInstance } from "fastify";
 import {
   and, asc, desc, eq, inArray, isNull, sql as raw,
   bookings, classes, consents, guardianLinks, messages, messageThreads, profiles, tutors,
+  notify,
 } from "@tnajem/db";
 import {
   isUuid,
   isMinorBirthYear,
   publicDisplayName,
   classWhen,
+  CONSENT_POLICY_VERSION,
   type GuardianChild,
   type MessageThreadDetail,
 } from "@tnajem/shared";
 import { db } from "../db";
 import { getSession } from "../lib/session";
+import { releaseBookings, upcomingBookingsOf } from "../lib/booking-release";
 
 /* PARENT ACCOUNTS (Step 14).
 
@@ -140,6 +143,12 @@ export async function guardianRoutes(app: FastifyInstance): Promise<void> {
       .orderBy(asc(classes.scheduledAt))
       .limit(200);
 
+    /* The consent each child's account rests on, as this guardian sees it. */
+    const consentRows = await db
+      .select({ minorId: consents.minorId, signedAt: consents.signedAt, policyVersion: consents.policyVersion, withdrawnAt: consents.withdrawnAt })
+      .from(consents)
+      .where(and(inArray(consents.minorId, kids), eq(consents.guardianEmail, session.profile.email ?? "")));
+
     /* Thread count per child, so the parent knows there is something to read
        without us shipping the messages into a list payload. */
     const threads = await db
@@ -155,6 +164,16 @@ export async function guardianRoutes(app: FastifyInstance): Promise<void> {
       id: k.id,
       name: k.fullName,
       isMinor: isMinorBirthYear(k.birthYear),
+      consent: (() => {
+        const row = consentRows.find((r) => r.minorId === k.id);
+        return row
+          ? {
+              signedAt: new Date(row.signedAt).toISOString(),
+              policyVersion: row.policyVersion,
+              withdrawnAt: row.withdrawnAt ? new Date(row.withdrawnAt).toISOString() : null,
+            }
+          : null;
+      })(),
       threadCount: threads.filter((t) => t.studentProfileId === k.id).length,
       upcoming: upcoming
         .filter((u) => u.studentId === k.id)
@@ -168,6 +187,66 @@ export async function guardianRoutes(app: FastifyInstance): Promise<void> {
           };
         }),
     }));
+  });
+
+  /* ── POST /guardian/children/:id/consent/withdraw ────────────────────────────
+     WITHDRAWAL AS EASY AS GRANTING, and it means something the moment it happens:
+     the child can no longer book, and every upcoming seat is released (waived, so
+     nothing is retained), and each tutor is told a seat came free, never why. The
+     consent row is kept as the record that consent was given and then withdrawn.
+     This is the ONE thing a guardian account does rather than reads: it is the
+     guardian's own decision, not an action taken in the child's name. */
+  app.post<{ Params: { id: string } }>("/guardian/children/:id/consent/withdraw", async (req) => {
+    const session = await getSession(req);
+    if (!session) return { ok: false, error: "not-authenticated" };
+    if (!isUuid(req.params.id)) return { ok: false, error: "not-found" };
+    const kids = await childrenOf({ id: session.profile.id, email: session.profile.email ?? null });
+    if (!kids.includes(req.params.id)) return { ok: false, error: "not-found" };
+
+    const [row] = await db
+      .update(consents)
+      .set({ withdrawnAt: new Date(), withdrawnBy: session.profile.id })
+      .where(and(eq(consents.minorId, req.params.id), eq(consents.guardianEmail, session.profile.email ?? ""), isNull(consents.withdrawnAt)))
+      .returning({ id: consents.id });
+    if (!row) return { ok: true, already: true };
+
+    const { released, releasedRows } = await releaseBookings(await upcomingBookingsOf(req.params.id), {
+      actorProfileId: session.profile.id,
+      reason: "consent-withdrawn",
+    });
+    for (const b of releasedRows) {
+      const [t] = await db
+        .select({ profileId: tutors.profileId, title: classes.title })
+        .from(classes)
+        .innerJoin(tutors, eq(classes.tutorId, tutors.id))
+        .where(eq(classes.id, b.classId))
+        .limit(1);
+      if (t?.profileId) {
+        await notify(db, t.profileId, {
+          kind: "booking_cancelled",
+          title: "Place libérée",
+          body: `Une place s'est libérée pour « ${t.title} ». Elle est de nouveau disponible.`,
+          href: "/dashboard",
+        });
+      }
+    }
+    return { ok: true, releasedBookings: released };
+  });
+
+  /* ── POST /guardian/children/:id/consent/grant — give it back ─────────────── */
+  app.post<{ Params: { id: string } }>("/guardian/children/:id/consent/grant", async (req) => {
+    const session = await getSession(req);
+    if (!session) return { ok: false, error: "not-authenticated" };
+    if (!isUuid(req.params.id)) return { ok: false, error: "not-found" };
+    const kids = await childrenOf({ id: session.profile.id, email: session.profile.email ?? null });
+    if (!kids.includes(req.params.id)) return { ok: false, error: "not-found" };
+
+    const [row] = await db
+      .update(consents)
+      .set({ withdrawnAt: null, withdrawnBy: null, signedAt: new Date(), policyVersion: CONSENT_POLICY_VERSION })
+      .where(and(eq(consents.minorId, req.params.id), eq(consents.guardianEmail, session.profile.email ?? "")))
+      .returning({ id: consents.id });
+    return row ? { ok: true } : { ok: false, error: "not-found" };
   });
 
   /* ── GET /guardian/children/:id/threads ──────────────────────────────────── */

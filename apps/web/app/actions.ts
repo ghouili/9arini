@@ -589,6 +589,18 @@ export async function cancelAccountDeletion(): Promise<ActionResult> {
 
    The link resolves server-side on every read — no invitation, no callback — so
    a parent's first visit already shows their child. */
+/** A guardian withdraws consent for their child: no more bookings, upcoming seats released. */
+export async function withdrawConsent(childId: string): Promise<ActionResult & { releasedBookings?: number }> {
+  if (demoFallback) return { ok: false, error: "forbidden" };
+  return call<ActionResult & { releasedBookings?: number }>(`/guardian/children/${encodeURIComponent(childId)}/consent/withdraw`, {});
+}
+
+/** A guardian gives consent back (recorded under the current policy version). */
+export async function grantConsent(childId: string): Promise<ActionResult> {
+  if (demoFallback) return { ok: false, error: "forbidden" };
+  return call<ActionResult>(`/guardian/children/${encodeURIComponent(childId)}/consent/grant`, {});
+}
+
 export async function getMyChildren(): Promise<GuardianChild[] | null> {
   if (demoFallback) return [];
   return call<GuardianChild[] | null>("/guardian/children", undefined, "GET");

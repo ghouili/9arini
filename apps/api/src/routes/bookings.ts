@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {
-  and, desc, eq, ne, sql as raw,
+  and, desc, eq, isNull, ne, sql as raw,
   bookings, cancellations, classes, consents, tutors,
   notify,
 } from "@tnajem/db";
@@ -85,7 +85,8 @@ export async function bookingRoutes(app: FastifyInstance): Promise<void> {
       const [consent] = await db
         .select({ id: consents.id })
         .from(consents)
-        .where(eq(consents.minorId, uid))
+        // A WITHDRAWN consent is no consent (0023).
+        .where(and(eq(consents.minorId, uid), isNull(consents.withdrawnAt)))
         .limit(1);
       if (!consent) return { ok: false, error: "needs-consent" };
     }

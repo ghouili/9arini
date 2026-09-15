@@ -124,6 +124,9 @@ export const profiles = pgTable("profiles", {
   /* ERASURE (0022). A tombstone: the row stays so nothing that belongs to someone
      else cascades away, and a CHECK guarantees it carries no identity. */
   purgedAt: timestamp("purged_at", { withTimezone: true }),
+  /* The /terms version the account was created under, and when (0023). */
+  termsVersion: text("terms_version"),
+  termsAcceptedAt: timestamp("terms_accepted_at", { withTimezone: true }),
   /* The inactivity clock (0022), moved by getSession at most every 15 minutes. */
   lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
 
@@ -758,7 +761,14 @@ export const consents = pgTable("consents", {
      have no linked account until the consent is re-signed. */
   guardianEmail: text("guardian_email"),
   consentText: text("consent_text").notNull(),
+  /* The privacy-policy version the consent was given under (0023); 'unversioned'
+     for rows signed before versions were recorded. Refreshed with signed_at. */
+  policyVersion: text("policy_version").notNull(),
   signedAt: timestamp("signed_at", { withTimezone: true }).notNull().defaultNow(),
+  /* WITHDRAWN (0023): kept as a record, and counted as no consent everywhere.
+     withdrawn_by → profiles(id) ON DELETE SET NULL lives in the SQL file. */
+  withdrawnAt: timestamp("withdrawn_at", { withTimezone: true }),
+  withdrawnBy: uuid("withdrawn_by"),
 }, (t) => ({
   /* verifyOtp() does `where minor_id = ?` on EVERY student login to decide
      needsConsent. That is on the critical path of the signup funnel. */

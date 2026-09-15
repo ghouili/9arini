@@ -99,9 +99,9 @@ export async function seedBooking(opts: {
 }
 
 export async function seedConsent(minorId: string): Promise<void> {
-  await sql`insert into consents (id, minor_id, guardian_name, guardian_phone, consent_text)
+  await sql`insert into consents (id, minor_id, guardian_name, guardian_phone, consent_text, policy_version)
             values (${randomUUID()}, ${minorId}, 'E2E Guardian', '+21620000000',
-                    'Seeded by the E2E suite.')`;
+                    'Seeded by the E2E suite.', 'e2e')`;
 }
 
 /** Delete everything this run (or a named previous run) created. */

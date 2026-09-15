@@ -15,7 +15,7 @@ import { db } from "../db";
 import { requireAdmin } from "../lib/admin";
 import { auditAdmin } from "../lib/audit";
 import { cancelClassForEveryone } from "../lib/class-cancel";
-import { rotateRoomToken } from "../lib/room-rotation";
+import { releaseBookings } from "../lib/booking-release";
 import { recomputeTutorStats } from "../lib/stats";
 
 /* ACCOUNT BLOCKS (production readiness, Stage 2).
@@ -177,54 +177,11 @@ export async function adminAccountRoutes(app: FastifyInstance): Promise<void> {
       cancelledClasses++;
     }
 
-    let cancelledBookings = 0;
-    const now = Date.now();
-    const touchedTutors = new Set<string>();
-    for (const b of bookingRows) {
-      const released = await db.transaction(async (tx) => {
-        const [row] = await tx
-          .update(bookings)
-          .set({ status: "cancelled" })
-          .where(and(eq(bookings.id, b.id), raw`coalesce(${bookings.status}, 'reserved') <> 'cancelled'`))
-          .returning({ id: bookings.id });
-        if (!row) return false;
-        await tx
-          .update(classes)
-          .set({ seatsTaken: raw`greatest(coalesce(${classes.seatsTaken}, 0) - 1, 0)` })
-          .where(eq(classes.id, b.classId));
-        // A blocked account keeps no working room link (lib/room-rotation.ts).
-        await rotateRoomToken(tx, b.classId);
-        const outcome = cancellationOutcome({
-          scheduledAt: b.scheduledAt,
-          amountTnd: b.isFree ? 0 : Number(b.priceTnd ?? 0),
-          now,
-          waived: true,
-        });
-        await tx
-          .insert(cancellations)
-          .values({
-            bookingId: b.id,
-            classId: b.classId,
-            actorProfileId: session.profile.id,
-            actor: "system",
-            hoursBeforeStart: (outcome.msBeforeStart / 3_600_000).toFixed(2),
-            late: outcome.late,
-            amountTnd: outcome.amountTnd.toFixed(2),
-            retainedTnd: outcome.retainedTnd.toFixed(2),
-            releasedTnd: outcome.releasedTnd.toFixed(2),
-            retainedPct: outcome.retainedPct.toFixed(3),
-            paymentsEnabled: paymentsEnabled(),
-            reason: "account-blocked",
-          })
-          .onConflictDoNothing();
-        return true;
-      });
-      if (released) {
-        cancelledBookings++;
-        touchedTutors.add(b.tutorId);
-      }
-    }
-    for (const tutorId of touchedTutors) await recomputeTutorStats(tutorId, db);
+    // Waived, seat released, ledger written, room rotated: lib/booking-release.ts.
+    const { released: cancelledBookings } = await releaseBookings(bookingRows, {
+      actorProfileId: session.profile.id,
+      reason: "account-blocked",
+    });
 
     return {
       ok: true,

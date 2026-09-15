@@ -213,6 +213,8 @@ export type GuardianChild = {
   id: string;
   name: string | null;
   isMinor: boolean;
+  /** The consent this child's account rests on, as given to THIS guardian (0023). */
+  consent: { signedAt: string; policyVersion: string; withdrawnAt: string | null } | null;
   /** How many conversations exist, so the parent knows there is something to read. */
   threadCount: number;
   upcoming: {
