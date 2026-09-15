@@ -32,5 +32,7 @@ tools/ui-audit/shots-*/
 
 # E2E suite artifacts
 .e2e-storage/
+# db:backup output — every user's personal data. Never commit.
+backups/
 test-results/
 playwright-report/

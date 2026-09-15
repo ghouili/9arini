@@ -564,8 +564,81 @@ that silently fails is indistinguishable from one you never wrote.
 
 ---
 
+## 8. Backups and restore — **a backup nobody has restored is not a backup** ⚠️
+
+### What `npm run db:backup` writes
+Two files per run in `BACKUP_DIR` (default `./backups`, git-ignored), owner-only:
+- `tnajem-<UTC time>.dump`: `pg_dump` custom format.
+- `tnajem-<UTC time>.json`: the manifest (sha256 of the dump, server and `pg_dump`
+  versions, latest migration, and the **exact** row count of every table, counted
+  inside the same snapshot the dump reads).
+
+It needs:
+- the PostgreSQL **client tools at the server's major version or newer** (18 here).
+  They're found on `PATH`, in `PG_BIN`, or in the standard Windows install folder.
+- a **direct** connection. Snapshot export does not survive PgBouncer in transaction
+  mode.
+
+The password goes to `pg_dump` through its environment, never its command line,
+and nothing prints a host, user or database name.
+
+The dump contains every user's personal data. **Encrypt it and move it off this
+machine** (for example `age`/`gpg`, then `rclone`/`restic` to a different
+provider). How long backups are kept has **not been decided**: it's a retention
+period for counsel (LEGAL-REVIEW). The script never deletes old backups.
+
+### Uploaded files are not in the dump
+ID scans, materials and photos live in the object store (`STORAGE_DIR` with the
+local driver). Back them up **in the same job, files first, then the dump**:
+- An upload that lands between the two becomes a row whose file is missing. That
+  is visible (the admin sees a 404) and the purge cleans it up.
+- The other order leaves the reverse: a file with no row. An **ID scan nothing
+  points at is never purged**, which breaks the retention promise.
+
+For the same reason, don't schedule the backup at the same time as the retention
+purge.
+```
+# nightly, as the app user, away from the purge window (example: 02:30)
+rsync -a /var/lib/tnajem/storage/ /var/backups/tnajem/storage/   # then encrypt + ship
+cd /srv/tnajem && npm run db:backup                                 # then encrypt + ship
+```
+
+### Restore: into a NEW database, never over the live one
+`db:restore` refuses the database in `DATABASE_URL` and any database that already
+has tables. There's no `--force`: a restore over live data destroys everything
+written since the backup.
+```
+createdb tnajem_restored                                   # empty
+RESTORE_DATABASE_URL=postgresql://…/tnajem_restored \
+  npm run db:restore -- backups/tnajem-20260915T141342Z.dump
+rsync -a /var/backups/tnajem/storage/ /var/lib/tnajem/storage-restored/
+DATABASE_URL=postgresql://…/tnajem_restored STORAGE_DIR=/var/lib/tnajem/storage-restored \
+  npm run db:check                                         # migrations, store, mail
+# then: stop the API, point DATABASE_URL + STORAGE_DIR at the restored copies,
+# start, smoke-test, and keep the old database until you have decided.
+```
+`db:restore` checks four things and exits 1 on any failure:
+1. the dump's sha256 matches its manifest;
+2. `pg_restore` ran in one transaction with `--exit-on-error`;
+3. the same tables exist;
+4. every row count equals the backup's.
+
+**Proven on 15 Sept 2026** (dev, PostgreSQL 18.1):
+- 28 tables and 1 676 rows restored, all four checks passed, and `db:check` passed
+  against the restored database.
+- Restoring into a non-empty database, into the live `DATABASE_URL`, and from a
+  dump with one flipped byte were all refused.
+
+### Managed Postgres
+A provider's point-in-time recovery (PITR) covers "undo the last hour". It isn't
+a substitute for `db:backup`: that copy is independent of the provider and account,
+and you can restore it anywhere. Use both. PITR needs the hosting account, which
+doesn't exist yet.
+
+---
+
 ## Notes
-- Back up **Postgres** and the **`STORAGE_DIR`** folder together; the DB rows and
+- Back up **Postgres** and the **`STORAGE_DIR`** folder together (§8); the DB rows and
   the files on disk are two halves of one record. ID docs are served only via the
   admin-gated `/api/admin/doc/[id]` route on the web app — which is a **streaming
   pass-through that makes no access decision of its own**. The API decides, using
