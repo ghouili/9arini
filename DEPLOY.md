@@ -51,13 +51,14 @@ CI can configure the API without editing a file.
 
 ```
 # ── Required by the API ────────────────────────────────────────────────────
+NODE_ENV=production                        # unset is treated as production too — see below
 DATABASE_URL=postgresql://tnajem:strongpass@127.0.0.1:5432/tnajem   # NO ?schema=public
 AUTH_SECRET=<run: openssl rand -hex 32>
 ADMIN_EMAILS=you@example.com               # who may approve tutors at /admin/verifications
 STORAGE_DIR=/var/lib/tnajem/storage        # PERSISTENT, ABSOLUTE — see below
 CRON_SECRET=<run: openssl rand -hex 32>    # protects /cron/purge — see §7
 CORS_ORIGINS=https://tnajem.tn,https://www.tnajem.tn
-TRUSTED_PROXIES=127.0.0.1                  # the web tier's address — see below
+TRUSTED_PROXIES=127.0.0.1                  # the web tier's address — REQUIRED, see below
 API_PORT=4000
 API_HOST=127.0.0.1                         # loopback only; nginx is the front door
 
@@ -127,9 +128,8 @@ talks to nginx and Next rather than to the throttling process, that key survives
 two hops, and there are exactly two ways to get it wrong:
 
 - **unset** → the API sees the web server's address for every user. All traffic
-  collapses into **one bucket**: one attacker exhausts the limit for the entire
-  internet. This is the *safe* failure — degraded, but unforgeable — and it is what
-  you get by default in production.
+  collapses into **one bucket**: ten requests from anyone lock every user out of
+  login, repeatably. **The API refuses to start in production without it.**
 - **`true`** → `X-Forwarded-For` becomes attacker-controlled and the per-IP limiter
   is bypassed by rotating a header. **Strictly worse than not splitting at all.**
 
@@ -265,7 +265,7 @@ the only guard, so keep it that way in every new file.
 **pm2 (simplest):**
 ```
 sudo npm i -g pm2
-pm2 start "npm run start -w @tnajem/api"          --name tnajem-api
+NODE_ENV=production pm2 start "npm run start -w @tnajem/api" --name tnajem-api
 pm2 start "npm run start:standalone -w @tnajem/web" --name tnajem-web
 pm2 save && pm2 startup                            # restart on reboot
 ```
@@ -291,6 +291,7 @@ After=network.target postgresql.service
 [Service]
 WorkingDirectory=/home/USER/tnajem-app
 ExecStart=/usr/bin/npm run start -w @tnajem/api
+Environment=NODE_ENV=production
 Restart=always
 User=USER
 [Install]

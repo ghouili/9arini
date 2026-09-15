@@ -1,3 +1,6 @@
+/* ./env FIRST: it loads the root .env and settles NODE_ENV (unset = production)
+   before any other module in this graph reads either. */
+import "./env";
 import Fastify, { type FastifyInstance } from "fastify";
 import cookie from "@fastify/cookie";
 import cors from "@fastify/cors";

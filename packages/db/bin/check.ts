@@ -89,6 +89,12 @@ function checkEnv() {
   requireKey("ADMIN_EMAILS", "production", "Empty means nobody can review verifications.");
   requireKey("CRON_SECRET", "production", "Unset, /cron/purge refuses to run and nothing is ever purged.");
   requireKey("CORS_ORIGINS", "production", "Empty in production, the API refuses to boot.");
+  requireKey("TRUSTED_PROXIES", "production", "Unset in production, the API refuses to boot (one rate-limit bucket for every visitor).");
+  if (production) {
+    /* Reported as production / not production: a boolean, not the value. */
+    if (process.env.NODE_ENV === "production") ok("NODE_ENV", "production");
+    else fail("NODE_ENV", "not production. The API treats unset as production, but Next, npm and every other tool on the box read it too: set NODE_ENV=production.");
+  }
   requireKey("NEXT_PUBLIC_SITE_URL", "production", "Canonical links and the sitemap fall back to https://tnajem.tn.");
 
   const mailKeys = ["MAIL_HOST", "MAIL_USER", "MAIL_PASS", "MAIL_FROM_ADDRESS"];

@@ -54,7 +54,20 @@ config({ path: join(root, ".env") });
 
 export const PORT = Number(process.env.API_PORT ?? 4000);
 export const HOST = process.env.API_HOST ?? "127.0.0.1";
-export const NODE_ENV = process.env.NODE_ENV ?? "development";
+/* UNSET MEANS PRODUCTION. It used to mean development, and every safety rule in
+   this service is gated on IS_PROD: the OTP code shown on screen when no mail
+   provider is configured, the AUTH_SECRET / CORS_ORIGINS boot checks, the
+   STORAGE_DIR guard. The built dist reads NODE_ENV at runtime and only the API
+   Dockerfile set it — so the documented pm2/systemd deploy ran in development
+   mode, and one mistyped MAIL_* key turned the login screen into "type an admin's
+   address, read their code" (security review, 15 Sept 2026).
+
+   Development is now something you ASK for: `npm run dev` preloads src/dev-env.ts,
+   the test runner preloads test/test-env.ts, and the e2e config sets it for the API
+   it starts. Written back to process.env so packages/shared and packages/db, which
+   read it directly, agree with this module. */
+if (!process.env.NODE_ENV?.trim()) process.env.NODE_ENV = "production";
+export const NODE_ENV = process.env.NODE_ENV;
 export const IS_PROD = NODE_ENV === "production";
 
 /** Read at boot from package.json so /health reports something real. */
@@ -103,15 +116,18 @@ export const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN?.trim() || undefined;
    it), never a boolean true. Fastify accepts a string/array of trusted hops.
 
    This is wired NOW, in Step 3, before any action moves — a half-ported process
-   would otherwise put the same user in two different buckets. */
+   would otherwise put the same user in two different buckets.
+
+   Values that mean "trust every hop" are dropped here and refused at boot. */
+const TRUST_EVERYONE = new Set(["true", "*", "0.0.0.0/0", "::/0", "all"]);
+
 export const TRUST_PROXY: string[] | boolean = (() => {
   const raw = process.env.TRUSTED_PROXIES?.trim();
-  if (raw) return raw.split(",").map((s) => s.trim()).filter(Boolean);
+  if (raw) return raw.split(",").map((s) => s.trim()).filter((s) => s && !TRUST_EVERYONE.has(s.toLowerCase()));
   // Dev: the web app runs on loopback, so trust only loopback.
   if (!IS_PROD) return ["127.0.0.1", "::1"];
-  /* Production with nothing configured: trust NOTHING. Every request then keys on
-     the socket address — one shared bucket, which degrades the limiter but cannot
-     be forged. Failing toward "too strict" is the correct direction here. */
+  /* Production with nothing configured: trust NOTHING (assertBootConfig refuses to
+     start this way; this is what a process that skipped the boot check gets). */
   return false;
 })();
 
@@ -120,6 +136,17 @@ export function assertBootConfig(): void {
   if (!process.env.DATABASE_URL?.trim()) missing.push("DATABASE_URL");
   if (IS_PROD && !process.env.AUTH_SECRET?.trim()) missing.push("AUTH_SECRET");
   if (IS_PROD && CORS_ORIGINS.length === 0) missing.push("CORS_ORIGINS");
+  /* TRUSTED_PROXIES is required in production. Unset used to be tolerated as "the
+     safe failure", but under docker compose every visitor then arrives from the web
+     container's address: ONE rate-limit bucket for the whole site, so ten requests
+     from anyone lock every user out of login, repeatably. A value that trusts every
+     hop is refused too — it would make X-Forwarded-For attacker-controlled. */
+  const proxies = process.env.TRUSTED_PROXIES?.split(",").map((s) => s.trim()).filter(Boolean) ?? [];
+  if (proxies.some((p) => TRUST_EVERYONE.has(p.toLowerCase()))) {
+    console.error("[tnajem-api] FATAL CONFIG: TRUSTED_PROXIES trusts every hop. List the web tier's addresses. Refusing to start.");
+    process.exit(1);
+  }
+  if (IS_PROD && proxies.length === 0) missing.push("TRUSTED_PROXIES");
   /* The object store, resolved now rather than at the first upload: an unknown
      STORAGE_DRIVER, S3 settings with keys missing, or (production) no STORAGE_DIR
      would otherwise surface as a tutor whose ID scan failed to save. Resolving it

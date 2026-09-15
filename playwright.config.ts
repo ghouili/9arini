@@ -53,6 +53,9 @@ export default defineConfig({
       env: {
         ...SERVER_TZ,
         ...STORAGE_ENV,
+        /* EXPLICIT. The API treats an unset NODE_ENV as production, and this suite
+           relies on development behaviour (no mail provider, dev trust of loopback). */
+        NODE_ENV: "development",
         API_PORT: "4000",
         STORAGE_DIR: resolve(process.env.E2E_STORAGE_DIR ?? ".e2e-storage"),
         ADMIN_EMAILS: "e2e-admin@tnajem.invalid",

@@ -96,7 +96,9 @@ services:
       # Trust ONLY the web container for X-Forwarded-For. `true` would make the
       # header attacker-controlled and the per-IP OTP limiter bypassable by
       # rotating it — strictly worse than not splitting at all.
-      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
+      # The compose network (fixed subnet below). Required in production: unset, every
+      # visitor shares the web container's rate-limit bucket.
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-172.28.0.0/24}
       STORAGE_DIR: /data/storage
       MAIL_HOST: ${MAIL_HOST:-}
       MAIL_PORT: ${MAIL_PORT:-}
@@ -110,7 +112,9 @@ services:
       # are kept for 90 days and then deleted — not deleted whenever we ship.
       - storage:/data/storage
     ports:
-      - "4000:4000"
+      # Loopback only. The browser never talks to the API; published on every
+      # interface it bypassed nginx and the web tier entirely.
+      - "127.0.0.1:4000:4000"
     depends_on:
       db:
         condition: service_healthy
@@ -133,6 +137,13 @@ services:
     depends_on:
       api:
         condition: service_healthy
+
+# A fixed subnet, so TRUSTED_PROXIES can name the web tier's range exactly.
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24
 
 volumes:
   pgdata:
