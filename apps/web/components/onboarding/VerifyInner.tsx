@@ -684,7 +684,9 @@ export function VerifyInner({ state }: { state: OnboardingState | null }) {
             />
             <span>{PUBLIC_TEACHER_DECLARATION[locale]}</span>
           </label>
-          <p id="declaration-help" className="text-[12.5px] text-muted leading-[1.6] mt-1.5 mb-0">{c.declarationHelp}</p>
+          {/* 13px is the a11y audit's floor (tools/ui-audit/a11y.mjs); 12.5px failed it.
+              This line explains a legal declaration a tutor is about to sign. */}
+          <p id="declaration-help" className="text-[13px] text-muted leading-[1.6] mt-1.5 mb-0">{c.declarationHelp}</p>
         </div>
 
         {/* ============ ERRORS (non-id) ============ */}

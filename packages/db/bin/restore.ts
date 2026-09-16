@@ -18,14 +18,14 @@
    Any failure exits 1.
 
    Prints no host, user, database name or password. */
-import { loadEnv } from "./_paths";
+import { loadEnv, repoRoot } from "./_paths";
 loadEnv();
 
 import postgres from "postgres";
 import { createHash } from "node:crypto";
 import { createReadStream, existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
-import { basename, resolve } from "node:path";
+import { basename, join, resolve } from "node:path";
 import {
   findPgTool, parsePgUrl, pgEnv, runPgTool, sameDatabase, summarizePgError, toolVersion,
   TABLES_SQL, type BackupManifest,
@@ -43,8 +43,23 @@ async function main() {
   console.log("Tnajem db:restore");
   const file = process.argv.slice(2).find((a) => !a.startsWith("--"));
   if (!file) throw new Friendly("usage: RESTORE_DATABASE_URL=… npm run db:restore -- <backup.dump>");
-  const dumpPath = resolve(file);
-  if (!existsSync(dumpPath)) throw new Friendly(`${basename(dumpPath)} does not exist`);
+  /* RESOLVE AGAINST THE REPO ROOT, not process.cwd().
+
+     `npm run db:restore` forwards to this workspace, so cwd is packages/db — which
+     meant the exact command DEPLOY.md and this file's own header document,
+     `npm run db:restore -- backups/tnajem-….dump`, looked in
+     packages/db/backups/ and answered "does not exist" for a file that was
+     sitting in the repo's backups/ the whole time. Found at Stage 8, restoring a
+     real backup. An absolute path still works, and so does a path relative to
+     wherever you actually are, because cwd is tried too — but the documented form
+     has to be the one that works. */
+  const candidates = [resolve(file), resolve(repoRoot(), file), resolve(process.env.BACKUP_DIR?.trim() ?? join(repoRoot(), "backups"), basename(file))];
+  const dumpPath = candidates.find((p) => existsSync(p));
+  if (!dumpPath) {
+    throw new Friendly(
+      `${basename(file)} does not exist. Looked in:\n` + candidates.map((p) => `      ${p}`).join("\n"),
+    );
+  }
 
   const targetUrl = process.env.RESTORE_DATABASE_URL?.trim();
   if (!targetUrl) throw new Friendly("RESTORE_DATABASE_URL is not set — name a NEW, EMPTY database to restore into");

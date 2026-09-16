@@ -19,12 +19,18 @@ const copy = bilingual({
   fr: {
     isNew: "Nouveau prof",
     reviews: (n: string, one: boolean) => (one ? "1 avis" : `${n} avis`),
-    students: "élèves",
+    /* A FUNCTION, like `reviews` — it used to be the bare plural "élèves", and a
+       tutor with one student read "1 élèves" on /explore and on their storefront.
+       Caught by looking at the Stage 8 screenshots. */
+    students: (n: string, one: boolean) => (one ? "1 élève" : `${n} élèves`),
   },
   ar: {
     isNew: "أستاذ جديد",
     reviews: (n: string, one: boolean) => (one ? "تقييم واحد" : `${n} تقييم`),
-    students: "تلميذ",
+    /* Arabic counts differently: one is "تلميذ واحد", and from 11 up the noun goes
+       back to the singular after the numeral — which is why the plural branch is
+       "<n> تلميذ" and not a broken "تلاميذ" for every count. */
+    students: (n: string, one: boolean) => (one ? "تلميذ واحد" : `${n} تلميذ`),
   },
 });
 
@@ -76,7 +82,7 @@ export function TutorStanding({
 
   const rating = formatRating(standing.rating, locale);
   const reviews = c.reviews(formatCount(standing.reviewCount, locale), standing.reviewCount === 1);
-  const students = standing.students > 0 ? formatCount(standing.students, locale) : null;
+  const students = standing.students > 0 ? c.students(formatCount(standing.students, locale), standing.students === 1) : null;
 
   if (variant === "hero") {
     return (
@@ -87,9 +93,7 @@ export function TutorStanding({
         {students && (
           <>
             <span aria-hidden="true" className="opacity-[0.6]">·</span>
-            <span>
-              {students} {c.students}
-            </span>
+            <span>{students}</span>
           </>
         )}
       </>
@@ -106,7 +110,7 @@ export function TutorStanding({
       {students && (
         <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
           <Users className="size-4 shrink-0" />
-          {students} {c.students}
+          {students}
         </span>
       )}
     </>

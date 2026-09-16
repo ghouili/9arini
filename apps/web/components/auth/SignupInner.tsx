@@ -499,7 +499,10 @@ export function SignupInner({
 
             {/* What creating the account accepts, before it is created: the API records
                 the terms version with the account (profiles.terms_version). */}
-            <p className="text-[12px] text-muted leading-[1.6] mb-3 text-start" data-e2e="signup-terms">
+            {/* 13px, not 12px: the a11y audit's floor (tools/ui-audit/a11y.mjs). This is
+                the sentence that records what someone agreed to — the last place to
+                shrink text on a cheap Android in bright sun. The two links inherit it. */}
+            <p className="text-[13px] text-muted leading-[1.6] mb-3 text-start" data-e2e="signup-terms">
               {c.termsBefore}
               <Link href="/terms" className="linklike">{c.termsLink}</Link>
               {c.termsAnd}
