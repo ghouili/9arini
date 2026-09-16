@@ -108,6 +108,13 @@ jobs:
       - name: API tests
         run: npm run test -w @tnajem/api
 
+      # Playwright's webServer rebuilds both apps itself, but its web entry allows
+      # 300s for "build + start" and a COLD `next build --webpack` on a runner can eat
+      # most of that on its own. Building here first makes that rebuild incremental and
+      # turns a slow build into its own legible failure instead of a server timeout.
+      - name: Build both apps
+        run: npm run build
+
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
