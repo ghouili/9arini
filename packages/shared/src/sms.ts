@@ -19,6 +19,7 @@
    texted; otherwise smsEnabled() is false and the caller falls back to showing
    the code on-screen (dev mode). To use a Tunisian gateway instead, swap the
    request body in sendSms() — the rest of the app is provider-agnostic. */
+import { logEvent } from "./observability";
 
 export function smsEnabled(): boolean {
   return Boolean(
@@ -56,12 +57,12 @@ export async function sendSms(to: string, body: string): Promise<boolean> {
       /* Twilio's error body echoes the To number; log its numeric error code only.
          This line bypasses the API's redacting logger. */
       const body = (await res.json().catch(() => null)) as { code?: number } | null;
-      console.error("[tnajem] SMS send failed:", res.status, body?.code ? `twilio ${body.code}` : "");
+      logEvent("error", "sms_send_failed", { status: res.status, twilio: body?.code });
       return false;
     }
     return true;
   } catch (e) {
-    console.error("[tnajem] SMS send error:", (e as { code?: string }).code ?? (e as Error).name);
+    logEvent("error", "sms_send_failed", { detail: (e as { code?: string }).code ?? (e as Error).name });
     return false;
   }
 }

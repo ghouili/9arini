@@ -70,10 +70,22 @@ async function sessionToken(): Promise<string | undefined> {
 }
 
 class ApiTransportError extends Error {
-  constructor(message: string, readonly status?: number) {
+  /* apiRequestId: the API's own x-request-id, which it sets on EVERY response
+     (apps/api/src/server.ts's onSend hook) and logs with the failure. It was
+     available on `res.headers` here and thrown away, so one failure produced two
+     unrelated reports — a 500 in the web tier and an unconnected `request failed`
+     in the API log. instrumentation.ts reads it off the error and tags the Sentry
+     event with it; `/api/admin/doc/:id` already passes the same header through to
+     the browser for the same reason. */
+  constructor(message: string, readonly status?: number, readonly apiRequestId?: string) {
     super(message);
     this.name = "ApiTransportError";
   }
+}
+
+/** The API's request id, when it answered at all. Never throws. */
+function apiRequestId(res: Response): string | undefined {
+  return res.headers.get("x-request-id") ?? undefined;
 }
 
 type CallOptions = {
@@ -126,7 +138,12 @@ async function request(path: string, opts: CallOptions): Promise<unknown> {
     /* Rule 2: a non-200 here is a transport or shape failure, never a domain
        outcome — those come back as 200 with { ok:false, error }. Throwing keeps
        today's behaviour, where a DB failure rejects the action's promise. */
-    throw new ApiTransportError(`${method} ${path} -> ${res.status}`, res.status);
+    const id = apiRequestId(res);
+    throw new ApiTransportError(
+      `${method} ${path} -> ${res.status}${id ? ` (api request ${id})` : ""}`,
+      res.status,
+      id,
+    );
   }
   return res.json();
 }
@@ -171,7 +188,10 @@ export async function callMultipart<T>(path: string, form: FormData): Promise<T>
     // Uploads are up to 6 x 8 MB over a Tunisian 3G link; 10s is not enough.
     signal: AbortSignal.timeout(120_000),
   });
-  if (!res.ok) throw new ApiTransportError(`POST ${path} -> ${res.status}`, res.status);
+  if (!res.ok) {
+    const id = apiRequestId(res);
+    throw new ApiTransportError(`POST ${path} -> ${res.status}${id ? ` (api request ${id})` : ""}`, res.status, id);
+  }
   return (await res.json()) as T;
 }
 

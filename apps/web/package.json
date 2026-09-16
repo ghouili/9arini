@@ -13,6 +13,7 @@
     "brand:build": "python scripts/brand/build-raster.py && node scripts/brand/build-og.mjs"
   },
   "dependencies": {
+    "@sentry/node": "^10.74.0",
     "@tnajem/shared": "*",
     "next": "^16.3.5",
     "nodemailer": "^9.0.6",

@@ -147,6 +147,25 @@ const nextConfig = {
      devtools-open user would pay for them. */
   productionBrowserSourceMaps: false,
 
+  /* SERVER source maps, which are a different decision from the one above: they
+     are never sent to a browser, so they cost a visitor nothing, and without them
+     every stack trace in an error report points into a minified server chunk —
+     "app/(routes)/page-4f2a.js:1:98214" instead of a file and a line. The web
+     process runs with --enable-source-maps (ecosystem.config.cjs), so Node maps
+     the trace itself before Sentry ever sees it: readable stacks with no upload
+     step, no auth token and no CI artifact job. */
+  experimental: {
+    serverSourceMaps: true,
+    // Verification doc uploads (ID/diploma images or PDFs) exceed the 1MB default.
+    serverActions: { bodySizeLimit: "12mb" },
+  },
+
+  /* @sentry/node stays OUT of the webpack bundle: it resolves optional native and
+     hook-based dependencies (import-in-the-middle) that a bundler cannot follow,
+     and instrumentation.ts is the only thing that imports it. Next traces it into
+     .next/standalone/node_modules instead, which is where the runtime finds it. */
+  serverExternalPackages: ["@sentry/node"],
+
   images: {
     /* THE OPTIMIZER IS OFF. Every image in the app (Logo, Avatar) already renders
        `unoptimized`, so /_next/image served nobody — yet it answered, and it is
@@ -175,10 +194,6 @@ const nextConfig = {
     "/**": ["tools/ui-audit/**", "e2e/**", "**/*.png", ".storage/**", ".e2e-storage/**", "backups/**"],
   },
 
-  experimental: {
-    // Verification doc uploads (ID/diploma images or PDFs) exceed the 1MB default.
-    serverActions: { bodySizeLimit: "12mb" },
-  },
 
   /* NOT set: `experimental.optimizePackageImports`. It only rewrites imports from
      node_modules barrels, and this app has no icon/UI library in its dependencies

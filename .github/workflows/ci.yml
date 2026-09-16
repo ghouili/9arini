@@ -68,6 +68,8 @@ jobs:
       # already present in process.env even when the value is empty, so this keeps
       # requestOtp on its no-provider path: no live SMTP connection from CI, to
       # addresses that can never be delivered. The suite recovers OTPs from the hash.
+      # SENTRY_DSN is empty for the same class of reason: a CI run must never ship
+      # its deliberate test failures to the production error tracker.
       - name: Write CI .env
         run: |
           cat > .env << EOF
@@ -94,6 +96,7 @@ jobs:
           MAIL_FROM_ADDRESS=
           TWILIO_ACCOUNT_SID=
           TWILIO_AUTH_TOKEN=
+          SENTRY_DSN=
           EOF
           echo "keys written:"; cut -d= -f1 .env | tr '\n' ' '; echo
 

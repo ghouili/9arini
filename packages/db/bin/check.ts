@@ -116,6 +116,17 @@ function checkEnv() {
   }
   requireKey("NEXT_PUBLIC_SITE_URL", "production", "Canonical links and the sitemap fall back to https://tnajem.tn.");
 
+  /* Error tracking is optional everywhere, so this only ever reports — it must not
+     fail a deploy. It is worth a line because "we thought errors were being
+     reported" is a failure you only discover during the incident you needed it
+     for: db:check is where an operator looks to find out whether it is actually on.
+     Never the value — a DSN identifies the project. */
+  if (keyState("SENTRY_DSN") === "set") {
+    ok("SENTRY_DSN", `set — server-side error reporting is ON (env: ${process.env.SENTRY_ENVIRONMENT?.trim() || process.env.NODE_ENV?.trim() || "production"})`);
+  } else {
+    (production ? warn : ok)("SENTRY_DSN", "not set — server errors are logged but not reported anywhere (OBSERVABILITY.md)");
+  }
+
   const mailKeys = ["MAIL_HOST", "MAIL_USER", "MAIL_PASS", "MAIL_FROM_ADDRESS"];
   const mailMissing = mailKeys.filter((k) => keyState(k) !== "set");
   if (mailMissing.length === 0) ok("MAIL_*", "HOST, USER, PASS, FROM_ADDRESS set (login tested below)");

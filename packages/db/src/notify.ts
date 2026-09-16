@@ -2,6 +2,7 @@ import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { eq } from "drizzle-orm";
 import { profiles, notifications } from "./schema";
 import { smsEnabled, sendSms } from "@tnajem/shared/sms";
+import { logEvent } from "@tnajem/shared/observability";
 import type { NotificationKind } from "@tnajem/shared";
 
 /* Lives in @tnajem/db, not in either app, because BOTH need it during the Step 4
@@ -63,7 +64,7 @@ export async function notify(
     return { ok: true };
   } catch (e) {
     // The kind and the error code: never the recipient, never the driver message.
-    console.error("[tnajem] notify failed:", input.kind, (e as { code?: string }).code ?? (e as Error).name);
+    logEvent("error", "notify_failed", { kind: input.kind, detail: (e as { code?: string }).code ?? (e as Error).name });
     return { ok: false };
   }
 }

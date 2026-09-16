@@ -89,6 +89,11 @@ services:
       CRON_SECRET: ${CRON_SECRET:?CRON_SECRET is required — openssl rand -hex 32}
       ADMIN_EMAILS: ${ADMIN_EMAILS:-}
       OTP_CHANNEL: ${OTP_CHANNEL:-email}
+      # Error tracking. `:-` not `:?`: unset means the SDK is never initialised,
+      # which is the default and a supported state (OBSERVABILITY.md).
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-}
+      SENTRY_RELEASE: ${SENTRY_RELEASE:-}
       # EXACT allow-list. Never "*", never a reflected Origin — credentials here
       # are cookies, and reflecting the origin hands any site on the internet the
       # ability to make authenticated requests as the logged-in user.
@@ -152,6 +157,12 @@ services:
       # hostname into the client bundle, where a browser cannot resolve it.
       API_URL: http://api:4000
       NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
+      # Error tracking, server-side only — instrumentation.ts reads these in the
+      # Next server process. Not NEXT_PUBLIC_*: no browser SDK, so no DSN in the
+      # client bundle and no change to `connect-src 'self'` (OBSERVABILITY.md).
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-}
+      SENTRY_RELEASE: ${SENTRY_RELEASE:-}
       # No DATABASE_URL. Deliberately. If you find yourself adding one here,
       # something has been ported backwards.
     ports:

@@ -13,6 +13,7 @@
    into apps/api. */
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
+import { logEvent } from "./observability";
 
 /* Email delivery for OTP codes — the sibling of lib/sms.ts, deliberately shaped the
    same way (mailEnabled / sendMail) so the two channels stay swappable behind
@@ -108,8 +109,13 @@ export async function sendMail(to: string, subject: string, text: string): Promi
     /* WHAT failed, never TO WHOM. The whole nodemailer error used to be logged, and
        an SMTP refusal carries the recipient in `response` ("550 5.1.1 <a@b.tn>"),
        `command` ("RCPT TO:<a@b.tn>") and `rejected[]`. This line bypasses the
-       API's redacting logger, so it must not contain an address. */
-    console.error("[tnajem] mail send failed:", describeMailError(e));
+       API's redacting logger, so it must not contain an address.
+
+       A JSON `event` line since Stage 7: this is the "OTP send failures" signal
+       PRODUCTION_READINESS.md asks to alert on, and it has to be queryable. Every
+       login code goes through here, so a broken mail provider means nobody can log
+       in — with no user-visible error, because requestOtp still returns ok. */
+    logEvent("error", "mail_send_failed", { detail: describeMailError(e) });
     return false;
   }
 }

@@ -16,6 +16,11 @@ on your VPS — the recommended shape, and what the rest of this document assume
 > `/privacy` already promises it to every tutor) and §3's `STORAGE_DIR` (must be a
 > **persistent** volume, or every ID scan vanishes on redeploy).
 
+Once it is running, **OBSERVABILITY.md** is the other half of this document: the
+health endpoints, the log shapes, the six alerts worth setting up, and the runbook
+for the three failures you are most likely to meet (database unreachable, mail
+provider down, storage unavailable).
+
 ---
 
 ## 0. Local sanity check (you)
@@ -321,6 +326,7 @@ there, so the major on the box is whatever you put there. Both Dockerfiles pin 2
 | `ADMIN_EMAILS` `OTP_CHANNEL` `LOG_LEVEL` `PAYMENTS_ENABLED` | leave `PAYMENTS_ENABLED` **unset** until counsel signs off |
 | `STORAGE_DRIVER` `STORAGE_DIR` | `local` + `/var/lib/tnajem/storage`, or `s3` + the `S3_*` secrets |
 | `MAIL_HOST` `MAIL_PORT` `MAIL_SECURE` `MAIL_USER` `MAIL_PASS` `MAIL_FROM_NAME` `MAIL_FROM_ADDRESS` `MAIL_REPLY_TO` | **required**: `db:check` opens a real SMTP connection and the deploy stops if it fails |
+| `SENTRY_DSN` `SENTRY_ENVIRONMENT` | optional — unset means server errors are logged but reported nowhere. `SENTRY_RELEASE` is set by `deploy.sh` from the commit sha; do not add it here. See OBSERVABILITY.md |
 | optional | `S3_*`, `TWILIO_*`, `BACKUP_DIR`, `PG_BIN` |
 
 `NODE_ENV`, `API_PORT`, `API_HOST` and `API_URL` are **not** secrets — the workflow

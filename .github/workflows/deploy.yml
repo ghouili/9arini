@@ -83,6 +83,13 @@ jobs:
           STORAGE_DRIVER=${{ secrets.STORAGE_DRIVER }}
           STORAGE_DIR=${{ secrets.STORAGE_DIR }}
 
+          # Error tracking. Optional and deliberately NOT in the required list
+          # below: unset means the SDK is never initialised, which is a supported
+          # state, not a broken deploy. SENTRY_RELEASE is set by deploy.sh from the
+          # commit sha, so it is not written here.
+          SENTRY_DSN=${{ secrets.SENTRY_DSN }}
+          SENTRY_ENVIRONMENT=${{ secrets.SENTRY_ENVIRONMENT }}
+
           MAIL_HOST=${{ secrets.MAIL_HOST }}
           MAIL_PORT=${{ secrets.MAIL_PORT }}
           MAIL_SECURE=${{ secrets.MAIL_SECURE }}

@@ -41,7 +41,8 @@ function selfOrigin(req: NextRequest): string {
   /* Production sits behind nginx, where nextUrl.origin is the PUBLIC host — a
      lookup through it would leave the box and come back in. Ask the server
      directly. HOSTNAME is the bind address (Dockerfile: 0.0.0.0; standalone
-     script: 127.0.0.1); a wildcard bind is reachable on loopback. */
+     script: localhost — never the 127.0.0.1 literal, which breaks every rewrite);
+     a wildcard bind is reachable on loopback. */
   const host = process.env.HOSTNAME;
   const loopback = !host || host === "0.0.0.0" || host === "::" ? "127.0.0.1" : host;
   return `http://${loopback}:${process.env.PORT || "3000"}`;

@@ -1,4 +1,5 @@
 import { adminActions } from "@tnajem/db";
+import { logEvent } from "@tnajem/shared/observability";
 import { db } from "../db";
 
 /* THE ADMIN AUDIT LOG (Step 15).
@@ -56,8 +57,15 @@ export async function auditAdmin(
       note: note ?? null,
     });
   } catch (err) {
-    /* eslint-disable-next-line no-console -- there is no request logger here, and
-       a silent audit failure is the one thing this module must not do. */
-    console.error("[tnajem-api] AUDIT WRITE FAILED", { action, subject }, (err as { code?: string }).code ?? (err as Error).name);
+    /* There is no request logger here, and a silent audit failure is the one thing
+       this module must not do. A JSON `event` line since Stage 7, so "the audit
+       trail stopped being written" is something an alert can see rather than
+       something someone notices in a pm2 log months later. */
+    logEvent("error", "audit_write_failed", {
+      action,
+      subjectKind: subject?.kind,
+      subjectId: subject?.id,
+      detail: (err as { code?: string }).code ?? (err as Error).name,
+    });
   }
 }

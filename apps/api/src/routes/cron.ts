@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
-import { timingSafeEqual } from "node:crypto";
 import { runRetention } from "@tnajem/db";
+import { bearerAuthorised } from "../lib/bearer";
 import { db } from "../db";
 
 /* The retention purge, moved from apps/web/app/api/cron/purge.
@@ -9,18 +9,6 @@ import { db } from "../db";
    unlinks identity documents. /privacy promises those documents are deleted at
    most 90 days after the verification decision, so this endpoint is the thing
    that keeps a published legal commitment — it is not a maintenance nicety. */
-
-/** Constant-time bearer check. A length pre-check first, because timingSafeEqual
-    throws on a length mismatch — and comparing with === would leak the token
-    prefix through response timing. */
-function authorised(header: string | undefined, secret: string): boolean {
-  const provided = (header ?? "").replace(/^Bearer\s+/i, "").trim();
-  if (!provided) return false;
-  const a = Buffer.from(provided, "utf8");
-  const b = Buffer.from(secret, "utf8");
-  if (a.length !== b.length) return false;
-  return timingSafeEqual(a, b);
-}
 
 export async function cronRoutes(app: FastifyInstance): Promise<void> {
   const handle = async (
@@ -37,7 +25,7 @@ export async function cronRoutes(app: FastifyInstance): Promise<void> {
     }
 
     const auth = req.headers.authorization;
-    if (!authorised(auth, secret)) return reply.code(401).send({ ok: false, error: "unauthorised" });
+    if (!bearerAuthorised(auth, secret)) return reply.code(401).send({ ok: false, error: "unauthorised" });
 
     const dryRun = req.query?.dryRun === "1";
 

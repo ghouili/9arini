@@ -35,6 +35,13 @@ ECOSYSTEM="$APP_DIR/ecosystem.config.cjs"
 API_PORT="${API_PORT:-4000}"
 WEB_PORT="${WEB_PORT:-3000}"
 
+# Which deploy an error report belongs to. Exported (not written into .env, which
+# the workflow owns) so `pm2 start/reload --update-env` hands it to both processes;
+# pm2 save then persists it, so a reboot resurrects the same tag. A hand-run without
+# git still works — the apps fall back to tnajem@<package version>.
+SENTRY_RELEASE="${SENTRY_RELEASE:-$(git -C "$APP_DIR" rev-parse --short HEAD 2>/dev/null || true)}"
+export SENTRY_RELEASE
+
 step() { printf '\n== %s\n' "$1"; }
 fail() { printf '\n[deploy] FAILED: %s\n' "$1" >&2; exit 1; }
 

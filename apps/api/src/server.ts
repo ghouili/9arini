@@ -20,6 +20,8 @@ import {
   assertBootConfig,
 } from "./env";
 import { loggerOptions } from "./lib/logging";
+import { captureServerError, flushSentry, initSentry, sentryActive } from "./lib/sentry";
+import { storageHealthy } from "./lib/health";
 import { db } from "./db";
 import { meRoutes } from "./routes/me";
 import { authRoutes } from "./routes/auth";
@@ -36,6 +38,7 @@ import { guardianRoutes } from "./routes/guardian";
 import { moderationRoutes } from "./routes/moderation";
 import { subscriptionRoutes } from "./routes/subscriptions";
 import { adminAccountRoutes } from "./routes/admin-accounts";
+import { debugRoutes } from "./routes/debug";
 
 /** logStream: tests capture every log line (test/log-pii.test.ts). */
 export async function buildServer(opts: { logStream?: { write(line: string): void } } = {}): Promise<FastifyInstance> {
@@ -85,6 +88,18 @@ export async function buildServer(opts: { logStream?: { write(line: string): voi
     const where = { code: e.code ?? e.name ?? "Error", cause: e.cause?.code, route: req.routeOptions?.url };
     if (status >= 500) {
       req.log.error(where, "request failed");
+      /* The log line above is a code and a route, on purpose — it must stay
+         readable and PII-free. The STACK goes to Sentry instead, which is the
+         only place it exists at all: without this call a 500 leaves nothing
+         behind but `{"code":"23505","route":"/bookings"}`, and finding the line
+         of code means reproducing it. Tagged with the same request id the
+         response carries, so a user-reported failure joins up. */
+      captureServerError(err, {
+        requestId: String(req.id),
+        route: req.routeOptions?.url,
+        method: req.method,
+        status,
+      });
       return reply.code(status).send({ statusCode: status, error: "Internal Server Error", message: "Internal Server Error" });
     }
     req.log.info(where, "request rejected");
@@ -139,6 +154,7 @@ export async function buildServer(opts: { logStream?: { write(line: string): voi
   await app.register(subscriptionRoutes);
   await app.register(adminAccountRoutes);
   await app.register(cronRoutes);
+  await app.register(debugRoutes);
 
   app.get("/health", async (req) => {
     let dbOk = false;
@@ -158,16 +174,30 @@ export async function buildServer(opts: { logStream?: { write(line: string): voi
       req.log.error({ err }, "health: database unreachable");
       dbOk = false;
     }
+    /* Storage is the third dependency and it fails independently of the other two:
+       a persistent volume that did not come back after a reboot leaves the API
+       answering every request correctly until a tutor uploads an ID scan. Probed
+       with a write, cached for 15s — see lib/health.ts for both reasons. */
+    const storageOk = await storageHealthy();
+    if (!storageOk) req.log.error({ driver: objectStore().driver }, "health: document store unwritable");
     /* Still 200 when the database is down, deliberately. The body is the signal
        (Docker's HEALTHCHECK reads .db, see apps/api/Dockerfile) and a 503 with an
        empty body would tell an operator strictly less than a 200 that says
-       db:false. Anything routing on this must read the JSON. */
+       db:false. Anything routing on this must read the JSON.
+
+       `ok` stays a hard-coded true for the same reason, and `storage:false` does
+       NOT flip it: Docker's HEALTHCHECK reads .ok && .db, so making `ok` depend on
+       storage would take the whole API out of rotation over a volume problem that
+       stops ID-document review and nothing else. The status-code signal lives one
+       layer out, in the web app's /api/health, which is what an uptime monitor
+       watches and what may legitimately page a human. */
     /* tz: the zone every class time is shown and parsed in (always Africa/Tunis)
        next to the zone this process happens to run in — they are allowed to
        differ, and an operator chasing a "wrong hour" report should see both. */
     return {
       ok: true,
       db: dbOk,
+      storage: storageOk,
       version: VERSION,
       tz: { app: APP_TIME_ZONE, process: Intl.DateTimeFormat().resolvedOptions().timeZone },
     };
@@ -183,13 +213,40 @@ const isMain = process.argv[1] && import.meta.url.endsWith(process.argv[1].repla
 if (isMain || process.env.API_FORCE_START === "1") {
   assertBootConfig();
   warnIfSecretMissing();
+  /* BEFORE buildServer: a crash while wiring routes is exactly the kind of failure
+     worth reporting, and initSentry() installs the uncaught-exception handler. */
+  initSentry();
 
   const app = await buildServer();
   try {
     await app.listen({ port: PORT, host: HOST });
-    app.log.info({ port: PORT, host: HOST, prod: IS_PROD, storage: objectStore().driver }, "tnajem-api listening");
+    /* `sentry` in the boot line so "is error reporting actually on?" is answerable
+       from the log, without printing the DSN (which carries a project id and key). */
+    app.log.info(
+      { port: PORT, host: HOST, prod: IS_PROD, storage: objectStore().driver, sentry: sentryActive() },
+      "tnajem-api listening",
+    );
   } catch (err) {
     app.log.error(err, "failed to start");
+    await flushSentry();
     process.exit(1);
+  }
+
+  /* CLOSE, THEN FLUSH. pm2 reload sends SIGINT and SIGKILLs after kill_timeout;
+     systemd sends SIGTERM. Without this the process died on the default handler,
+     which drops in-flight requests mid-response and loses any error event that had
+     not been sent yet — including the crash that caused the restart. */
+  for (const signal of ["SIGINT", "SIGTERM"] as const) {
+    process.once(signal, () => {
+      void (async () => {
+        try {
+          await app.close();
+        } catch {
+          /* Shutting down is not the time to fail loudly; exit anyway. */
+        }
+        await flushSentry();
+        process.exit(0);
+      })();
+    });
   }
 }

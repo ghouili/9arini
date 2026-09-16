@@ -55,6 +55,11 @@ module.exports = {
       name: "tnajem-api",
       cwd: join(root, "apps", "api"),
       script: "dist/server.js",
+      /* The bundle is minified-ish and chunked by tsup, which emits .map files next
+         to it — with this flag Node applies them itself, so every stack trace (in
+         the log AND in the error report) names a real file and line instead of
+         chunk-KVXWOIF4.js:1:98214. No upload step, no auth token, no CI artifact. */
+      node_args: ["--enable-source-maps"],
       ...common,
       ...log("api"),
       env: { NODE_ENV: "development" },
@@ -88,6 +93,14 @@ module.exports = {
            behind nginx that proxy speaks TLS to a plain-HTTP port and GET / answers
            500. preflight.mjs refuses a loopback literal for this reason. */
         HOSTNAME: "localhost",
+        /* Same reason as the API's node_args, but it has to be NODE_OPTIONS here:
+           pm2 supervises the runner, and the Next server is the CHILD it spawns —
+           node_args would flag the parent only. NODE_OPTIONS is inherited.
+           (next.config.mjs turns on experimental.serverSourceMaps so the .map
+           files exist to be applied; they never reach a browser.)
+           If a cold `next build` is OOM-killed on a small VPS, that is a BUILD
+           flag, not this one: NODE_OPTIONS=--max-old-space-size=1024 bash deploy.sh. */
+        NODE_OPTIONS: "--enable-source-maps",
       },
     },
   ],

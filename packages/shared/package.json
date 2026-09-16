@@ -15,7 +15,8 @@
     "./sms": "./src/sms.ts",
     "./payments": "./src/payments.ts",
     "./live": "./src/live.ts",
-    "./legal": "./src/legal.ts"
+    "./legal": "./src/legal.ts",
+    "./observability": "./src/observability.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
