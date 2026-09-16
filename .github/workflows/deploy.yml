@@ -1,0 +1,238 @@
+name: Deploy to production
+
+# Push to the `production` branch and the box rebuilds, migrates and restarts.
+# Everything the server needs lives in the GitHub Environment named "deploy"
+#   (Settings > Environments > New environment > "deploy"), never in this file.
+#
+# The full secret list is in DEPLOY.md §5. Nothing here prints a value.
+on:
+  push:
+    branches: [production]
+  workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: "Deploy WITHOUT running CI (emergency only)"
+        type: boolean
+        default: false
+
+# Two overlapping runs would `git reset --hard` under a running `npm ci` and leave a
+# half-installed tree. cancel-in-progress is FALSE on purpose: a deploy that has
+# started must finish or fail on its own, not be killed mid-migration.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  # No commit reaches the server untested. The same workflow every branch runs.
+  ci:
+    if: ${{ inputs.skip_tests != true }}
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    name: Build and restart on the server
+    needs: [ci]
+    if: ${{ always() && (needs.ci.result == 'success' || inputs.skip_tests == true) }}
+    runs-on: ubuntu-latest
+    environment: deploy
+    timeout-minutes: 45
+
+    steps:
+      # Only needed for the .env we are about to write — the server gets its code
+      # from git itself, not from this checkout.
+      - uses: actions/checkout@v4
+
+      # ── The environment file, from the "deploy" environment ──────────────────
+      # Both processes and every CLI read ONE repo-root .env; .gitignore covers it, so
+      # it is never in the repository and has to be written here.
+      #
+      # << 'EOF' is quoted: the shell must not expand anything in a secret value.
+      # Four keys are literals rather than secrets because they describe the shape of
+      # the deployment and must not drift: the API is loopback-only on 4000 and the web
+      # tier reaches it there (nginx must never expose 4000). Everything else comes
+      # from the environment.
+      #
+      # NEXT_PUBLIC_* are BAKED INTO THE BUNDLE by `next build` on the server, which is
+      # why this file must exist before deploy.sh runs — it does.
+      - name: Write the environment file
+        run: |
+          cat > tnajem.env << 'EOF'
+          NODE_ENV=production
+          API_PORT=4000
+          API_HOST=127.0.0.1
+          API_URL=http://127.0.0.1:4000
+
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          AUTH_SECRET=${{ secrets.AUTH_SECRET }}
+          DOC_ENCRYPTION_KEY=${{ secrets.DOC_ENCRYPTION_KEY }}
+          CRON_SECRET=${{ secrets.CRON_SECRET }}
+
+          NEXT_PUBLIC_SITE_URL=${{ secrets.NEXT_PUBLIC_SITE_URL }}
+          NEXT_PUBLIC_DEFAULT_MEET_BASE=${{ secrets.NEXT_PUBLIC_DEFAULT_MEET_BASE }}
+          CORS_ORIGINS=${{ secrets.CORS_ORIGINS }}
+          TRUSTED_PROXIES=${{ secrets.TRUSTED_PROXIES }}
+          COOKIE_DOMAIN=${{ secrets.COOKIE_DOMAIN }}
+
+          ADMIN_EMAILS=${{ secrets.ADMIN_EMAILS }}
+          OTP_CHANNEL=${{ secrets.OTP_CHANNEL }}
+          PAYMENTS_ENABLED=${{ secrets.PAYMENTS_ENABLED }}
+          LOG_LEVEL=${{ secrets.LOG_LEVEL }}
+
+          STORAGE_DRIVER=${{ secrets.STORAGE_DRIVER }}
+          STORAGE_DIR=${{ secrets.STORAGE_DIR }}
+
+          MAIL_HOST=${{ secrets.MAIL_HOST }}
+          MAIL_PORT=${{ secrets.MAIL_PORT }}
+          MAIL_SECURE=${{ secrets.MAIL_SECURE }}
+          MAIL_USER=${{ secrets.MAIL_USER }}
+          MAIL_PASS=${{ secrets.MAIL_PASS }}
+          MAIL_FROM_NAME=${{ secrets.MAIL_FROM_NAME }}
+          MAIL_FROM_ADDRESS=${{ secrets.MAIL_FROM_ADDRESS }}
+          MAIL_REPLY_TO=${{ secrets.MAIL_REPLY_TO }}
+
+          # Object storage — only read when STORAGE_DRIVER=s3 (the API refuses to boot
+          # on s3 with any of these missing; it never falls back to local disk).
+          S3_BUCKET=${{ secrets.S3_BUCKET }}
+          S3_ACCESS_KEY_ID=${{ secrets.S3_ACCESS_KEY_ID }}
+          S3_SECRET_ACCESS_KEY=${{ secrets.S3_SECRET_ACCESS_KEY }}
+          S3_ENDPOINT=${{ secrets.S3_ENDPOINT }}
+          S3_REGION=${{ secrets.S3_REGION }}
+          S3_FORCE_PATH_STYLE=${{ secrets.S3_FORCE_PATH_STYLE }}
+          S3_PREFIX=${{ secrets.S3_PREFIX }}
+
+          # SMS — the OTP_CHANNEL=sms path, and the second notification channel.
+          TWILIO_ACCOUNT_SID=${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN=${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_FROM=${{ secrets.TWILIO_FROM }}
+          TWILIO_MESSAGING_SERVICE_SID=${{ secrets.TWILIO_MESSAGING_SERVICE_SID }}
+
+          # Backups (DEPLOY.md §8) and the Postgres client tools, if not on PATH.
+          BACKUP_DIR=${{ secrets.BACKUP_DIR }}
+          PG_BIN=${{ secrets.PG_BIN }}
+          EOF
+          chmod 600 tnajem.env
+
+      # ── Fail before the server is touched if a secret is missing ─────────────
+      # A secret that does not exist expands to an EMPTY STRING, silently. An empty
+      # AUTH_SECRET or DOC_ENCRYPTION_KEY is precisely the failure Stage 4 was about,
+      # and an empty DATABASE_URL would fail halfway through deploy.sh with the site
+      # already restarting. So check here, and print KEY NAMES ONLY — never a value,
+      # never a length.
+      - name: Check every required key is present
+        run: |
+          set -euo pipefail
+          required="DATABASE_URL AUTH_SECRET DOC_ENCRYPTION_KEY CRON_SECRET
+                    NEXT_PUBLIC_SITE_URL CORS_ORIGINS TRUSTED_PROXIES ADMIN_EMAILS
+                    STORAGE_DIR MAIL_HOST MAIL_PORT MAIL_USER MAIL_PASS MAIL_FROM_ADDRESS"
+          missing=""
+          for key in $required; do
+            value="$(grep -m1 "^${key}=" tnajem.env | cut -d= -f2- || true)"
+            [ -n "$value" ] || missing="$missing $key"
+          done
+          if [ -n "$missing" ]; then
+            echo "✗ The 'deploy' environment is missing (or has empty) secrets:"
+            for key in $missing; do echo "    - $key"; done
+            echo ""
+            echo "  Settings > Environments > deploy > Environment secrets."
+            echo "  DEPLOY.md §5 lists what each one is for. Nothing was sent to the server."
+            exit 1
+          fi
+          echo "✓ all $(echo $required | wc -w) required keys are set"
+
+      # /tmp, not $APP_DIR: on the first ever run that directory does not exist yet.
+      # The ssh step below moves it into place with mode 600 immediately.
+      - name: Copy the environment file to the server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT }}
+          source: "tnajem.env"
+          target: "/tmp"
+
+      # ── Bootstrap (idempotent) + deploy ─────────────────────────────────────
+      # command_timeout is 30m, not the action's 10m default: a cold `npm ci` plus two
+      # builds plus a Playwright-free smoke test does not fit in ten minutes on a small
+      # VPS, and the action kills the SSH session mid-build without saying why.
+      - name: Deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT }}
+          command_timeout: 30m
+          script: |
+            # set -eu, NOT -o pipefail: this runs in the login user's shell, and
+            # `set -o pipefail` is a hard error in dash — which would abort the deploy
+            # on line 1 with a message about the option rather than about the app.
+            set -eu
+
+            APP_DIR="${{ secrets.APP_DIR }}"
+            APP_DIR="${APP_DIR:-/var/www/tnajem}"
+
+            # This shell is NON-LOGIN and NON-INTERACTIVE: ~/.bashrc is never read, so
+            # nvm's shim is missing and `node` does not exist. deploy.sh repeats these
+            # two lines for the same reason.
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+            export PATH="$PATH:/usr/local/bin:/usr/bin"
+
+            if ! command -v node >/dev/null 2>&1; then
+              echo "Installing Node via nvm..."
+              curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+              export NVM_DIR="$HOME/.nvm"
+              . "$NVM_DIR/nvm.sh"
+              nvm install --lts
+              nvm use --lts
+            fi
+            command -v pm2 >/dev/null 2>&1 || npm install -g pm2
+
+            REPO_URL="https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+
+            # WRONG-DIRECTORY GUARD. If APP_DIR already holds a checkout of a DIFFERENT
+            # repository, stop: this environment's APP_DIR was probably copied from
+            # another project, and `git reset --hard` would overwrite that app in place.
+            # The message names no URL — after the first deploy the origin carries a token.
+            if [ -d "$APP_DIR/.git" ]; then
+              if ! git -C "$APP_DIR" remote get-url origin 2>/dev/null | grep -q "${{ github.repository }}"; then
+                echo "✗ $APP_DIR is a git checkout of a different repository. Refusing to overwrite it."
+                echo "  Point the APP_DIR secret at this app's own directory (e.g. /var/www/tnajem)."
+                exit 1
+              fi
+              echo "Updating $APP_DIR ..."
+              git -C "$APP_DIR" remote set-url origin "$REPO_URL"
+              git -C "$APP_DIR" fetch origin --prune
+              git -C "$APP_DIR" checkout production
+              git -C "$APP_DIR" reset --hard origin/production
+            else
+              # NOT `rm -rf "$APP_DIR"`. A mistyped APP_DIR secret would then delete
+              # whatever is there — an nginx web root, another app, /var/www itself.
+              # git clones happily into an existing EMPTY directory, so refuse the
+              # only case that is left and let a human look at it.
+              if [ -e "$APP_DIR" ] && [ -n "$(ls -A "$APP_DIR" 2>/dev/null)" ]; then
+                echo "✗ $APP_DIR exists, is not empty, and is not a git checkout."
+                echo "  Refusing to delete it. Empty it by hand, or fix the APP_DIR secret."
+                exit 1
+              fi
+              echo "First run — cloning into $APP_DIR ..."
+              mkdir -p "$(dirname "$APP_DIR")"
+              git clone -b production "$REPO_URL" "$APP_DIR"
+            fi
+
+            # install -m sets the mode as it copies: scp left it 0644, and this file
+            # holds AUTH_SECRET, DOC_ENCRYPTION_KEY and the database password.
+            install -m 600 /tmp/tnajem.env "$APP_DIR/.env"
+            rm -f /tmp/tnajem.env
+
+            chmod +x "$APP_DIR/deploy.sh"
+            cd "$APP_DIR"
+            bash deploy.sh
+
+            # Survive a reboot. Both are safe to re-run; the sudo line needs
+            # passwordless sudo, so a failure here must not fail the deploy.
+            pm2 startup systemd -u "$USER" --hp "$HOME" 2>/dev/null | grep "sudo env" | bash || true
+            pm2 save

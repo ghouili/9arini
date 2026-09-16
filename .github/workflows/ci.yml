@@ -1,0 +1,179 @@
+name: CI
+
+# Every branch and every PR — plus workflow_call, so deploy.yml can REQUIRE this
+# before it touches the server. `branches-ignore: [production]` is what stops a
+# production push from running the suite twice: there, deploy.yml calls it.
+on:
+  push:
+    branches-ignore: [production]
+  pull_request:
+  workflow_call:
+
+concurrency:
+  # github.workflow is the CALLER's name under workflow_call, so a deploy's inner CI
+  # run gets its own group and can never be cancelled by a direct push to the same ref.
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: typecheck, lint, API tests, Playwright
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    services:
+      postgres:
+        # Postgres 18 — the version the SQL files and packages/db are written
+        # against (PG17+ stores NOT NULL as named catalog constraints, which is
+        # why db:push is disabled; see DEPLOY.md §4).
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tnajem
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      # The e2e harness (e2e/support/env.ts) refuses any database that is not on
+      # localhost — it seeds and deletes rows. The service is published on 127.0.0.1,
+      # so that rail is satisfied honestly rather than bypassed.
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/tnajem
+      NEXT_TELEMETRY_DISABLED: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      # Root install, workspaces and all. NOT --omit=dev: tsx, typescript, postgres
+      # and dotenv are root devDependencies and every db:* script runs through tsx.
+      - name: npm ci
+        run: npm ci
+
+      # ── A .env for CI ────────────────────────────────────────────────────────
+      # Both apps and every CLI read the repo-root .env (apps/api/src/env.ts,
+      # apps/web/next.config.mjs, packages/db/bin/_paths.ts, e2e/support/env.ts), so
+      # one file configures the whole run. Secrets are GENERATED per run: nothing here
+      # is a real credential, and AUTH_SECRET must not be the public dev default
+      # (db:check rejects it and the OTP hash would be precomputable).
+      #
+      # MAIL_*/TWILIO_* are written EMPTY on purpose. dotenv does not overwrite a key
+      # already present in process.env even when the value is empty, so this keeps
+      # requestOtp on its no-provider path: no live SMTP connection from CI, to
+      # addresses that can never be delivered. The suite recovers OTPs from the hash.
+      - name: Write CI .env
+        run: |
+          cat > .env << EOF
+          NODE_ENV=development
+          DATABASE_URL=${DATABASE_URL}
+          AUTH_SECRET=$(openssl rand -hex 32)
+          DOC_ENCRYPTION_KEY=$(openssl rand -hex 32)
+          CRON_SECRET=$(openssl rand -hex 32)
+          ADMIN_EMAILS=e2e-admin@tnajem.invalid
+          OTP_CHANNEL=email
+          STORAGE_DRIVER=local
+          STORAGE_DIR=${{ github.workspace }}/.e2e-storage
+          API_PORT=4000
+          API_HOST=127.0.0.1
+          API_URL=http://127.0.0.1:4000
+          CORS_ORIGINS=http://localhost:3210
+          TRUSTED_PROXIES=127.0.0.1
+          NEXT_PUBLIC_SITE_URL=http://localhost:3210
+          NEXT_PUBLIC_DEFAULT_MEET_BASE=https://meet.jit.si/tnajem-
+          PAYMENTS_ENABLED=
+          MAIL_HOST=
+          MAIL_USER=
+          MAIL_PASS=
+          MAIL_FROM_ADDRESS=
+          TWILIO_ACCOUNT_SID=
+          TWILIO_AUTH_TOKEN=
+          EOF
+          echo "keys written:"; cut -d= -f1 .env | tr '\n' ' '; echo
+
+      - name: Migrate (npm run db:sql)
+        run: npm run db:sql
+
+      # typecheck (every workspace + e2e) + eslint --max-warnings=0 + the contrast
+      # and guardrail audits. Not ui:audit: nojs/a11y/keyboard need a running server.
+      - name: Verify (typecheck, lint, contrast, guardrails)
+        run: npm run verify
+
+      - name: API tests
+        run: npm run test -w @tnajem/api
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      # Builds and starts both servers itself (api :4000, standalone web :3210) —
+      # webServer in playwright.config.ts, with reuseExistingServer off under CI.
+      - name: Playwright
+        run: npx playwright test
+
+      # ── pm2 lifecycle: SIGTERM on the runner must free the port ──────────────
+      # apps/web/scripts/serve-standalone.mjs is a supervisor that SPAWNS the Next
+      # server, so killing it does not kill the child that holds the port. Without
+      # signal forwarding, `pm2 reload tnajem-web` leaves the old server on :3000 and
+      # the replacement dies with EADDRINUSE — a deploy that reports success while
+      # serving the previous build. This is that regression test; it needs real POSIX
+      # signals, which is why it lives here and not in a spec that also runs on Windows.
+      # Reuses the build Playwright just made, so it costs seconds.
+      - name: pm2 lifecycle — SIGTERM frees the port
+        run: |
+          set -euo pipefail
+          # `curl -s` without -f succeeds on ANY http status, so this asks only "is
+          # something listening on :3000" — which is the whole question here. The API
+          # is already stopped at this point, so /fr may well answer 500, and that is
+          # still a bound port holding the address the next release needs.
+          bound() { curl -s --max-time 3 -o /dev/null "http://127.0.0.1:3000/fr"; }
+          PORT=3000 API_URL=http://127.0.0.1:4000 node apps/web/scripts/serve-standalone.mjs &
+          parent=$!
+          for i in $(seq 1 60); do
+            if bound; then break; fi
+            sleep 1
+          done
+          bound || { echo "web never bound :3000"; exit 1; }
+          children="$(pgrep -P "$parent" || true)"
+          echo "parent=$parent children=${children:-none}"
+          [ -n "$children" ] || { echo "expected a spawned child process"; exit 1; }
+          kill -TERM "$parent"
+          for i in $(seq 1 15); do
+            if ! kill -0 "$parent" 2>/dev/null; then break; fi
+            sleep 1
+          done
+          sleep 1
+          if bound; then
+            echo "FAIL: something still holds :3000 after SIGTERM to the supervisor"
+            pkill -P "$parent" 2>/dev/null || true
+            exit 1
+          fi
+          for pid in $children; do
+            if kill -0 "$pid" 2>/dev/null; then
+              echo "FAIL: child $pid outlived the supervisor"; kill -9 "$pid"; exit 1
+            fi
+          done
+          echo "OK: supervisor and child both exited, :3000 is free"
+
+      # --audit-level=high, not bare `npm audit --omit=dev`. The bare form fails on any
+      # severity, so a freshly published low-severity advisory in a transitive dep would
+      # block an unrelated deploy with no code change. Stage 4 left this at 0
+      # vulnerabilities; `npm audit --omit=dev` is still the Stage 8 hand gate.
+      - name: npm audit (production deps, high and above)
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+          if-no-files-found: ignore

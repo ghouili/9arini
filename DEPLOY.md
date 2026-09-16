@@ -283,13 +283,93 @@ the only guard, so keep it that way in every new file.
 
 ## 5. Run both processes
 
-**pm2 (simplest):**
+Three files do this, and they are the same three whether a push deploys or you do it
+by hand over ssh:
+
+| file | where it runs | what it is |
+| --- | --- | --- |
+| `.github/workflows/deploy.yml` | GitHub runner | writes `.env` from the `deploy` environment, ships it, calls `deploy.sh` |
+| `deploy.sh` | the VPS | install → build both → migrate → `db:check` → reload pm2 → smoke |
+| `ecosystem.config.cjs` | the VPS | the two pm2 apps: `tnajem-api`, `tnajem-web` |
+
+### 5.1 First-run server prep (you, once)
+
 ```
-sudo npm i -g pm2
-NODE_ENV=production pm2 start "npm run start -w @tnajem/api" --name tnajem-api
-pm2 start "npm run start:standalone -w @tnajem/web" --name tnajem-web
-pm2 save && pm2 startup                            # restart on reboot
+sudo mkdir -p /var/www/tnajem && sudo chown $USER /var/www/tnajem   # APP_DIR
+sudo mkdir -p /var/lib/tnajem/storage && sudo chown $USER /var/lib/tnajem/storage
+sudo chmod 700 /var/lib/tnajem/storage                              # STORAGE_DIR (§3)
+sudo npm i -g pm2                  # the workflow installs it if missing, but not sudo-free
 ```
+Plus Postgres 18 with the database created (§2), nginx (§6), certbot, and an ssh key
+whose **public** half is in `~/.ssh/authorized_keys` and whose **private** half is the
+`SERVER_SSH_KEY` secret. Node: `nvm install 22`. The workflow installs the current LTS
+only if `node` is missing entirely — it never changes a Node version that is already
+there, so the major on the box is whatever you put there. Both Dockerfiles pin 22.
+
+### 5.2 The `deploy` GitHub Environment (you, once)
+
+*Settings → Environments → New environment → name it `deploy`*, then add these as
+**Environment secrets**. There is no `vars.*` in the workflow: one place to look.
+
+| secret | example / note |
+| --- | --- |
+| `SERVER_HOST` `SERVER_USER` `SERVER_PORT` | the VPS, the deploying user, `22` |
+| `SERVER_SSH_KEY` | the **private** key, whole file including the BEGIN/END lines |
+| `APP_DIR` | `/var/www/tnajem` — **re-point it if you copied this environment from another project**; the deploy refuses to run in a checkout of a different repo, but get it right anyway |
+| `DATABASE_URL` `AUTH_SECRET` `DOC_ENCRYPTION_KEY` `CRON_SECRET` | §3. Losing `DOC_ENCRYPTION_KEY` makes every stored ID scan unreadable |
+| `NEXT_PUBLIC_SITE_URL` `CORS_ORIGINS` `TRUSTED_PROXIES` `COOKIE_DOMAIN` | §3. `NEXT_PUBLIC_SITE_URL` is **baked into the bundle at build time** |
+| `ADMIN_EMAILS` `OTP_CHANNEL` `LOG_LEVEL` `PAYMENTS_ENABLED` | leave `PAYMENTS_ENABLED` **unset** until counsel signs off |
+| `STORAGE_DRIVER` `STORAGE_DIR` | `local` + `/var/lib/tnajem/storage`, or `s3` + the `S3_*` secrets |
+| `MAIL_HOST` `MAIL_PORT` `MAIL_SECURE` `MAIL_USER` `MAIL_PASS` `MAIL_FROM_NAME` `MAIL_FROM_ADDRESS` `MAIL_REPLY_TO` | **required**: `db:check` opens a real SMTP connection and the deploy stops if it fails |
+| optional | `S3_*`, `TWILIO_*`, `BACKUP_DIR`, `PG_BIN` |
+
+`NODE_ENV`, `API_PORT`, `API_HOST` and `API_URL` are **not** secrets — the workflow
+writes them as literals, because they describe the shape of the deployment (the API is
+loopback-only on 4000 and the web tier reaches it there) and must not drift.
+
+A missing secret expands to an **empty string**, silently. The workflow therefore
+refuses to contact the server unless every required key is non-empty, and it prints key
+names only, never values or lengths.
+
+### 5.3 Deploying
+
+```
+git push origin production          # → Actions: CI, then build + restart on the box
+```
+CI (`.github/workflows/ci.yml`) runs first and the deploy job needs it green: typecheck,
+lint, the API tests, the full Playwright suite against a real Postgres 18, `npm audit`.
+*Actions → Deploy to production → Run workflow* with **skip_tests** is the emergency
+path; it is only reachable by hand.
+
+`deploy.sh` then, in this order: `npm ci --include=dev` → build the API → build the web
+app → assert the standalone entry point exists → `npm run db:sql` → `npm run db:check --
+--production` → `pm2 reload` api then web → `pm2 save` → smoke-test `:4000/health` and
+`:3000/fr`. **Install and build come first on purpose**: a failure there aborts before
+anything is migrated or restarted, and the previous release keeps serving. Anything
+after that point is a real, visible failure.
+
+To do the same thing by hand (also the way to run it before the first `git push`):
+```
+cd /var/www/tnajem && bash deploy.sh          # .env must already be in place, mode 600
+```
+
+`npm ci --include=dev` is not a typo. Root `devDependencies` hold `tsx`, `typescript`,
+`postgres` and `dotenv`; every `db:*` script runs through tsx and both builds need their
+dev deps. npm also reads `NODE_ENV=production` as `--omit=dev`, so the flag is the
+difference between a deploy and `tsx: not found` at the migration step.
+
+### 5.4 Day to day
+
+```
+pm2 status                     # both apps, uptime, restarts, memory
+pm2 logs tnajem-api            # or tnajem-web; files are in <APP_DIR>/logs/
+pm2 reload ./ecosystem.config.cjs --only tnajem-web --env production
+```
+If `next build` is OOM-killed on a small VPS (the log just says `Killed`), add swap or
+`NODE_OPTIONS=--max-old-space-size=1024 bash deploy.sh`. The web app is one pm2 app, not
+a cluster: its process is a supervisor that spawns the Next server, so cluster mode would
+fork the supervisor and every worker but one would die on `EADDRINUSE`. Scaling the API
+past one worker means lowering `DB_POOL_MAX` in the same change (SCALABILITY.md §2).
 
 > **`next start` does not work with `output: "standalone"`** — it logs *Ready*,
 > binds the port, and never answers a request. Use `start:standalone`, which also
@@ -304,7 +384,14 @@ pm2 save && pm2 startup                            # restart on reboot
 > port, and `GET /` (the site root) answers **500**. The preflight refuses to start
 > with a loopback literal. Containers use `HOSTNAME=0.0.0.0` (the Dockerfile sets it).
 
-**systemd (alternative)** — two units. `/etc/systemd/system/tnajem-api.service`:
+### 5.5 systemd instead of pm2 (alternative)
+
+Same two processes, no pm2 and no `ecosystem.config.cjs`; `deploy.sh`'s pm2 section is
+then the part you replace with `systemctl restart tnajem-api tnajem-web`. Keep
+`KillMode=control-group` (the default): the web unit's `ExecStart` is a supervisor that
+spawns the Next server, and systemd has to stop the whole cgroup, not just the parent.
+
+`/etc/systemd/system/tnajem-api.service`:
 ```
 [Unit]
 Description=Tnajem API
@@ -338,6 +425,33 @@ Check both: `curl -sf 127.0.0.1:4000/health` must return `{"ok":true,"db":true,�
 **`db:false` with a 200 is a real failure** — the API is up and cannot reach
 Postgres. The reason is in the API's log; it is not in the response body, because
 `/health` is unauthenticated and a connection error carries the host, port and user.
+
+### 5.6 Rollback
+
+**Code** — deploy an older commit, with the same script that deployed the new one:
+```
+cd /var/www/tnajem
+git log --oneline -10                  # pick the last known-good commit
+git reset --hard <sha>
+bash deploy.sh                         # rebuilds, re-runs db:sql, reloads, smoke-tests
+```
+The next `git push origin production` overwrites this (`reset --hard origin/production`),
+so also revert on the branch — `git revert <bad sha>` — or the following deploy brings
+the bad commit back.
+
+**Migrations are forward-only.** There is no down migration and no ledger (§4). Rolling
+code back *past* a migration is safe only because every SQL file is additive: the old
+code ignores the new column. It stops being safe the moment a file drops or renames
+something, which is why §4 says keep every new file additive and idempotent. If a
+migration is the thing that broke, the recovery is a restore, not a revert.
+
+**Data** — restore into a NEW database and point the app at it (`db:restore` refuses the
+live `DATABASE_URL` and any database that already has tables):
+```
+RESTORE_DATABASE_URL=postgresql://…/tnajem_restored npm run db:restore -- backups/tnajem-….dump
+# then edit DATABASE_URL in .env (or the deploy secret) and: pm2 reload … --only tnajem-api
+```
+Restore the ID scans too: they live in `STORAGE_DIR`, not in the dump (§8).
 
 ## 6. nginx reverse proxy + HTTPS (you) — **do not `proxy_pass` everything** ⚠️
 
@@ -404,6 +518,12 @@ server {
   }
 
   # ── Everything else → Next ─────────────────────────────────────────────────
+  # If the deploy's smoke test says the web app answers on localhost:3000 but not on
+  # 127.0.0.1:3000, this line is the fix: `proxy_pass http://localhost:3000;`. The web
+  # process binds whatever "localhost" resolves to (HOSTNAME=localhost is mandatory —
+  # the 127.0.0.1 literal breaks every middleware rewrite, §5), and on a box that
+  # answers ::1 first it listens on IPv6 loopback only. nginx would then refuse every
+  # request while pm2 shows a perfectly healthy process.
   location / {
     proxy_pass http://127.0.0.1:3000;
     proxy_http_version 1.1;

@@ -30,6 +30,9 @@ tools/ui-audit/shots-*/
 # MCP browser console logs — scratch output, regenerated per session
 .playwright-mcp/
 
+# pm2 logs (ecosystem.config.cjs writes them next to the checkout on the server)
+logs/
+
 # E2E suite artifacts
 .e2e-storage/
 # db:backup output — every user's personal data. Never commit.

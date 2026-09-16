@@ -79,7 +79,16 @@ console.log(`standalone server on :${port}  (entry: ${join(serverDir, "server.js
    plain-HTTP port: on 15 Sept `GET /` — the site root, rewritten to /fr —
    answered 500 with "EPROTO wrong version number", and every 404 rewrite looped
    until the headers overflowed. preflight.mjs refuses a loopback literal. */
-spawn(process.execPath, [join(serverDir, "server.js")], {
+const child = spawn(process.execPath, [join(serverDir, "server.js")], {
   stdio: "inherit",
   env: { ...process.env, PORT: port, HOSTNAME: process.env.HOSTNAME || "localhost" },
-}).on("exit", (c) => process.exit(c ?? 0));
+});
+
+/* FORWARD SIGNALS. This process is a supervisor, not the server: killing it does
+   NOT kill the child, and the child is the one holding the port. pm2 reload sends
+   SIGINT to the pm2-managed process (us) and SIGKILLs it after kill_timeout, so
+   without this the old Next server keeps :3000 and the replacement dies with
+   EADDRINUSE -- a deploy that reports success and serves the previous build. The
+   systemd units in DEPLOY.md have the same shape. Exit only when the child does. */
+for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => child.kill(sig));
+child.on("exit", (code, signal) => process.exit(code ?? (signal ? 1 : 0)));

@@ -1,0 +1,13 @@
+# Shell scripts run on a Linux VPS (deploy.sh) and in Actions runners. With a CRLF
+# line ending the kernel reads the shebang as "/usr/bin/env bash\r" and the deploy
+# dies with "bad interpreter: no such file or directory" — on the server, after the
+# workflow has already reported a green checkout. This repo is developed on Windows
+# with core.autocrlf=true, so pin the one file type where it matters.
+#
+# Deliberately NOT "* text=auto": renormalising every tracked file is a separate,
+# whole-repo change, not something to slip into a deploy commit.
+*.sh text eol=lf
+
+# Same reason: the `run: |` blocks in these are bash, and Actions writes them to a
+# file on the runner verbatim. A stray CR turns every line into a command not found.
+.github/workflows/*.yml text eol=lf
