@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
-import { seedTutor, seedClass } from "./support/seed";
+import { seedTutor, seedClass, seedProfile } from "./support/seed";
+import { loginAs } from "./support/session";
 
 /* phase-a lane L3 (A22) — ONE payment story on every public page, in both locales.
 
@@ -83,6 +84,10 @@ test("the pages that explain payment do carry the one sentence", async ({ page }
   // Not a crawl: the surfaces that must SAY it, so the gate above cannot pass by deletion alone.
   const tutor = await seedTutor({ status: "verified" });
   const klass = await seedClass({ tutorId: tutor.id, isFreeFirst: false, priceTnd: 25, hoursFromNow: 96 });
+  /* phase-a/integrate: checkout is behind sign-in (an anonymous visitor lands on
+     /auth), so an adult student is signed in for these pages. */
+  const student = await seedProfile({ role: "student", birthYear: 1990 });
+  await loginAs(page.context(), student.id);
   for (const path of ["/fr", "/fr/tarifs", "/fr/pour-les-profs", `/fr/${tutor.slug}`, `/fr/checkout?class=${klass.id}`]) {
     await page.goto(path);
     await expect(page.locator("[data-payment-story]").first(), path).toBeVisible({ timeout: 15_000 });

@@ -711,7 +711,11 @@ test.describe("the dashboard reports the plan", () => {
        uses, or it is a second implementation of the rule. */
     const { tutor, token } = await verifiedTutor();
     const admin = await adminToken();
-    await post("/admin/subscriptions", { tutorId: tutor.id, planCode: "essentiel" }, admin);
+    /* phase-a/integrate (A25): during the pilot a grant may not LOWER a tutor's
+       limits, so Essentiel (5) is refused here now. Pro keeps the point of this
+       test — a granted plan, and the count the dashboard shows is the count the
+       API uses — without being a lower limit than the pilot's. */
+    expect((await post("/admin/subscriptions", { tutorId: tutor.id, planCode: "pro" }, admin)).ok).toBe(true);
     /* Assert each creation, so a refusal for an unrelated reason shows up as
        itself rather than as a class count that is quietly one short. */
     expect((await createClass(token)).ok).toBe(true);
@@ -720,8 +724,8 @@ test.describe("the dashboard reports the plan", () => {
     const d = (await get("/dashboard", token)) as {
       plan: { code: string; maxClasses: number | null; openClasses: number; isPilot: boolean };
     };
-    expect(d.plan.code).toBe("essentiel");
-    expect(d.plan.maxClasses).toBe(5);
+    expect(d.plan.code).toBe("pro");
+    expect(d.plan.maxClasses).toBeNull();
     expect(d.plan.openClasses).toBe(2);
     expect(d.plan.isPilot, "a granted plan is not the pilot, even while payments are off").toBe(
       false,
