@@ -1,5 +1,5 @@
 import { test, expect, type Browser } from "@playwright/test";
-import { seedProfile } from "./support/seed";
+import { seedProfile, seedTutor } from "./support/seed";
 import { mintSession, sessionCookie } from "./support/session";
 
 /* ZERO CONTACT, IN THE COPY (phase-a lane L1: A3, A4, A12).
@@ -33,6 +33,27 @@ test.describe("A3 — the student welcome screen never promises the tutor can re
       await expect(page.locator("main")).toContainText(
         locale === "fr" ? "Ton prof ne le voit jamais" : "أستاذك عمرو ما يشوفها",
       );
+      await ctx.close();
+    });
+  }
+});
+
+test.describe("A4 — the new-pack page never tells a tutor to send files by WhatsApp or e-mail", () => {
+  for (const locale of ["fr", "ar"] as const) {
+    test(`/${locale}/dashboard/new-pack`, async ({ browser }) => {
+      const tutorProfile = await seedProfile({ role: "tutor", birthYear: 1985 });
+      await seedTutor({ profileId: tutorProfile.id, status: "verified" });
+      const { ctx, page } = await pageAs(browser, tutorProfile.id);
+      await page.goto(`/${locale}/dashboard/new-pack`);
+      await expect(page.locator("form")).toBeVisible();
+
+      // The page's own content (the site footer carries Tnajem's contact address).
+      const text = await page.locator("main").innerText();
+      expect(text).not.toMatch(/whatsapp|e-?mail/i);
+      expect(text).not.toMatch(/واتساب|إيميل|ايميل/);
+      // No "upload isn't connected yet": Mes documents uploads, and the page says where.
+      expect(text).not.toContain("pas encore branché");
+      await expect(page.locator('main a[href$="/dashboard/materials"]')).toBeVisible();
       await ctx.close();
     });
   }

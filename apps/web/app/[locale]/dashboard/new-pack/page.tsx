@@ -15,9 +15,13 @@ const copy = bilingual({
   fr: {
     hintTitle: "Fiches, PDFs, vidéos",
     hintBody: "Décris ton pack, fixe ton prix. Tes élèves le voient sur ta vitrine.",
-    deliveryTitle: "La livraison des fichiers arrive bientôt",
+    /* phase-a A4: tutors never see a student's phone or e-mail, so "send it
+       yourself" was an instruction nobody could follow — and Mes documents does
+       upload. Files go there; questions go through Tnajem's messages. */
+    deliveryTitle: "Tes fichiers passent par « Mes documents »",
     deliveryBody:
-      "Pour l'instant, l'upload n'est pas encore branché : publie la description et le prix, et envoie le fichier à tes élèves toi-même (WhatsApp, mail). On te préviendra dès que la livraison automatique est prête.",
+      "Publie ici la description et le prix de ton pack. Le fichier lui-même, ajoute-le dans « Mes documents » : tes élèves inscrits le retrouvent sur ta page. Une question d'un élève ? Réponds-lui dans les messages Tnajem.",
+    deliveryCta: "Ouvrir Mes documents",
     metaHelp: "ex. 42 pages · 6 vidéos · 3 exercices corrigés",
     // Publishing requires a verified profile (enforced server-side in createPack).
     notVerified: "Ton profil doit d'abord être vérifié. Va dans « Vérification » pour envoyer tes documents.",
@@ -33,9 +37,10 @@ const copy = bilingual({
   ar: {
     hintTitle: "فيشات، PDF، فيديوهات",
     hintBody: "وصّف الپاك متاعك، وحطّ السوم. تلاميذك يشوفوه في واجهتك.",
-    deliveryTitle: "توصيل الملفّات يوصل قريب",
+    deliveryTitle: "ملفّاتك تتعدّى من « وثائقي »",
     deliveryBody:
-      "توّا الرفع ما زال ما تربطش: انشر الوصف والسوم، وابعث الملف لتلاميذك بيدك (واتساب، إيميل). نعيّطولك أوّل ما التوصيل الأوتوماتيكي يكون جاهز.",
+      "انشر هوني الوصف والسوم متاع الپاك. أمّا الملف في حدّ ذاتو، زيدو في « وثائقي »: تلاميذك المسجّلين يلقاوه في صفحتك. تلميذ عندو سؤال؟ جاوبو في الرسائل متاع Tnajem.",
+    deliveryCta: "حلّ « وثائقي »",
     metaHelp: "مثال: 42 صفحة · 6 فيديوهات · 3 تمارين مصحّحة",
     notVerified: "لازم بروفايلك يتثبّت الأول. أمشي لـ « التثبّت » وابعث وثائقك.",
     titlePh: "مثال: پاك مراجعة : المشتقات والنهايات",
@@ -194,8 +199,8 @@ export default function NewPackPage() {
                     </div>
                   </Field>
 
-                  {/* Honest note — no fake dropzone. File delivery isn't built yet, so we
-                      don't ship a control that pretends to upload. */}
+                  {/* Honest note — no dropzone HERE: files live in Mes documents
+                      (/dashboard/materials, Step 10), which does upload. phase-a A4. */}
                   <div style={{
                     display: "flex",
                     gap: 12,
@@ -216,6 +221,9 @@ export default function NewPackPage() {
                       <div className="text-[13px] text-muted leading-[1.6]">
                         {c.deliveryBody}
                       </div>
+                      <Link href="/dashboard/materials" className="linklike text-[13px] mt-1.5 inline-block">
+                        {c.deliveryCta}
+                      </Link>
                     </div>
                   </div>
 
