@@ -97,7 +97,7 @@ const fr = {
        off, so the pilot split is 100/0 and no rail exists to name. */
     s2t: "Tes élèves réservent", s2p: "Tu vois leur prénom et leur réservation dans ton tableau de bord.",
     trend: (p: number) => `+${p}% vs le mois dernier`,
-    cashout: "Retirer vers Flouci",
+    cashout: "Retirer mes gains",
     recent: "Activité récente",
     newClass: "Créer une classe",
     newPack: "Ajouter des fiches",
@@ -120,7 +120,7 @@ const fr = {
      strings (to/amount/request) and the timing promises ("Les retraits arrivent
      sous 1–3 jours.") were deleted: no payout rail exists (lib/payments.ts
      throws), so nothing may state when money would arrive. */
-  payout: { title: "Retirer mes gains", available: "Disponible", wallet: "Portefeuille Flouci", bank: "Compte bancaire (RIB)" },
+  payout: { title: "Retirer mes gains", available: "Disponible", wallet: "Portefeuille mobile", bank: "Compte bancaire (RIB)" },
   student: {
     title: "Mes cours", soon: "DÉMARRE BIENTÔT", with: "avec",
     hours: "heures", mins: "min", secs: "sec",
@@ -303,7 +303,7 @@ const ar: typeof fr = {
     s1t: "شارك اللينك متاعك", s1p: "لتلامذتك توّا وللناس اللي يتبعوك.",
     s2t: "تلاميذك يحجزو", s2p: "تشوف إسمهم الأول والحجز متاعهم في لوحتك.",
     trend: (p: number) => `+${p}% مقارنة بالشهر الفارط`,
-    cashout: "اسحب لفلوسي",
+    cashout: "اسحب فلوسك",
     recent: "النشاط الأخير",
     newClass: "اعمل حصة",
     newPack: "زيد ملخصات",
@@ -322,7 +322,7 @@ const ar: typeof fr = {
     freeFirst: "أعطي أول حصة فابور", create: "انشر الحصة",
   },
   createPack: { title: "زيد ملخصات / تسجيل", name: "العنوان", meta: "تفاصيل (مثال: 42 صفحة · 6 فيديوهات)", price: "الثمن (د.ت)", create: "انشر" },
-  payout: { title: "اسحب أرباحي", available: "المتوفّر", wallet: "محفظة فلوسي", bank: "حساب بنكي (RIB)" },
+  payout: { title: "اسحب أرباحي", available: "المتوفّر", wallet: "محفظة على التليفون", bank: "حساب بنكي (RIB)" },
   student: {
     title: "حصصي", soon: "تبدا قريب", with: "مع",
     hours: "ساعات", mins: "دقيقة", secs: "ثانية",

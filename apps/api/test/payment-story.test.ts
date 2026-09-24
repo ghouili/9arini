@@ -38,13 +38,14 @@ function stripComments(src: string): string {
     .replace(/(^|[^:"'`\\])\/\/[^\n]*/g, "$1");
 }
 
-/* Out of scope, on purpose:
-   • lib/i18n.ts — the shared dictionary, add-only for a lane. Its payment keys
-     (checkout.noCharge, checkout.payPaid, dashboard.s3t/s3p) are rendered by
-     nothing; the test below proves that, and the orchestrator deletes them.
+/* Nothing is out of scope any more.
+   • lib/i18n.ts was excluded while it was add-only for the lanes; its dead payment
+     keys (checkout.noCharge, checkout.payPaid, dashboard.s3t/s3p) were deleted at
+     merge and the payout labels no longer name a provider (phase-a/integrate), so
+     the shared dictionary is scanned like every page.
    phase-a lane L6 (A19): /terms and /privacy are rewritten against the merged code
    and are scanned like every other page (their own proof: legal-truth.test.ts). */
-const EXCLUDED = [/lib[\\/]i18n\.ts$/];
+const EXCLUDED: RegExp[] = [];
 
 const CONTRADICTIONS: [RegExp, string][] = [
   [/en main propre/i, "cash in hand"],
@@ -57,7 +58,7 @@ const CONTRADICTIONS: [RegExp, string][] = [
   [/paie(ment)? en dinar/i, "paiement en dinar"],
   [/Paiement direct/i, "paiement direct"],
   [/konnect|clictopay|e-?dinar|flouci|\bD17\b/i, "a named payment provider"],
-  [/يد بيد|في يدك|بالشهر|تخلّص أستاذك مباشرة|يخلّصك مباشرة|خلاص مباشر|فلوسي|خلّص بالدينار|الخلاص بالدينار/, "the same stories in Arabic"],
+  [/يد بيد|في يدك|بالشهر(?! الفارط)|تخلّص أستاذك مباشرة|يخلّصك مباشرة|خلاص مباشر|فلوسي|خلّص بالدينار|الخلاص بالدينار/, "the same stories in Arabic"],
   [/pay the tutor|paid (by hand|in cash)|never pay Tnajem/i, "the same stories in English (llms.txt)"],
 ];
 
