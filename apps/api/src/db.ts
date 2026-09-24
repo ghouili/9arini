@@ -32,4 +32,6 @@ if (!url) {
 const handle = createDb(url, { appName: "tnajem-api" });
 
 export const db = handle.db;
-export const sql = handle.sql;
+/* phase-a lane L4 (setup): non-null — the process has already exited above when
+   there is no URL. test/support/fx.ts calls it directly and did not typecheck. */
+export const sql = handle.sql!;
