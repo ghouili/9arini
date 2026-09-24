@@ -54,6 +54,13 @@ export type ClassItem = {
   quiz_url?: string;        // Wooclap / Quizizz
   replay_url?: string;      // recorded session
   status?: "scheduled" | "live" | "done" | "cancelled";
+  // phase-a lane L4 (A9): the class page links its tutor BY SLUG. It used to
+  // search Explore for the tutor's name, so two tutors with the same name could
+  // send a student to the wrong storefront. Optional: only GET /classes/:id sets them.
+  tutor_slug?: string | null;
+  tutor_subject?: string | null;
+  /** tutors.level as stored today (A18.7 reconciles it with the levels list at merge). */
+  tutor_level?: string | null;
 };
 
 export type Pack = {
