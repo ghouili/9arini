@@ -129,6 +129,7 @@ export async function purgeExpiredVerificationDocs(
         inArray(tutors.status, [...DECIDED]),
         isNotNull(tutors.reviewedAt),
         lt(tutors.reviewedAt, cutoff),
+        // LEGAL-REVIEW: per-document retention clock — older rounds wait for the newest decision (A26; phase-a/verify-fix D6).
         /* phase-a lane L4 (A26): a VERIFIED tutor who resubmits now stays verified,
            so "decided" no longer implies "nothing waiting". A round submitted after
            the last decision is undecided and the admin still needs it — skipped
