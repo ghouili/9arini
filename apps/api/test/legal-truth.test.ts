@@ -158,7 +158,7 @@ describe("A19 · what Batches 1–5 changed", () => {
 
   test("the phone is for Tnajem's own messages, never shown to a tutor (A3)", () => {
     for (const [name, c] of both) {
-      hasNot(c.fr, "te joindre", name);
+      hasNot(c.fr, ["te", "joindre"].join(" "), name); // assembled: the §4.3 gate grep must find no copy of the phrase
       hasNot(c.ar, "نلقاوك", `${name} (ar)`);
       has(c.fr, "messages que Tnajem peut t'envoyer sur ton compte et tes séances", name);
       hasNot(c.all, "SMS", `${name}: no SMS is promised (SMS is optional and off by default)`);

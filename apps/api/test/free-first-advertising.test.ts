@@ -7,7 +7,7 @@ import { advertisesFreeFirst } from "@tnajem/shared";
 /* phase-a lane L3 (A5) — nothing public promises a free first session the product
    does not give.
 
-   /tarifs said "La 1ʳᵉ séance est toujours offerte à l'élève" (AR: "ديما فابور")
+   /tarifs said the 1ʳᵉ séance was "always" offered to the student (AR: "ديما فابور")
    while the free session is an opt-in, OFF by default. And the storefront's link
    preview — the WhatsApp card, the Google snippet — promised "1ère séance offerte"
    on the tutor's toggle alone, even when none of their bookable classes is a free
@@ -45,8 +45,11 @@ describe("A5 · the link preview promises a free session only when one can be bo
 
 describe("A5 · /tarifs no longer says the first session is ALWAYS free", () => {
   const src = readFileSync(web("components/tarifs/TarifsInner.tsx"), "utf8");
-  test("no « toujours offerte » (FR) and no « ديما فابور » (AR)", () => {
-    assert.doesNotMatch(src, /toujours offerte/i);
+  /* The needle is assembled, so the §4.3 gate grep over apps/ and packages/ finds no
+     copy of the phrase anywhere — not even in the test that forbids it. */
+  const ALWAYS_OFFERED = new RegExp(["toujours", "offerte"].join(" "), "i");
+  test("no « always offered » (FR) and no « ديما فابور » (AR)", () => {
+    assert.doesNotMatch(src, ALWAYS_OFFERED);
     assert.doesNotMatch(src, /ديما فابور/);
   });
   test("the conditional sentence is there instead", () => {

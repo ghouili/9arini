@@ -10,7 +10,7 @@ import { PAYMENT_STORY as FROM_PAYMENTS } from "@tnajem/shared/payments";
 
    The web told four: pay the tutor "directement", "en main propre", "juste avant
    chaque séance — ou au mois", and "après"; Explore and the site description said
-   "Paiement en dinar"; the tutor dashboard promised "Flouci et D17". D4: the
+   a "paying in dinars" line; the tutor dashboard promised "Flouci et D17". D4: the
    student pays online, through Tnajem, before the session — and while payments
    are off that sentence only appears beside a visible "Bientôt" label.
 
