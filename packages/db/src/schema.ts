@@ -193,6 +193,9 @@ export const tutors = pgTable("tutors", {
   /* The tutor record of an erased account (0022): scrubbed, suspended, slug retired. */
   erasedAt: timestamp("erased_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  // phase-a lane L4 (A26, 0029): a VERIFIED tutor's requested new name, waiting for
+  // review. fullName stays the approved, public one until an admin approves this.
+  pendingFullName: text("pending_full_name"),
 }, (t) => ({
   /* /explore: `where status = 'verified' order by rating desc` (getExploreTutors),
      the sitemap's `where status = 'verified'`, and the admin queue's

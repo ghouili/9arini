@@ -1,8 +1,8 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {
-  and, eq, inArray, isNull, sql as raw,
-  tutors, verificationDocs, notify,
+  and, eq, inArray, isNull, or, sql as raw,
+  profiles, tutors, verificationDocs, notify,
   objectStore, storageKey,
   docEncryptionConfigured, sealDoc, openDoc, DocCryptoError,
 } from "@tnajem/db";
@@ -56,7 +56,13 @@ const SAFE_MIME = /^(image\/(jpeg|png|webp|heic|heif)|application\/pdf)$/;
 
 const tutorIdBody = z.object({ tutorId: z.string() });
 /* submittedAt: the version of the application the admin actually looked at. */
-const approveBody = z.object({ tutorId: z.string(), submittedAt: z.string().nullable() });
+const approveBody = z.object({
+  tutorId: z.string(),
+  submittedAt: z.string().nullable(),
+  /* phase-a lane L4 (A26): the requested new name the admin actually looked at, for a
+     verified tutor's rename. Bound like submittedAt: a name changed since is refused. */
+  pendingName: z.string().nullable().optional(),
+});
 const rejectBody = z.object({ tutorId: z.string(), note: z.string().optional() });
 /** A refusal reason the tutor will read in their notification. */
 const REJECT_NOTE_MIN = 5;
@@ -69,6 +75,20 @@ const REJECT_NOTE_MIN = 5;
 function declarationCoversRound(t: { publicTeacherDeclaredAt: Date | null; submittedAt: Date | null }): boolean {
   if (!t.publicTeacherDeclaredAt) return false;
   return !t.submittedAt || t.publicTeacherDeclaredAt.getTime() >= t.submittedAt.getTime();
+}
+
+/* phase-a lane L4 (A26): A RE-REVIEW. A VERIFIED tutor with something waiting for an
+   admin — a rename (pending_full_name), or a round of documents submitted after the
+   last decision. They stay verified and public meanwhile; only the change waits.
+   The SQL and the JS must say the same thing: the queue lists with one, the
+   decisions check with both. */
+const openReReviewSql = raw`(${tutors.status} = 'verified' and (${tutors.pendingFullName} is not null or (${tutors.submittedAt} is not null and (${tutors.reviewedAt} is null or ${tutors.submittedAt} > ${tutors.reviewedAt}))))`;
+function hasOpenReReview(t: {
+  status: string; pendingFullName: string | null; submittedAt: Date | null; reviewedAt: Date | null;
+}): boolean {
+  if (t.status !== "verified") return false;
+  if (t.pendingFullName !== null) return true;
+  return t.submittedAt !== null && (t.reviewedAt === null || t.submittedAt.getTime() > t.reviewedAt.getTime());
 }
 
 export async function adminRoutes(app: FastifyInstance): Promise<void> {
@@ -236,7 +256,10 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
         await tx
           .update(tutors)
           .set({
-            status: "pending",
+            /* phase-a lane L4 (A26): a VERIFIED tutor who resubmits stays verified and
+               in Explore; the new round is reviewed as a re-review (submitted_at after
+               reviewed_at). Everyone else's application goes (back) to pending. */
+            ...(mine.status === "verified" ? {} : { status: "pending" as const }),
             submittedAt: submittedNow,
             publicTeacherDeclaredAt: submittedNow,
             publicTeacherDeclarationVersion: PUBLIC_TEACHER_DECLARATION_VERSION,
@@ -328,7 +351,8 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     const rows = await db
       .select()
       .from(tutors)
-      .where(eq(tutors.status, "pending"))
+      // phase-a lane L4 (A26): plus verified tutors with a rename or a new round to review.
+      .where(or(eq(tutors.status, "pending"), openReReviewSql))
       .orderBy(tutors.submittedAt)
       .limit(100);
     if (rows.length === 0) return { ok: true, admin: true, items: [] as PendingTutor[] };
@@ -403,6 +427,9 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
           previousRounds: previous,
         };
       })(),
+      // phase-a lane L4 (A26)
+      reReview: hasOpenReReview(t),
+      pendingName: t.status === "verified" ? (t.pendingFullName ?? null) : null,
     }));
 
     return { ok: true, admin: true, items };
@@ -442,9 +469,64 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     if (reviewed && Number.isNaN(reviewed.getTime())) return reply.code(400).send({ error: "bad-request" });
     /* phase-a lane L4 (A15): NO DECLARATION, NO APPROVAL. Only the UI used to remind
        the admin. A 4xx and nothing written — no status, no audit row, no message. */
-    if (t.status === "pending" && !declarationCoversRound(t)) {
+    const reReview = hasOpenReReview(t); // phase-a lane L4 (A26)
+    if ((t.status === "pending" || reReview) && !declarationCoversRound(t)) {
       return reply.code(422).send({ ok: false, error: "declaration-missing" });
     }
+    const versionCond = reviewed
+      ? raw`date_trunc('milliseconds', ${tutors.submittedAt}) = ${reviewed.toISOString()}::timestamptz`
+      : isNull(tutors.submittedAt);
+    const declarationCond = raw`${tutors.publicTeacherDeclaredAt} is not null and (${tutors.submittedAt} is null or ${tutors.publicTeacherDeclaredAt} >= ${tutors.submittedAt})`;
+
+    /* phase-a lane L4 (A26): A RE-REVIEW. The tutor is verified and stays verified;
+       what is approved is the change — the new name goes public (storefront, and the
+       profile that message threads read), the new round is on record as decided. */
+    if (reReview) {
+      const expectedName = parsed.data.pendingName ?? null;
+      if (expectedName !== t.pendingFullName) return { ok: false, error: "changed-since-review" };
+      const decidedRe = await db.transaction(async (tx) => {
+        const [d] = await tx
+          .update(tutors)
+          .set({
+            fullName: raw`coalesce(${tutors.pendingFullName}, ${tutors.fullName})`,
+            pendingFullName: null,
+            reviewedAt: new Date(),
+            reviewNote: null,
+          })
+          .where(
+            and(
+              eq(tutors.id, t.id),
+              openReReviewSql,
+              versionCond,
+              expectedName === null ? isNull(tutors.pendingFullName) : eq(tutors.pendingFullName, expectedName),
+              declarationCond,
+            ),
+          )
+          .returning({ fullName: tutors.fullName });
+        if (d && expectedName !== null && t.profileId) {
+          await tx.update(profiles).set({ fullName: d.fullName }).where(eq(profiles.id, t.profileId));
+        }
+        return d;
+      });
+      if (!decidedRe) {
+        const [now] = await db.select().from(tutors).where(eq(tutors.id, t.id)).limit(1);
+        return { ok: false, error: now && hasOpenReReview(now) ? "changed-since-review" : "not-pending" };
+      }
+      await auditAdmin(session.profile.id, "verification.approve", { kind: "tutor", id: t.id },
+        expectedName !== null ? "re-review: rename" : "re-review: documents");
+      if (t.profileId) {
+        await notify(db, t.profileId, {
+          kind: "verification_approved",
+          title: "Modification validée ✅",
+          body: expectedName !== null
+            ? "Ton nouveau nom est validé : il est maintenant affiché sur ta page."
+            : "Tes nouveaux documents sont validés. Ta page reste en ligne.",
+          href: "/dashboard",
+        });
+      }
+      return { ok: true, revalidate: { tutors: [t.slug], publicTutors: true } };
+    }
+
     const [decided] = await db
       .update(tutors)
       .set({ status: "verified", verified: true, reviewedAt: new Date(), reviewNote: null })
@@ -452,11 +534,9 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
         and(
           eq(tutors.id, tutorId.value),
           eq(tutors.status, "pending"),
-          reviewed
-            ? raw`date_trunc('milliseconds', ${tutors.submittedAt}) = ${reviewed.toISOString()}::timestamptz`
-            : isNull(tutors.submittedAt),
+          versionCond,
           // phase-a lane L4 (A15): re-checked in the UPDATE, like the status and version.
-          raw`${tutors.publicTeacherDeclaredAt} is not null and (${tutors.submittedAt} is null or ${tutors.publicTeacherDeclaredAt} >= ${tutors.submittedAt})`,
+          declarationCond,
         ),
       )
       .returning({ id: tutors.id });
@@ -502,6 +582,29 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     if (!t) return { ok: false, error: "not-found" };
     if (t.profileId && t.profileId === session.profile.id) {
       return { ok: false, error: "self-approval-forbidden" };
+    }
+
+    /* phase-a lane L4 (A26): REFUSING A RE-REVIEW refuses the CHANGE, not the tutor:
+       the requested name is dropped, the new round is on record as decided, and the
+       tutor stays verified under the approved name. Un-verifying a live tutor is
+       still an account block, never this. */
+    if (hasOpenReReview(t)) {
+      const [decidedRe] = await db
+        .update(tutors)
+        .set({ pendingFullName: null, reviewedAt: new Date(), reviewNote: note.value })
+        .where(and(eq(tutors.id, t.id), openReReviewSql))
+        .returning({ id: tutors.id });
+      if (!decidedRe) return { ok: false, error: "not-pending" };
+      await auditAdmin(session.profile.id, "verification.reject", { kind: "tutor", id: t.id }, "re-review: stays verified");
+      if (t.profileId) {
+        await notify(db, t.profileId, {
+          kind: "verification_rejected",
+          title: "Modification non validée",
+          body: `Ta modification n'a pas été validée : ${note.value}. Ta page reste en ligne telle qu'elle a été validée.`,
+          href: "/dashboard",
+        });
+      }
+      return { ok: true, revalidate: { tutors: [t.slug] } };
     }
 
     /* PENDING ONLY. This used to take any tutor, so "reject" doubled as an

@@ -455,6 +455,11 @@ export type PendingTutor = {
   /** When the documents in `docs` were uploaded (ISO), or null when there are none. */
   docsSubmittedAt: string | null;
   previousRounds: { submittedAt: string; docs: { id: string; kind: string; fileName: string; url: string }[] }[];
+  // phase-a lane L4 (A26): an ALREADY VERIFIED tutor with something to review — a
+  // rename (pendingName) and/or a new round. They stay public meanwhile; `name` is
+  // still the approved name. Send pendingName back with approve: it is bound too.
+  reReview: boolean;
+  pendingName: string | null;
 };
 
 /* ── The moderation queue (/admin/moderation) ─────────────────────────────── */

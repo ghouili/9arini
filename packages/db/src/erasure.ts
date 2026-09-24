@@ -239,6 +239,7 @@ export async function eraseAccount(
         .set({
           slug: `supprime-${randomBytes(6).toString("hex")}`,
           fullName: "",
+          pendingFullName: null, // phase-a lane L4 (A26): a requested name is a name too
           bio: null,
           avatarPath: null,
           avatarStatus: null,

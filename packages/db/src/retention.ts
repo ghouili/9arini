@@ -27,6 +27,7 @@
  * cron route. Same reason lib/db/seed.ts connects directly.
  */
 import { and, eq, inArray, isNotNull, lt, or, sql } from "drizzle-orm";
+import { isNull, lte } from "drizzle-orm"; // phase-a lane L4 (A26)
 import { SESSION_IDLE_DAYS } from "@tnajem/shared/auth-core";
 import { DELETION_GRACE_DAYS, ID_DOCUMENT_RETENTION_DAYS, INACTIVE_ACCOUNT_RETENTION_DAYS } from "@tnajem/shared/legal";
 import { adminAuthIdentities } from "@tnajem/shared/admin";
@@ -128,6 +129,11 @@ export async function purgeExpiredVerificationDocs(
         inArray(tutors.status, [...DECIDED]),
         isNotNull(tutors.reviewedAt),
         lt(tutors.reviewedAt, cutoff),
+        /* phase-a lane L4 (A26): a VERIFIED tutor who resubmits now stays verified,
+           so "decided" no longer implies "nothing waiting". A round submitted after
+           the last decision is undecided and the admin still needs it — skipped
+           exactly as a pending tutor always was, until that round is decided. */
+        or(isNull(tutors.submittedAt), lte(tutors.submittedAt, tutors.reviewedAt)),
       ),
     );
 

@@ -134,18 +134,36 @@ export async function tutorRoutes(app: FastifyInstance): Promise<void> {
     const rl = await checkRateLimit(`profile:write:${uid}`, 20, 60 * 60_000);
     if (!rl.ok) return { ok: false, error: "too-many-requests" };
 
+    /* phase-a lane L4 (A26): A VERIFIED TUTOR'S RENAME GOES TO REVIEW. The name was
+       written straight onto the public storefront, badge and all, with nobody
+       checking it against the ID that was verified. It now waits in
+       pending_full_name; the approved name stays on every public surface (and on the
+       profile, which message threads read) until an admin approves the new one.
+       Submitting the approved name again withdraws a pending rename. */
+    const renameForReview = mine?.status === "verified" && name.value !== mine.fullName;
+
     try {
       await db.transaction(async (tx) => {
-        await tx
-          .update(profiles)
-          // Never null out a number already on file just because this submit omitted it.
-          .set({ fullName: name.value, ...(normalizedPhone ? { phone: normalizedPhone } : {}) })
-          .where(eq(profiles.id, uid));
+        // Never null out a number already on file just because this submit omitted it.
+        const profileSet = {
+          ...(renameForReview ? {} : { fullName: name.value }), // phase-a lane L4 (A26)
+          ...(normalizedPhone ? { phone: normalizedPhone } : {}),
+        };
+        if (Object.keys(profileSet).length > 0) {
+          await tx.update(profiles).set(profileSet).where(eq(profiles.id, uid));
+        }
 
         if (mine) {
           await tx
             .update(tutors)
-            .set({ fullName: name.value, subject: subject.value, bio: bio.value })
+            .set({
+              // phase-a lane L4 (A26): a verified tutor's new name waits for review.
+              ...(mine.status === "verified"
+                ? { pendingFullName: renameForReview ? name.value : null }
+                : { fullName: name.value }),
+              subject: subject.value,
+              bio: bio.value,
+            })
             .where(eq(tutors.id, mine.id));
         } else {
           await tx.insert(tutors).values({
@@ -181,6 +199,8 @@ export async function tutorRoutes(app: FastifyInstance): Promise<void> {
     return {
       ok: true,
       slug: effectiveSlug,
+      // phase-a lane L4 (A26): true → the new name shows once an admin approves it.
+      ...(renameForReview ? { nameUnderReview: true } : {}),
       revalidate: { tutors: [effectiveSlug], ...(wasPublic ? { publicTutors: true } : {}) },
     };
   });

@@ -441,7 +441,11 @@ export async function getPendingVerifications():
 }
 
 /** submittedAt: the version of the application the admin reviewed (the queue item's). */
-export async function approveTutor(input: { tutorId: string; submittedAt: string | null }): Promise<{ ok: boolean; error?: string }> {
+export async function approveTutor(input: {
+  tutorId: string;
+  submittedAt: string | null;
+  pendingName?: string | null; // phase-a lane L4 (A26): the rename the admin reviewed
+}): Promise<{ ok: boolean; error?: string }> {
   if (demoFallback) return { ok: false, error: "forbidden" };
   /* PORTED to apps/api (POST /admin/verifications/approve). Self-approval refusal
      and the "must be pending" gate moved with it; call() replays the revalidate

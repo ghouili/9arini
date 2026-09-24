@@ -59,6 +59,10 @@ const copy = bilingual({
     previousNote: "Pour comparaison seulement : la décision porte sur les documents ci-dessus.",
     // phase-a lane L4 (A15)
     declarationMissing: "Impossible de valider : ce dossier n'a pas la déclaration du décret 2015-1619. Refuse-le avec ce motif pour que le prof la fasse.",
+    // phase-a lane L4 (A26)
+    reReview: "Déjà vérifié · reste en ligne pendant cette revue",
+    reReviewNote: "Tu valides ou refuses la modification. Un refus ne retire pas la vérification : pour ça, bloque le compte.",
+    renameTo: "Nouveau nom demandé",
   },
   ar: {
     eyebrow: "أدمين",
@@ -106,6 +110,10 @@ const copy = bilingual({
     previousNote: "للمقارنة برك: القرار يخص الوثائق اللي الفوق.",
     // phase-a lane L4 (A15)
     declarationMissing: "ما تنجّمش تقبلو: الملف هذا ما فيهش تصريح الأمر 2015-1619. ارفضو بالسبب هذا باش المعلّم يعمل التصريح.",
+    // phase-a lane L4 (A26)
+    reReview: "متأكّد من قبل · صفحتو تبقى ظاهرة وقت المراجعة هاذي",
+    reReviewNote: "إنت تقبل ولا ترفض التبديل برك. الرفض ما ينحّيش التأكيد: كان تحب تنحّيه، احظر الحساب.",
+    renameTo: "الاسم الجديد اللي طلبو",
   },
 });
 
@@ -202,10 +210,11 @@ export default function AdminVerificationsPage() {
     };
   }, []);
 
-  async function handleApprove(tutorId: string, submittedAt: string | null) {
+  async function handleApprove(tutorId: string, submittedAt: string | null, pendingName: string | null) {
     setBusy((b) => ({ ...b, [tutorId]: "approve" }));
     // The version on screen: the API refuses to approve a dossier that changed since.
-    const res = await approveTutor({ tutorId, submittedAt });
+    // phase-a lane L4 (A26): the requested name on screen is bound the same way.
+    const res = await approveTutor({ tutorId, submittedAt, pendingName });
     if (res.ok) {
       setItems((list) => list.filter((t) => t.tutorId !== tutorId));
       showToast(c.approved);
@@ -356,6 +365,20 @@ export default function AdminVerificationsPage() {
                       </div>
                     </header>
 
+                    {/* phase-a lane L4 (A26): a verified tutor's re-review — what changes. */}
+                    {t.reReview && (
+                      <div className="av-block" data-e2e="re-review">
+                        <span className="chip chip-soft">{c.reReview}</span>
+                        {t.pendingName && (
+                          <p className="text-[14px]">
+                            <span className="av-label">{c.renameTo} · </span>
+                            <UserText as="b">{t.pendingName}</UserText>
+                          </p>
+                        )}
+                        <p className="muted text-[13px]">{c.reReviewNote}</p>
+                      </div>
+                    )}
+
                     {/* Details grid */}
                     <div className="av-grid">
                       <div className="av-field">
@@ -456,7 +479,7 @@ export default function AdminVerificationsPage() {
                       <div className="av-approve">
                         <Button
                           variant="green"
-                          onClick={() => handleApprove(t.tutorId, t.submittedAt)}
+                          onClick={() => handleApprove(t.tutorId, t.submittedAt, t.pendingName ?? null)}
                           disabled={disabled}
                         >
                           {state === "approve" ? (

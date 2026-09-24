@@ -148,6 +148,7 @@ export async function profileRoutes(app: FastifyInstance): Promise<void> {
         id: tutors.id,
         slug: tutors.slug,
         fullName: tutors.fullName,
+        pendingFullName: tutors.pendingFullName, // phase-a lane L4 (A26)
         subject: tutors.subject,
         bio: tutors.bio,
         status: tutors.status,
@@ -186,7 +187,9 @@ export async function profileRoutes(app: FastifyInstance): Promise<void> {
       hasClass: (cnt?.n ?? 0) > 0,
       hasSlug: Boolean(mine.slug),
       draft: {
-        fullName: mine.fullName ?? "",
+        /* phase-a lane L4 (A26): the name the tutor ASKED for, while it is under
+           review — else re-saving the form for a bio typo would silently withdraw it. */
+        fullName: mine.pendingFullName ?? mine.fullName ?? "",
         subject: mine.subject ?? "",
         bio: mine.bio ?? "",
         slug: mine.slug ?? "",
