@@ -214,3 +214,23 @@ test.describe("A18.13 — /account names the role", () => {
     await ctx.close();
   });
 });
+
+test.describe("A18.14 — a signed-in report names the reporter's role", () => {
+  test("the queue says 'Signalé par : Élève' with a link to the account, not 'Signalement anonyme'", async ({ browser }) => {
+    const admin = await seedAdmin();
+    const student = await seedProfile({ role: "student", birthYear: 1995 });
+    const reason = `Signalement L5 ${Date.now().toString(36)} : contenu déplacé.`;
+    await sql`insert into reports (subject_kind, reporter_profile_id, reason) values ('other', ${student.id}, ${reason})`;
+
+    const ctx = await contextAs(browser, admin.id);
+    const page = await ctx.newPage();
+    await page.goto("/fr/admin/moderation", { waitUntil: "networkidle" });
+    const item = page.locator("[data-e2e=report-item]").filter({ hasText: reason });
+    await expect(item.locator("[data-e2e=report-reporter]")).toContainText("Signalé par : Élève");
+    await expect(item).not.toContainText("Signalement anonyme");
+    await expect(item.getByRole("link", { name: "Voir le compte" }))
+      .toHaveAttribute("href", `/fr/admin/accounts?email=${encodeURIComponent(student.email)}`);
+    await sql`delete from reports where reason = ${reason}`;
+    await ctx.close();
+  });
+});

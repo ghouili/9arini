@@ -469,6 +469,9 @@ export type AdminReport = {
   reason: string;
   reporterEmail: string | null;
   createdAt: string;
+  // phase-a lane L5 (A18.14): the signed-in reporter's role and account e-mail (null = nobody was signed in).
+  reporterRole?: string | null;
+  reporterAccountEmail?: string | null;
 };
 
 /** An open copyright claim on a material. */

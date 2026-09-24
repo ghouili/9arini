@@ -44,6 +44,10 @@ const copy = bilingual({
     kind: { tutor: "Page prof", class: "Séance", review: "Avis", message: "Message", material: "Document", other: "Autre" },
     open: "Ouvrir",
     anonymous: "Signalement anonyme",
+    // phase-a lane L5 (A18.14)
+    byRole: (role: string) => `Signalé par : ${role}`,
+    roles: { student: "Élève", tutor: "Prof", guardian: "Parent" },
+    seeAccount: "Voir le compte",
     from: "De",
     received: (d: string) => `Reçu le ${d}`,
     noteLabel: "Note (visible par les admins uniquement)",
@@ -83,6 +87,10 @@ const copy = bilingual({
     kind: { tutor: "صفحة أستاذ", class: "حصّة", review: "تقييم", message: "رسالة", material: "وثيقة", other: "حاجة أخرى" },
     open: "حلّ",
     anonymous: "تبليغ بلا إسم",
+    // phase-a lane L5 (A18.14)
+    byRole: (role: string) => `بلّغ عليه : ${role}`,
+    roles: { student: "تلميذ", tutor: "أستاذ", guardian: "وليّ" },
+    seeAccount: "شوف الحساب",
     from: "من",
     received: (d: string) => `وصل نهار ${d}`,
     noteLabel: "ملاحظة (يشوفوها الأدمين برك)",
@@ -211,7 +219,15 @@ export default function AdminModerationPage() {
                       </div>
                       <UserText as="p" className="leading-[1.6] whitespace-pre-wrap m-0">{r.reason}</UserText>
                       <p className="muted text-[13px] m-0">
-                        {r.reporterEmail ? <>{c.from} <span dir="ltr">{r.reporterEmail}</span></> : c.anonymous} · {c.received(when(r.createdAt))}
+                        {/* phase-a lane L5 (A18.14): a signed-in reporter is named by role, with their account one click away. */}
+                        {r.reporterRole ? (
+                          <span data-e2e="report-reporter">
+                            {c.byRole(c.roles[r.reporterRole as keyof typeof c.roles] ?? r.reporterRole)}
+                            {r.reporterAccountEmail && (
+                              <>{" "}<Link href={`/admin/accounts?email=${encodeURIComponent(r.reporterAccountEmail)}`} className="linklike">{c.seeAccount}</Link></>
+                            )}
+                          </span>
+                        ) : r.reporterEmail ? <>{c.from} <span dir="ltr">{r.reporterEmail}</span></> : c.anonymous} · {c.received(when(r.createdAt))}
                       </p>
                       <label>
                         <span className="field-label block mb-1.5">{c.noteLabel}</span>

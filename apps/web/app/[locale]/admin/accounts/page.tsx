@@ -144,6 +144,14 @@ export default function AdminAccountsPage() {
     if (!searching) void load(email);
   }
 
+  /* phase-a lane L5 (A18.14): the moderation queue links a signed-in reporter here
+     as ?email=… — the search field arrives filled in (the lookup stays the API's,
+     admins only). */
+  useEffect(() => {
+    const prefill = new URLSearchParams(window.location.search).get("email");
+    if (prefill) setEmail(prefill);
+  }, []);
+
   async function onBlock() {
     if (!account || busy) return;
     if (reason.trim().length < 5) { showToast(c.reasonRequired); return; }
