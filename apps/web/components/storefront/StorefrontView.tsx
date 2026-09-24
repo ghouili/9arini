@@ -98,6 +98,9 @@ const copy = bilingual({
       "Ce prof affiche complet. Reviens quand il publiera de nouvelles dates — ou trouve un autre prof dès maintenant.",
     // phase-a lane L5 (A18.7)
     levelsAria: "Niveaux enseignés",
+    // phase-a lane L5 (A18.8)
+    packPriceLabel: "Prix du prof",
+    packFree: "Gratuit",
   },
   ar: {
     verifiedLabel: "أستاذ مؤكّد من Tnajem",
@@ -138,6 +141,9 @@ const copy = bilingual({
       "هذا الأستاذ كامل توّا. عاود شوف كي يزيد دواتم جداد — ولا لوّج على أستاذ آخر توّا.",
     // phase-a lane L5 (A18.7)
     levelsAria: "المستويات اللي يقرّيها",
+    // phase-a lane L5 (A18.8)
+    packPriceLabel: "ثمن الأستاذ",
+    packFree: "فابور",
   },
 });
 
@@ -416,6 +422,13 @@ export function StorefrontView({
                           <UserText as="h3" className="sf-pack-title">{pack.title}</UserText>
                           <div className="metaline"><UserText>{pack.meta}</UserText></div>
                         </div>
+                        {/* phase-a lane L5 (A18.8): the price the tutor set — a true fact, shown
+                            as theirs. Nothing is bought here (packsNote says so), so no
+                            "Bientôt" and no payment wording. */}
+                        <div className="sf-pack-price" data-e2e="pack-price">
+                          <b>{pack.price_tnd > 0 ? <>{pack.price_tnd} {t.common.tnd}</> : c.packFree}</b>
+                          <span>{c.packPriceLabel}</span>
+                        </div>
                       </li>
                     ))}
                   </ul>
@@ -689,7 +702,10 @@ export function StorefrontView({
         .sf-pack{flex-direction:row;gap:12px;align-items:center;padding:12px 14px}
         .sf-pack-ic{flex:none;width:40px;height:40px;border-radius:12px;background:var(--green50);
           color:var(--green);display:grid;place-items:center}
-        .sf-pack-main{min-width:0}
+        .sf-pack-main{min-width:0;flex:1}
+        .sf-pack-price{flex:none;margin-inline-start:auto;text-align:end;display:grid;gap:2px}
+        .sf-pack-price b{font-family:var(--fd);font-size:15px;color:var(--ink);white-space:nowrap}
+        .sf-pack-price span{font-size:12px;color:var(--muted);white-space:nowrap}
         .sf-pack-title{font-weight:700;font-size:13.5px;line-height:1.35;margin-bottom:4px;overflow-wrap:anywhere}
         .sf-packs-note{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.55}
 

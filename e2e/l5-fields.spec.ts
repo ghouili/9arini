@@ -92,3 +92,17 @@ test.describe("A18.7 — levels, never a default 'Bac'", () => {
     await expect(page.locator(`a[href="/fr/${none.slug}"]`)).toHaveCount(0);
   });
 });
+
+test.describe("A18.8 — a pack shows the tutor's price", () => {
+  test("the storefront pack card carries its price, labelled as the tutor's, with no payment promise", async ({ page }) => {
+    const tutor = await seedTutor({});
+    await sql`insert into packs (tutor_id, title, description, price_tnd)
+              values (${tutor.id}, 'Pack L5 annales', '12 fiches', '25')`;
+    await page.goto(`/fr/${tutor.slug}`, { waitUntil: "networkidle" });
+    const price = page.locator("[data-e2e=pack-price]").first();
+    await expect(price).toContainText("25");
+    await expect(price).toContainText("TND");
+    await expect(price).toContainText("Prix du prof");
+    await expect(page.locator(".sf-packs")).not.toContainText("Bientôt");
+  });
+});
