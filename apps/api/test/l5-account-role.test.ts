@@ -1,6 +1,7 @@
 import { test, describe, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { startApp, stopApp, seedProfile, login, call, fxEmail, type App } from "./support/fx";
+import { randomBytes } from "node:crypto";
+import { startApp, stopApp, seedProfile, login, call, sql, fxEmail, type App } from "./support/fx";
 
 /* Phase A · A18.13 (lane L5). /account read "Rôle : Je suis prof" — the sign-up
    BUTTON text reused as a role name — and a parent or an admin was shown "Je suis
@@ -9,13 +10,16 @@ import { startApp, stopApp, seedProfile, login, call, fxEmail, type App } from "
    page can name it. accountRole() is the one rule. */
 
 let app: App;
-const adminEmail = fxEmail(`l5-admin-${process.pid}`);
+// Not fx-tagged (it must equal ADMIN_EMAILS), so this file deletes it itself.
+const adminEmail = fxEmail(`l5-admin-${randomBytes(6).toString("hex")}`);
 before(async () => {
   // Read per request by the admin allowlist — set before the first call.
   process.env.ADMIN_EMAILS = adminEmail;
   app = await startApp();
 });
 after(async () => {
+  await sql`delete from sessions where profile_id in (select id from profiles where email = ${adminEmail})`;
+  await sql`delete from profiles where email = ${adminEmail}`;
   await stopApp(app);
 });
 

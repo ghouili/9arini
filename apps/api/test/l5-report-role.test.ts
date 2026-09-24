@@ -1,5 +1,6 @@
 import { test, describe, before, after } from "node:test";
 import assert from "node:assert/strict";
+import { randomBytes } from "node:crypto";
 import { startApp, stopApp, seedProfile, login, call, sql, fxEmail, type App } from "./support/fx";
 
 /* Phase A · A18.14 (lane L5). The moderation queue labelled every report without
@@ -9,7 +10,8 @@ import { startApp, stopApp, seedProfile, login, call, sql, fxEmail, type App } f
    when nobody was signed in. */
 
 let app: App;
-const adminEmail = fxEmail(`l5-mod-admin-${process.pid}`);
+// Not fx-tagged (it must equal ADMIN_EMAILS), so this file deletes it itself.
+const adminEmail = fxEmail(`l5-mod-admin-${randomBytes(6).toString("hex")}`);
 const reportIds: string[] = [];
 
 before(async () => {
@@ -20,6 +22,8 @@ before(async () => {
 });
 after(async () => {
   if (reportIds.length) await sql`delete from reports where id in ${sql(reportIds)}`;
+  await sql`delete from sessions where profile_id in (select id from profiles where email = ${adminEmail})`;
+  await sql`delete from profiles where email = ${adminEmail}`;
   await stopApp(app);
 });
 
