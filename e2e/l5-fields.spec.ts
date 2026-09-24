@@ -235,6 +235,21 @@ test.describe("A18.14 — a signed-in report names the reporter's role", () => {
   });
 });
 
+test.describe("A18.16 — the form's limits are the server's limits", () => {
+  test("title 120, duration 240, seats 200 on the form (FOUNDER defaults)", async ({ browser }) => {
+    const me = await seedProfile({ role: "tutor", birthYear: 1985 });
+    await seedTutor({ profileId: me.id, status: "verified" });
+    const ctx = await contextAs(browser, me.id);
+    const page = await ctx.newPage();
+    await page.goto("/fr/dashboard/new-class", { waitUntil: "networkidle" });
+    await expect(page.getByPlaceholder(/Intégrales/)).toHaveAttribute("maxlength", "120");
+    const numbers = page.locator('form input[type="number"]');
+    await expect(numbers.nth(0)).toHaveAttribute("max", "240"); // duration
+    await expect(numbers.nth(2)).toHaveAttribute("max", "200"); // seats (after price)
+    await ctx.close();
+  });
+});
+
 test.describe("A18.15 — the admin plans page is in the admin nav", () => {
   test("every admin page links to /admin/plans, and it links back", async ({ browser }) => {
     const admin = await seedAdmin();

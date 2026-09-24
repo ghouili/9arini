@@ -10,6 +10,9 @@ import { SiteShell } from "@/components/SiteShell";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { bilingual } from "@/lib/i18n";
 import { LEVEL_CODES, LEVEL_LABELS } from "@tnajem/shared"; // phase-a lane L5 (A18.7)
+/* phase-a lane L5 (A18.16): the SAME limits schema POST /classes enforces — the
+   form used to say 80 / 240 / 200 while the server said 120 / 480 / 500. */
+import { CLASS_LIMITS, checkClassLimits } from "@tnajem/shared/class-input";
 
 /* A tutor must be verified before publishing (enforced server-side in createClass).
    Without a specific message this failure is opaque and unfixable-looking. */
@@ -62,9 +65,9 @@ const copy = bilingual({
     errDescription: "La description ne peut pas dépasser 1000 caractères.",
     errDate: "Choisis une date et une heure valides.",
     errDatePast: "Choisis une date à venir.",
-    errDuration: "Choisis une durée valide, en minutes.",
+    errDuration: `Choisis une durée entre ${CLASS_LIMITS.durationMin} et ${CLASS_LIMITS.durationMax} minutes.`, // phase-a lane L5 (A18.16)
     errPrice: "Le prix doit être entre 0 et 5000 TND.",
-    errSeats: "Choisis un nombre de places valide.",
+    errSeats: `Choisis entre ${CLASS_LIMITS.seatsMin} et ${CLASS_LIMITS.seatsMax} places.`, // phase-a lane L5 (A18.16)
     errUrl: "Ce lien n'est pas valide : il doit commencer par https://",
     // phase-a lane L5 (A18.6)
     ffOff: "Active d'abord l'option dans tes réglages",
@@ -85,9 +88,9 @@ const copy = bilingual({
     errDescription: "الوصف ما ينجّمش يفوت 1000 حرف.",
     errDate: "اختار تاريخ ووقت صحاح.",
     errDatePast: "اختار تاريخ جاي.",
-    errDuration: "اختار مدّة صحيحة، بالدقايق.",
+    errDuration: `اختار مدّة بين ${CLASS_LIMITS.durationMin} و ${CLASS_LIMITS.durationMax} دقيقة.`, // phase-a lane L5 (A18.16)
     errPrice: "الثمن لازم يكون بين 0 و 5000 د.ت.",
-    errSeats: "اختار عدد بلايص صحيح.",
+    errSeats: `اختار بين ${CLASS_LIMITS.seatsMin} و ${CLASS_LIMITS.seatsMax} بلاصة.`, // phase-a lane L5 (A18.16)
     errUrl: "الرابط هذا موش صحيح : لازم يبدا بـ https://",
     // phase-a lane L5 (A18.6)
     ffOff: "فعّل الخيار الأول في الإعدادات متاعك",
@@ -178,8 +181,21 @@ export default function NewClassPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setSubmitted(true);
     setFieldError(null);
+    /* phase-a lane L5 (A18.16): the shared schema first — a refusal lands on its
+       field before any round trip, with the same code the server would send. */
+    const limits = checkClassLimits({
+      title, description: desc, durationMin: Number(duration), seats: Number(seats), priceTnd: Number(price),
+    });
+    if (!limits.ok) {
+      const field = fieldOf(limits.error);
+      if (field) {
+        setFieldError({ field, message: messageForField(field, limits.error) });
+        refs[field].current?.focus();
+        return;
+      }
+    }
+    setSubmitted(true);
     const res = await createClass({
       title, description: desc, scheduledAt: datetime,
       durationMin: Number(duration), priceTnd: Number(price), seats: Number(seats),
@@ -269,7 +285,7 @@ export default function NewClassPage() {
                         value={title}
                         onChange={(e) => { setTitle(e.target.value); clearError("title"); }}
                         required
-                        maxLength={80}
+                        maxLength={CLASS_LIMITS.titleMax} /* phase-a lane L5 (A18.16) */
                       />
                     </div>
                   </Field>
@@ -309,8 +325,8 @@ export default function NewClassPage() {
                         <div className="inp">
                           <input
                             type="number"
-                            min={15}
-                            max={240}
+                            min={CLASS_LIMITS.durationMin}
+                            max={CLASS_LIMITS.durationMax} /* phase-a lane L5 (A18.16) */
                             step={15}
                             ref={refs.duration}
                             value={duration}
@@ -345,8 +361,8 @@ export default function NewClassPage() {
                     <div className="inp">
                       <input
                         type="number"
-                        min={1}
-                        max={200}
+                        min={CLASS_LIMITS.seatsMin}
+                        max={CLASS_LIMITS.seatsMax} /* phase-a lane L5 (A18.16) */
                         ref={refs.seats}
                         value={seats}
                         onChange={(e) => { setSeats(e.target.value); clearError("seats"); }}

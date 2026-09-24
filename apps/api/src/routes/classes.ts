@@ -18,6 +18,7 @@ import {
 } from "@tnajem/shared";
 import { parseClassLevel } from "@tnajem/shared"; // phase-a lane L5 (A18.7)
 import { classPhase } from "@tnajem/shared"; // phase-a lane L5 (A18.10)
+import { checkClassLimits } from "@tnajem/shared/class-input"; // phase-a lane L5 (A18.16): the ONE limits schema
 import { paymentsEnabled, tutorBalanceTnd } from "@tnajem/shared/payments";
 import { resolveMeetUrl } from "@tnajem/shared/live";
 import { db } from "../db";
@@ -58,18 +59,26 @@ export async function classRoutes(app: FastifyInstance): Promise<void> {
 
     // Was accepting past dates, negative prices and arbitrary meetUrl strings
     // (javascript: …). Every one of these validators is load-bearing.
-    const title = vText(input.title, { field: "title", max: 120, min: 3 });
-    if (!title.ok) return { ok: false, error: title.error };
-    const description = vOptionalText(input.description, { field: "description", max: 1000 });
-    if (!description.ok) return { ok: false, error: description.error };
+    /* phase-a lane L5 (A18.16): title, description, duration, price and seats are
+       checked by the ONE schema the new-class form imports too
+       (@tnajem/shared/class-input). It used to be vText/vInt here with limits of
+       120 / 480 / 500 while the form said 80 / 240 / 200. FOUNDER defaults:
+       title 120, duration 240, seats 200. Same error codes as before. */
+    const limits = checkClassLimits({
+      title: input.title,
+      description: input.description,
+      durationMin: input.durationMin,
+      seats: input.seats,
+      priceTnd: input.priceTnd,
+    });
+    if (!limits.ok) return { ok: false, error: limits.error };
+    const title = { value: limits.value.title };
+    const description = { value: limits.value.description || null };
+    const duration = { value: limits.value.durationMin };
+    const price = { value: Math.round(limits.value.priceTnd * 100) / 100 };
+    const seats = { value: limits.value.seats };
     const when = vFutureDate(input.scheduledAt, { field: "date" });
     if (!when.ok) return { ok: false, error: when.error };
-    const duration = vInt(input.durationMin, { field: "duration", min: 15, max: 480 });
-    if (!duration.ok) return { ok: false, error: duration.error };
-    const price = vPrice(input.priceTnd, { field: "price", max: 5000 });
-    if (!price.ok) return { ok: false, error: price.error };
-    const seats = vInt(input.seats, { field: "seats", min: 1, max: 500 });
-    if (!seats.ok) return { ok: false, error: seats.error };
     const meetUrl = vOptionalUrl(input.meetUrl, { field: "meet-url" });
     if (!meetUrl.ok) return { ok: false, error: meetUrl.error };
     const whiteboardUrl = vOptionalUrl(input.whiteboardUrl, { field: "whiteboard-url" });
