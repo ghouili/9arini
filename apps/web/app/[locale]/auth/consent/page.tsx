@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { useLocalizedRouter } from "@/components/Link";
 import { Button, Field, Spinner } from "@/components/ui";
 import { useLocale } from "@/components/LocaleProvider";
-import { Shield, Phone, User, Mail } from "@/components/icons";
+import { Shield, User, Mail } from "@/components/icons";
 import { saveConsent } from "@/app/actions";
 import { SiteShell } from "@/components/SiteShell";
 import { safeNext } from "@tnajem/shared";
@@ -61,7 +61,8 @@ function ConsentInner() {
   const next = safeNext(searchParams.get("next"));
 
   const [gName, setGName] = useState("");
-  const [gPhone, setGPhone] = useState("");
+  /* phase-a lane L5 (A18.2): the guardian's PHONE is no longer asked for. It was
+     required, stored, and never used — login is e-mail OTP. Data minimisation. */
   /* Step 14: the parent's own login identity. Login is e-mail OTP, so this is
      the only field on this form that can ever resolve to an account — the
      phone never could. */
@@ -78,13 +79,13 @@ function ConsentInner() {
   const emailRef = useRef<HTMLInputElement>(null);
 
   async function handleSubmit() {
-    if (!gName.trim() || !gPhone.trim() || !gEmail.trim()) return;
+    if (!gName.trim() || !gEmail.trim()) return;
     setLoading(true);
     setError(null);
     setEmailError(null);
     let res: Awaited<ReturnType<typeof saveConsent>>;
     try {
-      res = await saveConsent({ guardianName: gName, guardianPhone: gPhone, guardianEmail: gEmail });
+      res = await saveConsent({ guardianName: gName, guardianEmail: gEmail });
     } catch {
       // Network hiccup on 3G — never leave a legal consent silently un-saved.
       setLoading(false);
@@ -108,7 +109,7 @@ function ConsentInner() {
   }
 
   const canSubmit =
-    gName.trim().length > 0 && gPhone.trim().length > 0 && gEmail.trim().length > 0 && !loading;
+    gName.trim().length > 0 && gEmail.trim().length > 0 && !loading;
 
   return (
     <SiteShell>
@@ -185,23 +186,6 @@ function ConsentInner() {
                   value={gName}
                   onChange={(e) => setGName(e.target.value)}
                   autoComplete="name"
-                  style={{ minWidth: 0 }}
-                />
-              </div>
-            </Field>
-
-            {/* Guardian phone */}
-            <Field label={t.consent.gPhone}>
-              <div className="inp">
-                <Phone />
-                <input
-                  type="tel"
-                  dir="ltr"
-                  placeholder="+216 …"
-                  value={gPhone}
-                  onChange={(e) => setGPhone(e.target.value)}
-                  inputMode="tel"
-                  autoComplete="tel"
                   style={{ minWidth: 0 }}
                 />
               </div>

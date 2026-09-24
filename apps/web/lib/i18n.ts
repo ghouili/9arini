@@ -144,7 +144,7 @@ const fr = {
   consent: {
     title: "Accord du parent / tuteur",
     body: "Pour un élève de moins de 18 ans, la loi tunisienne (INPDP) exige l'accord d'un parent ou tuteur. Renseigne ses informations pour activer le compte.",
-    gName: "Nom du parent / tuteur", gPhone: "Téléphone du parent / tuteur",
+    gName: "Nom du parent / tuteur", // phase-a lane L5 (A18.2): gPhone removed — the phone is no longer asked for
     gEmail: "E-mail du parent / tuteur",
     /* Says WHY the address is asked for. Without this the field reads as one
        more thing to hand over; with it, it is the parent's own account. */
@@ -346,7 +346,7 @@ const ar: typeof fr = {
   consent: {
     title: "موافقة الولي",
     body: "للتلميذ تحت 18 سنة، القانون التونسي (INPDP) يستوجب موافقة الولي. عمّر معلوماته باش يتفعّل الحساب.",
-    gName: "اسم الولي", gPhone: "هاتف الولي",
+    gName: "اسم الولي", // phase-a lane L5 (A18.2): gPhone removed
     gEmail: "إيميل الولي",
     gEmailHelp:
       "بالإيميل هذا الولي يدخل للحساب متاعو، باش يشوف الحصص المحجوزة ويقرا محادثات ولدو.",

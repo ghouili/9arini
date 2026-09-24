@@ -164,7 +164,7 @@ export async function logoutEverywhere(): Promise<{ ok: boolean; error?: string 
 
 export async function saveConsent(input: {
   guardianName: string;
-  guardianPhone: string;
+  guardianPhone?: string; // phase-a lane L5 (A18.2): optional, no longer collected by the form
   /* Step 14: the parent's OWN login identity, and what turns this legal record
      into a linked account. Login is e-mail OTP, so an address is the only
      identifier that can ever resolve to one — the phone never could. */

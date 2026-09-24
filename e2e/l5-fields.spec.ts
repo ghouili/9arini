@@ -27,3 +27,16 @@ test.describe("A18.1 — the child never declares to be the parent", () => {
     await ctx.close();
   });
 });
+
+test.describe("A18.2 — the guardian phone is not collected", () => {
+  test("the consent form has no phone field", async ({ browser }) => {
+    const child = await seedProfile({ role: "student", birthYear: minorYear() });
+    const ctx = await contextAs(browser, child.id);
+    const page = await ctx.newPage();
+    await page.goto("/fr/auth/consent", { waitUntil: "networkidle" });
+    await expect(page.locator("[data-e2e=consent-info]")).toBeVisible();
+    await expect(page.locator('input[type="tel"]')).toHaveCount(0);
+    await expect(page.getByText("Téléphone du parent")).toHaveCount(0);
+    await ctx.close();
+  });
+});

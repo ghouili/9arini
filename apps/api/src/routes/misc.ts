@@ -12,6 +12,7 @@ import {
   CONSENT_TEXT, CONSENT_POLICY_VERSION,
 } from "@tnajem/shared";
 import { resolveMeetUrl } from "@tnajem/shared/live";
+import { vOptionalPhone } from "@tnajem/shared"; // phase-a lane L5 (A18.2)
 import { db } from "../db";
 import { getSession } from "../lib/session";
 import { maskAndFlag } from "../lib/contact-guard";
@@ -31,7 +32,7 @@ const reviewBody = z.object({
 
 const consentBody = z.object({
   guardianName: z.string(),
-  guardianPhone: z.string(),
+  guardianPhone: z.string().optional(), // phase-a lane L5 (A18.2): optional — never used, no longer collected
   /* Step 14. Optional in the SCHEMA so a client that predates parent accounts
      still works, required by the handler below — the two are different questions
      and conflating them would return a 400 shape error where a domain code
@@ -149,10 +150,12 @@ export async function miscRoutes(app: FastifyInstance): Promise<void> {
     // This row is the legal record of parental consent (INPDP) — it must be real data.
     const name = vText(input.guardianName, { field: "guardian-name", max: 120, min: 2 });
     if (!name.ok) return { ok: false, error: name.error };
-    const phone = vPhone(input.guardianPhone);
+    // phase-a lane L5 (A18.2): the phone is OPTIONAL (absent → NULL, 0027_consent_phone_optional.sql);
+    // one that is sent must still be a real number.
+    const phone = vOptionalPhone(input.guardianPhone);
     if (!phone.ok) return { ok: false, error: phone.error };
-    const normalized = normalizePhone(phone.value);
-    if (!isValidPhone(normalized)) return { ok: false, error: "invalid-phone" };
+    const normalized = phone.value ? normalizePhone(phone.value) : null;
+    if (normalized && !isValidPhone(normalized)) return { ok: false, error: "invalid-phone" };
 
     /* THE PARENT'S E-MAIL is what turns this legal record into a real linked
        account (Step 14) — login is e-mail OTP, so an address is the only
