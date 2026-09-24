@@ -12,7 +12,8 @@
                   links; messages it wrote (see KEEP_REPORTED_MESSAGES_ON_ERASURE)
      tutor        the public page (name, bio, photo, links, intro video) — hidden,
                   its slug retired so nobody can take the address over; identity
-                  documents, uploaded materials and every photo size DELETED FROM
+                  documents, uploaded materials and every photo (every size, every
+                  earlier version: all of avatars/<tutorId>/) DELETED FROM
                   STORAGE, not only from the database
      elsewhere    the account's name in other people's notifications
                   ("Amine a réservé…" becomes "Un compte supprimé a réservé…")
@@ -135,6 +136,18 @@ export async function eraseAccount(
       else filesMissing++;
     } catch (e) {
       log(`erasure: profile ${profileId} deferred — a stored file could not be deleted (${(e as { code?: string }).code ?? (e as Error).name})`);
+      return { outcome: "deferred", why: "storage" };
+    }
+  }
+  /* phase-a lane L4 (A11): EVERY photo, not only the current one. Replacing a photo
+     used to leave the previous one in storage with no row pointing at it, so the
+     current avatar_path was never the whole story. Same rule as above: a failure
+     defers the erasure before any row changes. */
+  if (tutor) {
+    try {
+      filesDeleted += (await store.deletePrefix(`avatars/${tutor.id}`)).deleted;
+    } catch (e) {
+      log(`erasure: profile ${profileId} deferred — stored photos could not be deleted (${(e as { code?: string }).code ?? (e as Error).name})`);
       return { outcome: "deferred", why: "storage" };
     }
   }

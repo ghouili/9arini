@@ -100,6 +100,18 @@ export interface ObjectStore {
   delete(key: string): Promise<"deleted" | "missing">;
   /** Drop an empty "folder" left behind by deletes (a no-op for object stores). */
   pruneEmpty(prefix: string): Promise<void>;
+  /* phase-a lane L4 (A11): delete EVERY object under a folder-like prefix
+     ("avatars/<tutorId>"), including ones no row points at any more. Bounded to the
+     folder (never "avatars/<id>xyz"), and refused for a single-segment prefix, so a
+     bug cannot wipe a whole namespace. Throws on a storage failure. */
+  deletePrefix(prefix: string): Promise<{ deleted: number }>;
+}
+
+/** A prefix deletePrefix accepts: a clean key of at least two segments. */
+function folderPrefix(prefix: string): string {
+  const k = storageKey(prefix, { legacy: true });
+  if (k.split("/").length < 2) throw new Error("deletePrefix needs a folder, not a whole namespace");
+  return k;
 }
 
 /** Normalise and validate a key. Throws on anything that could escape the store. */
@@ -205,6 +217,33 @@ export function localStore(baseDir: string = storageBase()): ObjectStore {
         /* already gone, not empty, or not a folder — never fatal */
       }
     },
+    // phase-a lane L4 (A11)
+    async deletePrefix(prefix) {
+      const root = pathOf(folderPrefix(prefix), true);
+      let deleted = 0;
+      const walk = async (dir: string): Promise<void> => {
+        let entries;
+        try {
+          entries = await readdir(dir, { withFileTypes: true });
+        } catch (e) {
+          if (isNotFound(e)) return;
+          throw e;
+        }
+        for (const entry of entries) {
+          const abs = join(dir, entry.name);
+          if (entry.isDirectory()) {
+            await walk(abs);
+            await rmdir(abs).catch(() => {});
+          } else {
+            await rm(abs, { force: true });
+            deleted++;
+          }
+        }
+      };
+      await walk(root);
+      await rmdir(root).catch(() => {}); // the folder itself, once empty
+      return { deleted };
+    },
   };
 }
 
@@ -262,7 +301,11 @@ export function describeS3Error(e: unknown): string {
   return [err.name ?? err.Code ?? err.code ?? "Error", s3Status(e) ? String(s3Status(e)) : ""].filter(Boolean).join(" ");
 }
 
-export function s3Store(cfg: S3Config): ObjectStore {
+/** phase-a lane L4 (A11): the one method of an S3 client the store calls — so a unit
+    test can hand s3Store a stub and prove the S3 path without a bucket. */
+export type S3ClientLike = { send(command: unknown): Promise<unknown> };
+
+export function s3Store(cfg: S3Config, opts: { client?: S3ClientLike } = {}): ObjectStore {
   /* The SDK is imported on first use, so a deployment on the local driver never
      loads it. */
   let conn: Promise<{ sdk: S3Sdk; client: InstanceType<S3Sdk["S3Client"]> }> | null = null;
@@ -271,7 +314,8 @@ export function s3Store(cfg: S3Config): ObjectStore {
   const connect = () =>
     (conn ??= import("@aws-sdk/client-s3").then((sdk) => ({
       sdk,
-      client: new sdk.S3Client({
+      // phase-a lane L4 (A11): an injected client (tests) replaces the real one.
+      client: (opts.client as InstanceType<S3Sdk["S3Client"]> | undefined) ?? new sdk.S3Client({
         region: cfg.region,
         endpoint: cfg.endpoint,
         forcePathStyle: cfg.forcePathStyle,
@@ -370,6 +414,28 @@ export function s3Store(cfg: S3Config): ObjectStore {
     },
     async pruneEmpty() {
       /* An object store has no folders to leave behind. */
+    },
+    /* phase-a lane L4 (A11): list the folder (page by page) and delete each object.
+       One DeleteObject per key rather than DeleteObjects: a person's photos are a
+       handful of objects, and every S3-compatible store implements this call the
+       same way. A 403 on the listing throws — never "nothing there". */
+    async deletePrefix(prefix) {
+      const folder = `${cfg.prefix ? `${cfg.prefix}/` : ""}${folderPrefix(prefix)}/`;
+      const { sdk, client } = await ready();
+      let deleted = 0;
+      let token: string | undefined;
+      do {
+        const page = await client.send(
+          new sdk.ListObjectsV2Command({ Bucket: cfg.bucket, Prefix: folder, ContinuationToken: token }),
+        );
+        for (const obj of page.Contents ?? []) {
+          if (!obj.Key || !obj.Key.startsWith(folder)) continue;
+          await client.send(new sdk.DeleteObjectCommand({ Bucket: cfg.bucket, Key: obj.Key }));
+          deleted++;
+        }
+        token = page.IsTruncated ? page.NextContinuationToken : undefined;
+      } while (token);
+      return { deleted };
     },
   };
 }
