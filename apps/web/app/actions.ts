@@ -245,7 +245,7 @@ export async function getMe(): Promise<Me | null> {
 }
 
 /* ---------- Tutor storefront (bound to the signed-in user) ---------- */
-export async function createTutor(input: { name: string; subject: string; bio: string; slug: string; phone?: string | null }): Promise<ActionResult> {
+export async function createTutor(input: { name: string; subject: string; bio: string; slug: string; phone?: string | null; levels?: string[] }): Promise<ActionResult> { // phase-a lane L5 (A18.7): + levels
   if (demoFallback) {
     /* Demo mode still validates the slug so the audit harness can exercise the
        reserved/taken states. vSlug is the same function the API calls. */
@@ -295,6 +295,7 @@ export async function createClass(input: {
   title: string; description?: string; scheduledAt: string;
   durationMin: number; priceTnd: number; seats: number; isFreeFirst: boolean;
   meetUrl?: string; whiteboardUrl?: string; quizUrl?: string;
+  level?: string | null; // phase-a lane L5 (A18.7)
 }): Promise<ActionResult & { limit?: number; planCode?: string }> {
   if (demoFallback) return { ok: true, demo: true };
   /* PORTED to apps/api (POST /classes). The validators, the verification gate and
@@ -512,7 +513,7 @@ export async function revokePlan(input: { tutorId: string; note?: string }): Pro
    subject, level, bio). Demo mode (no API_URL) → null so the Explore page
    keeps its static preview; with a DB, an empty catalogue returns [] — we never
    pass demo tutors off as real ones. */
-export async function getExploreTutors(filters?: { subject?: string; q?: string }): Promise<ExploreTutor[] | null> {
+export async function getExploreTutors(filters?: { subject?: string; q?: string; level?: string }): Promise<ExploreTutor[] | null> { // phase-a lane L5 (A18.7): + level
   /* null → the client renders its static demo preview (DEV ONLY). In production a
      missing DB must never surface fabricated tutors: return [] so /explore shows
      its honest empty state instead. */
@@ -526,6 +527,7 @@ export async function getExploreTutors(filters?: { subject?: string; q?: string 
   const qs = new URLSearchParams();
   if (filters?.subject) qs.set("subject", filters.subject);
   if (filters?.q) qs.set("q", filters.q);
+  if (filters?.level) qs.set("level", filters.level); // phase-a lane L5 (A18.7)
   const suffix = qs.toString() ? `?${qs.toString()}` : "";
   return callAnonymous<ExploreTutor[]>(`/tutors/explore${suffix}`);
 }

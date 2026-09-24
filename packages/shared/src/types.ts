@@ -1,3 +1,5 @@
+import type { LevelCode } from "./levels"; // phase-a lane L5 (A18.7)
+
 export type Locale = "fr" | "ar";
 export type Role = "tutor" | "student" | "guardian";
 export type Rail = "flouci" | "konnect" | "d17";
@@ -8,7 +10,9 @@ export type Tutor = {
   slug: string;
   full_name: string;
   subject: string;       // e.g. "Prof de Maths · Bac"
-  level: string;         // "Bac"
+  level: string;         // phase-a lane L5 (A18.7): the FR labels of `levels` ("Collège · Bac"), "" when none — never a default
+  // phase-a lane L5 (A18.7): the levels this tutor teaches, as codes (translate with levelLabel).
+  levels: LevelCode[];
   bio: string;
   avatar_initials: string;
   rating: number;
@@ -54,6 +58,8 @@ export type ClassItem = {
   quiz_url?: string;        // Wooclap / Quizizz
   replay_url?: string;      // recorded session
   status?: "scheduled" | "live" | "done" | "cancelled";
+  // phase-a lane L5 (A18.7): the one level this class is for, if the tutor set it.
+  level?: LevelCode | null;
 };
 
 export type Pack = {
@@ -367,6 +373,8 @@ export type OnboardingState = {
      The form warns when the bio promises a free session this option does not
      honour — see mentionsFreeFirstSession. */
   offersFreeFirstSession: boolean;
+  // phase-a lane L5 (A18.7): the storefront's saved levels, to pre-fill the form ([] when none).
+  levels?: LevelCode[];
 };
 
 // ---- Explore feed ----
@@ -376,7 +384,9 @@ export type ExploreTutor = {
   slug: string;
   full_name: string;
   subject: string;
-  level: string;
+  level: string; // phase-a lane L5 (A18.7): FR labels of `levels`, "" when none
+  // phase-a lane L5 (A18.7): the levels this tutor teaches, as codes.
+  levels: LevelCode[];
   bio: string;
   avatar_initials: string;
   rating: number;          // 0 when nobody has reviewed yet

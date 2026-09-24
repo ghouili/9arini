@@ -9,6 +9,7 @@ import { useToast } from "@/components/useToast";
 import { SiteShell } from "@/components/SiteShell";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { bilingual } from "@/lib/i18n";
+import { LEVEL_CODES, LEVEL_LABELS } from "@tnajem/shared"; // phase-a lane L5 (A18.7)
 
 /* A tutor must be verified before publishing (enforced server-side in createClass).
    Without a specific message this failure is opaque and unfixable-looking. */
@@ -68,6 +69,10 @@ const copy = bilingual({
     // phase-a lane L5 (A18.6)
     ffOff: "Active d'abord l'option dans tes réglages",
     ffOffErr: "La 1ʳᵉ séance offerte est désactivée dans tes réglages. Active-la d'abord, ou décoche la case.",
+    // phase-a lane L5 (A18.7)
+    level: "Niveau (optionnel)",
+    levelNone: "Tous niveaux",
+    errLevel: "Choisis un niveau de la liste.",
   },
   ar: {
     lead: "عنوان، وقت، وثمنك. الحصة تبان في صفحتك، والتلامذة يحجزو بكليكة.",
@@ -87,12 +92,16 @@ const copy = bilingual({
     // phase-a lane L5 (A18.6)
     ffOff: "فعّل الخيار الأول في الإعدادات متاعك",
     ffOffErr: "الحصة الأولى فابور مطفية في الإعدادات متاعك. فعّلها الأول، ولا نحّي العلامة.",
+    // phase-a lane L5 (A18.7)
+    level: "المستوى (اختياري)",
+    levelNone: "المستويات الكل",
+    errLevel: "اختار مستوى من الليستة.",
   },
 });
 
 /* The fields createClass validates, by the name its error codes use:
    "invalid-price", "price-too-high", "date-in-past", "invalid-meet-url"… */
-const CLASS_FIELDS = ["title", "description", "date", "duration", "price", "seats", "meet-url", "whiteboard-url", "quiz-url"] as const;
+const CLASS_FIELDS = ["title", "description", "date", "duration", "price", "seats", "meet-url", "whiteboard-url", "quiz-url", "level"] as const; // phase-a lane L5 (A18.7): + level
 type ClassField = (typeof CLASS_FIELDS)[number];
 
 /** The field a createClass refusal names, or null when it is not about one field. */
@@ -112,6 +121,7 @@ export default function NewClassPage() {
   const [duration, setDuration] = useState("90");
   const [price, setPrice] = useState("");
   const [seats, setSeats] = useState("20");
+  const [level, setLevel] = useState(""); // phase-a lane L5 (A18.7): "" = no level (optional)
   const [videoUrl, setVideoUrl] = useState("");
   const [whiteboardUrl, setWhiteboardUrl] = useState("");
   const [quizUrl, setQuizUrl] = useState("");
@@ -149,6 +159,7 @@ export default function NewClassPage() {
     "meet-url": useRef<HTMLInputElement>(null),
     "whiteboard-url": useRef<HTMLInputElement>(null),
     "quiz-url": useRef<HTMLInputElement>(null),
+    level: useRef<HTMLSelectElement>(null), // phase-a lane L5 (A18.7)
   };
   const errorFor = (field: ClassField) => (fieldError?.field === field ? fieldError.message : undefined);
   const clearError = (field: ClassField) => { if (fieldError?.field === field) setFieldError(null); };
@@ -160,6 +171,7 @@ export default function NewClassPage() {
       case "duration": return c.errDuration;
       case "price": return c.errPrice;
       case "seats": return c.errSeats;
+      case "level": return c.errLevel; // phase-a lane L5 (A18.7)
       default: return c.errUrl;
     }
   }
@@ -172,6 +184,7 @@ export default function NewClassPage() {
       title, description: desc, scheduledAt: datetime,
       durationMin: Number(duration), priceTnd: Number(price), seats: Number(seats),
       isFreeFirst: freeFirst && !ffDisabled, meetUrl: videoUrl, whiteboardUrl, quizUrl,
+      level: level || null, // phase-a lane L5 (A18.7)
     });
     if (res.ok) {
       setDemo(Boolean(res.demo));
@@ -339,6 +352,24 @@ export default function NewClassPage() {
                         onChange={(e) => { setSeats(e.target.value); clearError("seats"); }}
                         required
                       />
+                    </div>
+                  </Field>
+
+                  {/* phase-a lane L5 (A18.7): an optional level for this class, as a code. */}
+                  <Field label={c.level} error={errorFor("level")}>
+                    <div className="inp">
+                      <select
+                        ref={refs.level}
+                        value={level}
+                        onChange={(e) => { setLevel(e.target.value); clearError("level"); }}
+                        data-e2e="class-level"
+                        className="min-w-0 flex-1 bg-transparent"
+                      >
+                        <option value="">{c.levelNone}</option>
+                        {LEVEL_CODES.map((code) => (
+                          <option key={code} value={code}>{LEVEL_LABELS[code][locale]}</option>
+                        ))}
+                      </select>
                     </div>
                   </Field>
 

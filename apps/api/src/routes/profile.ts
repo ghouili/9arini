@@ -7,6 +7,7 @@ import {
   parseStudentProfile,
   type OnboardingState,
 } from "@tnajem/shared";
+import { sortLevels } from "@tnajem/shared"; // phase-a lane L5 (A18.7)
 import { db } from "../db";
 import { checkRateLimit } from "../lib/rate-limit";
 import { isUniqueViolation } from "../lib/db-errors";
@@ -152,6 +153,7 @@ export async function profileRoutes(app: FastifyInstance): Promise<void> {
         bio: tutors.bio,
         status: tutors.status,
         offersFreeFirstSession: tutors.offersFreeFirstSession,
+        levels: tutors.levels, // phase-a lane L5 (A18.7)
       })
       .from(tutors)
       .where(eq(tutors.profileId, session.profile.id))
@@ -193,6 +195,7 @@ export async function profileRoutes(app: FastifyInstance): Promise<void> {
         phone: contactPhone,
       },
       offersFreeFirstSession: mine.offersFreeFirstSession,
+      levels: sortLevels(mine.levels), // phase-a lane L5 (A18.7)
     };
   });
 }

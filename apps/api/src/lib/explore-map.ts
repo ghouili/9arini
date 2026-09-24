@@ -1,4 +1,5 @@
 import { initials, type ExploreTutor } from "@tnajem/shared";
+import { levelsLabel, sortLevels } from "@tnajem/shared"; // phase-a lane L5 (A18.7)
 
 /* One explore card. Split out only so routes/tutors.ts stays readable; the shape
    is exactly what apps/web rendered before the port. */
@@ -8,6 +9,7 @@ type TutorRow = {
   fullName: string;
   subject: string;
   level: string | null;
+  levels?: string[] | null; // phase-a lane L5 (A18.7)
   bio: string | null;
   studentsCount: number | null;
 };
@@ -27,7 +29,9 @@ export function toExploreTutor(
     slug: t.slug,
     full_name: t.fullName,
     subject: t.subject,
-    level: t.level ?? "",
+    // phase-a lane L5 (A18.7): the chosen levels (codes) and their FR labels — never the legacy column.
+    level: levelsLabel(t.levels, "fr"),
+    levels: sortLevels(t.levels),
     bio: t.bio ?? "",
     avatar_initials: initials(t.fullName),
     /* Straight from the reviews table — tutors.rating is only a cached mirror, and

@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { seedProfile, seedTutor } from "./support/seed";
 import { contextAs } from "./support/journey";
+import { sql } from "./support/db";
 
 /* Phase A · lane L5 — "the misplaced fields" (A18). Written by the lane, run by
    the orchestrator after merge (lanes never run Playwright). Each describe block
@@ -68,5 +69,26 @@ test.describe("A18.6 — the free-first box is disabled while the option is off"
     await expect(box2).toHaveAttribute("aria-checked", "true");
     await expect(page2.locator("[data-e2e=free-first-off]")).toHaveCount(0);
     await ctx2.close();
+  });
+});
+
+test.describe("A18.7 — levels, never a default 'Bac'", () => {
+  test("a tutor with no levels shows none; chosen levels show on the storefront and filter Explore", async ({ page }) => {
+    const name = `L5 Niveaux ${Date.now().toString(36)}`;
+    const none = await seedTutor({ fullName: `${name} Zero` }); // tutors.level = 'Bac', the old default
+    const some = await seedTutor({ fullName: `${name} Deux` });
+    await sql`update tutors set levels = ${sql.array(["college", "bac"])} where id = ${some.id}`;
+
+    await page.goto(`/fr/${none.slug}`, { waitUntil: "networkidle" });
+    await expect(page.locator("[data-e2e=sf-levels]")).toHaveCount(0);
+
+    await page.goto(`/fr/${some.slug}`, { waitUntil: "networkidle" });
+    await expect(page.locator("[data-e2e=sf-levels] li")).toHaveText(["Collège", "Bac"]);
+
+    await page.goto("/fr/explore", { waitUntil: "networkidle" });
+    await page.locator('input[type="search"]').fill(name);
+    await page.locator('[data-e2e=level-filter] [data-level="college"]').click();
+    await expect(page.locator(`a[href="/fr/${some.slug}"]`)).toBeVisible();
+    await expect(page.locator(`a[href="/fr/${none.slug}"]`)).toHaveCount(0);
   });
 });

@@ -33,6 +33,7 @@ import {
 import { SiteShell } from "@/components/SiteShell";
 import { UserText } from "@/components/UserText";
 import { tutorStanding, isOpenForBooking, monthLabel, formatNumericDate, type Storefront, type TutorReviews, type ClassItem } from "@tnajem/shared";
+import { LEVEL_LABELS } from "@tnajem/shared"; // phase-a lane L5 (A18.7)
 
 
 /* Component-local copy (FR + Tunisian Derija). lib/i18n.ts is owned elsewhere, so
@@ -95,6 +96,8 @@ const copy = bilingual({
     allFullTitle: "Toutes les séances sont complètes",
     allFullBody:
       "Ce prof affiche complet. Reviens quand il publiera de nouvelles dates — ou trouve un autre prof dès maintenant.",
+    // phase-a lane L5 (A18.7)
+    levelsAria: "Niveaux enseignés",
   },
   ar: {
     verifiedLabel: "أستاذ مؤكّد من Tnajem",
@@ -133,6 +136,8 @@ const copy = bilingual({
     allFullTitle: "الحصص الكل كاملة",
     allFullBody:
       "هذا الأستاذ كامل توّا. عاود شوف كي يزيد دواتم جداد — ولا لوّج على أستاذ آخر توّا.",
+    // phase-a lane L5 (A18.7)
+    levelsAria: "المستويات اللي يقرّيها",
   },
 });
 
@@ -266,6 +271,14 @@ export function StorefrontView({
                   {tutor.verified && <Verified label={c.verifiedLabel} />}
                 </h1>
                 <UserText as="div" className="sf-subject">{tutor.subject}</UserText>
+                {/* phase-a lane L5 (A18.7): the levels this tutor chose — nothing when none, never a default. */}
+                {tutor.levels.length > 0 && (
+                  <ul className="sf-levels flex flex-wrap gap-1.5 mt-1.5" role="list" aria-label={c.levelsAria} data-e2e="sf-levels">
+                    {tutor.levels.map((code) => (
+                      <li key={code} className="chip chip-soft">{LEVEL_LABELS[code][locale === "ar" ? "ar" : "fr"]}</li>
+                    ))}
+                  </ul>
+                )}
 
                 <div className="sf-hero-meta">
                   <TutorStanding standing={standing} locale={locale} variant="hero" />
@@ -346,6 +359,8 @@ export function StorefrontView({
                           <div className="sf-row-main">
                             <UserText as="h3" className="sf-row-title">{cls.title}</UserText>
                             <div className="metaline">
+                              {/* phase-a lane L5 (A18.7): the class's own level, when the tutor set one. */}
+                              {cls.level && <span data-e2e="class-level">{LEVEL_LABELS[cls.level][locale === "ar" ? "ar" : "fr"]}</span>}
                               <span>
                                 <Clock />
                                 <time dateTime={cls.starts_at}>{cls.time}</time> · {cls.duration_min} {t.common.min}

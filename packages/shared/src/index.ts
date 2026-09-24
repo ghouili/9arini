@@ -41,3 +41,5 @@ export * from "./uploads";
 /* Plans and entitlements (Step 16). Pure numbers and predicates — /tarifs is a
    client component and renders its prices straight from this catalogue. */
 export * from "./plans";
+// phase-a lane L5 — canonical codes for school levels (A18.7). Pure.
+export * from "./levels";

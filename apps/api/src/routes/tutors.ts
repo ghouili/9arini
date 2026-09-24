@@ -9,6 +9,7 @@ import {
   normalizePhone, isValidPhone, publicDisplayName,
   type ExploreTutor, type TutorReviews, type Storefront, type PublicTutorRef,
 } from "@tnajem/shared";
+import { parseLevels, isLevelCode, levelFromText } from "@tnajem/shared"; // phase-a lane L5 (A18.7)
 import { db } from "../db";
 import { getSession } from "../lib/session";
 import { checkRateLimit } from "../lib/rate-limit";
@@ -38,6 +39,8 @@ const createTutorBody = z.object({
   bio: z.string(),
   slug: z.string(),
   phone: z.string().nullable().optional(),
+  // phase-a lane L5 (A18.7): the levels taught, as codes. Absent = leave unchanged.
+  levels: z.array(z.string()).optional(),
 });
 
 export async function tutorRoutes(app: FastifyInstance): Promise<void> {
@@ -56,6 +59,10 @@ export async function tutorRoutes(app: FastifyInstance): Promise<void> {
     if (!subject.ok) return { ok: false, error: subject.error };
     const bio = vOptionalText(input.bio, { field: "bio", max: 1000 });
     if (!bio.ok) return { ok: false, error: bio.error };
+    // phase-a lane L5 (A18.7): closed set of codes; an unknown one is a tampered payload.
+    const levels = input.levels === undefined ? null : parseLevels(input.levels);
+    if (levels && !levels.ok) return { ok: false, error: levels.error };
+    const newLevels = levels?.ok ? levels.value : null;
 
     /* Optional CONTACT phone, same role as on the student welcome screen: email is
        the login identity, so this is where a tutor's number is collected. It is
@@ -155,6 +162,11 @@ export async function tutorRoutes(app: FastifyInstance): Promise<void> {
             subject: subject.value,
             bio: bio.value,
           });
+        }
+        // phase-a lane L5 (A18.7): the levels, in their own statement so the name/rename
+        // logic above stays untouched. Same transaction; absent from the body = unchanged.
+        if (newLevels) {
+          await tx.update(tutors).set({ levels: newLevels }).where(eq(tutors.profileId, uid));
         }
       });
     } catch (e) {
@@ -319,7 +331,7 @@ export async function tutorRoutes(app: FastifyInstance): Promise<void> {
   });
 
   /* ── GET /tutors/explore — PUBLIC, anonymous ─────────────────────────────── */
-  app.get<{ Querystring: { subject?: string; q?: string } }>(
+  app.get<{ Querystring: { subject?: string; q?: string; level?: string } }>( // phase-a lane L5 (A18.7): + level
     "/tutors/explore",
     async (req): Promise<ExploreTutor[]> => {
       const subject = (req.query.subject ?? "").trim();
@@ -327,12 +339,16 @@ export async function tutorRoutes(app: FastifyInstance): Promise<void> {
 
       const conds = [eq(tutors.status, "verified"), isNull(tutors.suspendedAt)]; // A blocked account's storefront is suspended (0019): off every public read.
       if (subject) conds.push(ilike(tutors.subject, `%${subject}%`));
+      // phase-a lane L5 (A18.7): the level filter — a code the tutor chose, never the legacy column.
+      const level = (req.query.level ?? "").trim();
+      if (isLevelCode(level)) conds.push(raw`${level} = any(${tutors.levels})`);
       if (q) {
         const like = `%${q}%`;
+        const qLevel = levelFromText(q); // phase-a lane L5 (A18.7): "bac" finds tutors who chose Bac, not every 'Bac' default
         const text = or(
           ilike(tutors.fullName, like),
           ilike(tutors.subject, like),
-          ilike(tutors.level, like),
+          qLevel ? raw`${qLevel} = any(${tutors.levels})` : undefined, // phase-a lane L5 (A18.7): was ilike(tutors.level)
           ilike(tutors.bio, like),
         );
         if (text) conds.push(text);
@@ -372,6 +388,7 @@ export async function tutorRoutes(app: FastifyInstance): Promise<void> {
           fullName: tutors.fullName,
           subject: tutors.subject,
           level: tutors.level,
+          levels: tutors.levels, // phase-a lane L5 (A18.7)
           bio: tutors.bio,
           studentsCount: tutors.studentsCount,
           boost,

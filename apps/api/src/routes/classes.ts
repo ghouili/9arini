@@ -16,6 +16,7 @@ import {
   publicProfile,
   publicInitials,
 } from "@tnajem/shared";
+import { parseClassLevel } from "@tnajem/shared"; // phase-a lane L5 (A18.7)
 import { paymentsEnabled, tutorBalanceTnd } from "@tnajem/shared/payments";
 import { resolveMeetUrl } from "@tnajem/shared/live";
 import { db } from "../db";
@@ -38,6 +39,7 @@ const createClassBody = z.object({
   meetUrl: z.string().optional(),
   whiteboardUrl: z.string().optional(),
   quizUrl: z.string().optional(),
+  level: z.string().nullable().optional(), // phase-a lane L5 (A18.7): optional level code
 });
 
 const createPackBody = z.object({
@@ -73,6 +75,8 @@ export async function classRoutes(app: FastifyInstance): Promise<void> {
     if (!whiteboardUrl.ok) return { ok: false, error: whiteboardUrl.error };
     const quizUrl = vOptionalUrl(input.quizUrl, { field: "quiz-url" });
     if (!quizUrl.ok) return { ok: false, error: quizUrl.error };
+    const level = parseClassLevel(input.level); // phase-a lane L5 (A18.7)
+    if (!level.ok) return { ok: false, error: level.error };
 
     const session = await getSession(req);
     if (!session) return { ok: false, error: "not-authenticated" };
@@ -152,6 +156,7 @@ export async function classRoutes(app: FastifyInstance): Promise<void> {
       meetUrl: meetUrl.value,
       whiteboardUrl: whiteboardUrl.value,
       quizUrl: quizUrl.value,
+      level: level.value, // phase-a lane L5 (A18.7)
     });
 
     // The storefront lists this tutor's classes — the web drops its 60s ISR entry.
