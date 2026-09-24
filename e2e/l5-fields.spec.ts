@@ -255,11 +255,14 @@ test.describe("A18.15 — the admin plans page is in the admin nav", () => {
     const admin = await seedAdmin();
     const ctx = await contextAs(browser, admin.id);
     const page = await ctx.newPage();
+    /* phase-a/integrate: default "load", not "networkidle" — /admin/plans lists every
+       tutor (hundreds of seeded rows by this point in a full run) and never went idle
+       inside the test timeout. The toHaveCount assertions below auto-wait anyway. */
     for (const path of ["verifications", "accounts", "moderation"]) {
-      await page.goto(`/fr/admin/${path}`, { waitUntil: "networkidle" });
+      await page.goto(`/fr/admin/${path}`);
       await expect(page.locator('main a[href="/fr/admin/plans"]'), `/admin/${path} → plans`).toHaveCount(1);
     }
-    await page.goto("/fr/admin/plans", { waitUntil: "networkidle" });
+    await page.goto("/fr/admin/plans");
     const nav = page.locator("[data-e2e=admin-nav]");
     for (const path of ["verifications", "accounts", "moderation"]) {
       await expect(nav.locator(`a[href="/fr/admin/${path}"]`)).toHaveCount(1);
