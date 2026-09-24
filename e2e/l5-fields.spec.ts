@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { seedProfile } from "./support/seed";
+import { seedProfile, seedTutor } from "./support/seed";
 import { contextAs } from "./support/journey";
 
 /* Phase A · lane L5 — "the misplaced fields" (A18). Written by the lane, run by
@@ -38,5 +38,35 @@ test.describe("A18.2 — the guardian phone is not collected", () => {
     await expect(page.locator('input[type="tel"]')).toHaveCount(0);
     await expect(page.getByText("Téléphone du parent")).toHaveCount(0);
     await ctx.close();
+  });
+});
+
+test.describe("A18.6 — the free-first box is disabled while the option is off", () => {
+  test("option off: the box is disabled and links to the setting; option on: it can be ticked", async ({ browser }) => {
+    const offMe = await seedProfile({ role: "tutor", birthYear: 1985 });
+    await seedTutor({ profileId: offMe.id, status: "verified", offersFreeFirstSession: false });
+    const ctx = await contextAs(browser, offMe.id);
+    const page = await ctx.newPage();
+    await page.goto("/fr/dashboard/new-class", { waitUntil: "networkidle" });
+    const box = page.locator("[data-e2e=free-first-box]");
+    await expect(box).toHaveAttribute("aria-disabled", "true");
+    const link = page.locator("[data-e2e=free-first-off] a");
+    await expect(link).toHaveText("Active d'abord l'option dans tes réglages");
+    await expect(link).toHaveAttribute("href", "/fr/dashboard#free-first");
+    await box.click({ force: true });
+    await expect(box).toHaveAttribute("aria-checked", "false");
+    await ctx.close();
+
+    const onMe = await seedProfile({ role: "tutor", birthYear: 1985 });
+    await seedTutor({ profileId: onMe.id, status: "verified", offersFreeFirstSession: true });
+    const ctx2 = await contextAs(browser, onMe.id);
+    const page2 = await ctx2.newPage();
+    await page2.goto("/fr/dashboard/new-class", { waitUntil: "networkidle" });
+    const box2 = page2.locator("[data-e2e=free-first-box]");
+    await expect(box2).toHaveAttribute("aria-disabled", "false");
+    await box2.click();
+    await expect(box2).toHaveAttribute("aria-checked", "true");
+    await expect(page2.locator("[data-e2e=free-first-off]")).toHaveCount(0);
+    await ctx2.close();
   });
 });

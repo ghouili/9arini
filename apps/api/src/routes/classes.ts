@@ -92,6 +92,13 @@ export async function classRoutes(app: FastifyInstance): Promise<void> {
        gets them INTO verification. */
     if (mine.status !== "verified") return { ok: false, error: "not-verified" };
 
+    /* phase-a lane L5 (A18.6): the per-class free-first flag only means something
+       while the tutor's own option is on (isEffectivelyFreeFirst). The form now
+       disables the box and links to the setting; refusing it here too means a
+       crafted POST cannot store a promise the tutor never switched on, which would
+       silently go live the day they did. */
+    if (input.isFreeFirst && !mine.offersFreeFirstSession) return { ok: false, error: "free-first-off" };
+
     /* ── THE PLAN LIMIT (Step 16) ─────────────────────────────────────────────
 
        ENFORCED HERE, not in the form. /tarifs sells "1 cours en ligne" on the

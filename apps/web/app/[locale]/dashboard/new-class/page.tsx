@@ -1,10 +1,10 @@
 "use client";
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "@/components/Link";
 import { Button, Field } from "@/components/ui";
 import { useLocale } from "@/components/LocaleProvider";
 import { Back, Video, Board, Quiz, Shield } from "@/components/icons";
-import { createClass } from "@/app/actions";
+import { createClass, getOnboardingState } from "@/app/actions";
 import { useToast } from "@/components/useToast";
 import { SiteShell } from "@/components/SiteShell";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
@@ -65,6 +65,9 @@ const copy = bilingual({
     errPrice: "Le prix doit être entre 0 et 5000 TND.",
     errSeats: "Choisis un nombre de places valide.",
     errUrl: "Ce lien n'est pas valide : il doit commencer par https://",
+    // phase-a lane L5 (A18.6)
+    ffOff: "Active d'abord l'option dans tes réglages",
+    ffOffErr: "La 1ʳᵉ séance offerte est désactivée dans tes réglages. Active-la d'abord, ou décoche la case.",
   },
   ar: {
     lead: "عنوان، وقت، وثمنك. الحصة تبان في صفحتك، والتلامذة يحجزو بكليكة.",
@@ -81,6 +84,9 @@ const copy = bilingual({
     errPrice: "الثمن لازم يكون بين 0 و 5000 د.ت.",
     errSeats: "اختار عدد بلايص صحيح.",
     errUrl: "الرابط هذا موش صحيح : لازم يبدا بـ https://",
+    // phase-a lane L5 (A18.6)
+    ffOff: "فعّل الخيار الأول في الإعدادات متاعك",
+    ffOffErr: "الحصة الأولى فابور مطفية في الإعدادات متاعك. فعّلها الأول، ولا نحّي العلامة.",
   },
 });
 
@@ -110,6 +116,19 @@ export default function NewClassPage() {
   const [whiteboardUrl, setWhiteboardUrl] = useState("");
   const [quizUrl, setQuizUrl] = useState("");
   const [freeFirst, setFreeFirst] = useState(false);
+  /* phase-a lane L5 (A18.6): the tutor's own free-first option. The per-class box
+     only means something while it is on (isEffectivelyFreeFirst), so it is
+     disabled — and points at the setting — until it is. null = not known yet. */
+  const [ffOption, setFfOption] = useState<boolean | null>(null);
+  useEffect(() => {
+    let alive = true;
+    getOnboardingState()
+      .then((s) => { if (alive) setFfOption(Boolean(s?.offersFreeFirstSession)); })
+      .catch(() => { if (alive) setFfOption(false); });
+    return () => { alive = false; };
+  }, []);
+  const ffDisabled = ffOption !== true;
+  const toggleFreeFirst = () => { if (!ffDisabled) setFreeFirst((v) => !v); };
   const [submitted, setSubmitted] = useState(false);
   // Only ever true when the server action itself reports demo mode (no DB).
   const [demo, setDemo] = useState(false);
@@ -152,7 +171,7 @@ export default function NewClassPage() {
     const res = await createClass({
       title, description: desc, scheduledAt: datetime,
       durationMin: Number(duration), priceTnd: Number(price), seats: Number(seats),
-      isFreeFirst: freeFirst, meetUrl: videoUrl, whiteboardUrl, quizUrl,
+      isFreeFirst: freeFirst && !ffDisabled, meetUrl: videoUrl, whiteboardUrl, quizUrl,
     });
     if (res.ok) {
       setDemo(Boolean(res.demo));
@@ -177,6 +196,7 @@ export default function NewClassPage() {
       showToast(
         res.error === "not-verified" ? NOT_VERIFIED_MSG[locale]
           : res.error === "contact-info-not-allowed" ? CONTACT_INFO_MSG[locale]
+          : res.error === "free-first-off" ? c.ffOffErr // phase-a lane L5 (A18.6)
           : t.extra.error,
       );
     }
@@ -383,29 +403,34 @@ export default function NewClassPage() {
                     </Field>
                   </div>
 
-                  {/* Free-first checkbox */}
+                  {/* Free-first checkbox — phase-a lane L5 (A18.6): disabled while the
+                      tutor's own option is off, with the way to switch it on. */}
                   <div
                     className="card"
                     role="checkbox"
-                    aria-checked={freeFirst}
+                    aria-checked={freeFirst && !ffDisabled}
+                    aria-disabled={ffDisabled}
                     aria-label={t.createClass.freeFirst}
-                    tabIndex={0}
+                    aria-describedby={ffDisabled && ffOption !== null ? "ff-off-note" : undefined}
+                    data-e2e="free-first-box"
+                    tabIndex={ffDisabled ? -1 : 0}
                     onKeyDown={(e) => {
                       if (e.key === " " || e.key === "Enter") {
                         e.preventDefault();
-                        setFreeFirst((v) => !v);
+                        toggleFreeFirst();
                       }
                     }}
-                    onClick={() => setFreeFirst((v) => !v)}
+                    onClick={toggleFreeFirst}
                     style={{
                       padding: "14px 16px",
-                      marginBottom: 20,
+                      marginBottom: ffDisabled ? 8 : 20,
                       display: "flex",
                       alignItems: "center",
                       gap: 14,
-                      cursor: "pointer",
-                      border: freeFirst ? "2px solid var(--green)" : "1px solid var(--line)",
-                      background: freeFirst ? "var(--green50)" : "var(--paper)",
+                      cursor: ffDisabled ? "not-allowed" : "pointer",
+                      opacity: ffDisabled ? 0.6 : 1,
+                      border: freeFirst && !ffDisabled ? "2px solid var(--green)" : "1px solid var(--line)",
+                      background: freeFirst && !ffDisabled ? "var(--green50)" : "var(--paper)",
                       transition: ".15s",
                     }}
                   >
@@ -416,15 +441,15 @@ export default function NewClassPage() {
                         height: 22,
                         minWidth: 22,
                         borderRadius: 7,
-                        border: freeFirst ? "none" : "2px solid var(--line)",
-                        background: freeFirst ? "var(--green)" : "transparent",
+                        border: freeFirst && !ffDisabled ? "none" : "2px solid var(--line)",
+                        background: freeFirst && !ffDisabled ? "var(--green)" : "transparent",
                         display: "grid",
                         placeItems: "center",
                         flexShrink: 0,
                         transition: ".15s",
                       }}
                     >
-                      {freeFirst && (
+                      {freeFirst && !ffDisabled && (
                         <svg viewBox="0 0 24 24" width="14" height="14" stroke="#fff" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="5 13 10 18 19 7" />
                         </svg>
@@ -437,6 +462,12 @@ export default function NewClassPage() {
                       </div>
                     </div>
                   </div>
+                  {/* phase-a lane L5 (A18.6): where to switch the option on. */}
+                  {ffDisabled && ffOption !== null && (
+                    <p id="ff-off-note" data-e2e="free-first-off" className="text-[13px] text-muted mb-5 leading-[1.5]">
+                      <Link href="/dashboard#free-first" className="linklike text-[13px]">{c.ffOff}</Link>
+                    </p>
+                  )}
 
                   {/* Submit */}
                   <Button type="submit" variant="primary" disabled={submitted}>

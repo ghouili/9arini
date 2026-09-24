@@ -609,7 +609,8 @@ function FreeFirstPanel({ d, c }: { d: DashboardData; c: CopyDict }) {
   }
 
   return (
-    <div className="panel panel-pad mb-[clamp(14px,2vw,22px)]">
+    /* id: the new-class form links here while the option is off (phase-a lane L5, A18.6). */
+    <div id="free-first" className="panel panel-pad mb-[clamp(14px,2vw,22px)]" style={{ scrollMarginTop: 84 }}>
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="min-w-0 flex-1">
           <h2 className="font-display text-[16px] font-bold mb-1">{c.ffTitle}</h2>
