@@ -313,12 +313,16 @@ html[dir="rtl"] .tf-price{font-family:var(--fa);letter-spacing:normal}
    the weight of one. */
 .tf-year{font-size:13.5px;color:var(--ink2);line-height:1.5}
 .tf-year b{font-weight:700;color:var(--green-ink)}
-.tf-who{font-size:13px;font-weight:700;color:var(--blue)}
+/* UI Option A (A7): five colours per card became three. "Convient à" is plain
+   information (ink2, was cobalt); the saving stays green (.tf-year b); the +10 % is
+   neutral (paper + line, was an ochre wash); "Bientôt"/"Pas encore facturé" are
+   .tag-soon; the Pro card keeps the one ochre button. */
+.tf-who{font-size:13px;font-weight:700;color:var(--ink2)}
 /* The "+ 10 %" block. Sits directly under the price so the two costs are read
    as one number, not as a price with a footnote. */
 .tf-plus{margin-block-start:10px;padding:9px 11px;border-radius:var(--r-s);
-  background:var(--ochre-tint);display:flex;flex-direction:column;gap:2px}
-.tf-plus b{font-size:13px;font-weight:700;color:var(--ochre-ink)}
+  background:var(--paper);border:1px solid var(--line);display:flex;flex-direction:column;gap:2px}
+.tf-plus b{font-size:13px;font-weight:700;color:var(--ink2)}
 .tf-plus span{font-size:13px;line-height:1.5;color:var(--ink2)}
 .tf-feats{list-style:none;display:flex;flex-direction:column;gap:9px;margin-block-start:16px}
 .tf-feats li{display:flex;gap:9px;align-items:flex-start;font-size:13.5px;line-height:1.5;color:var(--ink2);min-width:0}
