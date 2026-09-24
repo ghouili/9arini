@@ -329,8 +329,12 @@ export async function tutorRoutes(app: FastifyInstance): Promise<void> {
       if (subject) conds.push(ilike(tutors.subject, `%${subject}%`));
       if (q) {
         const like = `%${q}%`;
+        /* phase-a lane L2 (A23): students now see "Mohamed B.", so that exact form has
+           to find the tutor too (it is also what the class page searches with). */
+        const shown = /^(\S+)\s+(\p{L})\.$/u.exec(q);
         const text = or(
           ilike(tutors.fullName, like),
+          ...(shown ? [ilike(tutors.fullName, `${shown[1]} ${shown[2]}%`)] : []),
           ilike(tutors.subject, like),
           ilike(tutors.level, like),
           ilike(tutors.bio, like),

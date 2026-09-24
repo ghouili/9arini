@@ -6,8 +6,8 @@ import {
 } from "@tnajem/db";
 import {
   isUuid,
-  isMinorBirthYear,
   messageBodyText,
+  isAdult,
   publicDisplayName,
   shownThreadState, // phase-a lane L1 (A2)
   classWhen,
@@ -120,7 +120,7 @@ export async function guardianRoutes(app: FastifyInstance): Promise<void> {
     if (kids.length === 0) return [];
 
     const kidRows = await db
-      .select({ id: profiles.id, fullName: profiles.fullName, birthYear: profiles.birthYear })
+      .select({ id: profiles.id, fullName: profiles.fullName, birthYear: profiles.birthYear, birthMonth: profiles.birthMonth })
       .from(profiles)
       .where(inArray(profiles.id, kids));
 
@@ -166,7 +166,7 @@ export async function guardianRoutes(app: FastifyInstance): Promise<void> {
          publicDisplayName like everywhere else. */
       id: k.id,
       name: k.fullName,
-      isMinor: isMinorBirthYear(k.birthYear),
+      isMinor: !isAdult(k.birthYear, k.birthMonth), // phase-a lane L2 (A24): month-aware, fail-safe
       consent: (() => {
         const row = consentRows.find((r) => r.minorId === k.id);
         return row

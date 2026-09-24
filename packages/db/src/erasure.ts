@@ -273,6 +273,7 @@ export async function eraseAccount(
         phone: null,
         fullName: null,
         birthYear: null,
+        birthMonth: null, // phase-a lane L2 (A24): 0025's profiles_purged_has_no_birth_month
         level: null,
         subjects: null,
         deletionStatus: "purged",

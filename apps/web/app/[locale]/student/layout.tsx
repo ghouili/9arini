@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { bilingual } from "@/lib/i18n";
 import { isLocale, DEFAULT_LOCALE } from "@/lib/locale";
 import { pageMetadata } from "@/lib/metadata";
+import { pageGuard, localeOf, localePath } from "@/lib/page-guard";
 
 /* Metadata for the student's space (and /student/welcome under it). The pages are
    client components, so this pass-through layout carries it. The title is the
@@ -23,6 +25,20 @@ export async function generateMetadata(props: { params: Promise<{ locale: string
   return pageMetadata({ locale, path: "/student", ...copy[locale], noindex: true });
 }
 
-export default function StudentLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+/* phase-a lane L2 (A17) — REQUEST-TIME ONLY: the guard reads the session. */
+export const dynamic = "force-dynamic";
+
+/* phase-a lane L2 (A17) — the reverse of app/[locale]/dashboard/layout.tsx: a
+   TUTOR who opens /student (or /student/welcome) is sent to their dashboard,
+   server-side, before anything renders. Guests and the build-time "inert" state
+   fall through to the pages' own handling. */
+export default async function StudentLayout(props: {
+  children: React.ReactNode;
+  params: Promise<{ locale: string }>;
+}) {
+  const guard = await pageGuard();
+  if (guard.kind === "user" && guard.profile.role === "tutor") {
+    redirect(localePath(localeOf((await props.params).locale), "/dashboard"));
+  }
+  return <>{props.children}</>;
 }

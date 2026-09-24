@@ -76,6 +76,9 @@ const copy = bilingual({
     signIn: "Se connecter",
     notFound: "Séance introuvable",
     notFoundBody: "Le lien a peut-être expiré, ou le prof a annulé cette séance.",
+    // phase-a lane L2 (A24): the server refuses a minor's booking while the pilot is adults only.
+    errAdultsOnly: "Le pilote est réservé aux 18 ans et plus : ce compte ne peut pas réserver pour l'instant.",
+    // end phase-a lane L2
   },
   ar: {
     title: "أكّد حجزي",
@@ -126,6 +129,9 @@ const copy = bilingual({
     signIn: "تسجيل الدخول",
     notFound: "الحصة ما تلقاتش",
     notFoundBody: "يمكن الرابط فات وقتو، ولا الأستاذ لغى الحصة.",
+    // phase-a lane L2 (A24): the server refuses a minor's booking while the pilot is adults only.
+    errAdultsOnly: "فترة التجربة كان للي عندهم 18 سنة ولا أكثر : الحساب هذا ما ينجّمش يحجز توّا.",
+    // end phase-a lane L2
   },
 });
 
@@ -238,7 +244,7 @@ export default function CheckoutInner() {
 
   const [done, setDone] = useState<null | "new" | "already">(null);
   const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<"auth" | "full" | "unavailable" | "consent" | "generic" | null>(null);
+  const [err, setErr] = useState<"auth" | "full" | "unavailable" | "consent" | "adults" | "generic" | null>(null); // phase-a lane L2 (A24): "adults"
 
   const handleConfirm = useCallback(async () => {
     setErr(null);
@@ -252,6 +258,7 @@ export default function CheckoutInner() {
     // Guardian consent (INPDP) is enforced server-side in reserveSeat. Retrying
     // can never fix it — send them to the consent form and back to this class.
     else if (res.error === "needs-consent") setErr("consent");
+    else if (res.error === "adults-only") setErr("adults"); // phase-a lane L2 (A24): retrying never fixes it
     else setErr("generic");
   }, [classId]);
 
@@ -473,7 +480,9 @@ export default function CheckoutInner() {
                 ? c.errUnavailable
                 : err === "consent"
                   ? c.errConsent
-                  : c.errGeneric}
+                  : err === "adults" // phase-a lane L2 (A24)
+                    ? c.errAdultsOnly
+                    : c.errGeneric}
           {err === "auth" && (
             <>
               {" "}

@@ -6,7 +6,7 @@
 import { redirect } from "next/navigation";
 import { UpgradeInner } from "@/components/onboarding/UpgradeInner";
 import { pageGuard, localeOf, localePath } from "@/lib/page-guard";
-import { isMinorBirthYear } from "@tnajem/shared";
+import { isAdult } from "@tnajem/shared"; // phase-a lane L2 (A14): month-aware, fail-safe
 
 /* REQUEST-TIME ONLY. The guard reads the visitor's session and redirects on it.
    Prerendered, a build would bake one answer — a redirect, or the inert state a
@@ -20,7 +20,7 @@ export default async function UpgradePage(props: { params: Promise<{ locale: str
   const guard = await pageGuard();
 
   // Demo mode / UI audit harness — no DB to read a role from. Render the screen.
-  if (guard.kind === "inert") return <UpgradeInner needsBirthYear={false} />;
+  if (guard.kind === "inert") return <UpgradeInner needsBirthYear={false} needsBirthMonth={false} />;
   if (guard.kind === "guest") {
     redirect(localePath(locale, "/auth", localePath(locale, "/onboarding/upgrade")));
   }
@@ -32,11 +32,13 @@ export default async function UpgradePage(props: { params: Promise<{ locale: str
      the user could do about it. A KNOWN age is never re-asked — that is what stops
      a minor restating themselves as an adult to get the role. */
   const needsBirthYear = guard.profile.birthYear == null;
-  if (!needsBirthYear && isMinorBirthYear(guard.profile.birthYear)) {
+  // phase-a lane L2 (A14): the month too — isAdult() needs both, and a missing one is asked, never assumed.
+  const needsBirthMonth = guard.profile.birthMonth == null;
+  if (!needsBirthYear && !needsBirthMonth && !isAdult(guard.profile.birthYear, guard.profile.birthMonth)) {
     // A known minor can never be converted; becomeTutor() refuses too. Don't show
     // a confirmation screen whose only possible outcome is a refusal.
     redirect(localePath(locale, "/student"));
   }
 
-  return <UpgradeInner needsBirthYear={needsBirthYear} />;
+  return <UpgradeInner needsBirthYear={needsBirthYear} needsBirthMonth={needsBirthMonth} />;
 }

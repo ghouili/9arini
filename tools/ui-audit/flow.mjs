@@ -83,6 +83,9 @@ async function walk(browser, locale, width) {
 
   // ── 2. Ask for a code ───────────────────────────────────────────────────
   await page.locator('main input[type="email"], main input[type="tel"]').first().fill(email);
+  // phase-a lane L2 (A14): /signup/prof asks for a birth month + year (18+).
+  await page.locator("main select").nth(0).selectOption("3");
+  await page.locator("main select").nth(1).selectOption("1988");
   await shot(page, locale, width, "identifier-filled");
   await page.locator('main button[type="submit"]').first().click();
 

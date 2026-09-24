@@ -33,6 +33,7 @@ import { useCountdown, formatCountdown } from "@/components/useCountdown";
 // Pure module — the SAME validity check the server runs, so the form and the action
 // can never disagree about what a valid address is.
 import { isValidEmail } from "@tnajem/shared";
+import { isAdult } from "@tnajem/shared"; // phase-a lane L2 (A24): the API's own rule
 import type { OtpChannel } from "@/lib/auth";
 
 export type SignupRole = "tutor" | "student";
@@ -105,6 +106,23 @@ const COPY = {
     mismatchNote: "Un compte par personne. Pour enseigner avec un compte élève, passe par « Devenir prof » depuis ton espace.",
     goDashboard: "Aller à mon tableau de bord",
     goStudent: "Voir mes cours",
+
+    // phase-a lane L2 (A24) — birth month + year; the adult-only pilot
+    bdLabel: "Date de naissance de l'élève",
+    bdLabelSelf: "Ta date de naissance",
+    bdMonth: "Mois de naissance",
+    bdYear: "Année de naissance",
+    bdMonthPh: "Mois…",
+    bdYearPh: "Année…",
+    bdMonths: ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"],
+    // LEGAL-REVIEW: why the date is asked (adult-only pilot, D6).
+    bdAdultsNote: "Le pilote est réservé aux 18 ans et plus.",
+    errNeedBirthDate: "Choisis le mois et l'année de naissance.",
+    errAdultsOnly: "Le pilote est réservé aux 18 ans et plus. Merci de ton intérêt pour Tnajem !",
+    // A14 — a tutor must be 18+, whatever ALLOW_MINORS says
+    bdTutorNote: "Pour enseigner sur Tnajem, il faut avoir 18 ans ou plus. Ta date de naissance n'est jamais publique.",
+    errTutorMinor: "Il faut avoir 18 ans ou plus pour enseigner sur Tnajem.",
+    // end phase-a lane L2
   },
   ar: {
     tutorTitle: "اعمل حسابك متاع أستاذ",
@@ -170,6 +188,23 @@ const COPY = {
     mismatchNote: "حساب واحد للشخص. باش تقرّي بحساب تلميذ، عدّي من «ولّي أستاذ» من فضاءك.",
     goDashboard: "امشي للوحتي",
     goStudent: "شوف حصصي",
+
+    // phase-a lane L2 (A24) — birth month + year; the adult-only pilot
+    bdLabel: "تاريخ ولادة التلميذ",
+    bdLabelSelf: "تاريخ ولادتك",
+    bdMonth: "شهر الولادة",
+    bdYear: "عام الولادة",
+    bdMonthPh: "الشهر…",
+    bdYearPh: "العام…",
+    bdMonths: ["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"],
+    // LEGAL-REVIEW: why the date is asked (adult-only pilot, D6).
+    bdAdultsNote: "فترة التجربة كان للي عندهم 18 سنة ولا أكثر.",
+    errNeedBirthDate: "اختار الشهر والعام متاع الولادة.",
+    errAdultsOnly: "فترة التجربة كان للي عندهم 18 سنة ولا أكثر. يعيشك على اهتمامك بـ Tnajem !",
+    // A14 — a tutor must be 18+, whatever ALLOW_MINORS says
+    bdTutorNote: "باش تقرّي في Tnajem لازمك 18 سنة ولا أكثر. تاريخ ولادتك ما يبان لحتّى حد.",
+    errTutorMinor: "لازمك 18 سنة ولا أكثر باش تقرّي في Tnajem.",
+    // end phase-a lane L2
   },
 } as const;
 
@@ -180,19 +215,29 @@ export function SignupInner({
   role,
   next,
   channel,
+  minorsAllowed = false,
 }: {
   role: SignupRole;
   next: string | null;
   channel: OtpChannel;
+  /* phase-a lane L2 (A24). ALLOW_MINORS, read by the SERVER shell per request —
+     never baked into the bundle. Off (the default): the pilot is adults only. The
+     API enforces it either way; this only decides the copy and the early refusal. */
+  minorsAllowed?: boolean;
 }) {
   const { t, locale } = useLocale();
   const c = COPY[locale];
   const router = useLocalizedRouter();
   const isStudent = role === "student";
   const isEmail = channel === "email";
+  // phase-a lane L2 (A24, A14): who is asked a birth date, and whether a minor may continue.
+  // Everyone is asked; a TUTOR must be 18+ whatever ALLOW_MINORS says (A14).
+  const asksBirthDate = true;
+  const adultsOnly = !isStudent || !minorsAllowed;
 
   const [identifier, setIdentifier] = useState("");
   const [birthYear, setBirthYear] = useState("");
+  const [birthMonth, setBirthMonth] = useState(""); // phase-a lane L2 (A24)
   const [codeSent, setCodeSent] = useState(false);
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -200,13 +245,28 @@ export function SignupInner({
   const [error, setError] = useState<string | null>(null);
   /* Field-level problems go ON the field, with focus moved there — the same split
      as AuthInner, which explains it. `error` is for everything else. */
-  const [fieldError, setFieldError] = useState<{ field: "identifier" | "code"; message: string } | null>(null);
+  const [fieldError, setFieldError] = useState<{ field: "identifier" | "code" | "birth"; message: string } | null>(null);
   const identifierRef = useRef<HTMLInputElement>(null);
   const codeRef = useRef<HTMLInputElement>(null);
-  function invalid(field: "identifier" | "code", message: string) {
+  const birthMonthRef = useRef<HTMLSelectElement>(null); // phase-a lane L2 (A24)
+  function invalid(field: "identifier" | "code" | "birth", message: string) {
     setError(null);
     setFieldError({ field, message });
-    (field === "identifier" ? identifierRef : codeRef).current?.focus();
+    (field === "identifier" ? identifierRef : field === "birth" ? birthMonthRef : codeRef).current?.focus();
+  }
+
+  /* phase-a lane L2 (A24). The birth date is checked BEFORE a code is spent — on
+     the send AND on the "J'ai déjà un code" path, which used to skip it entirely.
+     The same isAdult() the API runs, so the two cannot disagree; the API is still
+     the one that refuses. Returns true when the form may go on. */
+  function birthDateOk(): boolean {
+    if (!asksBirthDate) return true;
+    if (!birthYear || !birthMonth) { invalid("birth", c.errNeedBirthDate); return false; }
+    if (adultsOnly && !isAdult(Number(birthYear), Number(birthMonth))) {
+      invalid("birth", isStudent ? c.errAdultsOnly : c.errTutorMinor);
+      return false;
+    }
+    return true;
   }
   /* Neutral guidance, not a failure — styled and announced as information. */
   const [notice, setNotice] = useState<string | null>(null);
@@ -244,6 +304,7 @@ export function SignupInner({
     if (!id) { invalid("identifier", isEmail ? c.errNeedEmail : c.errNeedPhone); return; }
     // Same check the server runs, so a typo is caught before we spend a send.
     if (isEmail && !isValidEmail(id.toLowerCase())) { invalid("identifier", c.errBadEmail); return; }
+    if (!birthDateOk()) return; // phase-a lane L2 (A24)
     setLoading(true);
     setError(null);
     setFieldError(null);
@@ -321,6 +382,7 @@ export function SignupInner({
   async function verifyWith(submitted: string) {
     if (loading) return;
     if (!submitted.trim()) { invalid("code", c.codeHelp); return; }
+    if (!birthDateOk()) return; // phase-a lane L2 (A24): the "J'ai déjà un code" path too
     setLoading(true);
     setError(null);
     setFieldError(null);
@@ -333,6 +395,7 @@ export function SignupInner({
         role,
         locale,
         birthYear: birthYear ? Number(birthYear) : undefined,
+        birthMonth: birthMonth ? Number(birthMonth) : undefined, // phase-a lane L2 (A24)
       });
     } catch {
       setLoading(false);
@@ -352,6 +415,10 @@ export function SignupInner({
       if (res.error === "invalid-code") { invalid("code", c.errBadCode); return; }
       // Only ever reaches the owner of the address: the API checks it after the code is proven.
       if (res.error === "account-blocked") { setError(c.errBlocked); return; }
+      // phase-a lane L2 (A24): the server's refusals, in the same words as the form's own.
+      if (res.error === "adults-only") { invalid("birth", c.errAdultsOnly); return; }
+      if (res.error === "birth-date-required") { invalid("birth", c.errNeedBirthDate); return; }
+      if (res.error === "minor-cannot-teach") { invalid("birth", c.errTutorMinor); return; } // A14
       setError(t.extra.error);
       return;
     }
@@ -365,7 +432,9 @@ export function SignupInner({
   // A ~5-year-old pupil down to a ~85-year-old learner. Inside vBirthYear's
   // accepted range; the server re-validates and fails safe either way.
   const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 81 }, (_, i) => currentYear - 5 - i);
+  const years = Array.from({ length: 81 }, (_, i) => currentYear - 5 - i)
+    // phase-a lane L2 (A24): an adults-only form does not offer years that cannot be 18.
+    .filter((y) => !adultsOnly || y <= currentYear - 18);
 
   const title = isStudent ? c.studentTitle : c.tutorTitle;
   const lead = isStudent
@@ -460,28 +529,62 @@ export function SignupInner({
               </div>
             </Field>
 
-            {/* Birth year — students only. Drives the minor-consent gate. */}
-            {isStudent && (
-              <Field label={c.byLabel}>
-                <div className="inp">
-                  <Calendar className="" />
-                  <select
-                    value={birthYear}
-                    onChange={(e) => setBirthYear(e.target.value)}
-                    disabled={codeSent}
-                    required
-                    aria-required="true"
-                    aria-label={c.byLabel}
-                    className="min-w-0 w-full border-0 bg-transparent font-[inherit] disabled:cursor-not-allowed"
-                    style={{ color: birthYear ? "var(--ink)" : "var(--muted)" }}
-                  >
-                    <option value="" disabled>{c.byPh}</option>
-                    {years.map((y) => (
-                      <option key={y} value={y} className="text-ink">{y}</option>
-                    ))}
-                  </select>
+            {/* phase-a lane L2 (A24) — birth MONTH + year. A year alone passed a
+                December-born 17-year-old as 18 all year. Drives the adult-only pilot
+                (ALLOW_MINORS off) and, when minors are allowed, the consent gate. */}
+            {asksBirthDate && (
+              <Field
+                label={minorsAllowed && isStudent ? c.bdLabel : c.bdLabelSelf}
+                error={fieldError?.field === "birth" ? fieldError.message : undefined}
+              >
+                <div className="flex gap-2">
+                  <div className="inp flex-1 min-w-0">
+                    <Calendar className="" />
+                    <select
+                      ref={birthMonthRef}
+                      value={birthMonth}
+                      onChange={(e) => {
+                        setBirthMonth(e.target.value);
+                        if (fieldError?.field === "birth") setFieldError(null);
+                      }}
+                      disabled={codeSent}
+                      required
+                      aria-required="true"
+                      aria-label={c.bdMonth}
+                      className="min-w-0 w-full border-0 bg-transparent font-[inherit] disabled:cursor-not-allowed"
+                      style={{ color: birthMonth ? "var(--ink)" : "var(--muted)" }}
+                    >
+                      <option value="" disabled>{c.bdMonthPh}</option>
+                      {c.bdMonths.map((m, i) => (
+                        <option key={m} value={i + 1} className="text-ink">{m}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="inp flex-1 min-w-0">
+                    <select
+                      value={birthYear}
+                      onChange={(e) => {
+                        setBirthYear(e.target.value);
+                        if (fieldError?.field === "birth") setFieldError(null);
+                      }}
+                      disabled={codeSent}
+                      required
+                      aria-required="true"
+                      aria-label={c.bdYear}
+                      aria-invalid={fieldError?.field === "birth" ? true : undefined}
+                      className="min-w-0 w-full border-0 bg-transparent font-[inherit] disabled:cursor-not-allowed"
+                      style={{ color: birthYear ? "var(--ink)" : "var(--muted)" }}
+                    >
+                      <option value="" disabled>{c.bdYearPh}</option>
+                      {years.map((y) => (
+                        <option key={y} value={y} className="text-ink">{y}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-                <p className="text-[13px] text-muted mt-1.5 leading-[1.5]">{c.byNote}</p>
+                <p className="text-[13px] text-muted mt-1.5 leading-[1.5]">
+                  {!isStudent ? c.bdTutorNote : adultsOnly ? c.bdAdultsNote : c.byNote}
+                </p>
               </Field>
             )}
 
@@ -520,7 +623,12 @@ export function SignupInner({
                 <div className="text-center">
                   <button
                     type="button"
-                    onClick={() => { setError(null); setFieldError(null); setNotice(null); setCodeSent(true); }}
+                    onClick={() => {
+                      setError(null); setFieldError(null); setNotice(null);
+                      // phase-a lane L2 (A24): this path used to skip the birth date entirely.
+                      if (!birthDateOk()) return;
+                      setCodeSent(true);
+                    }}
                     className="linklike bg-transparent border-0 text-[13px] min-h-[44px] min-w-[44px] font-[inherit]"
                   >
                     {c.haveCode}

@@ -17,6 +17,7 @@
 import type { Metadata } from "next";
 import { SignupInner } from "@/components/auth/SignupInner";
 import { safeNext } from "@tnajem/shared";
+import { minorsAllowed } from "@tnajem/shared"; // phase-a lane L2 (A24)
 import { otpChannel } from "@/lib/auth";
 import { bilingual } from "@/lib/i18n";
 import { isLocale, DEFAULT_LOCALE } from "@/lib/locale";
@@ -47,5 +48,7 @@ export async function generateMetadata(props: { params: Promise<{ locale: string
 export default async function SignupStudentPage(props: { searchParams: Promise<{ next?: string | string[] }> }) {
   const searchParams = await props.searchParams;
   const raw = Array.isArray(searchParams.next) ? searchParams.next[0] : searchParams.next;
-  return <SignupInner role="student" next={safeNext(raw ?? null)} channel={otpChannel()} />;
+  /* phase-a lane L2 (A24): ALLOW_MINORS is read HERE, per request, on the server —
+     a runtime switch, like OTP_CHANNEL. The API enforces it whatever this says. */
+  return <SignupInner role="student" next={safeNext(raw ?? null)} channel={otpChannel()} minorsAllowed={minorsAllowed()} />;
 }

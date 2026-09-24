@@ -48,6 +48,12 @@ const COPY = {
     errRate: "Trop de tentatives. Réessaie dans une heure.",
     errAuth: "Ta session a expiré. Reconnecte-toi.",
     errGeneric: "Ça n'a pas marché. Réessaie.",
+    // phase-a lane L2 (A14) — the birth month, asked only when none is on file
+    bmLabel: "Ton mois de naissance",
+    bmPh: "Choisir…",
+    bmMonths: ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"],
+    errMonth: "Choisis ton mois de naissance pour continuer.",
+    // end phase-a lane L2
   },
   ar: {
     title: "ولّي حساب أستاذ",
@@ -78,15 +84,32 @@ const COPY = {
     errRate: "محاولات برشة. عاود بعد ساعة.",
     errAuth: "الجلسة متاعك سالات. عاود ادخل.",
     errGeneric: "ما مشاتش. عاود حاول.",
+    // phase-a lane L2 (A14) — the birth month, asked only when none is on file
+    bmLabel: "شهر ولادتك",
+    bmPh: "اختار…",
+    bmMonths: ["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"],
+    errMonth: "اختار شهر ولادتك باش تكمّل.",
+    // end phase-a lane L2
   },
 } as const;
 
-export function UpgradeInner({ needsBirthYear }: { needsBirthYear: boolean }) {
+export function UpgradeInner({
+  needsBirthYear,
+  needsBirthMonth = false,
+}: {
+  needsBirthYear: boolean;
+  /** phase-a lane L2 (A14): no month on file → ask for it; the API needs both. */
+  needsBirthMonth?: boolean;
+}) {
   const { locale } = useLocale();
   const c = COPY[locale];
   const router = useLocalizedRouter();
 
   const [birthYear, setBirthYear] = useState("");
+  // phase-a lane L2 (A14)
+  const [birthMonth, setBirthMonth] = useState("");
+  const [monthError, setMonthError] = useState<string | null>(null);
+  const birthMonthRef = useRef<HTMLSelectElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   /* The birth year is the one field here. Its problems go ON it, with focus moved
@@ -108,12 +131,24 @@ export function UpgradeInner({ needsBirthYear }: { needsBirthYear: boolean }) {
   async function handleConfirm() {
     if (busy) return;
     if (needsBirthYear && !birthYear) { invalidAge(c.errAge); return; }
+    // phase-a lane L2 (A14)
+    if (needsBirthMonth && !birthMonth) {
+      setError(null);
+      setMonthError(c.errMonth);
+      birthMonthRef.current?.focus();
+      return;
+    }
     setBusy(true);
     setError(null);
     setAgeError(null);
+    setMonthError(null);
     let res: Awaited<ReturnType<typeof becomeTutor>>;
     try {
-      res = await becomeTutor({ confirm: true, birthYear: birthYear ? Number(birthYear) : undefined });
+      res = await becomeTutor({
+        confirm: true,
+        birthYear: birthYear ? Number(birthYear) : undefined,
+        birthMonth: birthMonth ? Number(birthMonth) : undefined, // phase-a lane L2 (A14)
+      });
     } catch {
       setBusy(false);
       setError(c.errGeneric);
@@ -130,6 +165,7 @@ export function UpgradeInner({ needsBirthYear }: { needsBirthYear: boolean }) {
     }
     if (res.error === "minor-cannot-teach") setError(c.errMinor);
     else if (res.error === "age-required" && needsBirthYear) invalidAge(c.errAge);
+    else if (res.error === "age-required" && needsBirthMonth) setMonthError(c.errMonth); // phase-a lane L2 (A14)
     else if (res.error === "age-required") setError(c.errAge);
     else if (res.error === "too-many-requests") setError(c.errRate);
     else if (res.error === "not-authenticated") setError(c.errAuth);
@@ -191,6 +227,31 @@ export function UpgradeInner({ needsBirthYear }: { needsBirthYear: boolean }) {
                   </select>
                 </div>
                 <p className="text-[13px] text-muted mt-1.5 leading-[1.5]">{c.byNote}</p>
+              </Field>
+            )}
+
+            {/* phase-a lane L2 (A14): the month, only when none is on file. */}
+            {needsBirthMonth && (
+              <Field label={c.bmLabel} error={monthError ?? undefined}>
+                <div className="inp" style={birthMonth ? { borderColor: "var(--blue)" } : undefined}>
+                  <Calendar className="" />
+                  <select
+                    ref={birthMonthRef}
+                    value={birthMonth}
+                    onChange={(e) => { setBirthMonth(e.target.value); setMonthError(null); }}
+                    required
+                    aria-required="true"
+                    aria-label={c.bmLabel}
+                    className="min-w-0 w-full border-0 bg-transparent font-[inherit]"
+                    style={{ color: birthMonth ? "var(--ink)" : "var(--muted)" }}
+                  >
+                    <option value="" disabled>{c.bmPh}</option>
+                    {c.bmMonths.map((m, i) => (
+                      <option key={m} value={i + 1} className="text-ink">{m}</option>
+                    ))}
+                  </select>
+                </div>
+                {!needsBirthYear && <p className="text-[13px] text-muted mt-1.5 leading-[1.5]">{c.byNote}</p>}
               </Field>
             )}
 

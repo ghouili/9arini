@@ -59,7 +59,8 @@ test("a verified tutor's storefront is public and shows no contact details", asy
 
   const res = await page.goto(`/fr/${tutor.slug}`);
   expect(res?.status()).toBe(200);
-  await expect(page.locator("h1").first()).toContainText(/E2E Tutor/);
+  // phase-a lane L2 (A23): "E2E Tutor <tag>" is shown as "E2E T." — first name + initial.
+  await expect(page.locator("h1").first()).toContainText(/E2E T\./);
 
   /* Step 8 will make this a hard, product-wide rule. Asserting it NOW means the
      Stage A port cannot quietly regress it before then.

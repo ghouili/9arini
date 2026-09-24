@@ -36,6 +36,10 @@ services:
       MAIL_PASS: e2e
       MAIL_FROM_ADDRESS: no-reply@tnajem.invalid
       MAIL_FROM_NAME: Tnajem E2E
+      # phase-a lane L2 (A24): the suite seeds minors who book, to keep proving the
+      # server-side guardian-consent gate. The adult-only default is proven by
+      # apps/api/test/a24-adult-pilot.test.ts. Same value as playwright.config.ts.
+      ALLOW_MINORS: "1"
     depends_on:
       mail:
         condition: service_started
@@ -65,6 +69,11 @@ services:
       # Desktop → Resources, or .wslconfig on Windows) rather than changing code.
       # Production is unaffected — it uses a named volume inside the VM.
       - ./.e2e-storage:/data/storage
+
+  # phase-a lane L2 (A24): the web reads the same switch for the signup copy.
+  web:
+    environment:
+      ALLOW_MINORS: "1"
 
   # Catches every OTP mail so nothing leaves this machine. Pinned, like the
   # database: a floating tag in a gate is a gate that can change under you.

@@ -26,16 +26,22 @@ export type SeededProfile = { id: string; email: string; role: string };
 export async function seedProfile(opts: {
   role: "student" | "tutor" | "guardian";
   birthYear?: number | null;
+  /* phase-a lane L2 (A24): isAdult needs the month (0025). Defaults to January
+     whenever a birth year is set, so "birthYear: 1990" still means an adult and
+     "this year − 15" still means a minor; pass null for an unknown month. */
+  birthMonth?: number | null;
   fullName?: string;
   phone?: string | null;
 }): Promise<SeededProfile> {
   const t = tag();
   const addr = email(t);
+  const birthYear = opts.birthYear === undefined ? 1990 : opts.birthYear;
+  const birthMonth = opts.birthMonth !== undefined ? opts.birthMonth : birthYear == null ? null : 1; // phase-a lane L2 (A24)
   const [row] = await sql`
-    insert into profiles (id, email, phone, role, locale, full_name, birth_year)
+    insert into profiles (id, email, phone, role, locale, full_name, birth_year, birth_month)
     values (${randomUUID()}, ${addr}, ${opts.phone ?? null}, ${opts.role}, 'fr',
             ${opts.fullName ?? `E2E ${t}`},
-            ${opts.birthYear === undefined ? 1990 : opts.birthYear})
+            ${birthYear}, ${birthMonth})
     returning id, email, role`;
   return row as SeededProfile;
 }

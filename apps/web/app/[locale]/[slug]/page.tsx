@@ -8,6 +8,7 @@ import { getTutorReviews } from "@/app/actions";
 import { isLocale, DEFAULT_LOCALE, type AppLocale } from "@/lib/locale";
 import { dict } from "@/lib/i18n";
 import { tutorStanding, isOpenForBooking } from "@tnajem/shared";
+import { publicTutorName, publicDisplayName } from "@tnajem/shared"; // phase-a lane L2 (A23)
 
 type Props = { params: Promise<{ locale: string; slug: string }> };
 
@@ -106,10 +107,12 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   }
 
   const { tutor } = data;
+  // phase-a lane L2 (A23) — D1: the link preview says "Mohamed B.", never the last name.
+  const shownName = publicTutorName(tutor.full_name) ?? "";
   const subpath = `/${params.slug}`;
   const canonical = `/${locale}${subpath}`; // this locale's canonical URL
   // layout.tsx applies the "%s · Tnajem" template on top of this.
-  const title = `${tutor.full_name} — ${tutor.subject}`;
+  const title = `${shownName} — ${tutor.subject}`;
   /* "paiement en dinar" promised a checkout that does not exist: payments are OFF
      for the pilot (lib/payments.ts), the storefront takes no card, and the link
      preview is the first thing a WhatsApp reader sees. Promise what we deliver. */
@@ -123,14 +126,14 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     : "Réserve un cours en direct — tarif affiché, sans engagement.";
   const description = tutor.bio ? `${clamp(tutor.bio, 120)} · ${pitch}` : `${tutor.subject}. ${pitch}`;
   const ogTitle = `${title} · Tnajem`;
-  const alt = `${tutor.full_name} sur Tnajem — ${tutor.subject}`;
-  const [firstName, ...rest] = tutor.full_name.trim().split(/\s+/);
+  const alt = `${shownName} sur Tnajem — ${tutor.subject}`;
+  const firstName = publicDisplayName(tutor.full_name) ?? undefined; // phase-a lane L2 (A23): no og:last_name
 
   return {
     title,
     description,
     keywords: [
-      tutor.full_name,
+      shownName,
       tutor.subject,
       tutor.level,
       "cours particuliers",
@@ -143,7 +146,6 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     openGraph: {
       type: "profile",
       firstName,
-      lastName: rest.join(" ") || undefined,
       username: tutor.slug,
       url: canonical,
       siteName: "Tnajem",
@@ -193,6 +195,7 @@ export default async function StorefrontPage(props: Props) {
   if (!data) return <NotFoundScreen locale={loc} />;
 
   const { tutor } = data;
+  const shownName = publicTutorName(tutor.full_name) ?? ""; // phase-a lane L2 (A23): JSON-LD says "Mohamed B."
   const url = `${SITE_URL}/${loc}/${params.slug}`; // locale-prefixed canonical URL
   // The same standing StorefrontView renders — markup can never claim more than the page shows.
   const standing = tutorStanding({ reviewCount: reviews.count, rating: reviews.average, students: tutor.students_count });
@@ -212,7 +215,7 @@ export default async function StorefrontPage(props: Props) {
     {
       "@context": "https://schema.org",
       "@type": "Person",
-      name: tutor.full_name,
+      name: shownName,
       url,
       jobTitle: tutor.subject,
       ...(tutor.bio ? { description: tutor.bio } : {}),
@@ -235,7 +238,7 @@ export default async function StorefrontPage(props: Props) {
       "@context": "https://schema.org",
       "@type": "Service",
       serviceType: "Cours particuliers en direct",
-      provider: { "@type": "Person", name: tutor.full_name, url },
+      provider: { "@type": "Person", name: shownName, url },
       areaServed: { "@type": "Country", name: "Tunisia" },
       availableLanguage: ["fr", "ar"],
       description: tutor.bio || tutor.subject,
@@ -274,7 +277,7 @@ export default async function StorefrontPage(props: Props) {
       itemListElement: [
         { "@type": "ListItem", position: 1, name: "Accueil", item: `${SITE_URL}/${loc}` },
         { "@type": "ListItem", position: 2, name: "Explorer", item: `${SITE_URL}/${loc}/explore` },
-        { "@type": "ListItem", position: 3, name: tutor.full_name, item: url },
+        { "@type": "ListItem", position: 3, name: shownName, item: url },
       ],
     },
   ];

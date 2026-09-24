@@ -15,6 +15,8 @@ import {
 import { resolveMeetUrl } from "@tnajem/shared/live";
 import { rotateRoomToken } from "../lib/room-rotation";
 import { publicDisplayName } from "@tnajem/shared";
+import { isAdult, minorsAllowed } from "@tnajem/shared"; // phase-a lane L2 (A24)
+import { publicTutorName } from "@tnajem/shared"; // phase-a lane L2 (A23)
 import { paymentsEnabled } from "@tnajem/shared/payments";
 import { db } from "../db";
 import { getSession } from "../lib/session";
@@ -78,6 +80,22 @@ export async function bookingRoutes(app: FastifyInstance): Promise<void> {
        Scoped to a MINOR student: an adult books without it, while a minor — or a
        student whose age we do not know (null fails SAFE via isMinorBirthYear) —
        must have a consent row. */
+    // phase-a lane L2 (A24) ── adult-only pilot, and a month-aware consent gate ──
+    /* While ALLOW_MINORS is off (D6) a minor cannot book at all: an existing minor
+       account still signs in, and stops here. With it on, consent is required on
+       the MONTH-aware age — the year-only check below lets a 17-year-old born later
+       this year through as an adult. A missing month or year fails safe (minor). */
+    if (!isAdult(session.profile.birthYear, session.profile.birthMonth)) {
+      if (!minorsAllowed()) return { ok: false, error: "adults-only" };
+      const [minorConsent] = await db
+        .select({ id: consents.id })
+        .from(consents)
+        .where(and(eq(consents.minorId, uid), isNull(consents.withdrawnAt)))
+        .limit(1);
+      if (!minorConsent) return { ok: false, error: "needs-consent" };
+    }
+    // end phase-a lane L2 (A24)
+
     /* ANY ROLE. This was scoped to role === "student", so a minor who signed up at
        /signup/prof — which asks no age — booked with no consent at all (security
        review, 15 Sept 2026). Unknown age fails safe here as everywhere. */
@@ -186,7 +204,7 @@ export async function bookingRoutes(app: FastifyInstance): Promise<void> {
     await notify(db, uid, {
       kind: "booking_confirmed",
       title: "Place réservée ✅",
-      body: `${cls.title} — ${whenLabel}${tut?.fullName ? ` avec ${tut.fullName}` : ""}.`,
+      body: `${cls.title} — ${whenLabel}${tut?.fullName ? ` avec ${publicTutorName(tut.fullName)}` : ""}.`, // phase-a lane L2 (A23): "Mohamed B."
       href: `/class/${cls.id}`,
       // Names the tutor: rewritten if that account is ever erased.
       aboutProfileId: tut?.profileId ?? null,
@@ -414,7 +432,7 @@ export async function bookingRoutes(app: FastifyInstance): Promise<void> {
         bookingId: r.bookingId,
         classId: r.classId,
         title: r.title,
-        tutorName: r.tutorName,
+        tutorName: publicTutorName(r.tutorName) ?? "", // phase-a lane L2 (A23): "Mohamed B.", never the last name
         day,
         month,
         time,

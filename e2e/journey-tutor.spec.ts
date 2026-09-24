@@ -37,6 +37,9 @@ test("tutor journey: signup → storefront → ID → approved → class → boo
   await test.step("sign up with a real email code", async () => {
     await page.goto("/fr/signup/prof");
     await page.locator('input[type="email"]').fill(address);
+    // phase-a lane L2 (A14): /signup/prof asks for a birth month + year (18+).
+    await page.getByLabel("Mois de naissance", { exact: true }).selectOption("3");
+    await page.getByLabel("Année de naissance", { exact: true }).selectOption("1988");
     await page.locator("form").first().evaluate((f: HTMLFormElement) => f.requestSubmit());
     await expect.poll(async () => (await sql<{ n: number }[]>`select count(*)::int n from otp_codes where identifier = ${address}`)[0].n, { timeout: 20_000 }).toBe(1);
     const code = await recoverOtp(address);

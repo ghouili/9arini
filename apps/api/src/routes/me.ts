@@ -28,7 +28,8 @@ export async function meRoutes(app: FastifyInstance): Promise<void> {
     const session = await getSession(req);
     if (!session) return null;
     const p = session.profile;
-    return { id: p.id, role: p.role, birthYear: p.birthYear, fullName: p.fullName };
+    // phase-a lane L2 (A14): + birthMonth, so the upgrade guard knows whether to ask for it.
+    return { id: p.id, role: p.role, birthYear: p.birthYear, birthMonth: p.birthMonth, fullName: p.fullName };
   });
 
   app.get("/me", async (req): Promise<Me | null> => {

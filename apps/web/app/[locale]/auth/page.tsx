@@ -16,6 +16,7 @@
 import type { Metadata } from "next";
 import { AuthInner } from "@/components/auth/AuthInner";
 import { safeNext } from "@tnajem/shared";
+import { minorsAllowed } from "@tnajem/shared"; // phase-a lane L2 (A24)
 import { otpChannel } from "@/lib/auth";
 import { bilingual } from "@/lib/i18n";
 import { isLocale, DEFAULT_LOCALE } from "@/lib/locale";
@@ -48,5 +49,6 @@ export async function generateMetadata(props: { params: Promise<{ locale: string
 export default async function AuthPage(props: { searchParams: Promise<{ next?: string | string[] }> }) {
   const searchParams = await props.searchParams;
   const raw = Array.isArray(searchParams.next) ? searchParams.next[0] : searchParams.next;
-  return <AuthInner next={safeNext(raw ?? null)} channel={otpChannel()} />;
+  // phase-a lane L2 (A24): ALLOW_MINORS, per request, on the server (never a build-time value).
+  return <AuthInner next={safeNext(raw ?? null)} channel={otpChannel()} minorsAllowed={minorsAllowed()} />;
 }

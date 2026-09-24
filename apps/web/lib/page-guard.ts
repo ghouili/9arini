@@ -20,6 +20,8 @@ export type SessionProfile = {
   id: string;
   role: string;
   birthYear: number | null;
+  /** phase-a lane L2 (A14). Optional: an API from before 0025 does not send it. */
+  birthMonth?: number | null;
   fullName: string | null;
 };
 

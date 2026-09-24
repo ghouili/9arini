@@ -64,8 +64,10 @@ async function login(address: string, role: "student" | "tutor" | undefined, bir
   assert.equal(req.body?.ok, true, `otp request failed: ${JSON.stringify(req.body)}`);
   const code = String(req.body?.devCode);
   const wrong = code === "000000" ? "111111" : "000000";
-  await call("POST", "/auth/otp/verify", null, { identifier: address, code: wrong, role, birthYear });
-  const ok = await call("POST", "/auth/otp/verify", null, { identifier: address, code, role, birthYear });
+  // phase-a lane L2 (A24): sign-up needs a birth month as well as the year.
+  const birthMonth = birthYear ? 1 : undefined;
+  await call("POST", "/auth/otp/verify", null, { identifier: address, code: wrong, role, birthYear, birthMonth });
+  const ok = await call("POST", "/auth/otp/verify", null, { identifier: address, code, role, birthYear, birthMonth });
   const session = ok.body?.session as { token: string } | undefined;
   assert.ok(session?.token, `verify failed: ${JSON.stringify(ok.body)}`);
   cookieJar.set(address, session.token);
@@ -96,7 +98,7 @@ describe("security: no personal data reaches a log line", () => {
   test("login, profile writes, conflicts, throttling, admin lookup and deletion log no address or number", async () => {
     await login(STUDENT, "student", 1995);
     await login(OTHER, "student", 1996);
-    await login(ADMIN, "tutor");
+    await login(ADMIN, "tutor", 1985); // phase-a lane L2 (A14): /signup/prof asks an age now
 
     // Profile writes carrying a phone number, then the unique-phone conflict.
     assert.equal((await call("POST", "/profile/student", STUDENT, { fullName: "Pii Student", phone: PHONE })).body?.ok, true);

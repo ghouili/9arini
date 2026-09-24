@@ -18,6 +18,16 @@
 
        a display name, and nothing else that could reach the person off-platform.
 
+   Which display name (decision D1, 23 Sept 2026 — phase-a lane L2, A23):
+     • a STUDENT, as a tutor sees them: first name only — publicDisplayName().
+     • a TUTOR, as students, guardians and the public see them: first name +
+       initial, "Sami B." — publicTutorName(). Every student-facing surface
+       (storefront, Explore and search, checkout, class page, student dashboard,
+       notifications, the link preview and JSON-LD) goes through it, and it is
+       applied ON THE API: the last name is never sent to those endpoints at all.
+       Messaging and the guardian space show the tutor's first name only, which
+       is stricter and stays. The tutor sees their own full name; admins see it too.
+
    Not the phone. Not the email. Not an address, not a city, not a social handle.
    Guardian contact is NOT an exception: a parent's number is a contact detail
    like any other, and Step 14 gives guardians real accounts rather than a bridge.
@@ -59,6 +69,23 @@ export function publicDisplayName(full: string | null | undefined): string | nul
      the moment they put the number first. */
   const cleaned = first.replace(/[^\p{L}\p{M}'’-]/gu, "").trim();
   return cleaned.length > 0 ? cleaned : null;
+}
+
+/** "Mohamed Ben Ali" -> "Mohamed B." — a TUTOR as a student sees them (D1).
+
+    Call it with the full name, or with (first, last). The first token is the
+    first name, cleaned exactly as publicDisplayName cleans it (so a number glued
+    to it never passes); the initial is the first LETTER of everything after it.
+    A single-word name is returned as-is, an empty one as null. Idempotent —
+    "Mohamed B." gives "Mohamed B." — so masking twice is harmless.
+    phase-a lane L2 (A23). */
+export function publicTutorName(first: string | null | undefined, last?: string | null): string | null {
+  const whole = last === undefined ? (first ?? "") : `${first ?? ""} ${last ?? ""}`;
+  const [head = "", ...rest] = whole.trim().split(/\s+/);
+  const name = publicDisplayName(head);
+  if (!name) return null;
+  const initial = rest.join(" ").match(/\p{L}/u)?.[0];
+  return initial ? `${name} ${initial.toLocaleUpperCase("fr")}.` : name;
 }
 
 /** Two-letter monogram, from the FIRST name only — never the surname, which
