@@ -16,6 +16,7 @@ import { isUniqueViolation } from "../lib/db-errors";
 import { assertNoContactInfo, CONTACT_ERROR } from "../lib/contact-guard";
 import { exploreBoostSql, subscriptionIsLiveSql } from "../lib/entitlements";
 import { onSaleClassSql } from "../lib/class-sale";
+import { visibleReviewText } from "../lib/moderation-hide"; // phase-a lane L4 (A28)
 
 /* tutors — createTutor, and the three PUBLIC reads that feed the cached storefront.
 
@@ -287,7 +288,7 @@ export async function tutorRoutes(app: FastifyInstance): Promise<void> {
       .select({
         id: reviews.id,
         rating: reviews.rating,
-        text: reviews.text,
+        text: visibleReviewText(null), // phase-a lane L4 (A28): hidden by moderation → placeholder (anonymous: FR · AR)
         createdAt: reviews.createdAt,
         studentName: profiles.fullName,
         classTitle: classes.title,

@@ -469,7 +469,8 @@ export type AdminReport = {
   id: string;
   subjectKind: "tutor" | "class" | "review" | "message" | "material" | "other";
   subjectId: string | null;
-  subject: { label: string; href: string | null } | null;
+  // phase-a lane L4 (A28): hidden → a message/review an admin has already hidden.
+  subject: { label: string; href: string | null; hidden?: boolean } | null;
   reason: string;
   reporterEmail: string | null;
   createdAt: string;

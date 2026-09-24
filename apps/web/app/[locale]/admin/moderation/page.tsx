@@ -9,6 +9,7 @@ import { Shield } from "@/components/icons";
 import { UserText } from "@/components/UserText";
 import {
   findAccount, getAdminReports, resolveReport, getAdminTakedowns, resolveTakedown, getPendingAvatars, decideAvatar,
+  hideContent, // phase-a lane L4 (A28)
 } from "@/app/actions";
 import { formatInTunis, type AdminReport, type AdminTakedown, type PendingAvatar } from "@tnajem/shared";
 import { bilingual } from "@/lib/i18n";
@@ -64,6 +65,12 @@ const copy = bilingual({
     changed: "Cette photo a changé depuis l'affichage. La file est rechargée : regarde la nouvelle.",
     already: "Déjà traité par quelqu'un d'autre. La file est rechargée.",
     error: "Une erreur s'est produite. Réessaie.",
+    // phase-a lane L4 (A28)
+    hide: "Masquer le contenu",
+    hideHint: "Masquer remplace le texte par « Contenu retiré par la modération » pour tout le monde, auteur compris. Le texte reste lisible ici, comme preuve. La note ci-dessus sert de motif (obligatoire).",
+    hidden: "Contenu masqué.",
+    hiddenChip: "Déjà masqué",
+    reasonRequired: "Écris le motif dans la note (5 caractères minimum) avant de masquer.",
   },
   ar: {
     eyebrow: "أدمين",
@@ -103,6 +110,12 @@ const copy = bilingual({
     changed: "التصويرة تبدّلت من وقت ما تعرضت. الليستة تعاودت: شوف الجديدة.",
     already: "تعالج قبل من حد آخر. الليستة تعاودت.",
     error: "صار مشكل. عاود.",
+    // phase-a lane L4 (A28)
+    hide: "خبّي المحتوى",
+    hideHint: "كي تخبّيه، النص يتبدّل بـ « المحتوى هذا تنحّى من طرف المراقبة » للناس الكل، حتى اللي كتبو. النص يقعد يتقرا هوني كدليل. الملاحظة اللي الفوق هي السبب (إجبارية).",
+    hidden: "المحتوى تخبّى.",
+    hiddenChip: "مخبّي من قبل",
+    reasonRequired: "اكتب السبب في الملاحظة (5 حروف على الأقل) قبل ما تخبّي.",
   },
 });
 
@@ -206,6 +219,7 @@ export default function AdminModerationPage() {
                     <article key={r.id} className="panel panel-pad flex flex-col gap-3" data-e2e="report-item">
                       <div className="flex flex-wrap items-baseline gap-2">
                         <span className="chip">{c.kind[r.subjectKind]}</span>
+                        {r.subject?.hidden && <span className="chip chip-soft">{c.hiddenChip}</span>}
                         {r.subject && <UserText className="font-bold">{r.subject.label}</UserText>}
                         {r.subject?.href && <Link href={r.subject.href} className="linklike">{c.open}</Link>}
                       </div>
@@ -231,7 +245,26 @@ export default function AdminModerationPage() {
                         <Button variant="ghost" sm disabled={busy !== null} onClick={() => run(`r:${r.id}`, () => resolveReport({ id: r.id, action: "dismissed", note: notes[r.id] }), c.resolved)}>
                           {c.dismissed}
                         </Button>
+                        {/* phase-a lane L4 (A28): a message or a review can be HIDDEN — soft, audited, with a reason. */}
+                        {(r.subjectKind === "message" || r.subjectKind === "review") && r.subjectId && r.subject && !r.subject.hidden && (
+                          <Button
+                            variant="ghost"
+                            sm
+                            disabled={busy !== null}
+                            onClick={() => {
+                              const reason = (notes[r.id] ?? "").trim();
+                              if (reason.length < 5) { showToast(c.reasonRequired); return; }
+                              const kind = r.subjectKind as "message" | "review";
+                              void run(`r:${r.id}`, () => hideContent({ kind, id: r.subjectId ?? "", reason, reportId: r.id }), c.hidden);
+                            }}
+                          >
+                            {c.hide}
+                          </Button>
+                        )}
                       </div>
+                      {(r.subjectKind === "message" || r.subjectKind === "review") && r.subject && !r.subject.hidden && (
+                        <p className="muted text-[13px] leading-[1.6] m-0">{c.hideHint}</p>
+                      )}
                     </article>
                   ))}
                 </div>

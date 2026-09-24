@@ -724,6 +724,12 @@ export async function resolveReport(input: { id: string; action: "actioned" | "d
   if (demoFallback) return { ok: false, error: "forbidden" };
   return call<ActionResult>(`/admin/reports/${encodeURIComponent(input.id)}`, { action: input.action, note: input.note });
 }
+/* phase-a lane L4 (A28): hide a reported message or review (a soft delete, audited,
+   reason required) and close the report it answers. */
+export async function hideContent(input: { kind: "message" | "review"; id: string; reason: string; reportId?: string }): Promise<ActionResult> {
+  if (demoFallback) return { ok: false, error: "forbidden" };
+  return call<ActionResult>("/admin/moderation/hide", input);
+}
 export async function getAdminTakedowns(): Promise<AdminTakedown[]> {
   if (demoFallback) return [];
   return call<AdminTakedown[]>("/admin/takedowns", undefined, "GET");

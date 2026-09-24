@@ -47,8 +47,8 @@ async function subjectExists(kind: string, id: string): Promise<boolean> {
 
 /** A label and a web path for each reported subject. Erased or hidden tutors still
     resolve (an admin needs to see what was reported), but never to a public link. */
-async function subjectContext(items: { kind: string; id: string | null }[]): Promise<Map<string, { label: string; href: string | null }>> {
-  const out = new Map<string, { label: string; href: string | null }>();
+async function subjectContext(items: { kind: string; id: string | null }[]): Promise<Map<string, { label: string; href: string | null; hidden?: boolean }>> {
+  const out = new Map<string, { label: string; href: string | null; hidden?: boolean }>();
   const ids = (k: string) => items.filter((i) => i.kind === k && i.id && isUuid(i.id)).map((i) => i.id as string);
   const link = (slug: string | null, live: boolean) => (slug && live ? `/${slug}` : null);
 
@@ -77,23 +77,25 @@ async function subjectContext(items: { kind: string; id: string | null }[]): Pro
   const messageIds = ids("message");
   if (messageIds.length) {
     for (const m of await db
-      .select({ id: messages.id, body: messages.body, minor: messageThreads.studentIsMinor })
+      .select({ id: messages.id, body: messages.body, minor: messageThreads.studentIsMinor, hiddenAt: messages.hiddenAt })
       .from(messages)
       .innerJoin(messageThreads, eq(messages.threadId, messageThreads.id))
       .where(inArray(messages.id, messageIds))) {
       /* The evidence itself, and whether a minor is in the conversation: an admin must
-         see both to judge it. Conversations have no admin page, so no link. */
-      out.set(`message:${m.id}`, { label: `${m.minor ? "[−18] " : ""}${m.body.slice(0, 300)}`, href: null });
+         see both to judge it. Conversations have no admin page, so no link.
+         phase-a lane L4 (A28): the RAW body, hidden or not — admins judge the evidence. */
+      out.set(`message:${m.id}`, { label: `${m.minor ? "[−18] " : ""}${m.body.slice(0, 300)}`, href: null, hidden: m.hiddenAt !== null });
     }
   }
   const reviewIds = ids("review");
   if (reviewIds.length) {
     for (const r of await db
-      .select({ id: reviews.id, text: reviews.text, slug: tutors.slug, status: tutors.status, suspendedAt: tutors.suspendedAt })
+      .select({ id: reviews.id, text: reviews.text, slug: tutors.slug, status: tutors.status, suspendedAt: tutors.suspendedAt, hiddenAt: reviews.hiddenAt })
       .from(reviews)
       .innerJoin(tutors, eq(reviews.tutorId, tutors.id))
       .where(inArray(reviews.id, reviewIds))) {
-      out.set(`review:${r.id}`, { label: (r.text ?? "").slice(0, 120), href: link(r.slug, r.status === "verified" && !r.suspendedAt) });
+      // phase-a lane L4 (A28): the raw text for the admin, and whether it is hidden.
+      out.set(`review:${r.id}`, { label: (r.text ?? "").slice(0, 120), href: link(r.slug, r.status === "verified" && !r.suspendedAt), hidden: r.hiddenAt !== null });
     }
   }
   return out;
@@ -228,6 +230,71 @@ export async function moderationRoutes(app: FastifyInstance): Promise<void> {
       note.value,
     );
     return { ok: true };
+  });
+
+  /* ── POST /admin/moderation/hide — phase-a lane L4 (A28) ─────────────────────
+
+     /terms says "Nous pouvons retirer un contenu"; the queue could only close a
+     report. An admin now HIDES a message or a review. A soft delete, on purpose:
+     the text stays in the row as evidence (a report may become a complaint), admins
+     keep reading it here, and every other reader — the author included — gets the
+     placeholder from lib/moderation-hide.ts.
+
+     A REASON IS REQUIRED, and it lives on the row (hidden_reason), not in the
+     audit note: audit.ts's rule is "say what was done, not what it contained".
+     Audited with auditAdmin like every moderation action. Given `reportId`, the
+     report it answers is closed as actioned in the same call. */
+  const hideBody = z.object({
+    kind: z.enum(["message", "review"]),
+    id: z.string(),
+    reason: z.string().optional(),
+    reportId: z.string().optional(),
+  });
+  app.post("/admin/moderation/hide", async (req, reply) => {
+    const parsed = hideBody.safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: "bad-request" });
+
+    const session = await requireAdmin(req);
+    if (!session) return { ok: false, error: "forbidden" };
+
+    const reason = vText(parsed.data.reason, { field: "reason", max: 500, min: 5 });
+    if (!reason.ok) return { ok: false, error: reason.error === "reason-too-long" ? "reason-too-long" : "reason-required" };
+    const id = parsed.data.id;
+    if (!isUuid(id)) return { ok: false, error: "not-found" };
+
+    const set = { hiddenAt: raw`now()`, hiddenBy: session.profile.id, hiddenReason: reason.value };
+    let hidden: { id: string } | undefined;
+    let revalidateSlug: string | null = null;
+    if (parsed.data.kind === "message") {
+      [hidden] = await db.update(messages).set(set)
+        .where(and(eq(messages.id, id), isNull(messages.hiddenAt)))
+        .returning({ id: messages.id });
+      if (!hidden && !(await subjectExists("message", id))) return { ok: false, error: "not-found" };
+    } else {
+      [hidden] = await db.update(reviews).set(set)
+        .where(and(eq(reviews.id, id), isNull(reviews.hiddenAt)))
+        .returning({ id: reviews.id });
+      if (!hidden && !(await subjectExists("review", id))) return { ok: false, error: "not-found" };
+      // The public storefront's review feed is cached: the hide must reach it now.
+      const [t] = await db.select({ slug: tutors.slug }).from(reviews)
+        .innerJoin(tutors, eq(reviews.tutorId, tutors.id)).where(eq(reviews.id, id)).limit(1);
+      revalidateSlug = t?.slug ?? null;
+    }
+    if (!hidden) return { ok: true, already: true }; // hidden by someone else first: idempotent
+
+    await auditAdmin(session.profile.id, `${parsed.data.kind}.hide`, { kind: parsed.data.kind, id });
+
+    const reportId = parsed.data.reportId;
+    if (reportId && isUuid(reportId)) {
+      const [closed] = await db
+        .update(reports)
+        .set({ status: "actioned", resolvedAt: raw`now()`, resolvedBy: session.profile.id, resolutionNote: "content hidden" })
+        .where(and(eq(reports.id, reportId), eq(reports.status, "open"), eq(reports.subjectId, id)))
+        .returning({ id: reports.id });
+      if (closed) await auditAdmin(session.profile.id, "report.actioned", { kind: "report", id: closed.id }, "content hidden");
+    }
+
+    return { ok: true, ...(revalidateSlug ? { revalidate: { tutors: [revalidateSlug] } } : {}) };
   });
 
   /* ══════════════════════════════════════════════════════════════════════════
