@@ -24,6 +24,9 @@ import postgres from "postgres";
 import { verifyMail, closeMail } from "@tnajem/shared/mail";
 import { describeS3Error, objectStore, storageDriverName, type ObjectStore } from "../src/storage";
 import { docEncryptionConfigured, openDoc, sealDoc } from "../src/doc-crypto";
+import * as schema from "../src/schema";
+import { is } from "drizzle-orm";
+import { PgTable, getTableConfig } from "drizzle-orm/pg-core";
 import { randomBytes } from "node:crypto";
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
@@ -192,10 +195,54 @@ async function checkDatabase() {
           ". Run: npm run db:sql",
       );
     }
+
+    await checkSchemaMatches(sql);
   } catch (e) {
     fail("connection", `cannot reach the database (${(e as { code?: string }).code ?? (e as Error).name})`);
   } finally {
     await sql.end({ timeout: 2 }).catch(() => {});
+  }
+}
+
+/* schema.ts ↔ the database, column for column (phase-a/verify-fix D9).
+
+   The migrations check above reads the SQL files only; it never looked at
+   packages/db/src/schema.ts, although "schema and migrations match column for
+   column" was cited as its proof. This compares what the app's Drizzle schema
+   declares (every exported pgTable: table, column, NOT NULL) with what the
+   database actually has, both ways, so a schema.ts that drifted from the SQL —
+   a column the code writes that no migration adds, or a NOT NULL one side does
+   not know about — fails the gate instead of the first request. */
+async function checkSchemaMatches(sql: ReturnType<typeof postgres>) {
+  const declared = new Map<string, boolean>(); // "table.column" → notNull
+  const declaredTables = new Set<string>();
+  for (const value of Object.values(schema)) {
+    if (!is(value, PgTable)) continue;
+    const cfg = getTableConfig(value);
+    declaredTables.add(cfg.name);
+    for (const col of cfg.columns) declared.set(`${cfg.name}.${col.name}`, col.notNull);
+  }
+  const rows = await sql<{ t: string; c: string; nullable: string }[]>`
+    select table_name as t, column_name as c, is_nullable as nullable
+      from information_schema.columns
+     where table_schema = 'public' and table_name in ${sql([...declaredTables])}`;
+  const actual = new Map(rows.map((r) => [`${r.t}.${r.c}`, r.nullable === "NO"]));
+  const missing = [...declared.keys()].filter((k) => !actual.has(k));
+  const undeclared = [...actual.keys()].filter((k) => !declared.has(k));
+  const nullability = [...declared].filter(([k, notNull]) => actual.has(k) && actual.get(k) !== notNull).map(([k]) => k);
+  if (missing.length === 0 && undeclared.length === 0 && nullability.length === 0) {
+    ok("schema.ts", `${declaredTables.size} tables and ${declared.size} columns match the database, NOT NULL included`);
+  } else {
+    fail(
+      "schema.ts",
+      [
+        missing.length ? `declared but not in the database: ${missing.join(", ")}` : "",
+        undeclared.length ? `in the database but not in schema.ts: ${undeclared.join(", ")}` : "",
+        nullability.length ? `NOT NULL differs: ${nullability.join(", ")}` : "",
+      ]
+        .filter(Boolean)
+        .join("; "),
+    );
   }
 }
 
