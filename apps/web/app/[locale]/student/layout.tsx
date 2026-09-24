@@ -15,7 +15,7 @@ const copy = bilingual({
   },
   ar: {
     title: "حصصي",
-    description: "دروسك المباشرة الجاية والحجوزات متاعك في Tnajem.",
+    description: "حصصك الدايركت الجاية والحجوزات متاعك في Tnajem.", // phase-a lane L6 (A18.derija-2)
   },
 });
 

@@ -77,7 +77,7 @@ const copy = bilingual({
   ar: {
     upcoming: "الحصص الجاية",
     startsIn: "تبدا في",
-    liveNow: "المباشر بدا توّا",
+    liveNow: "الدايركت بدا توّا", // phase-a lane L6 (A18.derija-2)
     at: "على",
     cancel: "ألغي مكاني",
     cancelSure: "تحب تلغي هذا الحجز ؟",
@@ -104,9 +104,9 @@ const copy = bilingual({
     sending: "قاعد يتبعث…",
     thanks: "يعيشك ! تقييمك يعاون التلاميذ الآخرين.",
     thanksMasked: "يعيشك ! تقييمك تنشر — نحّينا معلومات الاتصال (النمرة، الإيميل ولا الرابط)، علاخاطر موش مسموحة في صفحة عمومية.",
-    already: "لقد نقّمت هذه الحصة من قبل.",
-    notBooked: "ما كنتش محجوز في هذه الحصة.",
-    notStarted: "هذه الحصة ما زالت ما صارتش.",
+    already: "قيّمت الحصة هاذي من قبل.", // phase-a lane L6 (A18.derija-2)
+    notBooked: "ما كنتش محجوز في الحصة هاذي.", // phase-a lane L6 (A18.derija-2)
+    notStarted: "الحصة هاذي ما زالت ما صارتش.", // phase-a lane L6 (A18.derija-2)
     notEnded: "تنجّم تنقّم الحصة كي توفى.", // phase-a lane L3 (A16)
     pickStars: "اختار تقييم من 1 إلى 5 نجوم.",
     reviewErr: "التقييم ما مشاش. عاود حاول.",

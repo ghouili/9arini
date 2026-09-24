@@ -97,7 +97,7 @@ const copy = bilingual({
     noCard: "ما فماش خلاص أونلاين في فترة التجربة.", // phase-a lane L3 (A22)
     freeSession: "فابور كان هي أول حصة ليك مع هالأستاذ.", // phase-a lane L3 (A6)
     paidSession: (p: number) =>
-      `هذه الحصة بـ ${p} د.ت.`, // phase-a lane L3 (A22)
+      `الحصة هاذي بـ ${p} د.ت.`, // phase-a lane L3 (A22) · phase-a lane L6 (A18.derija-2)
     nextSessions: (p: number) =>
       `الحصص الموالية : ${p} د.ت، كان عجبك.`,
 
@@ -113,20 +113,20 @@ const copy = bilingual({
     confirm: "أكّد مكاني",
     confirming: "قاعدين نحجزو بلاصتك…",
 
-    okTitle: "تم الحجز !",
+    okTitle: "حجزت بلاصتك!", // phase-a lane L6 (A18.derija-2)
     okBody: "مكانك مؤكّد. تلقى رابط الحصة في « حصصي ».",
     okAlready: "مكانك كان محجوز من قبل. رابط الحصة في « حصصي ».",
     okWhen: "الموعد",
     okCta: "شوف حصصي",
 
-    soldOutTitle: "هذه الحصة كاملة",
+    soldOutTitle: "الحصة هاذي كاملة", // phase-a lane L6 (A18.derija-2)
     soldOutBody: "الأماكن الكل تحجزو. لوّج على حصة أخرى — فما غيرها.",
-    closedTitle: "هذه الحصة ما عادش مفتوحة للحجز",
+    closedTitle: "الحصة هاذي ما عادش تتحجز", // phase-a lane L6 (A18.derija-2)
     closedBody: "الحصة بدات ولا تلغات. لوّج على حصة أخرى — فما غيرها.",
     otherClasses: "شوف حصص أخرى",
     errAuth: "تسجّل الدخول باش تحجز مكانك.",
     errFull: "ما عادش فما أماكن في هاذي الحصة.",
-    errUnavailable: "هذه الحصة ما عادش متوفّرة.",
+    errUnavailable: "الحصة هاذي ما عادش موجودة.", // phase-a lane L6 (A18.derija-2)
     errConsent: "لازم موافقة وليّك باش تنجّم تحجز.",
     errConsentCta: "أعطي الموافقة",
     errGeneric: "الحجز ما مشاش. عاود حاول بعد شويّة.",

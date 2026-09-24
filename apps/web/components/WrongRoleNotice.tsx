@@ -34,7 +34,7 @@ const COPY = {
     upgradeLead: "تحب تقرّي في تنجّم ؟",
     upgradeCta: "ولّي أستاذ",
     genericTitle: "هذا الفضاء موش متاعك",
-    genericBody: "حسابك ما عندوش نفاذ لهذه الصفحة.",
+    genericBody: "حسابك ما ينجّمش يدخل للصفحة هاذي.", // phase-a lane L6 (A18.derija-2)
     genericCta: "ارجع للرئيسية",
   },
 } as const;
