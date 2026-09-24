@@ -962,7 +962,7 @@ function StatusPanel({
       )}
       <div className="mt-[22px] flex justify-center">
         <Link href="/dashboard">
-          <span className="btn btn-ink w-auto py-[13px] px-[22px]">{backLabel}</span>
+          <span className="btn btn-primary w-auto py-[13px] px-[22px]">{backLabel}</span>
         </Link>
       </div>
     </div>

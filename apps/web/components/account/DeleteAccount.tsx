@@ -147,7 +147,7 @@ export function DeleteAccount() {
       <div className="panel panel-pad">
         <h2 className="font-display text-[16px] font-bold mb-1.5">{c.pendingTitle}</h2>
         <p className="text-[13px] text-muted leading-[1.6] mb-3">{c.pendingBody(when)}</p>
-        <button type="button" onClick={doCancel} disabled={busy} className="btn btn-ink btn-sm">
+        <button type="button" onClick={doCancel} disabled={busy} className="btn btn-primary btn-sm">
           {busy ? c.working : c.undo}
         </button>
         {err && (

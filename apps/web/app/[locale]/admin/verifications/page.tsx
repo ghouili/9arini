@@ -315,7 +315,7 @@ export default function AdminVerificationsPage() {
                 {c.deniedNote}
               </p>
               <Link href="/auth" className="w-auto">
-                <Button variant="ink" sm>{c.signIn}</Button>
+                <Button variant="primary" sm>{c.signIn}</Button>
               </Link>
             </div>
           )}

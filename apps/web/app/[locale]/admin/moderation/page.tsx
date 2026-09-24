@@ -215,7 +215,7 @@ export default function AdminModerationPage() {
               <h2 className="font-display text-[22px]">{c.deniedTitle}</h2>
               <p className="muted leading-[1.6]">{c.deniedNote}</p>
               <Link href="/auth" className="w-auto">
-                <Button variant="ink" sm>{c.signIn}</Button>
+                <Button variant="primary" sm>{c.signIn}</Button>
               </Link>
             </div>
           )}
@@ -259,7 +259,7 @@ export default function AdminModerationPage() {
                         </span>
                       </label>
                       <div className="flex flex-wrap gap-2">
-                        <Button variant="ink" sm disabled={busy !== null} onClick={() => run(`r:${r.id}`, () => resolveReport({ id: r.id, action: "actioned", note: notes[r.id] }), c.resolved)}>
+                        <Button variant="primary" sm disabled={busy !== null} onClick={() => run(`r:${r.id}`, () => resolveReport({ id: r.id, action: "actioned", note: notes[r.id] }), c.resolved)}>
                           {c.actioned}
                         </Button>
                         <Button variant="ghost" sm disabled={busy !== null} onClick={() => run(`r:${r.id}`, () => resolveReport({ id: r.id, action: "dismissed", note: notes[r.id] }), c.resolved)}>
@@ -309,7 +309,7 @@ export default function AdminModerationPage() {
                       </p>
                       <p className="text-[13px] leading-[1.6] m-0">{c.upholdHint}</p>
                       <div className="flex flex-wrap gap-2">
-                        <Button variant="ink" sm disabled={busy !== null} onClick={() => run(`t:${t.id}`, () => resolveTakedown({ id: t.id, uphold: true }), c.upheld)}>
+                        <Button variant="primary" sm disabled={busy !== null} onClick={() => run(`t:${t.id}`, () => resolveTakedown({ id: t.id, uphold: true }), c.upheld)}>
                           {c.uphold}
                         </Button>
                         <Button variant="ghost" sm disabled={busy !== null} onClick={() => run(`t:${t.id}`, () => resolveTakedown({ id: t.id, uphold: false }), c.rejectedClaim)}>
@@ -341,7 +341,7 @@ export default function AdminModerationPage() {
                         {p.updatedAt && <div className="muted text-[13px] mt-1">{c.received(when(p.updatedAt))}</div>}
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <Button variant="ink" sm disabled={busy !== null || !p.version} onClick={() => run(`p:${p.tutorId}`, () => decideAvatar({ tutorId: p.tutorId, approve: true, version: p.version ?? "" }), c.approved)}>
+                        <Button variant="primary" sm disabled={busy !== null || !p.version} onClick={() => run(`p:${p.tutorId}`, () => decideAvatar({ tutorId: p.tutorId, approve: true, version: p.version ?? "" }), c.approved)}>
                           {c.approve}
                         </Button>
                         <Button variant="ghost" sm disabled={busy !== null || !p.version} onClick={() => run(`p:${p.tutorId}`, () => decideAvatar({ tutorId: p.tutorId, approve: false, version: p.version ?? "" }), c.photoRejected)}>

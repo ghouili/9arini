@@ -172,7 +172,7 @@ export function ClassActions({ classId, startsAt, onChanged }: { classId: string
           />
           <p id={`when-tz-${classId}`} className="text-[13px] text-muted mb-2.5">{c.tunisTime}</p>
           <div className="flex gap-2 flex-wrap">
-            <button type="button" onClick={doMove} disabled={busy || !when} className="btn btn-ink btn-sm">
+            <button type="button" onClick={doMove} disabled={busy || !when} className="btn btn-primary btn-sm">
               {busy ? c.moving : c.confirmMoveCta}
             </button>
             <button type="button" onClick={() => setMode("idle")} className="btn btn-ghost btn-sm">

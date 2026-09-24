@@ -234,7 +234,7 @@ export default function AdminAccountsPage() {
               <h2 className="font-display text-[22px]">{c.deniedTitle}</h2>
               <p className="muted leading-[1.6]">{c.deniedNote}</p>
               <Link href="/auth" className="w-auto">
-                <Button variant="ink" sm>{c.signIn}</Button>
+                <Button variant="primary" sm>{c.signIn}</Button>
               </Link>
             </div>
           )}
@@ -255,7 +255,7 @@ export default function AdminAccountsPage() {
                     />
                   </span>
                 </label>
-                <Button variant="ink" type="submit" disabled={searching}>
+                <Button variant="primary" type="submit" disabled={searching}>
                   {searching ? c.searching : c.search}
                 </Button>
               </form>

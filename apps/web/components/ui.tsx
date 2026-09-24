@@ -10,7 +10,7 @@ import Image from "next/image";
 
 type BtnProps = {
   children: ReactNode;
-  variant?: "primary" | "ink" | "green" | "ghost";
+  variant?: "primary" | "green" | "ghost" | "outline";
   sm?: boolean;
   onClick?: () => void;
   type?: "button" | "submit";
@@ -38,9 +38,9 @@ type BtnProps = {
    back into a template. */
 const BTN_VARIANT = {
   primary: "btn-primary",
-  ink: "btn-ink",
   green: "btn-green",
   ghost: "btn-ghost",
+  outline: "btn-outline", // UI Option A (A3)
 } as const;
 
 export function Button({ children, variant = "primary", sm, onClick, type = "button", disabled, style, className = "", "aria-label": ariaLabel }: BtnProps) {

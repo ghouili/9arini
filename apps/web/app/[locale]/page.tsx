@@ -538,7 +538,7 @@ export default function HomePage() {
             </div>
             <Link
               href="/pour-les-profs"
-              className="btn btn-ink w-auto flex-none rounded-[13px] px-6 py-3.5 text-[15px]"
+              className="btn btn-ghost w-auto flex-none rounded-[13px] px-6 py-3.5 text-[15px]"
             >
               {c.profCta}
             </Link>

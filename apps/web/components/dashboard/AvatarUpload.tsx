@@ -144,7 +144,7 @@ export function AvatarUpload({
         <Avatar initials={initials} size={72} src={src} alt="" />
 
         <div className="min-w-0 flex-1">
-          <label className="btn btn-ink btn-sm inline-flex cursor-pointer">
+          <label className="btn btn-ghost btn-sm inline-flex cursor-pointer">
             {busy ? c.uploading : status ? c.replace : c.choose}
             <input
               type="file"

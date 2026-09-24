@@ -181,7 +181,7 @@ export function ReportButton({ subjectKind, subjectId, compact = false }: { subj
           {error && <p role="alert" className="text-[13px] text-rose font-semibold m-0">{error}</p>}
 
           <div>
-            <button type="submit" className="btn btn-ink btn-sm" disabled={busy} data-e2e="report-send">
+            <button type="submit" className="btn btn-primary btn-sm" disabled={busy} data-e2e="report-send">
               {busy ? c.sending : c.send}
             </button>
           </div>

@@ -46,6 +46,11 @@ const PAIRS = [
   ["Buttons", W, "--blue", "normal", ".lp-chip-all / .verified", "page.tsx:271"],
   ["Buttons", W, "--blue700", "normal", ".lp-chip-all:hover", "page.tsx:272"],
   ["Buttons", W, "--rose", "normal", "student LIVE badge", "student/page.tsx"],
+  // UI Option A (A3): cobalt carries STATE and the header way-in; the rose pill is destructive.
+  ["Buttons", "--blue", "--bg", "normal", ".btn-outline label (header Tableau de bord)", "SiteHeader.tsx"],
+  ["Buttons", "--blue", "--blue50", "normal", "selected language / sidebar current / .btn-outline:hover", "LocaleToggle.tsx, DashboardSidebar.tsx"],
+  ["Buttons", W, "--blue", "normal", "step numbers (HowItWorks, .lpp-node)", "dashboard/page.tsx, pour-les-profs"],
+  ["Buttons", W, "--rose", "normal", "withdraw-consent confirm (rose destructive pill)", "guardian/page.tsx"],
 
   // ── chips & badges (11.5px/700 → normal) ──
   ["Chips", W, "--green-btn", "normal", ".chip-free", "globals.css:108"],

@@ -226,7 +226,7 @@ function SuccessOverlay({
         </span>
       </div>
 
-      <Link href="/student" className="btn btn-ink ck-success-cta">
+      <Link href="/student" className="btn btn-primary ck-success-cta">
         {okCta}
       </Link>
     </div>

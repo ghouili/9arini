@@ -246,7 +246,7 @@ export default function AdminPlansPage() {
               <h2 className="font-display text-[20px] mb-2">{c.deniedTitle}</h2>
               <p className="text-[13px] text-muted leading-[1.6] mb-4">{c.deniedNote}</p>
               <Link href="/auth" className="w-auto">
-                <Button variant="ink" sm>
+                <Button variant="primary" sm>
                   {c.signIn}
                 </Button>
               </Link>
@@ -366,7 +366,7 @@ export default function AdminPlansPage() {
                           />
                           <Button
                             sm
-                            variant="ink"
+                            variant="primary"
                             onClick={() => handleGrant(row)}
                             disabled={working || !(choice[row.tutorId] ?? "")}
                           >

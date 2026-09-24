@@ -696,7 +696,7 @@ export default function PourLesProfsPage() {
         .lpp-step { position: relative; transition: transform .2s; height: 100%; }
         .lpp-step:hover { transform: translateY(-3px); }
         .lpp-node {
-          width: 46px; height: 46px; flex: none; border-radius: 14px; background: var(--ink); color: #fff;
+          width: 46px; height: 46px; flex: none; border-radius: 14px; background: var(--blue); color: #fff; /* UI Option A (A3): step numbers are cobalt */
           display: grid; place-items: center; font-family: var(--fd); font-size: 20px; font-weight: 700;
           box-shadow: var(--sh-s); position: relative; z-index: 2;
         }

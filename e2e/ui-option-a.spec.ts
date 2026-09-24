@@ -1,4 +1,7 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type BrowserContext, type Page } from "@playwright/test";
+import { seedProfile } from "./support/seed";
+import { loginAs } from "./support/session";
+import { BASE_URL } from "./support/env";
 
 /* UI Option A "Clair" — the colour rules that must not drift back.
 
@@ -35,5 +38,47 @@ test.describe("A1 — one flat page background", () => {
     const bg = await bodyBackground(page);
     expect(bg.image).toBe("none");
     expect(bg.color).toBe(BG);
+  });
+});
+
+/* ── A3: near-black is no longer a button or a selected state ─────────────────── */
+const BLUE = "rgb(14, 90, 166)"; // --blue
+const BLUE50 = "rgb(233, 241, 250)"; // --blue50
+const TRANSPARENT = "rgba(0, 0, 0, 0)";
+
+async function signedInTutor(ctx: BrowserContext) {
+  const tutor = await seedProfile({ role: "tutor", birthYear: 1990 });
+  await loginAs(ctx, tutor.id);
+  // The header reads the readable role hint a real login sets, not the session.
+  await ctx.addCookies([{ name: "tnajem_role", value: "tutor", domain: new URL(BASE_URL).hostname, path: "/" }]);
+}
+
+const colours = (page: Page, selector: string) =>
+  page.locator(selector).first().evaluate((el) => {
+    const s = getComputedStyle(el);
+    return { bg: s.backgroundColor, color: s.color, border: s.borderTopColor };
+  });
+
+test.describe("A3 — the header, the language toggle and the sidebar speak cobalt", () => {
+  test("header 'Tableau de bord' is a cobalt OUTLINE button, and the selected language is cobalt on blue50", async ({ browser }) => {
+    const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    await signedInTutor(ctx);
+    const page = await ctx.newPage();
+    await page.goto("/fr/explore");
+    const cta = await colours(page, 'header a.qh-cta[href="/fr/dashboard"]');
+    expect(cta, "outline: transparent fill, cobalt label and border").toEqual({ bg: TRANSPARENT, color: BLUE, border: BLUE });
+    const lang = await colours(page, 'header button[aria-pressed="true"]');
+    expect({ bg: lang.bg, color: lang.color }).toEqual({ bg: BLUE50, color: BLUE });
+    await ctx.close();
+  });
+
+  test("the current sidebar item is cobalt on blue50 with a cobalt border", async ({ browser }) => {
+    const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    await signedInTutor(ctx);
+    const page = await ctx.newPage();
+    await page.goto("/fr/dashboard");
+    const cur = await colours(page, '.qs-nav a[aria-current="page"]');
+    expect(cur).toEqual({ bg: BLUE50, color: BLUE, border: BLUE });
+    await ctx.close();
   });
 });

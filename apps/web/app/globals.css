@@ -156,9 +156,14 @@
   .btn:disabled{opacity:.5;cursor:not-allowed}
   .btn-primary{background:var(--ochre-btn);color:#fff;box-shadow:0 14px 24px -12px rgba(224,133,46,.85)}
   .btn-primary:hover:not(:disabled){background:var(--ochre-btn-hover)}
-  .btn-ink{background:var(--ink);color:#fff}
   .btn-green{background:var(--green-btn);color:#fff;box-shadow:0 14px 24px -12px rgba(27,156,111,.8)}
   .btn-ghost{background:transparent;border:1.5px solid var(--line);color:var(--ink)}
+  /* UI Option A (A3): the cobalt OUTLINE — a way in ("Tableau de bord", "Mes cours"
+     in the header), not the screen's main action. Near-black is text only now:
+     .btn-ink is gone (its 18 uses became primary, ghost, outline or the rose
+     destructive pill — UI_OPTION_A_REPORT.md lists each). */
+  .btn-outline{background:transparent;border:1.5px solid var(--blue);color:var(--blue)}
+  .btn-outline:hover{background:var(--blue50)}
   .btn-sm{padding:10px 14px;font-size:13.5px;width:auto;border-radius:11px;min-height:44px}
   /* flex:none — a 44px square button squashes to an oblong when it sits in a
      tight flex row (appbar, toolbars). Same class of bug as .verified below. */
@@ -419,7 +424,7 @@
   /* min-height:44px — WCAG 2.5.8 target size; 11px padding + 14px text landed at ~41px. */
   .side-nav a,.side-nav button{display:flex;align-items:center;gap:12px;min-height:44px;padding:11px 13px;border-radius:12px;font-weight:600;font-size:14px;color:var(--ink2);background:transparent;border:0;cursor:pointer;width:100%;min-width:0;text-align:start}
   .side-nav a:hover,.side-nav button:hover{background:var(--blue50);color:var(--blue)}
-  .side-nav .active{background:var(--ink);color:#fff}
+  .side-nav .active{background:var(--blue50);color:var(--blue)} /* UI Option A (A3): state is cobalt, never near-black */
   .side-nav .ic{width:19px;height:19px}
 
   /* ── .u-card — THE canonical card primitive ──────────────────────────────
