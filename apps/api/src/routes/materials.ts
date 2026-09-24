@@ -26,6 +26,21 @@ import { checkRateLimit, ipBucket } from "../lib/rate-limit";
 import { requireAdmin } from "../lib/admin";
 import { auditAdmin } from "../lib/audit";
 
+/* phase-a lane L4 (A11): delete the three stored sizes of ONE photo version.
+   Best-effort: the row has already moved on, so a failure here leaves an orphan
+   that account erasure still sweeps (it deletes all of avatars/<tutorId>/) — it is
+   logged, never thrown into the tutor's request. */
+async function deleteAvatarVersion(path: string, log: FastifyBaseLogger): Promise<void> {
+  const store = objectStore();
+  for (const size of AVATAR_SIZES) {
+    try {
+      await store.delete(`${path}-${size.name}.webp`);
+    } catch (e) {
+      log.warn({ code: (e as { code?: string }).code ?? (e as Error).name }, "a replaced photo could not be deleted from storage");
+    }
+  }
+}
+
 /* MATERIALS (Step 10) — worksheets, corrections and videos a tutor attaches.
 
    ══════════════════════════════════════════════════════════════════════════════
@@ -480,15 +495,28 @@ export async function materialRoutes(app: FastifyInstance): Promise<void> {
     }
 
     /* RULE 1. `pending`, always. If this ever reads anything else, the review
-       step has been removed and photos publish themselves. */
-    await db
-      .update(tutors)
-      .set({
-        avatarPath: `avatars/${mine.id}/${stamp}`,
-        avatarStatus: "pending",
-        avatarUpdatedAt: raw`now()`,
-      })
-      .where(eq(tutors.id, mine.id));
+       step has been removed and photos publish themselves.
+       phase-a lane L4 (A11): the previous version is read under the row lock, so
+       two concurrent uploads each delete exactly the one they replaced. */
+    const newPath = `avatars/${mine.id}/${stamp}`;
+    const previous = await db.transaction(async (tx) => {
+      const [cur] = await tx
+        .select({ avatarPath: tutors.avatarPath })
+        .from(tutors)
+        .where(eq(tutors.id, mine.id))
+        .for("update");
+      await tx
+        .update(tutors)
+        .set({
+          avatarPath: newPath,
+          avatarStatus: "pending",
+          avatarUpdatedAt: raw`now()`,
+        })
+        .where(eq(tutors.id, mine.id));
+      return cur?.avatarPath ?? null;
+    });
+    // phase-a lane L4 (A11): the replaced photo leaves storage — after the row moved on.
+    if (previous && previous !== newPath) await deleteAvatarVersion(previous, req.log);
 
     /* The storefront is cached and shows the monogram until approval, so nothing
        changes there yet — but a REPLACEMENT photo un-approves the old one, and
@@ -508,13 +536,25 @@ export async function materialRoutes(app: FastifyInstance): Promise<void> {
       .limit(1);
     if (!mine) return { ok: false, error: "no-storefront" };
 
-    /* The row is cleared; the files are left for the retention job rather than
-       unlinked here. A failed unlink must not leave the database claiming a photo
-       that is gone — the ordering that matters is "stop pointing at it first". */
-    await db
-      .update(tutors)
-      .set({ avatarPath: null, avatarStatus: null, avatarUpdatedAt: raw`now()` })
-      .where(eq(tutors.id, mine.id));
+    /* The row is cleared FIRST: a failed unlink must not leave the database
+       claiming a photo that is gone — the ordering that matters is "stop pointing
+       at it first".
+       phase-a lane L4 (A11): and THEN the files go. They used to be "left for the
+       retention job", which never touched avatars, so a deleted photo stayed in
+       storage for good. */
+    const previous = await db.transaction(async (tx) => {
+      const [cur] = await tx
+        .select({ avatarPath: tutors.avatarPath })
+        .from(tutors)
+        .where(eq(tutors.id, mine.id))
+        .for("update");
+      await tx
+        .update(tutors)
+        .set({ avatarPath: null, avatarStatus: null, avatarUpdatedAt: raw`now()` })
+        .where(eq(tutors.id, mine.id));
+      return cur?.avatarPath ?? null;
+    });
+    if (previous) await deleteAvatarVersion(previous, req.log);
 
     return { ok: true, revalidate: { tutors: [mine.slug], publicTutors: true } };
   });

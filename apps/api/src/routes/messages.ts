@@ -22,6 +22,7 @@ import { getSession } from "../lib/session";
 import { maskAndFlag } from "../lib/contact-guard";
 import { checkRateLimit } from "../lib/rate-limit";
 import { threadState } from "../lib/thread-state";
+import { visibleMessageBody } from "../lib/moderation-hide"; // phase-a lane L4 (A28)
 
 /* MESSAGING (Step 8b) — the channel that replaces the contact details Step 8
    closed.
@@ -260,7 +261,7 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
       .select({
         id: messages.id,
         senderProfileId: messages.senderProfileId,
-        body: messages.body,
+        body: visibleMessageBody(session.profile.locale), // phase-a lane L4 (A28): hidden by moderation → placeholder
         masked: messages.masked,
         createdAt: messages.createdAt,
       })

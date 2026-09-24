@@ -252,6 +252,12 @@ export async function classRoutes(app: FastifyInstance): Promise<void> {
       quiz_url: entitled ? (c.quizUrl ?? undefined) : undefined,
       replay_url: entitled ? (c.replayUrl ?? undefined) : undefined,
       status: c.status ?? "scheduled",
+      // phase-a lane L4 (A9): the tutor by SLUG — the page no longer searches by name.
+      // Only a storefront that is actually public: a link to a suspended, erased or
+      // unverified tutor's page would 404 for the booked student who can still see this.
+      tutor_slug: tut && tut.status === "verified" && !tut.suspendedAt && !tut.erasedAt ? tut.slug : null,
+      tutor_subject: tut?.subject ?? null,
+      tutor_level: tut?.level ?? null,
     };
   });
 

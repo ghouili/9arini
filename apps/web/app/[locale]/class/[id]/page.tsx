@@ -7,8 +7,8 @@ import { Calendar, Clock, Users, Shield, Gift, Back } from "@/components/icons";
 import { useLocale } from "@/components/LocaleProvider";
 import { UserText } from "@/components/UserText";
 import { ReportButton } from "@/components/ReportButton";
-import { getClass, getExploreTutors } from "@/app/actions";
-import { isOpenForBooking, monthLabel, type ClassItem, type ExploreTutor } from "@tnajem/shared";
+import { getClass } from "@/app/actions";
+import { isOpenForBooking, monthLabel, type ClassItem } from "@tnajem/shared";
 import { bilingual } from "@/lib/i18n";
 
 
@@ -160,20 +160,8 @@ export default function ClassDetailPage(props: { params: Promise<{ id: string }>
   const { t, locale } = useLocale();
   const c = copy[locale];
   const [cls, setCls] = useState<ClassItem | null | undefined>(undefined);
-  // The tutor behind this class (real slug + real subject/level — no hardcoded
-  // "/yassine-math" back-link, no hardcoded "Prof · Bac"). Null when we can't
-  // resolve them (demo mode / unverified tutor) → we simply show less.
-  const [tutor, setTutor] = useState<ExploreTutor | null>(null);
 
   useEffect(() => { getClass(params.id).then(setCls).catch(() => setCls(null)); }, [params.id]);
-
-  const tutorNameFromClass = cls?.tutor_name;
-  useEffect(() => {
-    if (!tutorNameFromClass) { setTutor(null); return; }
-    getExploreTutors({ q: tutorNameFromClass })
-      .then((rows) => setTutor(rows?.find((r) => r.full_name === tutorNameFromClass) ?? null))
-      .catch(() => setTutor(null));
-  }, [tutorNameFromClass]);
 
   const styles = <style dangerouslySetInnerHTML={{ __html: PAGE_CSS }} />;
 
@@ -213,14 +201,18 @@ export default function ClassDetailPage(props: { params: Promise<{ id: string }>
 
   const tutorName = cls.tutor_name ?? "—";
   const tutorInits = tutorName.split(" ").filter(Boolean).map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "?";
-  // Back to the tutor's real storefront when we know it, else to the catalogue.
-  const backHref = tutor?.slug ? `/${tutor.slug}` : "/explore";
+  /* phase-a lane L4 (A9): the tutor comes from the class itself, BY SLUG. This page
+     used to search Explore for the tutor's name and take the first exact match, so
+     two tutors called "Mohamed Ben Ali" could send a student to the wrong teacher.
+     No slug (demo mode, a storefront that is not public) → back to the catalogue. */
+  const tutorSlug = cls.tutor_slug ?? null;
+  const backHref = tutorSlug ? `/${tutorSlug}` : "/explore";
   // Real subject/level from the tutor row — shown only when we actually have it.
-  const tutorMeta = tutor
-    ? [tutor.subject, tutor.level && !tutor.subject.includes(tutor.level) ? tutor.level : ""]
-        .filter(Boolean)
-        .join(" · ")
-    : "";
+  const tutorSubject = cls.tutor_subject ?? "";
+  const tutorLevel = cls.tutor_level ?? "";
+  const tutorMeta = [tutorSubject, tutorLevel && !tutorSubject.includes(tutorLevel) ? tutorLevel : ""]
+    .filter(Boolean)
+    .join(" · ");
   const month = monthLabel(cls.month, locale);
   /* A class that has started, finished or been cancelled offers no booking, however
      many seats it has left. This page used to check seats only, so a past class
@@ -345,8 +337,8 @@ export default function ClassDetailPage(props: { params: Promise<{ id: string }>
                 <span className="cd-tutor-av" aria-hidden="true">{tutorInits}</span>
                 <div className="min-w-0">
                   <div className="cd-tutor-name">
-                    {tutor?.slug ? (
-                      <Link href={`/${tutor.slug}`} style={{ color: "inherit" }}><UserText>{tutorName}</UserText></Link>
+                    {tutorSlug ? (
+                      <Link href={`/${tutorSlug}`} style={{ color: "inherit" }}><UserText>{tutorName}</UserText></Link>
                     ) : (<UserText>{tutorName}</UserText>)}
                   </div>
                   {tutorMeta && <UserText as="div" className="cd-tutor-meta">{tutorMeta}</UserText>}

@@ -54,6 +54,13 @@ export type ClassItem = {
   quiz_url?: string;        // Wooclap / Quizizz
   replay_url?: string;      // recorded session
   status?: "scheduled" | "live" | "done" | "cancelled";
+  // phase-a lane L4 (A9): the class page links its tutor BY SLUG. It used to
+  // search Explore for the tutor's name, so two tutors with the same name could
+  // send a student to the wrong storefront. Optional: only GET /classes/:id sets them.
+  tutor_slug?: string | null;
+  tutor_subject?: string | null;
+  /** tutors.level as stored today (A18.7 reconciles it with the levels list at merge). */
+  tutor_level?: string | null;
 };
 
 export type Pack = {
@@ -449,6 +456,17 @@ export type PendingTutor = {
   publicTeacherDeclaration: { declaredAt: string; version: string } | null;
   /** url: a signed link valid for minutes and only for the admin it was issued to. */
   docs: { id: string; kind: string; fileName: string; url: string }[];
+  // phase-a lane L4 (A10): `docs` is the CURRENT round only — one submission, one
+  // upload time. Earlier rounds are kept apart, newest first, each dated, so an
+  // admin can never approve against last month's scan by mistake.
+  /** When the documents in `docs` were uploaded (ISO), or null when there are none. */
+  docsSubmittedAt: string | null;
+  previousRounds: { submittedAt: string; docs: { id: string; kind: string; fileName: string; url: string }[] }[];
+  // phase-a lane L4 (A26): an ALREADY VERIFIED tutor with something to review — a
+  // rename (pendingName) and/or a new round. They stay public meanwhile; `name` is
+  // still the approved name. Send pendingName back with approve: it is bound too.
+  reReview: boolean;
+  pendingName: string | null;
 };
 
 /* ── The moderation queue (/admin/moderation) ─────────────────────────────── */
@@ -458,7 +476,8 @@ export type AdminReport = {
   id: string;
   subjectKind: "tutor" | "class" | "review" | "message" | "material" | "other";
   subjectId: string | null;
-  subject: { label: string; href: string | null } | null;
+  // phase-a lane L4 (A28): hidden → a message/review an admin has already hidden.
+  subject: { label: string; href: string | null; hidden?: boolean } | null;
   reason: string;
   reporterEmail: string | null;
   createdAt: string;

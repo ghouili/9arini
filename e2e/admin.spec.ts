@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { sql } from "./support/db";
-import { seedAdmin, seedProfile, seedTutor, seedVerificationDoc } from "./support/seed";
+import { seedAdmin, seedProfile, seedTutor, seedVerificationDoc, seedDeclaration } from "./support/seed";
 import { mintSession, SESSION_COOKIE } from "./support/session";
 import { api } from "./support/journey";
 import { signedDocLink } from "./support/doc-crypto";
@@ -157,6 +157,7 @@ test("approving a pending tutor makes them verified", async ({ browser }) => {
   const admin = await seedAdmin();
   const tutor = await seedTutor({ status: "pending" });
   await seedVerificationDoc(tutor.id);
+  await seedDeclaration(tutor.id); // phase-a lane L4 (A15): no declaration, no approval
 
   const ctx = await browser.newContext({ reducedMotion: "reduce" });
   const { sessionCookie } = await import("./support/session");

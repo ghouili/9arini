@@ -52,6 +52,17 @@ const copy = bilingual({
     approved: "Tuteur approuvé ✓",
     rejected: "Demande refusée",
     error: "Une erreur s'est produite. Réessaie.",
+    // phase-a lane L4 (A10)
+    currentRound: (d: string) => `Envoyés le ${d}`,
+    previousRounds: "Soumissions précédentes",
+    previousRound: (d: string) => `Soumission du ${d}`,
+    previousNote: "Pour comparaison seulement : la décision porte sur les documents ci-dessus.",
+    // phase-a lane L4 (A15)
+    declarationMissing: "Impossible de valider : ce dossier n'a pas la déclaration du décret 2015-1619. Refuse-le avec ce motif pour que le prof la fasse.",
+    // phase-a lane L4 (A26)
+    reReview: "Déjà vérifié · reste en ligne pendant cette revue",
+    reReviewNote: "Tu valides ou refuses la modification. Un refus ne retire pas la vérification : pour ça, bloque le compte.",
+    renameTo: "Nouveau nom demandé",
   },
   ar: {
     eyebrow: "أدمين",
@@ -92,6 +103,17 @@ const copy = bilingual({
     approved: "المعلّم تقبل ✓",
     rejected: "الطلب تنرفض",
     error: "صار مشكل. عاود.",
+    // phase-a lane L4 (A10)
+    currentRound: (d: string) => `تبعثو نهار ${d}`,
+    previousRounds: "الملفات اللي تبعثو قبل",
+    previousRound: (d: string) => `ملف نهار ${d}`,
+    previousNote: "للمقارنة برك: القرار يخص الوثائق اللي الفوق.",
+    // phase-a lane L4 (A15)
+    declarationMissing: "ما تنجّمش تقبلو: الملف هذا ما فيهش تصريح الأمر 2015-1619. ارفضو بالسبب هذا باش المعلّم يعمل التصريح.",
+    // phase-a lane L4 (A26)
+    reReview: "متأكّد من قبل · صفحتو تبقى ظاهرة وقت المراجعة هاذي",
+    reReviewNote: "إنت تقبل ولا ترفض التبديل برك. الرفض ما ينحّيش التأكيد: كان تحب تنحّيه، احظر الحساب.",
+    renameTo: "الاسم الجديد اللي طلبو",
   },
 });
 
@@ -127,6 +149,36 @@ function formatDate(iso: string | null, locale: "fr" | "ar"): string | null {
   return formatInTunis(iso, locale, { day: "numeric", month: "long", year: "numeric" });
 }
 
+/* phase-a lane L4 (A10): a round's date WITH the time — two rounds can share a day. */
+function formatRoundDate(iso: string | null, locale: "fr" | "ar"): string | null {
+  if (!iso || Number.isNaN(Date.parse(iso))) return null;
+  return formatInTunis(iso, locale, {
+    day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
+  });
+}
+
+type DocLinkItem = PendingTutor["docs"][number];
+
+/** One document button. The same control on the card and in earlier rounds. */
+function DocButton({ d, locale }: { d: DocLinkItem; locale: "fr" | "ar" }) {
+  const nm = docNames[d.kind];
+  const label = nm ? nm[locale] : d.kind;
+  const required = d.kind === "id_front" || d.kind === "id_back";
+  return (
+    <a
+      href={d.url}
+      /* No new tab: the document downloads (Content-Disposition:
+         attachment), and a tab would open empty. */
+      title={d.fileName}
+      className={`av-doc${required ? " av-doc-req" : ""}`}
+    >
+      <Eye className="w-[15px] h-[15px]" />
+      {label}
+      <Forward className="w-[13px] h-[13px] opacity-[0.6]" />
+    </a>
+  );
+}
+
 export default function AdminVerificationsPage() {
   const { locale } = useLocale();
   const c = copy[locale];
@@ -158,10 +210,11 @@ export default function AdminVerificationsPage() {
     };
   }, []);
 
-  async function handleApprove(tutorId: string, submittedAt: string | null) {
+  async function handleApprove(tutorId: string, submittedAt: string | null, pendingName: string | null) {
     setBusy((b) => ({ ...b, [tutorId]: "approve" }));
     // The version on screen: the API refuses to approve a dossier that changed since.
-    const res = await approveTutor({ tutorId, submittedAt });
+    // phase-a lane L4 (A26): the requested name on screen is bound the same way.
+    const res = await approveTutor({ tutorId, submittedAt, pendingName });
     if (res.ok) {
       setItems((list) => list.filter((t) => t.tutorId !== tutorId));
       showToast(c.approved);
@@ -184,6 +237,7 @@ export default function AdminVerificationsPage() {
       case "not-pending": return c.notPending;
       case "changed-since-review": return c.changedSinceReview;
       case "self-approval-forbidden": return c.selfDecision;
+      case "declaration-missing": return c.declarationMissing; // phase-a lane L4 (A15)
       default: return c.error;
     }
   }
@@ -311,6 +365,20 @@ export default function AdminVerificationsPage() {
                       </div>
                     </header>
 
+                    {/* phase-a lane L4 (A26): a verified tutor's re-review — what changes. */}
+                    {t.reReview && (
+                      <div className="av-block" data-e2e="re-review">
+                        <span className="chip chip-soft">{c.reReview}</span>
+                        {t.pendingName && (
+                          <p className="text-[14px]">
+                            <span className="av-label">{c.renameTo} · </span>
+                            <UserText as="b">{t.pendingName}</UserText>
+                          </p>
+                        )}
+                        <p className="muted text-[13px]">{c.reReviewNote}</p>
+                      </div>
+                    )}
+
                     {/* Details grid */}
                     <div className="av-grid">
                       <div className="av-field">
@@ -351,32 +419,39 @@ export default function AdminVerificationsPage() {
                         <span className="av-label">{c.documents}</span>
                         {!hasId && <span className="chip chip-rose">{c.idRequired}</span>}
                       </div>
+                      {/* phase-a lane L4 (A10): the CURRENT round only, dated. */}
+                      {t.docsSubmittedAt && formatRoundDate(t.docsSubmittedAt, locale) && (
+                        <p className="muted text-[13px]" data-e2e="current-round">
+                          {c.currentRound(formatRoundDate(t.docsSubmittedAt, locale) ?? "")}
+                        </p>
+                      )}
                       {t.docs.length > 0 ? (
-                        <div className="av-docs">
-                          {t.docs.map((d) => {
-                            const nm = docNames[d.kind];
-                            const label = nm ? nm[locale] : d.kind;
-                            const required = d.kind === "id_front" || d.kind === "id_back";
-                            return (
-                              <a
-                                key={d.id}
-                                href={d.url}
-                                /* No new tab: the document downloads (Content-Disposition:
-                                   attachment), and a tab would open empty. */
-                                title={d.fileName}
-                                className={`av-doc${required ? " av-doc-req" : ""}`}
-                              >
-                                <Eye className="w-[15px] h-[15px]" />
-                                {label}
-                                <Forward className="w-[13px] h-[13px] opacity-[0.6]" />
-                              </a>
-                            );
-                          })}
+                        <div className="av-docs" data-e2e="current-docs">
+                          {t.docs.map((d) => <DocButton key={d.id} d={d} locale={locale} />)}
                         </div>
                       ) : (
                         <p className="muted text-[13px]">{c.notProvided}</p>
                       )}
                     </div>
+
+                    {/* phase-a lane L4 (A10): earlier rounds, collapsed, grouped and dated —
+                        never mixed into the documents the decision is about. */}
+                    {(t.previousRounds ?? []).length > 0 && (
+                      <details className="av-prev" data-e2e="previous-rounds">
+                        <summary className="av-label">{c.previousRounds} ({t.previousRounds.length})</summary>
+                        <p className="muted text-[13px] mt-2">{c.previousNote}</p>
+                        {t.previousRounds.map((r) => (
+                          <div key={r.submittedAt} className="av-block mt-3">
+                            <span className="text-[13px] font-bold">
+                              {c.previousRound(formatRoundDate(r.submittedAt, locale) ?? c.noDate)}
+                            </span>
+                            <div className="av-docs">
+                              {r.docs.map((d) => <DocButton key={d.id} d={d} locale={locale} />)}
+                            </div>
+                          </div>
+                        ))}
+                      </details>
+                    )}
 
                     {/* Links */}
                     {activeLinks.length > 0 && (
@@ -404,7 +479,7 @@ export default function AdminVerificationsPage() {
                       <div className="av-approve">
                         <Button
                           variant="green"
-                          onClick={() => handleApprove(t.tutorId, t.submittedAt)}
+                          onClick={() => handleApprove(t.tutorId, t.submittedAt, t.pendingName ?? null)}
                           disabled={disabled}
                         >
                           {state === "approve" ? (
@@ -487,6 +562,9 @@ html[dir="rtl"] .av-pitch{border-radius:var(--r-s) 0 0 var(--r-s)}
   .av-doc{display:inline-flex;align-items:center;gap:7px;min-height:44px;font-size:13px;font-weight:700;padding:8px 12px;border-radius:11px;background:var(--blue50);color:var(--blue);border:1px solid transparent;transition:.15s}
 .av-doc:hover{border-color:var(--blue)}
 .av-doc-req{background:var(--sand);color:var(--ink2)}
+/* phase-a lane L4 (A10): earlier rounds, collapsed under the current documents. */
+.av-prev{border-top:1px dashed var(--line);padding-top:8px}
+.av-prev summary{cursor:pointer;min-height:44px;display:flex;align-items:center}
 .av-links{display:flex;flex-wrap:wrap;gap:8px}
 .av-link{display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:700;padding:6px 11px;border-radius:999px;border:1.5px solid var(--line);color:var(--ink2);transition:.15s}
 .av-link:hover{border-color:var(--blue);color:var(--blue)}

@@ -441,12 +441,22 @@ export async function getPendingVerifications():
 }
 
 /** submittedAt: the version of the application the admin reviewed (the queue item's). */
-export async function approveTutor(input: { tutorId: string; submittedAt: string | null }): Promise<{ ok: boolean; error?: string }> {
+export async function approveTutor(input: {
+  tutorId: string;
+  submittedAt: string | null;
+  pendingName?: string | null; // phase-a lane L4 (A26): the rename the admin reviewed
+}): Promise<{ ok: boolean; error?: string }> {
   if (demoFallback) return { ok: false, error: "forbidden" };
   /* PORTED to apps/api (POST /admin/verifications/approve). Self-approval refusal
      and the "must be pending" gate moved with it; call() replays the revalidate
      envelope so the tutor's page and the sitemap go live immediately. */
-  return call<{ ok: boolean; error?: string }>("/admin/verifications/approve", input);
+  try {
+    return await call<{ ok: boolean; error?: string }>("/admin/verifications/approve", input);
+  } catch (e) {
+    // phase-a lane L4 (A15): 422 = no Décret 2015-1619 declaration for this round.
+    if ((e as { status?: number }).status === 422) return { ok: false, error: "declaration-missing" };
+    throw e;
+  }
 }
 
 export async function rejectTutor(input: { tutorId: string; note?: string }): Promise<{ ok: boolean; error?: string }> {
@@ -713,6 +723,12 @@ export async function getAdminReports(): Promise<AdminReport[]> {
 export async function resolveReport(input: { id: string; action: "actioned" | "dismissed"; note?: string }): Promise<ActionResult> {
   if (demoFallback) return { ok: false, error: "forbidden" };
   return call<ActionResult>(`/admin/reports/${encodeURIComponent(input.id)}`, { action: input.action, note: input.note });
+}
+/* phase-a lane L4 (A28): hide a reported message or review (a soft delete, audited,
+   reason required) and close the report it answers. */
+export async function hideContent(input: { kind: "message" | "review"; id: string; reason: string; reportId?: string }): Promise<ActionResult> {
+  if (demoFallback) return { ok: false, error: "forbidden" };
+  return call<ActionResult>("/admin/moderation/hide", input);
 }
 export async function getAdminTakedowns(): Promise<AdminTakedown[]> {
   if (demoFallback) return [];

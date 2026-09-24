@@ -19,6 +19,7 @@ import { db } from "../db";
 import { getSession } from "../lib/session";
 import { releaseBookings, upcomingBookingsOf } from "../lib/booking-release";
 import { threadState } from "../lib/thread-state"; // phase-a lane L1 (A2)
+import { visibleMessageBody } from "../lib/moderation-hide"; // phase-a lane L4 (A28)
 
 /* PARENT ACCOUNTS (Step 14).
 
@@ -319,7 +320,7 @@ export async function guardianRoutes(app: FastifyInstance): Promise<void> {
       .select({
         id: messages.id,
         senderProfileId: messages.senderProfileId,
-        body: messages.body,
+        body: visibleMessageBody(session.profile.locale), // phase-a lane L4 (A28): hidden by moderation → placeholder
         masked: messages.masked,
         createdAt: messages.createdAt,
       })

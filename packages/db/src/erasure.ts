@@ -12,7 +12,8 @@
                   links; messages it wrote (see KEEP_REPORTED_MESSAGES_ON_ERASURE)
      tutor        the public page (name, bio, photo, links, intro video) — hidden,
                   its slug retired so nobody can take the address over; identity
-                  documents, uploaded materials and every photo size DELETED FROM
+                  documents, uploaded materials and every photo (every size, every
+                  earlier version: all of avatars/<tutorId>/) DELETED FROM
                   STORAGE, not only from the database
      elsewhere    the account's name in other people's notifications
                   ("Amine a réservé…" becomes "Un compte supprimé a réservé…")
@@ -22,6 +23,9 @@
                          roster, the seat count and the cancellation ledger
      reviews             the rating and text, with no byline
      reports             about or by the account (safeguarding evidence)
+     a child's consent   when the account was the GUARDIAN: that consent was given,
+                         when, the text and the policy version — the guardian's
+                         name, phone and e-mail are erased from it (phase-a A27)
      verification trace  document kinds, dates and decision (0021)
      audit               an admin_actions row saying the erasure happened
 
@@ -138,6 +142,18 @@ export async function eraseAccount(
       return { outcome: "deferred", why: "storage" };
     }
   }
+  /* phase-a lane L4 (A11): EVERY photo, not only the current one. Replacing a photo
+     used to leave the previous one in storage with no row pointing at it, so the
+     current avatar_path was never the whole story. Same rule as above: a failure
+     defers the erasure before any row changes. */
+  if (tutor) {
+    try {
+      filesDeleted += (await store.deletePrefix(`avatars/${tutor.id}`)).deleted;
+    } catch (e) {
+      log(`erasure: profile ${profileId} deferred — stored photos could not be deleted (${(e as { code?: string }).code ?? (e as Error).name})`);
+      return { outcome: "deferred", why: "storage" };
+    }
+  }
   if (tutor) {
     for (const prefix of [`verification/${tutor.id}`, `materials/${tutor.id}`, `avatars/${tutor.id}`]) {
       await store.pruneEmpty(prefix).catch(() => {});
@@ -205,6 +221,30 @@ export async function eraseAccount(
         ? and(eq(messages.senderProfileId, profileId), notInArray(messages.id, reported))
         : eq(messages.senderProfileId, profileId));
 
+    /* phase-a lane L4 (A27): THE GUARDIAN IN THEIR CHILD'S CONSENT RECORD. The
+       consent belongs to the child (minor_id) and survives the parent's erasure —
+       but it carried the parent's name, phone and e-mail, so "your name and phone
+       are erased" was untrue for every parent. The person goes; the record that
+       consent was given, when, and under which policy version and text, stays.
+       Found by the link, by the address (how a link resolves) and by the number.
+       Erasing an account is not withdrawing consent: withdrawn_at is untouched.
+       LEGAL-REVIEW: retention of consent proof — how long an anonymised consent
+       record is kept, and whether it still proves consent once the signer is
+       unidentifiable, is not decided. */
+    const linkedConsents = tx
+      .select({ id: guardianLinks.consentId })
+      .from(guardianLinks)
+      .where(and(eq(guardianLinks.guardianProfileId, profileId), isNotNull(guardianLinks.consentId)));
+    const byGuardian = [
+      inArray(consents.id, linkedConsents),
+      ...(p.email ? [sql`lower(${consents.guardianEmail}) = lower(${p.email})`] : []),
+      ...(p.phone ? [eq(consents.guardianPhone, p.phone)] : []),
+    ];
+    await tx
+      .update(consents)
+      .set({ guardianName: ERASED_NAME, guardianPhone: "", guardianEmail: null })
+      .where(and(or(...byGuardian), ne(consents.minorId, profileId)));
+
     await tx.delete(guardianLinks).where(or(eq(guardianLinks.guardianProfileId, profileId), eq(guardianLinks.minorProfileId, profileId)));
     await tx.delete(consents).where(eq(consents.minorId, profileId));
     await tx.delete(sessions).where(eq(sessions.profileId, profileId));
@@ -239,6 +279,7 @@ export async function eraseAccount(
         .set({
           slug: `supprime-${randomBytes(6).toString("hex")}`,
           fullName: "",
+          pendingFullName: null, // phase-a lane L4 (A26): a requested name is a name too
           bio: null,
           avatarPath: null,
           avatarStatus: null,
