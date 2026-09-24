@@ -11,6 +11,7 @@ import {
   messageBodyText,
   parseMessageBody,
   publicDisplayName,
+  shownThreadState,
   vUuid,
   vOptionalText,
   type MessageThreadSummary,
@@ -20,6 +21,7 @@ import { db } from "../db";
 import { getSession } from "../lib/session";
 import { maskAndFlag } from "../lib/contact-guard";
 import { checkRateLimit } from "../lib/rate-limit";
+import { threadState } from "../lib/thread-state";
 
 /* MESSAGING (Step 8b) — the channel that replaces the contact details Step 8
    closed.
@@ -280,6 +282,8 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
       withName: publicDisplayName(other?.fullName ?? null),
       iAm: me.role,
       studentIsMinor: me.studentIsMinor,
+      // phase-a A2: the banner and the disabled composer. Reasons shown are filtered.
+      state: shownThreadState(await threadState(me.threadId)),
       messages: rows.map((m) => ({
         id: m.id,
         mine: m.senderProfileId === session.profile.id,
@@ -302,16 +306,17 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
     const me = await participantIn(req.params.id, session.profile.id);
     if (!me) return { ok: false, error: "not-found" };
 
-    /* A CANCELLED BOOKING ENDS THE CONVERSATION, for sending. Both sides keep the
-       history, but a minor who cancels to get away from a tutor must not keep
-       receiving messages — each one a notification (security review, 15 Sept 2026). */
-    const [live] = await db
-      .select({ status: bookings.status })
-      .from(messageThreads)
-      .innerJoin(bookings, eq(bookings.id, messageThreads.bookingId))
-      .where(eq(messageThreads.id, me.threadId))
-      .limit(1);
-    if (!live || live.status === "cancelled") return { ok: false, error: "booking-cancelled" };
+    /* A CLOSED CONVERSATION TAKES NO NEW MESSAGES (phase-a A2). Both sides keep
+       the history, but a minor who cancels to get away from a tutor must not keep
+       receiving messages — each one a notification (security review, 15 Sept 2026)
+       — and neither may anyone once consent is withdrawn, an account is blocked, or
+       the class ended THREAD_CLOSE_DAYS ago. threadState() is the one place that
+       decides. A cancelled booking keeps its own error code (the existing
+       contract); every other reason is one neutral "thread-closed", because the
+       tutor is never told WHY (consent, block). */
+    const state = await threadState(me.threadId);
+    if (state === "closed:booking-cancelled") return { ok: false, error: "booking-cancelled" };
+    if (state !== "open") return { ok: false, error: "thread-closed" };
 
     /* Keyed on the SENDER, not the IP: the abuse being prevented is one account
        flooding another, and a shared connection must not throttle a classroom. */

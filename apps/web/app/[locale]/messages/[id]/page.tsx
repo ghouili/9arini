@@ -5,11 +5,11 @@ import { Link } from "@/components/Link";
 import { useLocale } from "@/components/LocaleProvider";
 import { Button, Spinner } from "@/components/ui";
 import { SiteShell } from "@/components/SiteShell";
-import { Shield, Forward } from "@/components/icons";
+import { Shield, Forward, Lock } from "@/components/icons";
 import { UserText } from "@/components/UserText";
 import { getThread, sendMessage, reportMessage } from "@/app/actions";
 import type { MessageThreadDetail } from "@tnajem/shared";
-import { MESSAGE_MAX_LENGTH, formatShortDateTime } from "@tnajem/shared";
+import { MESSAGE_MAX_LENGTH, THREAD_CLOSE_DAYS, formatShortDateTime } from "@tnajem/shared";
 import { bilingual } from "@/lib/i18n";
 
 /* ONE CONVERSATION.
@@ -54,6 +54,15 @@ const copy = bilingual({
       "Cet élève a moins de 18 ans. Son parent ou tuteur peut lire cette conversation depuis son propre compte. Elle est conservée, et Tnajem peut la consulter si un message est signalé.",
     withTutor: "avec ton prof",
     withStudent: "avec ton élève",
+    // phase-a lane L1 (A2) — a closed conversation: readable, reportable, no composer.
+    closedTitle: "Conversation fermée",
+    closedEnded: (days: number) =>
+      `La séance est terminée depuis plus de ${days} jours : la conversation est fermée. Les messages restent visibles, et tu peux toujours en signaler un.`,
+    closedCancelled:
+      "Cette réservation a été annulée : la conversation est fermée. Les messages restent visibles, et tu peux toujours en signaler un.",
+    closedOther: "Cette conversation est fermée. Les messages restent visibles, et tu peux toujours en signaler un.",
+    closedComposer: "Conversation fermée : tu ne peux plus écrire ici.",
+    // end phase-a lane L1
   },
   ar: {
     back: "المحادثات الكل",
@@ -80,6 +89,15 @@ const copy = bilingual({
       "التلميذ هذا عمرو أقلّ من 18 سنة. الولي متاعو ينجّم يقرا المحادثة هاذي من الحساب متاعو. وهي تتحفظ، وTnajem تنجّم تشوفها كان رسالة تتبلّغ.",
     withTutor: "مع أستاذك",
     withStudent: "مع تلميذك",
+    // phase-a lane L1 (A2)
+    closedTitle: "المحادثة تسكّرت",
+    closedEnded: (days: number) =>
+      `الحصة كمّلت من أكثر من ${days} أيّام: المحادثة تسكّرت. الرسائل تقعد تبان، وتنجّم ديما تبلّغ على رسالة.`,
+    closedCancelled:
+      "الحجز هذا تلغى: المحادثة تسكّرت. الرسائل تقعد تبان، وتنجّم ديما تبلّغ على رسالة.",
+    closedOther: "المحادثة هاذي تسكّرت. الرسائل تقعد تبان، وتنجّم ديما تبلّغ على رسالة.",
+    closedComposer: "المحادثة تسكّرت: ما عادش تنجّم تكتب هوني.",
+    // end phase-a lane L1
   },
 });
 
@@ -132,8 +150,11 @@ export default function ThreadPage() {
           : e2 === "message-empty" ? c.errEmpty
           : e2 === "too-many-requests" ? c.errRate
           : e2 === "booking-cancelled" ? c.errCancelled
+          : e2 === "thread-closed" ? c.closedOther
           : c.errGeneric,
       });
+      // Closed while the page was open: reload so the banner replaces the composer.
+      if (e2 === "booking-cancelled" || e2 === "thread-closed") await load();
       return;
     }
     setDraft("");
@@ -184,6 +205,13 @@ export default function ThreadPage() {
   }
 
   const who = thread.withName ?? (thread.iAm === "tutor" ? c.withStudent : c.withTutor);
+  /* phase-a A2: the SERVER decides (threadState); this only shows it. A missing
+     state (an older API) reads as open, and the server still refuses the send. */
+  const closed = thread.state !== undefined && thread.state !== "open";
+  const closedText =
+    thread.state === "closed:class-ended" ? c.closedEnded(THREAD_CLOSE_DAYS)
+    : thread.state === "closed:booking-cancelled" ? c.closedCancelled
+    : c.closedOther;
 
   return (
     <SiteShell>
@@ -266,20 +294,36 @@ export default function ThreadPage() {
             </div>
           )}
 
+          {closed && (
+            <div
+              role="status"
+              data-testid="thread-closed"
+              className="panel panel-pad mb-3 flex items-start gap-2.5"
+              style={{ background: "var(--cream)" }}
+            >
+              <Lock className="w-4 h-4 flex-none mt-0.5" aria-hidden="true" />
+              <div className="text-[13px] leading-[1.6]">
+                <p className="font-bold text-ink">{c.closedTitle}</p>
+                <p className="text-muted mt-0.5">{closedText}</p>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSend} className="panel panel-pad">
-            <label htmlFor="msg" className="sr-only">{c.placeholder}</label>
+            <label htmlFor="msg" className="sr-only">{closed ? c.closedComposer : c.placeholder}</label>
             <textarea
               id="msg"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              placeholder={c.placeholder}
+              placeholder={closed ? c.closedComposer : c.placeholder}
               maxLength={MESSAGE_MAX_LENGTH}
               rows={3}
+              disabled={closed}
               className="w-full text-[14px] leading-[1.6] rounded-[12px] p-3"
               style={{ border: "1px solid var(--line)", background: "var(--paper)", resize: "vertical" }}
             />
             <div className="mt-2.5 flex justify-end">
-              <Button type="submit" disabled={busy}>{busy ? c.sending : c.send}</Button>
+              <Button type="submit" disabled={busy || closed}>{busy ? c.sending : c.send}</Button>
             </div>
           </form>
         </div>

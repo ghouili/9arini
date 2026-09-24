@@ -5,7 +5,7 @@ import { Link } from "@/components/Link";
 import { useLocale } from "@/components/LocaleProvider";
 import { Spinner } from "@/components/ui";
 import { SiteShell } from "@/components/SiteShell";
-import { Shield, Forward } from "@/components/icons";
+import { Shield, Forward, Lock } from "@/components/icons";
 import { UserText } from "@/components/UserText";
 import { getChildThread } from "@/app/actions";
 import { formatShortDateTime, type MessageThreadDetail } from "@tnajem/shared";
@@ -35,6 +35,10 @@ const copy = bilingual({
       "Lecture seule. Tu ne peux pas répondre à la place de ton enfant — le prof doit savoir à qui il parle.",
     privacy: "Les coordonnées sont retirées automatiquement de tous les messages.",
     with: "avec",
+    // phase-a lane L1 (A2)
+    closedTitle: "Conversation fermée",
+    closedBody: "Plus personne ne peut y écrire. Elle reste lisible ici.",
+    // end phase-a lane L1
   },
   ar: {
     back: "فضاء الولي",
@@ -48,6 +52,10 @@ const copy = bilingual({
       "قراية برك. ما تنجّمش تجاوب في بلاصة ولدك — الأستاذ لازمو يعرف مع شكون يتكلّم.",
     privacy: "معلومات الاتصال تتنحّى آليًا من الرسائل الكل.",
     with: "مع",
+    // phase-a lane L1 (A2)
+    closedTitle: "المحادثة تسكّرت",
+    closedBody: "حتى حد ما عاد ينجّم يكتب فيها. تقعد تتقرا هوني.",
+    // end phase-a lane L1
   },
 });
 
@@ -120,6 +128,22 @@ export default function GuardianThreadPage() {
               <p className="mt-1.5">{c.privacy}</p>
             </div>
           </div>
+
+          {/* phase-a lane L1 (A2): the server closed it; this page only says so. */}
+          {thread.state !== undefined && thread.state !== "open" && (
+            <div
+              role="status"
+              data-testid="thread-closed"
+              className="panel panel-pad mb-3 flex items-start gap-2.5"
+              style={{ background: "var(--cream)" }}
+            >
+              <Lock className="w-4 h-4 flex-none mt-0.5" aria-hidden="true" />
+              <div className="text-[13px] leading-[1.6]">
+                <p className="font-bold text-ink">{c.closedTitle}</p>
+                <p className="text-muted mt-0.5">{c.closedBody}</p>
+              </div>
+            </div>
+          )}
 
           <div className="panel panel-pad">
             {thread.messages.length === 0 ? (

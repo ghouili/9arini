@@ -9,6 +9,7 @@ import {
   isMinorBirthYear,
   messageBodyText,
   publicDisplayName,
+  shownThreadState, // phase-a lane L1 (A2)
   classWhen,
   CONSENT_POLICY_VERSION,
   type GuardianChild,
@@ -17,6 +18,7 @@ import {
 import { db } from "../db";
 import { getSession } from "../lib/session";
 import { releaseBookings, upcomingBookingsOf } from "../lib/booking-release";
+import { threadState } from "../lib/thread-state"; // phase-a lane L1 (A2)
 
 /* PARENT ACCOUNTS (Step 14).
 
@@ -335,6 +337,8 @@ export async function guardianRoutes(app: FastifyInstance): Promise<void> {
          invitation to a feature that does not exist. */
       iAm: "guardian",
       studentIsMinor: true,
+      // phase-a lane L1 (A2): a closed thread stays readable here; the page shows the banner.
+      state: shownThreadState(await threadState(thread.id)),
       messages: rows.map((m) => ({
         id: m.id,
         /* `mine` is FALSE for every message: none of them are the guardian's.
