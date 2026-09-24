@@ -18,7 +18,7 @@ import { CLASS_LIMITS, checkClassLimits } from "@tnajem/shared/class-input";
    Without a specific message this failure is opaque and unfixable-looking. */
 const NOT_VERIFIED_MSG = {
   fr: "Ton profil doit d'abord être vérifié. Va dans « Vérification » pour envoyer tes documents.",
-  ar: "لازم بروفايلك يتثبّت الأول. أمشي لـ « التثبّت » وابعث وثائقك.",
+  ar: "لازم بروفايلك يتثبّت الأول. امشي لـ « التثبّت » وابعث وثائقك.",
 } as const;
 
 /* Step 8. A class title and description are PUBLIC storefront copy, so contact

@@ -119,9 +119,9 @@ const copy = bilingual({
     notifTitle: "الإشعارات",
     notifEmpty: "ما فماش جديد توّا.",
     justNow: "توّا",
-    minsAgo: (n: number) => `منذ ${n} د`,
-    hoursAgo: (n: number) => `منذ ${n} س`,
-    daysAgo: (n: number) => `منذ ${n} يوم`,
+    minsAgo: (n: number) => `هاذي ${n} دقيقة`,
+    hoursAgo: (n: number) => `هاذي ${n} ساعة`,
+    daysAgo: (n: number) => `هاذي ${n} يوم`,
 
     howTitle: "كيفاش تتخلّص، اليوم",
     h1t: "إنتي تحدّد ثمنك",
