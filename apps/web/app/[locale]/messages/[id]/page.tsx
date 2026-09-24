@@ -16,9 +16,10 @@ import { bilingual } from "@/lib/i18n";
 
    ⚠ EVERY MESSAGE BODY IS RENDERED AS A TEXT NODE. `messages.body` is the only
    user-authored string in this product that is stored and then shown to a
-   DIFFERENT person, which is the exact shape of stored XSS. Markup is already
-   stripped server-side (packages/shared/src/message-text.ts), and React escaping
-   here is the second half of that pair. If anyone ever adds formatting, it
+   DIFFERENT person, which is the exact shape of stored XSS. The row is stored
+   ESCAPED (packages/shared/src/message-text.ts, phase-a A20) and the API sends
+   back the text exactly as typed — "si x < 5 alors y > 2" — so React escaping
+   here is the half that makes it safe to show. If anyone ever adds formatting, it
    renders from a parsed representation — never from this string through
    dangerouslySetInnerHTML. */
 

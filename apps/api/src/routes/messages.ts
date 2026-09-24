@@ -8,6 +8,7 @@ import {
 import {
   isUuid,
   isMinorBirthYear,
+  messageBodyText,
   parseMessageBody,
   publicDisplayName,
   vUuid,
@@ -35,10 +36,12 @@ import { checkRateLimit } from "../lib/rate-limit";
    ══════════════════════════════════════════════════════════════════════════════
    THREE THINGS HAPPEN TO EVERY MESSAGE, IN THIS ORDER.
    ══════════════════════════════════════════════════════════════════════════════
-     1. SANITISE  parseMessageBody strips markup. messages.body is the product's
-                  only stored-XSS surface: user-authored, persisted, rendered to
-                  somebody else. Stripping on the way in means the database never
-                  holds a payload for a future consumer to render unescaped.
+     1. SANITISE  parseMessageBody escapes & < > (phase-a A20: escape, don't
+                  strip). messages.body is the product's only stored-XSS surface:
+                  user-authored, persisted, rendered to somebody else. Escaping on
+                  the way in means the database never holds a payload for a future
+                  consumer to render unescaped; messageBodyText() decodes it for
+                  the JSON a reader gets, which apps/web renders as a text node.
      2. MASK      detectContactInfo, then remove what it found. NOT rejected —
                   see the header of lib/contact-guard.ts. A message is a
                   conversation; refusing it loses the point the person was making,
@@ -280,7 +283,7 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
       messages: rows.map((m) => ({
         id: m.id,
         mine: m.senderProfileId === session.profile.id,
-        body: m.body,
+        body: messageBodyText(m.body), // phase-a A20: stored escaped, read as typed
         masked: m.masked,
         at: new Date(m.createdAt).toISOString(),
       })),
@@ -315,7 +318,7 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
     const rl = await checkRateLimit(`msg:send:${session.profile.id}`, SEND_LIMIT, SEND_WINDOW_MS);
     if (!rl.ok) return { ok: false, error: "too-many-requests" };
 
-    // 1. SANITISE — markup never reaches the database.
+    // 1. SANITISE — markup never reaches the database live: & < > are escaped.
     const text = parseMessageBody(parsed.data.body);
     if (!text.ok) return { ok: false, error: text.error };
 
@@ -349,7 +352,7 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
       ok: true,
       id: row.id,
       at: new Date(row.createdAt).toISOString(),
-      body,
+      body: messageBodyText(body),
       /* The sender is told when their own message was edited. Silently altering
          someone's words and delivering the result is how a filter turns into a
          trust problem. */

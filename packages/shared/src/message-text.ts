@@ -8,23 +8,27 @@
    ══════════════════════════════════════════════════════════════════════════════
    DEFENCE IN DEPTH, and both halves are load-bearing.
    ══════════════════════════════════════════════════════════════════════════════
-     IN   sanitiseMessageBody() strips markup before the row is written, so the
-          database never holds a tag. If a future surface renders messages
+     IN   sanitiseMessageBody() ESCAPES & < > before the row is written, so the
+          database never holds a live tag. If a future surface renders messages
           somewhere unescaped — an email digest, a moderation console, a CSV
           export — there is nothing there to execute.
-     OUT  React escapes text nodes. `messages.body` must NEVER be handed to
+     OUT  messageBodyText() turns the stored form back into the text the person
+          typed, and ONLY for an escaping renderer: the API's JSON, which apps/web
+          renders as a React text node. `messages.body` must NEVER be handed to
           dangerouslySetInnerHTML. There is no formatting feature here; if one is
           ever added, it renders from a parsed representation, not from this
           string.
 
-   Stripping alone would be too clever to rely on: escaping alone would leave a
-   live payload sitting in the database waiting for the first consumer that
-   forgets. Doing both means either one failing is not a breach.
+   ESCAPE, DON'T STRIP (phase-a A20). This used to DELETE anything that looked
+   like markup, and a lone "<" counted as the start of an unterminated tag: "si
+   x < 5 alors" reached the other side as "si x", and "x<y et y>z" as "x z". A
+   tutoring product cannot lose inequalities. Escaping loses nothing the person
+   typed and is still simple enough to be obviously correct: no "<" survives in
+   storage, so no tag can. Only & < > are escaped — quotes stay, because a message
+   is never placed inside an attribute and French is full of apostrophes.
 
-   THIS IS NOT A SANITISER FOR RICH TEXT. It does not try to keep "safe" tags,
-   because there are no safe tags here — the product renders plain text. Anything
-   that looks like markup is removed rather than negotiated with, which is the
-   only version of this that is simple enough to be obviously correct. */
+   THIS IS NOT A SANITISER FOR RICH TEXT. There are no safe tags here — the
+   product renders plain text, and "<b>" arrives as the four characters typed. */
 
 /** Longest message we accept. Long enough for a real explanation of a problem,
     short enough that nobody pastes a document into a chat box. */
@@ -41,27 +45,15 @@ export type MessageTextResult =
 const CONTROL = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
 const INVISIBLE = /[\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g;
 
-/** Strip markup and normalise whitespace. Returns PLAIN TEXT, always. */
-export function sanitiseMessageBody(input: string | null | undefined): string {
+/* The three characters that can open markup or an entity, and nothing else. */
+const ESCAPES: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;" };
+const UNESCAPES: Record<string, string> = { amp: "&", lt: "<", gt: ">" };
+
+/** Normalise control characters and whitespace. Returns the text the READER sees. */
+function normaliseMessageText(input: string | null | undefined): string {
   let s = String(input ?? "");
 
   s = s.replace(/\r\n?/g, "\n");
-
-  /* Remove script and style CONTENT, not just their tags: dropping the tags
-     alone would leave `alert(1)` sitting in the message as visible text, which
-     is at best confusing and at worst still executable if some future consumer
-     re-wraps it. */
-  s = s.replace(/<(script|style|iframe|object|embed|template)\b[\s\S]*?<\/\1\s*>/gi, " ");
-  /* An unclosed <script> never reaches its closing tag, so the rule above misses
-     it. Drop everything from such an opener to the end. */
-  s = s.replace(/<(script|style|iframe|object|embed|template)\b[\s\S]*$/i, " ");
-  // HTML comments, CDATA and doctypes.
-  s = s.replace(/<!--[\s\S]*?-->/g, " ").replace(/<!\[CDATA\[[\s\S]*?\]\]>/gi, " ").replace(/<![\s\S]*?>/g, " ");
-  // Any remaining tag, opening or closing, complete or not.
-  s = s.replace(/<\/?[a-z][^>]*>/gi, " ");
-  /* A lone "<" left by an unterminated tag. Kept as a literal "<" would be fine
-     for React, but the database is read by more than React. */
-  s = s.replace(/<[^>]*$/g, " ");
 
   s = s.replace(CONTROL, "").replace(INVISIBLE, "");
 
@@ -77,12 +69,32 @@ export function sanitiseMessageBody(input: string | null | undefined): string {
   return s;
 }
 
+function escapeMessageText(s: string): string {
+  return s.replace(/[&<>]/g, (ch) => ESCAPES[ch] ?? ch);
+}
+
+/** Normalise, then ESCAPE & < >. Returns the STORED form: inert for any consumer. */
+export function sanitiseMessageBody(input: string | null | undefined): string {
+  return escapeMessageText(normaliseMessageText(input));
+}
+
+/** The stored form back to exactly what the person typed.
+
+    Hand the result ONLY to something that escapes on render — a JSON payload that
+    apps/web shows as a React text node. One pass, so "&amp;lt;" (someone who typed
+    "&lt;") reads back as "&lt;", not "<". Rows written before A20 hold no entity
+    they did not type, so they read back unchanged. */
+export function messageBodyText(stored: string | null | undefined): string {
+  return String(stored ?? "").replace(/&(amp|lt|gt);/g, (_, name: string) => UNESCAPES[name] ?? _);
+}
+
 /** Sanitise and enforce the bounds. The single entry point for a message write. */
 export function parseMessageBody(input: string | null | undefined): MessageTextResult {
-  const value = sanitiseMessageBody(input);
-  if (!value) return { ok: false, error: "message-empty" };
-  /* Measured AFTER sanitising, so 3000 characters of markup that reduces to
-     "hi" is accepted rather than refused for a length the user never wrote. */
-  if (value.length > MESSAGE_MAX_LENGTH) return { ok: false, error: "message-too-long" };
-  return { ok: true, value };
+  const text = normaliseMessageText(input);
+  if (!text) return { ok: false, error: "message-empty" };
+  /* Measured on the text the READER sees, not on the escaped storage form: a
+     message of 2000 "<" is 2000 characters to the person reading it, even though
+     it is stored as 8000. */
+  if (text.length > MESSAGE_MAX_LENGTH) return { ok: false, error: "message-too-long" };
+  return { ok: true, value: escapeMessageText(text) };
 }

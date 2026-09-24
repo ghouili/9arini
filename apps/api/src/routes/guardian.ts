@@ -7,6 +7,7 @@ import {
 import {
   isUuid,
   isMinorBirthYear,
+  messageBodyText,
   publicDisplayName,
   classWhen,
   CONSENT_POLICY_VERSION,
@@ -343,7 +344,7 @@ export async function guardianRoutes(app: FastifyInstance): Promise<void> {
         /* Whose message it is, so a parent can follow the conversation at all.
            First names only — the child's is theirs to see, the tutor's is the
            same first name every other surface shows. */
-        body: m.body,
+        body: messageBodyText(m.body), // phase-a lane L1 (A20): stored escaped, read as typed
         masked: m.masked,
         at: new Date(m.createdAt).toISOString(),
         fromChild: m.senderProfileId === thread.studentProfileId,
