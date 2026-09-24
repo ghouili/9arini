@@ -335,6 +335,32 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
       else docsByTutor.set(d.tutorId, [d]);
     }
 
+    /* phase-a lane L4 (A10): ONE ROUND ON THE CARD. Every document the tutor ever
+       uploaded used to sit on the card, undated — two "Identité (recto)" after a
+       resubmission, and nothing to say which was current. A round is one POST
+       /verification: its rows are inserted in ONE transaction, so they share
+       created_at (the transaction's now()) exactly. The newest round is the card;
+       the rest are "Soumissions précédentes", newest first. */
+    const link = (d: (typeof allDocs)[number]) => ({
+      id: d.id,
+      kind: d.kind,
+      fileName: d.fileName,
+      // Short-lived and bound to THIS admin (lib/doc-links.ts). Never the bare id.
+      url: docLink(d.id, session.profile.id),
+    });
+    const roundsOf = (tutorId: string) => {
+      const byAt = new Map<number, typeof allDocs>();
+      for (const d of docsByTutor.get(tutorId) ?? []) {
+        const at = d.createdAt.getTime();
+        const list = byAt.get(at);
+        if (list) list.push(d);
+        else byAt.set(at, [d]);
+      }
+      return [...byAt.entries()]
+        .sort(([a], [b]) => b - a)
+        .map(([at, docs]) => ({ submittedAt: new Date(at).toISOString(), docs: docs.map(link) }));
+    };
+
     const items: PendingTutor[] = rows.map((t) => ({
       tutorId: t.id,
       slug: t.slug,
@@ -357,13 +383,14 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
       publicTeacherDeclaration: t.publicTeacherDeclaredAt
         ? { declaredAt: t.publicTeacherDeclaredAt.toISOString(), version: t.publicTeacherDeclarationVersion ?? "" }
         : null,
-      docs: (docsByTutor.get(t.id) ?? []).map((d) => ({
-        id: d.id,
-        kind: d.kind,
-        fileName: d.fileName,
-        // Short-lived and bound to THIS admin (lib/doc-links.ts). Never the bare id.
-        url: docLink(d.id, session.profile.id),
-      })),
+      ...(() => {
+        const [current, ...previous] = roundsOf(t.id);
+        return {
+          docs: current?.docs ?? [],
+          docsSubmittedAt: current?.submittedAt ?? null,
+          previousRounds: previous,
+        };
+      })(),
     }));
 
     return { ok: true, admin: true, items };

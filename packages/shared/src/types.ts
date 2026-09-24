@@ -449,6 +449,12 @@ export type PendingTutor = {
   publicTeacherDeclaration: { declaredAt: string; version: string } | null;
   /** url: a signed link valid for minutes and only for the admin it was issued to. */
   docs: { id: string; kind: string; fileName: string; url: string }[];
+  // phase-a lane L4 (A10): `docs` is the CURRENT round only — one submission, one
+  // upload time. Earlier rounds are kept apart, newest first, each dated, so an
+  // admin can never approve against last month's scan by mistake.
+  /** When the documents in `docs` were uploaded (ISO), or null when there are none. */
+  docsSubmittedAt: string | null;
+  previousRounds: { submittedAt: string; docs: { id: string; kind: string; fileName: string; url: string }[] }[];
 };
 
 /* ── The moderation queue (/admin/moderation) ─────────────────────────────── */
