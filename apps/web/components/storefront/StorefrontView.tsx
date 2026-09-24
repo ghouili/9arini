@@ -755,7 +755,7 @@ export function StorefrontView({
         .sf-pack-main{min-width:0;flex:1}
         .sf-pack-price{flex:none;margin-inline-start:auto;text-align:end;display:grid;gap:2px}
         .sf-pack-price b{font-family:var(--fd);font-size:15px;color:var(--ink);white-space:nowrap}
-        .sf-pack-price span{font-size:12px;color:var(--muted);white-space:nowrap}
+        .sf-pack-price span{font-size:13px;color:var(--muted);white-space:nowrap} /* 13px floor (ui-audit a11y); was 12px since phase-a A18.8 */
         .sf-pack-title{font-weight:700;font-size:13.5px;line-height:1.35;margin-bottom:4px;overflow-wrap:anywhere}
         .sf-packs-note{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.55}
 
