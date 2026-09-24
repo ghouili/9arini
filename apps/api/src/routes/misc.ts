@@ -166,7 +166,7 @@ export async function miscRoutes(app: FastifyInstance): Promise<void> {
     // This row is the legal record of parental consent (INPDP) — it must be real data.
     const name = vText(input.guardianName, { field: "guardian-name", max: 120, min: 2 });
     if (!name.ok) return { ok: false, error: name.error };
-    // phase-a lane L5 (A18.2): the phone is OPTIONAL (absent → NULL, 0027_consent_phone_optional.sql);
+    // phase-a lane L5 (A18.2): the phone is OPTIONAL (absent → NULL, 0030_consent_phone_optional.sql);
     // one that is sent must still be a real number.
     const phone = vOptionalPhone(input.guardianPhone);
     if (!phone.ok) return { ok: false, error: phone.error };

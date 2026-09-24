@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { SiteShell } from "@/components/SiteShell";
 import { bilingual } from "@/lib/i18n";
 import { isLocale, DEFAULT_LOCALE } from "@/lib/locale";
+import { minorsAllowed } from "@tnajem/shared";
 
 /* Pass-through layout: it exists only to make this route REQUEST-TIME.
    The consent form reads ?next= during the server render; prerendered, it would
@@ -15,12 +16,8 @@ export const dynamic = "force-dynamic";
    parent's details, and its informational line ("Ton parent recevra un e-mail pour
    confirmer") describes Dm3 behaviour, so it may only show once Dm3 exists.
 
-   Read lazily, per request, never at module load. Lane L2 introduces
-   minorsAllowed() in packages/shared/src/age.ts for the same switch — the
-   orchestrator unifies this local read with it at merge. */
-function minorsAllowedHere(): boolean {
-  return process.env.ALLOW_MINORS === "1";
-}
+   Read per request through the ONE switch the API and every other page use:
+   minorsAllowed() (packages/shared/src/age.ts). */
 
 const closed = bilingual({
   fr: {
@@ -42,7 +39,7 @@ export default async function Layout({
   children: ReactNode;
   params: Promise<{ locale: string }>;
 }) {
-  if (minorsAllowedHere()) return children;
+  if (minorsAllowed()) return children;
 
   const { locale: raw } = await params;
   const locale = isLocale(raw) ? raw : DEFAULT_LOCALE;

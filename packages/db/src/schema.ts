@@ -777,7 +777,7 @@ export const consents = pgTable("consents", {
   id: uuid("id").primaryKey().defaultRandom(),
   minorId: uuid("minor_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
   guardianName: text("guardian_name").notNull(),
-  guardianPhone: text("guardian_phone"), // phase-a lane L5 (A18.2): nullable — optional, not collected (0027_consent_phone_optional.sql)
+  guardianPhone: text("guardian_phone"), // phase-a lane L5 (A18.2): nullable — optional, not collected (0030_consent_phone_optional.sql)
   /* THE GUARDIAN'S E-MAIL, and it is what turns this row from a record INTO a
      link (Step 14). Login is e-mail OTP, so an address is the only identifier
      that can ever resolve to an account; the phone never could.

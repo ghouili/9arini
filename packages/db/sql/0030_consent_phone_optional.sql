@@ -1,4 +1,8 @@
--- 0027 (a) — the guardian's phone is no longer required (Phase A · A18.2, lane L5).
+-- 0030 — the guardian's phone is no longer required (Phase A · A18.2, lane L5).
+--
+-- NUMBERING: written in lane L5 as a second "0027"; renumbered to 0030 at merge so
+-- every migration has its own number. Content unchanged. It depends on nothing
+-- after 0000, so running after 0029 changes nothing.
 --
 -- The consent form asked the child for their guardian's phone, required it, stored
 -- it, and never used it for anything: login is e-mail OTP and the guardian's
