@@ -137,9 +137,10 @@ async function mintSession(key) {
     if (!p) {
       // birth_year: a comfortable adult, so the minor-consent gate never fires and
       // the student screens audit their normal state rather than the consent detour.
-      [p] = await sql`insert into profiles (email, phone, role, locale, full_name, birth_year)
+      // phase-a lane L2 (A24): + birth_month — isAdult() treats an unknown month as a minor.
+      [p] = await sql`insert into profiles (email, phone, role, locale, full_name, birth_year, birth_month)
                       values (${email}, ${phone}, ${key === "admin" ? "tutor" : key}, 'fr',
-                              'Audit Harness', 1990) returning id`;
+                              'Audit Harness', 1990, 1) returning id`;
     } else if (key !== "admin") {
       /* The admin row is a REAL account (it is the developer's own address in the
          allowlist). Never rewrite its role or its phone to fit the harness. */
