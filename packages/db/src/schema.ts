@@ -353,7 +353,8 @@ export const cancellations = pgTable("cancellations", {
 
      UNIQUE still holds. Postgres does not treat NULLs as equal, so the
      one-row-per-booking guarantee is unaffected for live bookings. */
-  bookingId: uuid("booking_id").unique().references(() => bookings.id, { onDelete: "set null" }),
+  // phase-a lane L3 (A8): no longer unique on its own — one row per CANCELLATION (0026), see below.
+  bookingId: uuid("booking_id").references(() => bookings.id, { onDelete: "set null" }),
   classId: uuid("class_id").notNull().references(() => classes.id, { onDelete: "cascade" }),
   /* Nullable + set null: a deleted account must not take the tutor's record of
      what happened with it, and Step 15 deletes accounts. */
@@ -378,6 +379,12 @@ export const cancellations = pgTable("cancellations", {
   classIdx: index("cancellations_class_id_idx").on(t.classId),
   // And the student's own history is per actor.
   actorIdx: index("cancellations_actor_profile_id_idx").on(t.actorProfileId),
+  // phase-a lane L3 (A8) — 0026_cancellation_ledger_rekey.sql. A re-booked seat
+  // reactivates the same bookings row, so one booking can be cancelled more than
+  // once; each cancellation is its own row (id is the cancellation id). This still
+  // refuses a double-write of ONE cancellation: cancelled_at is the tx's now().
+  // The SQL creates it as a unique index; declared with the imported unique().
+  bookingCancelledAtUniq: unique("cancellations_booking_id_cancelled_at_unique").on(t.bookingId, t.cancelledAt),
 }));
 
 /* CONTACT-LEAK FLAGS — moderation signal, not evidence storage.

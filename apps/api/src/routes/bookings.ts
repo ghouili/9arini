@@ -151,7 +151,19 @@ export async function bookingRoutes(app: FastifyInstance): Promise<void> {
         if (claimed.length === 0) return "full"; // sold out — nobody oversells
 
         if (existing) {
-          await tx.update(bookings).set({ status: "reserved" }).where(eq(bookings.id, existing.id));
+          /* phase-a lane L3 (A8): a re-booking is a NEW reservation on the old row.
+             It used to flip only the status, so is_free kept the first booking's
+             value whatever the rules say now, and created_at kept the first
+             booking time — which the reschedule waiver compares to
+             classes.rescheduled_at, so re-booking AFTER a move was still waived. */
+          await tx
+            .update(bookings)
+            .set({
+              status: "reserved",
+              isFree: isEffectivelyFreeFirst(tut.offersFreeFirstSession, cls.isFreeFirst),
+              createdAt: raw`now()`,
+            })
+            .where(eq(bookings.id, existing.id));
         } else {
           await tx.insert(bookings).values({
             classId: classId.value,
@@ -319,6 +331,10 @@ export async function bookingRoutes(app: FastifyInstance): Promise<void> {
          conflict means something upstream changed. Doing nothing is right either
          way — the first row is the true one, and a second would double the
          retained amount. */
+      /* phase-a lane L3 (A8): the key is now (booking_id, cancelled_at) — 0026. A
+         re-booked seat reactivates the same booking row, and its SECOND
+         cancellation is a real event that the old unique(booking_id) dropped. The
+         conflict now only catches a double-write of one cancellation. */
       await tx
         .insert(cancellations)
         .values({
