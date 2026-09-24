@@ -34,6 +34,7 @@ import { SiteShell } from "@/components/SiteShell";
 import { UserText } from "@/components/UserText";
 import { tutorStanding, isOpenForBooking, monthLabel, formatNumericDate, type Storefront, type TutorReviews, type ClassItem } from "@tnajem/shared";
 import { LEVEL_LABELS } from "@tnajem/shared"; // phase-a lane L5 (A18.7)
+import { nextSessionOf } from "@tnajem/shared"; // phase-a lane L5 (A18.11)
 
 
 /* Component-local copy (FR + Tunisian Derija). lib/i18n.ts is owned elsewhere, so
@@ -101,6 +102,8 @@ const copy = bilingual({
     // phase-a lane L5 (A18.8)
     packPriceLabel: "Prix du prof",
     packFree: "Gratuit",
+    // phase-a lane L5 (A18.11)
+    nextWithSeat: "Prochaine séance avec une place",
   },
   ar: {
     verifiedLabel: "أستاذ مؤكّد من Tnajem",
@@ -144,6 +147,8 @@ const copy = bilingual({
     // phase-a lane L5 (A18.8)
     packPriceLabel: "ثمن الأستاذ",
     packFree: "فابور",
+    // phase-a lane L5 (A18.11)
+    nextWithSeat: "الحصة الجاية اللي فيها بلاصة",
   },
 });
 
@@ -191,8 +196,13 @@ export function StorefrontView({
      has a seat — sending every visitor at classes[0] when classes[0] is full is a
      guaranteed trip to the "Plus de places" error. If every class is full we say so
      instead of offering the CTA at all. */
-  const firstClass = classes.find((k) => k.seats_left > 0) ?? classes[0];
-  const allFull = Boolean(firstClass) && firstClass.seats_left <= 0;
+  /* phase-a lane L5 (A18.11): "Prochaine séance" used to be the first class WITH A
+     SEAT, so a full Monday class was skipped and Thursday's shown as "next". Now
+     `nextClass` is the earliest upcoming, non-cancelled class (full or not) and
+     `firstClass` — what every CTA books — the earliest one that still has a seat. */
+  const { next: nextClass, bookable } = nextSessionOf(data.classes);
+  const firstClass = bookable ?? undefined;
+  const allFull = Boolean(nextClass) && !bookable;
 
   /* The shared CTA string promises a free first session. Only say that when the
      class we'd actually book IS the free one; otherwise fall back to a neutral,
@@ -341,7 +351,7 @@ export function StorefrontView({
                 {classes.length > 0 && <span className="sf-count">{classes.length}</span>}
               </div>
 
-              {!firstClass ? (
+              {!nextClass /* phase-a lane L5 (A18.11): no class at all, not "no class with a seat" */ ? (
                 /* Honest empty state — no phantom card, no CTA to a class that
                    does not exist. */
                 <NoBooking />
@@ -511,6 +521,26 @@ export function StorefrontView({
                     {/* Which class this button actually books — naming it removes
                         the guesswork when the tutor has several. */}
                     <div className="sf-panel-label">{c.nextSession}</div>
+                    {/* phase-a lane L5 (A18.11): the next session is FULL — say so, then
+                        offer the next class that still has a seat. */}
+                    {nextClass && nextClass.id !== firstClass.id && (
+                      <div data-e2e="next-full">
+                        <UserText as="div" className="sf-panel-title">{nextClass.title}</UserText>
+                        <div className="metaline sf-panel-meta">
+                          <span>
+                            <Calendar />
+                            <time dateTime={nextClass.starts_at}>
+                              {nextClass.day} {localMonth(nextClass.month)} · {nextClass.time}
+                            </time>
+                          </span>
+                          <span className="sf-soldout">
+                            <Users />
+                            {c.seats(0)}
+                          </span>
+                        </div>
+                        <div className="sf-panel-label" style={{ marginTop: 16 }}>{c.nextWithSeat}</div>
+                      </div>
+                    )}
                     <UserText as="div" className="sf-panel-title">{firstClass.title}</UserText>
                     <div className="metaline sf-panel-meta">
                       <span>

@@ -151,3 +151,22 @@ test.describe("A18.10 — dashboard status badges", () => {
     await ctx.close();
   });
 });
+
+test.describe("A18.11 — 'Prochaine séance' is the next session", () => {
+  test("a full next session says Complet, and the next class with a seat is offered", async ({ page }) => {
+    const tutor = await seedTutor({ status: "verified" });
+    const full = await seedClass({ tutorId: tutor.id, hoursFromNow: 30, seats: 5, seatsTaken: 5 });
+    const open = await seedClass({ tutorId: tutor.id, hoursFromNow: 80, seats: 5 });
+    const cancelled = await seedClass({ tutorId: tutor.id, hoursFromNow: 20, seats: 5 });
+    await sql`update classes set status = 'cancelled' where id = ${cancelled.id}`;
+
+    await page.goto(`/fr/${tutor.slug}`, { waitUntil: "networkidle" });
+    const aside = page.locator("[data-sf-aside=true]");
+    const nextFull = aside.locator("[data-e2e=next-full]");
+    await expect(nextFull).toContainText(full.title);
+    await expect(nextFull).toContainText("Complet");
+    await expect(aside).toContainText("Prochaine séance avec une place");
+    await expect(aside.locator(`a[href*="/checkout?class=${open.id}"]`)).toBeVisible();
+    await expect(aside).not.toContainText(cancelled.title);
+  });
+});
