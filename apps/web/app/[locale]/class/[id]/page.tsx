@@ -42,7 +42,7 @@ const copy = bilingual({
     closedBody: "Elle a déjà commencé, ou elle a été annulée. Trouve une autre séance — il y en a d'autres.",
   },
   ar: {
-    reassure: "الحصة الأولى مجانية · إلغاء مجاني حتى 48 ساعة قبل",
+    reassure: "أول حصة فابور · إلغاء مجاني حتى 48 ساعة قبل", // phase-a lane L6 (A18.derija-2)
     reassurePaid: "إلغاء مجاني حتى 48 ساعة قبل",
     reassureShort: "بلا التزام",
     bookShort: "احجز",
@@ -52,12 +52,12 @@ const copy = bilingual({
     otherClasses: "شوف حصص أخرى",
     seats: (n: number) =>
       n <= 0 ? "كامل" : n === 1 ? "بلاصة وحدة تبقات" : n === 2 ? "زوز بلايص تبقاو" : `${n} بلايص تبقاو`,
-    free: "مجانية",
+    free: "فابور", // phase-a lane L6 (A18.derija-2)
     then: (p: number) => `من بعد ${p} د.ت للحصة`,
     perSession: "للحصة",
-    soldOutTitle: "هذه الحصة كاملة",
+    soldOutTitle: "الحصة هاذي كاملة", // phase-a lane L6 (A18.derija-2)
     soldOutBody: "الأماكن الكل تحجزو. لوّج على حصة أخرى — فما غيرها.",
-    closedTitle: "هذه الحصة ما عادش مفتوحة للحجز",
+    closedTitle: "الحصة هاذي ما عادش تتحجز", // phase-a lane L6 (A18.derija-2)
     closedBody: "الحصة بدات ولا تلغات. لوّج على حصة أخرى — فما غيرها.",
   },
 });

@@ -33,16 +33,16 @@ const copy = bilingual({
   ar: {
     liveNow: "مباشر",
     startsAt: "تبدا يوم",
-    lockedTitle: "هذه الحصة مخصّصة للتلاميذ المحجوزين",
+    lockedTitle: "الحصة هاذي للتلامذة اللي حاجزين برك", // phase-a lane L6 (A18.derija-2)
     lockedBody: "احجز مكانك من صفحة الحصة والرابط يتفتحلك هوني.",
     lockedCta: "شوف الحصة و احجز",
     myClasses: "حصصي",
     tipTitle: "الأنترنت بطيء ؟",
     tip: "طفّي الكاميرا كي تدخل للقاعة : تنجم تتابع بصمت وتكتب في الدردشة. الكاميرا والميكرو يتحكم فيهم من داخل القاعة.",
-    tutorNote: "إنت الأستاذ متاع هذه الحصة.",
+    tutorNote: "إنت الأستاذ متاع الحصة هاذي.", // phase-a lane L6 (A18.derija-2)
     // phase-a lane L3 (A16)
     ended: "وفات",
-    cancelledTitle: "هذه الحصة تلغات",
+    cancelledTitle: "الحصة هاذي تلغات", // phase-a lane L6 (A18.derija-2)
     cancelledBody: "ما فماش قاعة باش تدخلها. حصصك الأخرى تلقاهم في « حصصي ».",
   },
 });

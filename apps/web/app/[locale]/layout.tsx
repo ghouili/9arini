@@ -43,7 +43,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://tnajem.tn";
 const DESCRIPTION =
   "Trouve un prof en direct, du primaire au Bac — toutes les matières, avec des profs tunisiens vérifiés un par un."; // phase-a lane L3 (A22): "Paie en dinar" removed (D4)
 const DESCRIPTION_AR =
-  "لقّي أستاذ في المباشر، من الابتدائي للباك — كل المواد، مع أساتذة توانسة مؤكّدين واحد واحد."; // phase-a lane L3 (A22)
+  "لقّي أستاذ دايركت، من الابتدائي للباك — كل المواد، مع أساتذة توانسة مؤكّدين واحد واحد."; // phase-a lane L3 (A22) · phase-a lane L6 (A18.derija-2)
 
 /* Pre-render both locale roots (/fr, /ar) at build time; sub-pages inherit the param. */
 export function generateStaticParams() {
