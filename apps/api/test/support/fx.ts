@@ -14,7 +14,12 @@
    and one proven in Playwright are proven about the same thing. */
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { buildServer } from "../../src/server";
-import { sql } from "../../src/db";
+import { sql as dbSql } from "../../src/db";
+
+// phase-a lane L5 (typecheck): src/db.ts types `sql` as `Sql | null` (createDb's
+// no-URL shape), but the API exits at boot without DATABASE_URL, so it is never
+// null here. Without this, `npm run typecheck` fails on every call below.
+const sql = dbSql!;
 
 export { sql };
 
