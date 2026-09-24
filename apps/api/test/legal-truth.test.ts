@@ -137,6 +137,8 @@ describe("A19 · what Batches 1–5 changed", () => {
     has(privacy.fr, "Ton nom complet n'est montré ni aux élèves ni au public", "privacy §4");
     hasNot(privacy.fr, "Ta page publique de prof (nom, matière, bio, photo)", "privacy §4");
     has(terms.fr, "un élève voit le prénom de son prof et l'initiale de son nom", "terms §8");
+    // phase-a/verify-fix (D12): in a conversation the student sees the first name only (publicDisplayName).
+    has(terms.fr, "dans une conversation, son prénom seulement", "terms §8");
     hasNot(terms.fr, "un élève voit le prénom de son prof. ", "terms §8");
     for (const [name, c] of both) has(c.ar, "الحرف الأوّل من لقب", `${name} (ar)`);
   });
