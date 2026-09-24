@@ -23,6 +23,9 @@
                          roster, the seat count and the cancellation ledger
      reviews             the rating and text, with no byline
      reports             about or by the account (safeguarding evidence)
+     a child's consent   when the account was the GUARDIAN: that consent was given,
+                         when, the text and the policy version — the guardian's
+                         name, phone and e-mail are erased from it (phase-a A27)
      verification trace  document kinds, dates and decision (0021)
      audit               an admin_actions row saying the erasure happened
 
@@ -217,6 +220,30 @@ export async function eraseAccount(
       .where(KEEP_REPORTED_MESSAGES_ON_ERASURE
         ? and(eq(messages.senderProfileId, profileId), notInArray(messages.id, reported))
         : eq(messages.senderProfileId, profileId));
+
+    /* phase-a lane L4 (A27): THE GUARDIAN IN THEIR CHILD'S CONSENT RECORD. The
+       consent belongs to the child (minor_id) and survives the parent's erasure —
+       but it carried the parent's name, phone and e-mail, so "your name and phone
+       are erased" was untrue for every parent. The person goes; the record that
+       consent was given, when, and under which policy version and text, stays.
+       Found by the link, by the address (how a link resolves) and by the number.
+       Erasing an account is not withdrawing consent: withdrawn_at is untouched.
+       LEGAL-REVIEW: retention of consent proof — how long an anonymised consent
+       record is kept, and whether it still proves consent once the signer is
+       unidentifiable, is not decided. */
+    const linkedConsents = tx
+      .select({ id: guardianLinks.consentId })
+      .from(guardianLinks)
+      .where(and(eq(guardianLinks.guardianProfileId, profileId), isNotNull(guardianLinks.consentId)));
+    const byGuardian = [
+      inArray(consents.id, linkedConsents),
+      ...(p.email ? [sql`lower(${consents.guardianEmail}) = lower(${p.email})`] : []),
+      ...(p.phone ? [eq(consents.guardianPhone, p.phone)] : []),
+    ];
+    await tx
+      .update(consents)
+      .set({ guardianName: ERASED_NAME, guardianPhone: "", guardianEmail: null })
+      .where(and(or(...byGuardian), ne(consents.minorId, profileId)));
 
     await tx.delete(guardianLinks).where(or(eq(guardianLinks.guardianProfileId, profileId), eq(guardianLinks.minorProfileId, profileId)));
     await tx.delete(consents).where(eq(consents.minorId, profileId));
