@@ -36,9 +36,13 @@ export async function generateMetadata(props: { params: Promise<{ locale: string
      subscription starts at 29 TND while the page below it renders a 0 TND tier as
      its first card — the search result contradicted the page it linked to. */
   const from = tnd(requirePlan("essentiel").monthlyMillimes);
+  /* phase-a/verify-fix (D2): it also said "L'élève ne paie jamais Tnajem" — the
+     opposite of D4 (the student will pay online, through Tnajem, before the
+     session). Payment is not described here at all; /tarifs itself carries the one
+     payment sentence, labelled "Bientôt" while payments are off. */
   const description = ar
-    ? `أسعار Tnajem للأساتذة : فابور في فترة التجربة. من بعد، اشتراك فابور بحصة وحدة منشورة ومن ${from} دينار في الشهر لفوق، و ${COMMISSION_PCT} % كان على الخلاص اللي يعدّي من Tnajem. التلميذ ما يخلّص حتى حاجة لـ Tnajem.`
-    : `Les tarifs Tnajem pour les profs : gratuit pendant le pilote. Plus tard, un abonnement gratuit pour une séance publiée à la fois puis à partir de ${from} TND/mois, et ${COMMISSION_PCT} % uniquement sur les paiements traités par Tnajem. L'élève ne paie jamais Tnajem.`;
+    ? `أسعار Tnajem للأساتذة : فابور في فترة التجربة. من بعد، اشتراك فابور بحصة وحدة منشورة ومن ${from} دينار في الشهر لفوق، و ${COMMISSION_PCT} % كان على الخلاص اللي يعدّي من Tnajem.`
+    : `Les tarifs Tnajem pour les profs : gratuit pendant le pilote. Plus tard, un abonnement gratuit pour une séance publiée à la fois puis à partir de ${from} TND/mois, et ${COMMISSION_PCT} % uniquement sur les paiements traités par Tnajem.`;
   // Through pageMetadata: a bare openGraph object here replaced the layout's and
   // dropped the og:image, siteName and twitter card from every shared /tarifs link.
   return pageMetadata({ locale, path: "/tarifs", title, description });

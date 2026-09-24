@@ -60,6 +60,8 @@ const CONTRADICTIONS: [RegExp, string][] = [
   [/konnect|clictopay|e-?dinar|flouci|\bD17\b/i, "a named payment provider"],
   [/يد بيد|في يدك|بالشهر(?! الفارط)|تخلّص أستاذك مباشرة|يخلّصك مباشرة|خلاص مباشر|فلوسي|خلّص بالدينار|الخلاص بالدينار/, "the same stories in Arabic"],
   [/pay the tutor|paid (by hand|in cash)|never pay Tnajem/i, "the same stories in English (llms.txt)"],
+  // phase-a/verify-fix (D2): the /tarifs meta description (Google snippet, link preview) still said it.
+  [/ne paie(nt)? jamais Tnajem|ما يخلّص حتى حاجة لـ Tnajem/i, "the student never pays Tnajem (contradicts D4)"],
 ];
 
 describe("A22 · the one payment story", () => {

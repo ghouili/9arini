@@ -32,7 +32,7 @@ const OTHER_STORIES: RegExp[] = [
   /paie(ment)? en dinar/i,
   /paiement direct/i,
   /konnect|clictopay|e-?dinar|flouci|\bD17\b|carte bancaire/i,
-  /يد بيد|في يدك|بالشهر|تخلّص أستاذك مباشرة|يخلّصك مباشرة|خلاص مباشر|خلّص بالدينار|الخلاص بالدينار/,
+  /يد بيد|في يدك|بالشهر(?! الفارط)|تخلّص أستاذك مباشرة|يخلّصك مباشرة|خلاص مباشر|خلّص بالدينار|الخلاص بالدينار/,
 ];
 
 const count = (hay: string, needle: string) => hay.split(needle).length - 1;
@@ -44,6 +44,18 @@ async function checkPage(page: Page, url: string, locale: "fr" | "ar") {
 
   for (const re of OTHER_STORIES) {
     expect(text, `${url}: another payment story (${re})`).not.toMatch(re);
+  }
+
+  /* phase-a/verify-fix (D2): the metadata too — the Google snippet and the link
+     preview are copy people read, and /tarifs' description said "L'élève ne paie
+     jamais Tnajem" while the visible page was clean. */
+  const meta = await page.evaluate(() =>
+    ['meta[name="description"]', 'meta[property="og:description"]', 'meta[name="twitter:description"]']
+      .map((sel) => document.head.querySelector(sel)?.getAttribute("content") ?? "")
+      .join(" "),
+  );
+  for (const re of [...OTHER_STORIES, /ne paie(nt)? jamais Tnajem|ما يخلّص حتى حاجة لـ Tnajem/i]) {
+    expect(meta, `${url}: another payment story in the page metadata (${re})`).not.toMatch(re);
   }
 
   const stories = page.locator("[data-payment-story]");
