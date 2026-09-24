@@ -44,4 +44,6 @@ export * from "./plans";
 // phase-a lane L1
 /* When a conversation closes (A2). Pure constants and a mapping. */
 export * from "./thread-state";
+/* The support WhatsApp link, from NEXT_PUBLIC_SUPPORT_WHATSAPP (A12). Pure. */
+export * from "./support-contact";
 // end phase-a lane L1

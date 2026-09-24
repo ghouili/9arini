@@ -58,3 +58,23 @@ test.describe("A4 — the new-pack page never tells a tutor to send files by Wha
     });
   }
 });
+
+test.describe("A12 — no placeholder support link: the row is hidden while NEXT_PUBLIC_SUPPORT_WHATSAPP is unset", () => {
+  /* playwright.config.ts pins the variable blank for the web build, so this is the
+     unset case whatever the developer's .env holds. The valid/invalid parsing is
+     unit-tested in apps/api/test/support-contact.test.ts. */
+  for (const locale of ["fr", "ar"] as const) {
+    test(`/${locale}/account`, async ({ browser }) => {
+      const me = await seedProfile({ role: "student", birthYear: 1990, fullName: "Amine Karoui" });
+      const { ctx, page } = await pageAs(browser, me.id);
+      await page.goto(`/${locale}/account`);
+      // Wait for the signed-in panel, so "not there" is not "not rendered yet".
+      await expect(page.locator("main")).toContainText("Amine Karoui");
+
+      await expect(page.getByTestId("support-whatsapp")).toHaveCount(0);
+      await expect(page.locator('main a[href*="wa.me"]')).toHaveCount(0);
+      expect(await page.content(), "the placeholder number must be gone from the page").not.toContain("216XXXX");
+      await ctx.close();
+    });
+  }
+});
