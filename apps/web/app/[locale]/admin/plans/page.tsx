@@ -48,7 +48,7 @@ const copy = bilingual({
 
     onPilot: "Pilote (par défaut)",
     granted: "Attribuée",
-    openClasses: (n: number) => (n === 1 ? "1 cours à venir" : `${n} cours à venir`),
+    openClasses: (n: number) => (n === 1 ? "1 séance à venir" : `${n} séances à venir`), // phase-a lane L3 (A25)
     limitOf: (max: number) => `sur ${max}`,
     unlimited: "illimités",
     until: (d: string) => `jusqu'au ${d}`,
@@ -71,6 +71,8 @@ const copy = bilingual({
     ok: "Offre mise à jour ✓",
     removed: "Offre retirée",
     error: "Ça n'a pas marché. Réessaie.",
+    // phase-a lane L3 (A25): the API refuses a pilot grant that would LOWER a tutor's limits.
+    lowersPilot: "Refusé : pendant le pilote, chaque prof a déjà des séances illimitées. Gratuit ou Essentiel réduirait ses limites — attribue Pro ou Prestige.",
     profile: "Voir la page",
   },
   ar: {
@@ -96,7 +98,7 @@ const copy = bilingual({
 
     onPilot: "تجربة (الافتراضي)",
     granted: "معطى",
-    openClasses: (n: number) => (n === 1 ? "درس جاي واحد" : `${n} دروس جايّة`),
+    openClasses: (n: number) => (n === 1 ? "حصة جاية وحدة" : `${n} حصص جايّة`), // phase-a lane L3 (A25)
     limitOf: (max: number) => `من ${max}`,
     unlimited: "بلا حدّ",
     until: (d: string) => `حتى ${d}`,
@@ -112,6 +114,7 @@ const copy = bilingual({
     ok: "العرض تبدّل ✓",
     removed: "العرض تنحّى",
     error: "ما مشاتش. عاود حاول.",
+    lowersPilot: "مرفوض : في فترة التجربة، كل أستاذ عندو حصص بلا حدّ. Gratuit ولا Essentiel ينقّصولو — اعطيه Pro ولا Prestige.", // phase-a lane L3 (A25)
     profile: "شوف الصفحة",
   },
 });
@@ -169,7 +172,8 @@ export default function AdminPlansPage() {
     });
     setBusy((b) => ({ ...b, [row.tutorId]: false }));
     if (!res.ok) {
-      showToast(c.error);
+      // phase-a lane L3 (A25): a refusal with a reason is a warning, not "réessaie".
+      showToast(res.error === "lowers-pilot-limits" ? c.lowersPilot : c.error);
       return;
     }
     showToast(c.ok);

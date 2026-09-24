@@ -7,6 +7,7 @@ import {
   isPlanCode,
   effectivePlan,
   type PlanCode,
+  grantLowersLimits, GRANT_LOWERS_LIMITS_REASON, // phase-a lane L3 (A25)
 } from "@tnajem/shared";
 import { paymentsEnabled } from "@tnajem/shared/payments";
 import { db } from "../db";
@@ -134,6 +135,13 @@ export async function subscriptionRoutes(app: FastifyInstance): Promise<void> {
        not started — and it would then SURVIVE the day payments go live, quietly
        keeping one tutor unlimited for a reason nobody recorded. */
     if (code === "pilot") return { ok: false, error: "not-grantable" };
+    /* phase-a lane L3 (A25): during the pilot a grant can never LOWER a tutor's
+       effective limits (Gratuit → 1 session, Essentiel → 5, against the pilot's
+       unlimited). Refused with the reason; nothing is written, so the limits the
+       tutor has today are exactly the ones they keep. The counting is unchanged. */
+    if (grantLowersLimits(code, paymentsEnabled())) {
+      return { ok: false, error: "lowers-pilot-limits", reason: GRANT_LOWERS_LIMITS_REASON };
+    }
 
     const months = parsed.data.months;
     if (months !== undefined) {

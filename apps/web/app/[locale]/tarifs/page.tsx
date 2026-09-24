@@ -37,8 +37,8 @@ export async function generateMetadata(props: { params: Promise<{ locale: string
      its first card — the search result contradicted the page it linked to. */
   const from = tnd(requirePlan("essentiel").monthlyMillimes);
   const description = ar
-    ? `أسعار Tnajem للأساتذة : فابور في فترة التجربة. من بعد، اشتراك فابور بدرس واحد ومن ${from} دينار في الشهر لفوق، و ${COMMISSION_PCT} % كان على الخلاص اللي يعدّي من Tnajem. التلميذ ما يخلّص حتى حاجة لـ Tnajem.`
-    : `Les tarifs Tnajem pour les profs : gratuit pendant le pilote. Plus tard, un abonnement gratuit pour un cours à la fois puis à partir de ${from} TND/mois, et ${COMMISSION_PCT} % uniquement sur les paiements traités par Tnajem. L'élève ne paie jamais Tnajem.`;
+    ? `أسعار Tnajem للأساتذة : فابور في فترة التجربة. من بعد، اشتراك فابور بحصة وحدة منشورة ومن ${from} دينار في الشهر لفوق، و ${COMMISSION_PCT} % كان على الخلاص اللي يعدّي من Tnajem. التلميذ ما يخلّص حتى حاجة لـ Tnajem.`
+    : `Les tarifs Tnajem pour les profs : gratuit pendant le pilote. Plus tard, un abonnement gratuit pour une séance publiée à la fois puis à partir de ${from} TND/mois, et ${COMMISSION_PCT} % uniquement sur les paiements traités par Tnajem. L'élève ne paie jamais Tnajem.`;
   // Through pageMetadata: a bare openGraph object here replaced the layout's and
   // dropped the og:image, siteName and twitter card from every shared /tarifs link.
   return pageMetadata({ locale, path: "/tarifs", title, description });

@@ -84,12 +84,13 @@ const copy = bilingual({
     planTitle: "Ton offre",
     planPilot: "Pilote",
     planPilotBody:
-      "Pendant le pilote, tous les profs ont l'offre complète : cours illimités, et rien n'est facturé. On te préviendra avant que ça change.",
+      "Pendant le pilote, tous les profs ont l'offre complète : séances illimitées, et rien n'est facturé. On te préviendra avant que ça change.",
     planGrantedBody: "Offre activée par l'équipe Tnajem. Rien ne t'est facturé.",
-    planUnlimited: "Cours en ligne : illimités",
-    planUsage: (used: number, max: number) => `Cours en ligne : ${used} sur ${max}`,
+    // phase-a lane L3 (A25): séances (D3).
+    planUnlimited: "Séances publiées : illimitées",
+    planUsage: (used: number, max: number) => `Séances publiées : ${used} sur ${max}`,
     planUsageNote:
-      "On compte les cours à venir. Un cours annulé ou déjà passé libère la place.",
+      "On compte les séances à venir. Une séance annulée ou déjà passée libère la place.",
     planUntil: (d: string) => `Jusqu'au ${d}.`,
     planSeeTarifs: "Voir les offres",
   },
@@ -142,11 +143,12 @@ const copy = bilingual({
     planTitle: "العرض متاعك",
     planPilot: "تجربة",
     planPilotBody:
-      "في فترة التجربة، الأساتذة الكل عندهم العرض الكامل : دروس بلا حدّ، وما فمّا حتى فاتورة. باش نعلموك قبل ما يتبدّل الحال.",
+      "في فترة التجربة، الأساتذة الكل عندهم العرض الكامل : حصص بلا حدّ، وما فمّا حتى فاتورة. باش نعلموك قبل ما يتبدّل الحال.",
     planGrantedBody: "العرض فعّلو فريق Tnajem. ما تتفوترش حتى مليم.",
-    planUnlimited: "دروس أونلاين : بلا حدّ",
-    planUsage: (used: number, max: number) => `دروس أونلاين : ${used} من ${max}`,
-    planUsageNote: "نحسبو الدروس الجايّة برك. درس تلغى ولا فات يرجّعلك البلاصة.",
+    // phase-a lane L3 (A25)
+    planUnlimited: "الحصص المنشورة : بلا حدّ",
+    planUsage: (used: number, max: number) => `الحصص المنشورة : ${used} من ${max}`,
+    planUsageNote: "نحسبو الحصص الجايّة برك. حصة تلغات ولا فاتت ترجّعلك البلاصة.",
     planUntil: (d: string) => `حتى لـ ${d}.`,
     planSeeTarifs: "شوف العروض",
   },

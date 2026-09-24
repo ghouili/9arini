@@ -88,6 +88,18 @@ async function createClass(token: string) {
   );
 }
 
+/* phase-a lane L3 (A25): during the pilot, POST /admin/subscriptions REFUSES a
+   grant that would lower a tutor's limits (Gratuit → 1, Essentiel → 5, against the
+   pilot's unlimited) — see the refusal test in section 4. The enforcement tests
+   below are about POST /classes BINDING a grant, not about how the row got there,
+   so they write the live grant row directly, as a grant made once payments are
+   on would. */
+async function seedGrant(tutorId: string, planCode: string, months?: number) {
+  await sql`insert into subscriptions (tutor_id, plan_code, status, note, expires_at)
+            values (${tutorId}, ${planCode}, 'active', 'e2e',
+                    ${months ? sql`now() + (${months} * interval '1 month')` : null})`;
+}
+
 /** Push a live grant's expiry into the past, without waiting for it. */
 async function ageGrant(tutorId: string, days = 1) {
   await sql`update subscriptions
@@ -364,14 +376,7 @@ test.describe("the class limit binds on the API, not in the form", () => {
 
   test("a granted 1-class plan refuses the second class, and names the number", async () => {
     const { tutor, token } = await verifiedTutor();
-    const admin = await adminToken();
-
-    const grant = await post(
-      "/admin/subscriptions",
-      { tutorId: tutor.id, planCode: "gratuit", note: "e2e" },
-      admin,
-    );
-    expect(grant.ok).toBe(true);
+    await seedGrant(tutor.id, "gratuit"); // phase-a lane L3 (A25)
 
     expect((await createClass(token)).ok, "the first class is within the plan").toBe(true);
 
@@ -390,8 +395,7 @@ test.describe("the class limit binds on the API, not in the form", () => {
        one class was cancelled must be able to open another; the other reading
        would silently mean "one class ever". */
     const { tutor, token } = await verifiedTutor();
-    const admin = await adminToken();
-    await post("/admin/subscriptions", { tutorId: tutor.id, planCode: "gratuit" }, admin);
+    await seedGrant(tutor.id, "gratuit"); // phase-a lane L3 (A25)
 
     const created = await createClass(token);
     expect(created.ok).toBe(true);
@@ -409,8 +413,7 @@ test.describe("the class limit binds on the API, not in the form", () => {
   test("A CLASS THAT ALREADY RAN does not count against the limit", async () => {
     const { tutor, token } = await verifiedTutor();
     await seedClass({ tutorId: tutor.id, hoursFromNow: -72 });
-    const admin = await adminToken();
-    await post("/admin/subscriptions", { tutorId: tutor.id, planCode: "gratuit" }, admin);
+    await seedGrant(tutor.id, "gratuit"); // phase-a lane L3 (A25)
 
     expect(
       (await createClass(token)).ok,
@@ -420,8 +423,7 @@ test.describe("the class limit binds on the API, not in the form", () => {
 
   test("the 5-class plan allows five and refuses the sixth", async () => {
     const { tutor, token } = await verifiedTutor();
-    const admin = await adminToken();
-    await post("/admin/subscriptions", { tutorId: tutor.id, planCode: "essentiel" }, admin);
+    await seedGrant(tutor.id, "essentiel"); // phase-a lane L3 (A25)
 
     for (let i = 0; i < 5; i += 1) {
       expect((await createClass(token)).ok, `class ${i + 1} of 5 must be allowed`).toBe(true);
@@ -443,8 +445,7 @@ test.describe("an expired grant stops binding immediately", () => {
        admin could not grant a new plan, because the partial unique index would
        still see the old row as active. */
     const { tutor, token } = await verifiedTutor();
-    const admin = await adminToken();
-    await post("/admin/subscriptions", { tutorId: tutor.id, planCode: "gratuit", months: 1 }, admin);
+    await seedGrant(tutor.id, "gratuit", 1); // phase-a lane L3 (A25)
 
     expect((await createClass(token)).ok).toBe(true);
     expect((await createClass(token)).error).toBe("plan-limit-classes");
@@ -558,8 +559,9 @@ test.describe("only an admin may grant a plan", () => {
        whichever row the planner returned first. */
     const { tutor } = await verifiedTutor();
     const admin = await adminToken();
-    await post("/admin/subscriptions", { tutorId: tutor.id, planCode: "essentiel" }, admin);
+    // phase-a lane L3 (A25): pro → prestige; essentiel is refused during the pilot.
     await post("/admin/subscriptions", { tutorId: tutor.id, planCode: "pro" }, admin);
+    await post("/admin/subscriptions", { tutorId: tutor.id, planCode: "prestige" }, admin);
 
     const active = await sql<{ plan_code: string }[]>`
       select plan_code from subscriptions
@@ -568,13 +570,13 @@ test.describe("only an admin may grant a plan", () => {
     expect(
       active[0].plan_code,
       "the NEW grant must be the live one — a supersede that leaves the old plan in place is a grant that silently did nothing",
-    ).toBe("pro");
+    ).toBe("prestige");
   });
 
   test("revoking returns the tutor to the default plan", async () => {
     const { tutor, token } = await verifiedTutor();
     const admin = await adminToken();
-    await post("/admin/subscriptions", { tutorId: tutor.id, planCode: "gratuit" }, admin);
+    await seedGrant(tutor.id, "gratuit"); // phase-a lane L3 (A25)
     expect((await createClass(token)).ok).toBe(true);
     expect((await createClass(token)).error).toBe("plan-limit-classes");
 
@@ -584,6 +586,22 @@ test.describe("only an admin may grant a plan", () => {
 
     // Idempotent: revoking nothing is the state being asked for, not an error.
     expect((await post("/admin/subscriptions/revoke", { tutorId: tutor.id }, admin)).ok).toBe(true);
+  });
+
+  test("DURING THE PILOT a grant that would LOWER a tutor's limits is refused, by name, and writes nothing", async () => {
+    /* phase-a lane L3 (A25). Every tutor is on `pilot` (unlimited) while nothing is
+       billed; Gratuit (1) or Essentiel (5) would take capability away. */
+    const { tutor, token } = await verifiedTutor();
+    const admin = await adminToken();
+    for (const planCode of ["gratuit", "essentiel"]) {
+      const res = await post("/admin/subscriptions", { tutorId: tutor.id, planCode }, admin);
+      expect(res.ok, `${planCode} must be refused during the pilot`).toBe(false);
+      expect(res.error).toBe("lowers-pilot-limits");
+      expect(typeof res.reason, "the refusal says why").toBe("string");
+    }
+    const rows = await sql`select 1 from subscriptions where tutor_id = ${tutor.id}`;
+    expect(rows.length, "a refused grant must not leave a row behind").toBe(0);
+    for (let i = 0; i < 3; i += 1) expect((await createClass(token)).ok).toBe(true);
   });
 });
 

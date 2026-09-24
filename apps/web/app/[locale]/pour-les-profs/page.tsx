@@ -3,8 +3,9 @@
    /pour-les-profs — Tnajem TUTOR (teacher) landing page.
    "Shopify for Tunisian tutors": branded page, live classes, you set your price.
 
-   FREE PILOT: Tnajem processes no money. The student pays the tutor DIRECTLY,
-   off-platform; we take 0 % commission and issue no payouts. Online payment, the
+   FREE PILOT: Tnajem processes no money; we take 0 % commission and issue no
+   payouts. The one payment story (D4, phase-a lane L3 A22) is <PaymentStory>:
+   online, through Tnajem, before the session — labelled "Bientôt". Online payment, the
    subscription plans and the 10 % commission are FUTURE — every mention of them
    on this page is time-qualified ("plus tard", "quand…"), never stated as a
    current feature. Equally, the 0 % is never promised as permanent: it is a
@@ -86,7 +87,7 @@ const copy = bilingual({
     sub: "Crée ta page gratuitement en 2 minutes, fixe ton tarif, et donne tes cours en direct. Pendant le pilote, Tnajem ne prend rien.",
     ctaPrimary: "Crée ta page de prof",
     ctaGhost: "Voir les profs sur Tnajem",
-    micro: `Gratuit pendant le pilote. Plus tard : ${COMMISSION_PCT} % sur chaque élève payant, uniquement sur les paiements traités par Tnajem, plus un abonnement — gratuit avec ${FREE_PLAN.maxClasses} cours en ligne à la fois, à partir de ${nf(tnd(requirePlan("essentiel").monthlyMillimes))} TND/mois au-delà.`,
+    micro: `Gratuit pendant le pilote. Plus tard : ${COMMISSION_PCT} % sur chaque élève payant, uniquement sur les paiements traités par Tnajem, plus un abonnement — gratuit avec ${FREE_PLAN.maxClasses} séance publiée à la fois, à partir de ${nf(tnd(requirePlan("essentiel").monthlyMillimes))} TND/mois au-delà.`,
     tarifsCta: "Voir les tarifs",
     pilotChip: "Pilote — 0 % aujourd'hui",
 
@@ -109,7 +110,7 @@ const copy = bilingual({
     f1t: "Ta page, ton lien",
     f1b: "Ton nom, ta matière, tes cours. Un seul lien à coller sur WhatsApp, Insta ou TikTok — c'est là que tes élèves réservent.",
     f2t: "Ton tarif — 100 % pour toi pendant le pilote",
-    f2b: `Tu fixes ton prix, cours par cours, sans plafond. Pendant le pilote, Tnajem ne prend rien. Plus tard, Tnajem coûtera deux choses : 10 % sur chaque élève payant — uniquement sur les paiements traités par Tnajem — plus un abonnement — gratuit tant que tu n'ouvres qu'un cours à la fois, à partir de ${nf(tnd(requirePlan("essentiel").monthlyMillimes))} TND/mois au-delà.`, // phase-a lane L3 (A22)
+    f2b: `Tu fixes ton prix, cours par cours, sans plafond. Pendant le pilote, Tnajem ne prend rien. Plus tard, Tnajem coûtera deux choses : 10 % sur chaque élève payant — uniquement sur les paiements traités par Tnajem — plus un abonnement — gratuit tant que tu ne publies qu'une séance à la fois, à partir de ${nf(tnd(requirePlan("essentiel").monthlyMillimes))} TND/mois au-delà.`, // phase-a lane L3 (A22)
     f3t: "Vérifié à la main",
     f3b: "On regarde ta pièce d'identité nous-mêmes, une par une. Une fois validé, ta page passe en ligne et apparaît dans Explorer. On te prévient dès que c'est fait.",
     f4t: "Cours en direct",
@@ -152,7 +153,7 @@ const copy = bilingual({
     faqTitle: "Les questions qu'on nous pose",
     q1: "Combien Tnajem prend ?",
     // phase-a lane L3 (A22)
-    a1: `Rien, aujourd'hui. Pendant le pilote, tu gardes 100 % : Tnajem ne touche pas à l'argent. Plus tard, il y aura deux choses, et jamais l'une sans l'autre : 10 % sur chaque élève payant, uniquement sur les paiements traités par Tnajem, plus un abonnement — gratuit avec un seul cours en ligne à la fois, à partir de ${nf(tnd(requirePlan("essentiel").monthlyMillimes))} TND/mois au-delà. Rien sur une séance que tu as choisi d'offrir. On te préviendra avant.`,
+    a1: `Rien, aujourd'hui. Pendant le pilote, tu gardes 100 % : Tnajem ne touche pas à l'argent. Plus tard, il y aura deux choses, et jamais l'une sans l'autre : 10 % sur chaque élève payant, uniquement sur les paiements traités par Tnajem, plus un abonnement — gratuit avec une seule séance publiée à la fois, à partir de ${nf(tnd(requirePlan("essentiel").monthlyMillimes))} TND/mois au-delà. Rien sur une séance que tu as choisi d'offrir. On te préviendra avant.`,
     q2: "Faut-il un diplôme ?",
     a2: "Non. Maîtrise ta matière, une bonne connexion, et tu démarres aujourd'hui. On vérifie ton identité à la main avant que ta page soit publiée.",
     q3: "Si un élève ne vient pas ?",
@@ -173,7 +174,7 @@ const copy = bilingual({
     sub: "اعمل صفحتك فابور في دقيقتين، حدّد تعريفتك، واعطي دروسك مباشرة. في فترة التجربة، Tnajem ما تاخذ والو.", // phase-a lane L3 (A22)
     ctaPrimary: "اعمل صفحتك متاع أستاذ",
     ctaGhost: "شوف الأساتذة في Tnajem",
-    micro: `فابور في فترة التجربة. من بعد : ${COMMISSION_PCT} % على كل تلميذ خلّص، كان على الخلاص اللي يعدّي من Tnajem، زائد اشتراك — فابور بـ ${FREE_PLAN.maxClasses} درس أونلاين في نفس الوقت، ومن ${nf(tnd(requirePlan("essentiel").monthlyMillimes))} دينار في الشهر لفوق.`,
+    micro: `فابور في فترة التجربة. من بعد : ${COMMISSION_PCT} % على كل تلميذ خلّص، كان على الخلاص اللي يعدّي من Tnajem، زائد اشتراك — فابور بـ ${FREE_PLAN.maxClasses} حصة منشورة في نفس الوقت، ومن ${nf(tnd(requirePlan("essentiel").monthlyMillimes))} دينار في الشهر لفوق.`,
     tarifsCta: "شوف الأسعار",
     pilotChip: "تجربة — 0 % اليوم",
 
@@ -194,7 +195,7 @@ const copy = bilingual({
     f1t: "صفحتك، ولينكك",
     f1b: "إسمك، مادتك، دروسك. لينك وحيد تلصقو في واتساب، إنستا ولا تيكتوك — ومن غادي تلامذتك يحجزو.",
     f2t: "ثمنك إنتي — 100 % متاعك في فترة التجربة",
-    f2b: `إنتي تحدّد ثمنك، درس بدرس، بلا سقف. في فترة التجربة، Tnajem ما تاخذ والو. من بعد، Tnajem باش تكلّف زوز حاجات : 10 % على كل تلميذ خلّص — كان على الخلاص اللي يعدّي من Tnajem — زائد اشتراك — فابور مادام عندك درس واحد محلول، ومن ${nf(tnd(requirePlan("essentiel").monthlyMillimes))} دينار في الشهر لفوق.`, // phase-a lane L3 (A22)
+    f2b: `إنتي تحدّد ثمنك، درس بدرس، بلا سقف. في فترة التجربة، Tnajem ما تاخذ والو. من بعد، Tnajem باش تكلّف زوز حاجات : 10 % على كل تلميذ خلّص — كان على الخلاص اللي يعدّي من Tnajem — زائد اشتراك — فابور مادام عندك حصة وحدة منشورة، ومن ${nf(tnd(requirePlan("essentiel").monthlyMillimes))} دينار في الشهر لفوق.`, // phase-a lane L3 (A22)
     f3t: "التثبّت يتعمل بيدينا",
     f3b: "نشوفو بطاقة تعريفك بيدينا، وحدة وحدة. كي تتقبل، صفحتك تولّي أونلاين وتبان في «اكتشف». نعلموك كي يكمل الأمر.",
     f4t: "دروس مباشرة",
@@ -233,7 +234,7 @@ const copy = bilingual({
     faqTitle: "الأسئلة اللي يسقسيونا عليها",
     q1: "قدّاش تاخذ Tnajem ؟",
     // phase-a lane L3 (A22)
-    a1: `والو، اليوم. في فترة التجربة تحتفظ بـ 100 % : Tnajem ما تلمسش الفلوس. من بعد باش يوليو زوز حاجات، وعمرها وحدة بلا لأخرى : 10 % على كل تلميذ خلّص، كان على الخلاص اللي يعدّي من Tnajem، زائد اشتراك — فابور بدرس أونلاين واحد في نفس الوقت، ومن ${nf(tnd(requirePlan("essentiel").monthlyMillimes))} دينار في الشهر لفوق. والو على حصة إنتي اخترت تعطيها بلاش. ونعلموك قبل.`,
+    a1: `والو، اليوم. في فترة التجربة تحتفظ بـ 100 % : Tnajem ما تلمسش الفلوس. من بعد باش يوليو زوز حاجات، وعمرها وحدة بلا لأخرى : 10 % على كل تلميذ خلّص، كان على الخلاص اللي يعدّي من Tnajem، زائد اشتراك — فابور بحصة وحدة منشورة في نفس الوقت، ومن ${nf(tnd(requirePlan("essentiel").monthlyMillimes))} دينار في الشهر لفوق. والو على حصة إنتي اخترت تعطيها بلاش. ونعلموك قبل.`,
     q2: "يلزم شهادة ؟",
     a2: "لا. اتقن مادتك، كنكسيون مليحة، وتبدا اليوم. نتثبّتو من هويتك بيدينا قبل ما تتنشر صفحتك.",
     q3: "كان التلميذ ما جاش ؟",
