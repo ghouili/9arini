@@ -19,7 +19,8 @@ const copy = bilingual({
     signIn: "Se connecter",
     soonTitle: "Les paiements arrivent bientôt",
     soonBody:
-      "On finalise Flouci et D17. En attendant, tes élèves réservent sans payer en ligne — donc ton solde est à 0, pour de vrai. Dès que les paiements s'ouvrent, chaque réservation payée arrive ici et tu pourras retirer.",
+      // phase-a lane L3 (A22): no provider named (Phase E decides the rails).
+      "Les paiements en ligne ne sont pas encore ouverts : aucun paiement ne passe par Tnajem — donc ton solde est à 0, pour de vrai. Dès que les paiements s'ouvrent, chaque réservation payée arrive ici et tu pourras retirer.",
     soonNote: "On te préviendra dès que le retrait est ouvert. Rien à faire de ton côté.",
     comingRails: "Retraits prévus vers",
     disabledBtn: "Retrait pas encore disponible",
@@ -33,7 +34,8 @@ const copy = bilingual({
     signIn: "دخول",
     soonTitle: "الدفع يوصل قريب",
     soonBody:
-      "قاعدين نكمّلو في فلوسي و D17. توّا التلاميذ يحجزو بلا ما يخلّصو على الخط — علاخاطر هكّا رصيدك 0، بصحّ. كي يتفتح الدفع، كل حجز مخلّص يوصل لهوني وتنجم تسحب.",
+      // phase-a lane L3 (A22)
+      "الخلاص أونلاين ما زال ما تحلّش : حتى خلاص ما يعدّي من Tnajem — علاخاطر هكّا رصيدك 0، بصحّ. كي يتفتح الدفع، كل حجز مخلّص يوصل لهوني وتنجم تسحب.",
     soonNote: "نعيّطولك أوّل ما السحب يتفتح. ما عندك ما تعمل.",
     comingRails: "السحب باش يمشي نحو",
     disabledBtn: "السحب ما زال ما تفعّلش",

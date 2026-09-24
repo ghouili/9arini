@@ -121,3 +121,31 @@ export function cancellationOutcome(input: {
 
   return { late, msBeforeStart, retainedPct, amountTnd, retainedTnd, releasedTnd };
 }
+
+/* ── phase-a lane L3 (A21) — what the student is TOLD ─────────────────────── */
+
+/** The reschedule waiver (Step 11), in one place: the tutor moved the class AFTER
+    this booking was made, so the student agreed to a time that no longer exists.
+    `bookedAt` is bookings.created_at, which a re-booking resets (A8). */
+export function movedAfterBooking(
+  bookedAt: Date | string | number,
+  rescheduledAt: Date | string | number | null | undefined,
+): boolean {
+  if (rescheduledAt === null || rescheduledAt === undefined) return false;
+  return new Date(bookedAt).getTime() < new Date(rescheduledAt).getTime();
+}
+
+/** What a LATE cancellation of this seat would retain — the figure the confirm box
+    states BEFORE the student commits. 0 for a free seat (40 % of nothing) and for a
+    waived one. Computed by cancellationOutcome itself, never re-derived. */
+export function lateCancelRetainedTnd(input: { amountTnd: number; waived: boolean }): number {
+  // Zero milliseconds before the start: inside the window by definition.
+  return cancellationOutcome({ scheduledAt: 0, now: 0, amountTnd: input.amountTnd, waived: input.waived }).retainedTnd;
+}
+
+/** The share ACTUALLY retained: the rate when something was retained, else 0. The
+    ledger keeps the rate that applied (retained_pct); a message must not show
+    "40 %" beside a retained amount of 0. */
+export function retainedShare(outcome: Pick<CancellationOutcome, "retainedTnd" | "retainedPct">): number {
+  return outcome.retainedTnd > 0 ? outcome.retainedPct : 0;
+}

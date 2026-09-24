@@ -138,7 +138,7 @@ export function subscriptionIsLive(
 
 /* ── THE CLASS LIMIT ─────────────────────────────────────────────────────────
 
-   "1 cours en ligne" / "Jusqu'à 5 cours" counts what is OPEN — upcoming and not
+   "1 séance publiée" / "Jusqu'à 5 séances" counts what is OPEN — upcoming and not
    cancelled — not what has ever existed. A tutor on the free plan who taught a
    class last month has not spent their allowance forever; that reading would
    turn a listing limit into a lifetime quota, which is not what the page sells. */
@@ -148,10 +148,15 @@ export function canOpenAnotherClass(plan: Plan, openClasses: number): boolean {
 
 /** The bilingual bullet on /tarifs. Derived, so the page can never advertise a
     limit different from the one the API enforces. */
+/* phase-a lane L3 (A25): "séances", never "cours" (D3). What canOpenAnotherClass
+   counts is every upcoming, non-cancelled CLASS ROW — one dated session each — so
+   a weekly group published two weeks ahead is two. The words now say so. */
 export function classLimitLabel(maxClasses: number | null, locale: "fr" | "ar"): string {
-  if (maxClasses === null) return locale === "ar" ? "دروس بلا حدّ" : "Cours illimités";
-  if (maxClasses === 1) return locale === "ar" ? "درس واحد أونلاين" : "1 cours en ligne";
-  return locale === "ar" ? `حتى لـ ${maxClasses} دروس` : `Jusqu'à ${maxClasses} cours`;
+  if (maxClasses === null) return locale === "ar" ? "حصص بلا حدّ" : "Séances illimitées";
+  if (maxClasses === 1) return locale === "ar" ? "حصة وحدة منشورة في نفس الوقت" : "1 séance publiée à la fois";
+  return locale === "ar"
+    ? `حتى لـ ${maxClasses} حصص منشورة في نفس الوقت`
+    : `Jusqu'à ${maxClasses} séances publiées à la fois`;
 }
 
 /** The one sentence that says what the class limit COUNTS. /pour-les-profs and
@@ -159,10 +164,30 @@ export function classLimitLabel(maxClasses: number | null, locale: "fr" | "ar"):
     differently — and neither has to argue for it. "Ouverts" is what
     canOpenAnotherClass counts: upcoming, not cancelled. */
 export function classLimitRule(locale: "fr" | "ar"): string {
+  // phase-a lane L3 (A25): séances (D3).
   return locale === "ar"
-    ? "الحدّ هو عدد الدروس المحلولة في نفس الوقت — موش عدد التلامذة."
-    : "La limite, c'est le nombre de cours ouverts en même temps — pas le nombre d'élèves.";
+    ? "الحدّ هو عدد الحصص الجاية المنشورة في نفس الوقت — موش عدد التلامذة."
+    : "La limite, c'est le nombre de séances à venir publiées en même temps — pas le nombre d'élèves.";
 }
+
+/* phase-a lane L3 (A25) — A GRANT MAY ONLY GIVE, NEVER TAKE, WHILE NOTHING IS BILLED.
+
+   During the pilot the default plan is `pilot`: unlimited sessions, no boost.
+   Granting "Gratuit" (1) or "Essentiel" (5) to a pilot tutor would CUT what they
+   can publish while /tarifs tells them nothing is billed yet. POST
+   /admin/subscriptions refuses such a grant with this reason. Compared against the
+   DEFAULT plan for the current switch, so the day payments open (default
+   `gratuit`) no listed plan is "lower" and every grant goes through. */
+export function grantLowersLimits(code: PlanCode, paymentsAreEnabled: boolean): boolean {
+  const base = requirePlan(defaultPlanCode(paymentsAreEnabled));
+  const p = requirePlan(code);
+  const fewerSessions =
+    base.maxClasses === null ? p.maxClasses !== null : p.maxClasses !== null && p.maxClasses < base.maxClasses;
+  return fewerSessions || p.exploreBoost < base.exploreBoost;
+}
+
+export const GRANT_LOWERS_LIMITS_REASON =
+  "Pendant le pilote, chaque prof a déjà des séances illimitées : cette offre réduirait ses limites. Attribue Pro ou Prestige, ou attends l'ouverture des paiements.";
 
 /** Whole TND, for display. Every catalogue price is a whole number of dinars. */
 export function tnd(millimes: number): number {

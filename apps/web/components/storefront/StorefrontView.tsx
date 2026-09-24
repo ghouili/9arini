@@ -33,6 +33,9 @@ import {
 import { SiteShell } from "@/components/SiteShell";
 import { UserText } from "@/components/UserText";
 import { tutorStanding, isOpenForBooking, monthLabel, formatNumericDate, type Storefront, type TutorReviews, type ClassItem } from "@tnajem/shared";
+// phase-a lane L3 (A22): a SERVER component, so it may read the real switch.
+import { paymentsEnabled } from "@tnajem/shared/payments";
+import { PaymentStory } from "@/components/PaymentStory";
 
 
 /* Component-local copy (FR + Tunisian Derija). lib/i18n.ts is owned elsewhere, so
@@ -80,14 +83,15 @@ const copy = bilingual({
     freeFirst: "1ère séance gratuite",
     noCard: "Sans engagement",
     cancel24: "Annulation gratuite 48h avant",
+    // phase-a lane L3 (A22): what is true today; HOW you will pay is <PaymentStory> (D4).
     payDirect:
-      "Tnajem ne prend aucun paiement. Tu règles les séances directement avec ton prof, au tarif affiché ci-dessus.",
+      "Tnajem ne prend aucun paiement pendant le pilote.",
 
     // ── How it works ──
     howTitle: "Comment ça se passe",
     how1: "Tu réserves ta place — sans engagement.",
     how2: "Tu reçois le lien de la séance dans « Mes cours ».",
-    how3: "Tu payes ton prof directement, au tarif affiché — rien ne passe par Tnajem.",
+    // phase-a lane L3 (A22): step 3 is <PaymentStory> — the one payment story.
 
     nextSession: "Prochaine séance",
     classesAria: "Séances en direct de ce prof",
@@ -120,12 +124,11 @@ const copy = bilingual({
     noCard: "بلا التزام",
     cancel24: "إلغاء مجاني 48 ساعة قبل",
     payDirect:
-      "Tnajem ما تاخذ حتى خلاص. تخلّص الحصص مباشرة مع أستاذك، بالثمن المبيّن فوق.",
+      "Tnajem ما تاخذ حتى خلاص في فترة التجربة.", // phase-a lane L3 (A22)
 
     howTitle: "كيفاش تمشي الحكاية",
     how1: "تحجز بلاصتك — بلا التزام.",
     how2: "يوصلك رابط الحصة في « حصصي ».",
-    how3: "تخلّص أستاذك مباشرة بالثمن المبيّن — ما يعدّي شي من Tnajem.",
 
     nextSession: "الحصة الجاية",
     classesAria: "الحصص المباشرة متاع الأستاذ",
@@ -375,7 +378,8 @@ export function StorefrontView({
                 <ol className="sf-steps" role="list">
                   <li><span className="sf-step-n">1</span><span>{c.how1}</span></li>
                   <li><span className="sf-step-n">2</span><span>{c.how2}</span></li>
-                  <li><span className="sf-step-n">3</span><span>{c.how3}</span></li>
+                  {/* phase-a lane L3 (A22) */}
+                  <li><span className="sf-step-n">3</span><PaymentStory locale={locale} enabled={paymentsEnabled()} /></li>
                 </ol>
               </div>
 
@@ -516,7 +520,11 @@ export function StorefrontView({
                     {/* What is actually true in the pilot: nothing is charged here. */}
                     <div className="trust sf-trust">
                       <Shield />
-                      <p>{c.payDirect}</p>
+                      <p>
+                        {c.payDirect}{" "}
+                        {/* phase-a lane L3 (A22) */}
+                        <PaymentStory locale={locale} enabled={paymentsEnabled()} />
+                      </p>
                     </div>
                   </>
                 )}

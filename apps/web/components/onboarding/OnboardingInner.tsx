@@ -54,7 +54,8 @@ const SUB_FROM = tnd(requirePlan("essentiel").monthlyMillimes);
 const copy = bilingual({
   fr: {
     yourName: "Ton nom…",
-    fine: `Gratuit pendant le pilote : l'élève te paie en main propre et Tnajem ne prend rien. Plus tard, ${COMMISSION_PCT} % sur chaque élève payant via Tnajem, plus un abonnement — gratuit avec un seul cours en ligne à la fois, à partir de ${SUB_FROM} TND/mois au-delà.`,
+    // phase-a lane L3 (A22): one payment story (D4) — no cash-in-hand path.
+    fine: `Gratuit pendant le pilote : Tnajem ne prend rien. Plus tard, ${COMMISSION_PCT} % sur chaque élève payant via Tnajem, plus un abonnement — gratuit avec une seule séance publiée à la fois, à partir de ${SUB_FROM} TND/mois au-delà.`,
     perks: [
       "Ta page prête en 2 minutes",
       "Tu fixes ton prix — 100 % pour toi pendant le pilote",
@@ -94,7 +95,8 @@ const copy = bilingual({
   },
   ar: {
     yourName: "اسمك…",
-    fine: `فابور في فترة التجربة : التلميذ يخلّصك في يدك وTnajem ما تاخذ والو. من بعد، ${COMMISSION_PCT} % على كل تلميذ يخلّص من Tnajem، زائد اشتراك فابور بدرس واحد ومن ${SUB_FROM} دينار في الشهر لفوق.`,
+    // phase-a lane L3 (A22)
+    fine: `فابور في فترة التجربة : Tnajem ما تاخذ والو. من بعد، ${COMMISSION_PCT} % على كل تلميذ يخلّص من Tnajem، زائد اشتراك فابور بحصة وحدة منشورة ومن ${SUB_FROM} دينار في الشهر لفوق.`,
     perks: [
       "صفحتك حاضرة في دقيقتين",
       "إنتي تحدّد ثمنك — 100 % متاعك في فترة التجربة",

@@ -34,9 +34,10 @@ const CONTACT_INFO_MSG = {
    has no class limit. */
 const PLAN_LIMIT_MSG = {
   fr: (n: number, plan: string) =>
-    `Ton offre ${plan} te permet ${n === 1 ? "1 cours en ligne" : `${n} cours en ligne`} à la fois. Annule un cours à venir, attends qu'il ait lieu, ou passe à une offre supérieure.`,
+    // phase-a lane L3 (A25): séances (D3) — what the limit counts.
+    `Ton offre ${plan} te permet ${n === 1 ? "1 séance publiée" : `${n} séances publiées`} à la fois. Annule une séance à venir, attends qu'elle ait lieu, ou passe à une offre supérieure.`,
   ar: (n: number, plan: string) =>
-    `عرضك ${plan} يسمحلك بـ ${n === 1 ? "درس واحد أونلاين" : `${n} دروس أونلاين`} في نفس الوقت. ألغي درس جاي، ولا استنّاه يكمّل، ولا اطلع لعرض أكبر.`,
+    `عرضك ${plan} يسمحلك بـ ${n === 1 ? "حصة وحدة منشورة" : `${n} حصص منشورة`} في نفس الوقت. ألغي حصة جاية، ولا استنّاها تكمّل، ولا اطلع لعرض أكبر.`,
 } as const;
 
 /* The link that message needs. It used to end with "passe à une offre
@@ -50,7 +51,7 @@ const PLAN_LIMIT_CTA = { fr: "Voir les offres", ar: "شوف العروض" } as c
 const copy = bilingual({
   fr: {
     lead: "Un titre, une date, ton prix. Ta classe apparaît sur ta page, et les élèves réservent en un clic.",
-    priceHelp: "Tu fixes ton prix. Tu gardes 100 % — pendant le pilote l'élève te paie directement.",
+    priceHelp: "Tu fixes ton prix. Tu gardes 100 % pendant le pilote : Tnajem ne prend rien.", // phase-a lane L3 (A22)
     // The API reads the typed time as Tunis time, wherever the tutor is (packages/shared/src/time.ts).
     dateHelp: "Heure de Tunisie.",
     verifNote: "Ta classe se publie une fois ton compte vérifié.",
@@ -68,7 +69,7 @@ const copy = bilingual({
   },
   ar: {
     lead: "عنوان، وقت، وثمنك. الحصة تبان في صفحتك، والتلامذة يحجزو بكليكة.",
-    priceHelp: "إنتي تحدّد ثمنك. تحتفظ بـ 100 % — في فترة التجربة التلميذ يخلّصك مباشرة.",
+    priceHelp: "إنتي تحدّد ثمنك. تحتفظ بـ 100 % في فترة التجربة : Tnajem ما تاخذ والو.", // phase-a lane L3 (A22)
     dateHelp: "بتوقيت تونس.",
     verifNote: "الحصة تتنشر كي يتثبّت حسابك.",
     verifCta: "ثبّت حسابي",

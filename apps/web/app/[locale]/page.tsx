@@ -6,6 +6,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { Verified } from "@/components/ui";
 import { Shield, Gift, Forward, Search, Video, Wallet, Users } from "@/components/icons";
 import { bilingual } from "@/lib/i18n";
+import { PaymentStory } from "@/components/PaymentStory"; // phase-a lane L3 (A22)
 
 /* =====================================================================
    STUDENT / PARENT LANDING — Tnajem (تنجّم)
@@ -43,8 +44,9 @@ const copy = bilingual({
     sub: "Choisis ta matière, réserve une séance en vidéo. Le tarif est affiché avant que tu réserves.",
     ctaPrimary: "Trouve ton prof",
     ctaSecondary: "Comment ça marche ?",
+    // phase-a lane L3 (A22): one payment story (D4) — it lives in <PaymentStory>, labelled "Bientôt".
     heroMicro:
-      "Sans engagement. Tu paies ton prof directement, juste avant chaque séance — ou au mois, si tu préfères. Tnajem ne prend rien pendant le pilote.",
+      "Sans engagement. Tnajem ne prend rien pendant le pilote.",
 
     // hero illustration (NOT a real listing — generic on purpose)
     heroAria:
@@ -61,7 +63,7 @@ const copy = bilingual({
       { t: "Cherche ton prof", p: "Par matière et par niveau, du primaire au Bac." },
       { t: "Réserve ta séance", p: "Tu vois le tarif, tu choisis l'horaire." },
       { t: "Suis le cours en direct", p: "En vidéo, depuis ton téléphone ou ton PC." },
-      { t: "Continue si ça te plaît", p: "Le prof affiche son tarif — tu le règles directement avec lui." },
+      { t: "Continue si ça te plaît", p: "Le prof affiche son tarif avant que tu réserves." }, // phase-a lane L3 (A22)
     ],
 
     knowTitle: "3 choses à savoir avant de réserver.",
@@ -75,8 +77,9 @@ const copy = bilingual({
         p: "On contrôle son identité, ses matières et ses niveaux, et on relit sa page avant de la publier.",
       },
       {
-        t: "Tu règles ton prof directement",
-        p: "Il fixe son tarif et l'affiche avant que tu réserves. Sans engagement : tu paies juste avant chaque séance — ou au mois, si tu préfères. Le paiement en ligne viendra plus tard.",
+        // phase-a lane L3 (A22): the how-you-pay sentence is <PaymentStory> under this item.
+        t: "Le paiement, en clair",
+        p: "Il fixe son tarif et l'affiche avant que tu réserves. Sans engagement.",
       },
     ],
     honestNote:
@@ -84,7 +87,7 @@ const copy = bilingual({
 
     finalTitle: "Choisis ton prof. Le tarif est affiché avant de réserver.",
     finalCta: "Trouve ton prof",
-    finalMicro: "Sans engagement · tu paies ton prof directement · annulation libre jusqu'à 48h avant.",
+    finalMicro: "Sans engagement · annulation libre jusqu'à 48h avant.", // phase-a lane L3 (A22)
 
     profTitle: "Tu es prof ?",
     profBody: "Donne tes cours en direct, fixe ton tarif, et garde 100 % pendant le pilote.",
@@ -99,7 +102,7 @@ const copy = bilingual({
     sub: "اختار المادة، واحجز حصة بالفيديو. الثمن يبان قبل ما تحجز.",
     ctaPrimary: "لقّي أستاذك",
     ctaSecondary: "كيفاش يخدم؟",
-    heroMicro: "بلا التزام. تخلّص أستاذك مباشرة قبل كل حصة — ولا بالشهر، كيف ما تحب. Tnajem ما تاخذ والو في فترة التجربة.",
+    heroMicro: "بلا التزام. Tnajem ما تاخذ والو في فترة التجربة.", // phase-a lane L3 (A22)
 
     // الرسم التوضيحي متاع الهيرو (موش أساتذة حقيقيين)
     heroAria: "رسم توضيحي: بحث «رياضيات · باك» يورّي أساتذة متثبّت منهم، وكل واحد فيهم عندو رابط لصفحتو.",
@@ -115,7 +118,7 @@ const copy = bilingual({
       { t: "لوّج على أستاذك", p: "حسب المادة والمستوى، من الابتدائي للباك." },
       { t: "احجز حصتك", p: "تشوف الثمن، وإنتي تختار الوقت." },
       { t: "احضر الدرس مباشرة", p: "بالفيديو، من تليفونك ولا من الكمبيوتر." },
-      { t: "كمّل كان عجبك", p: "الأستاذ يبيّن ثمنو — وتخلّصو مباشرة معاه." },
+      { t: "كمّل كان عجبك", p: "الأستاذ يبيّن ثمنو قبل ما تحجز." }, // phase-a lane L3 (A22)
     ],
 
     knowTitle: "3 حاجات لازم تعرفهم قبل ما تحجز.",
@@ -129,8 +132,9 @@ const copy = bilingual({
         p: "نتثبّتو من هويتو، من المواد والمستويات اللي يقرّيهم، ونقراو صفحتو قبل ما ننشروها.",
       },
       {
-        t: "تخلّص أستاذك مباشرة",
-        p: "هو اللي يحدّد ثمنو ويبيّنو قبل ما تحجز. بلا التزام : تخلّص قبل كل حصة — ولا بالشهر، كيف ما تحب. الخلاص أونلاين باش يجي مبعد.",
+        // phase-a lane L3 (A22)
+        t: "الخلاص، بالواضح",
+        p: "هو اللي يحدّد ثمنو ويبيّنو قبل ما تحجز. بلا التزام.",
       },
     ],
     honestNote:
@@ -138,7 +142,7 @@ const copy = bilingual({
 
     finalTitle: "اختار أستاذك. الثمن يبان قبل ما تحجز.",
     finalCta: "لقّي أستاذك",
-    finalMicro: "بلا التزام · تخلّص أستاذك مباشرة · تنجّم تلغي حتى 48 ساعة قبل.",
+    finalMicro: "بلا التزام · تنجّم تلغي حتى 48 ساعة قبل.", // phase-a lane L3 (A22)
 
     profTitle: "إنتي أستاذ؟",
     profBody: "قرّي مباشرة، حدّد ثمنك، واحتفظ بـ 100 % في فترة التجربة.",
@@ -473,6 +477,12 @@ export default function HomePage() {
                     </span>
                     <h3 className="lp-t mb-1.5 text-[16.5px] text-ink">{k.t}</h3>
                     <p className="text-[14px] leading-relaxed text-ink2">{k.p}</p>
+                    {/* phase-a lane L3 (A22): the one payment story, labelled "Bientôt" while payments are off. */}
+                    {i === 2 && (
+                      <p className="mt-2 text-[14px] leading-relaxed text-ink2">
+                        <PaymentStory locale={locale} />
+                      </p>
+                    )}
                   </div>
                 );
               })}

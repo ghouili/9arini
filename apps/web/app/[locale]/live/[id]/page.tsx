@@ -11,6 +11,7 @@ import { UserText } from "@/components/UserText";
 import { canJoinClass, getClass, getStudentDashboard, getDashboard } from "@/app/actions";
 import { monthLabel, type ClassItem } from "@tnajem/shared";
 import { bilingual } from "@/lib/i18n";
+import { classEndMs } from "@tnajem/shared/live"; // phase-a lane L3 (A16)
 
 /* Page-local copy (lib/i18n.ts is shared — don't touch it). */
 const copy = bilingual({
@@ -24,6 +25,10 @@ const copy = bilingual({
     tipTitle: "Connexion lente ?",
     tip: "Coupe ta caméra une fois dans la salle : tu peux suivre en silence et écrire dans le chat. Caméra et micro se règlent dans la salle.",
     tutorNote: "Tu es le prof de cette séance.",
+    // phase-a lane L3 (A16)
+    ended: "TERMINÉE",
+    cancelledTitle: "Cette séance a été annulée",
+    cancelledBody: "Il n'y a pas de salle à rejoindre. Tes autres cours sont dans « Mes cours ».",
   },
   ar: {
     liveNow: "مباشر",
@@ -35,6 +40,10 @@ const copy = bilingual({
     tipTitle: "الأنترنت بطيء ؟",
     tip: "طفّي الكاميرا كي تدخل للقاعة : تنجم تتابع بصمت وتكتب في الدردشة. الكاميرا والميكرو يتحكم فيهم من داخل القاعة.",
     tutorNote: "إنت الأستاذ متاع هذه الحصة.",
+    // phase-a lane L3 (A16)
+    ended: "وفات",
+    cancelledTitle: "هذه الحصة تلغات",
+    cancelledBody: "ما فماش قاعة باش تدخلها. حصصك الأخرى تلقاهم في « حصصي ».",
   },
 });
 
@@ -164,6 +173,26 @@ export default function LiveLobbyPage(props: Props) {
     );
   }
 
+  /* phase-a lane L3 (A16): a CANCELLED class has no room (the join gate refuses it
+     — reason "cancelled"). It used to fall through to "Aucun prof trouvé". */
+  if ((!gate.canJoin && gate.reason === "cancelled") || cls?.status === "cancelled") {
+    return (
+      <SiteShell footer={false}>
+        <section className="web-section">
+          <div className="container max-w-[520px] mx-auto">
+            <div className="panel panel-pad" style={{ textAlign: "center", padding: "clamp(24px,5vw,40px)" }}>
+              <h1 className="web-h2 text-[clamp(17px,2.4vw,22px)] mb-2.5">{c.cancelledTitle}</h1>
+              <p className="muted text-[13.5px] leading-[1.6] mb-5">{c.cancelledBody}</p>
+              <Link href="/student" className="btn btn-primary max-w-[280px] mx-auto">
+                {c.myClasses}
+              </Link>
+            </div>
+          </div>
+        </section>
+      </SiteShell>
+    );
+  }
+
   // Missing class (or any other refusal).
   if (!gate.canJoin || !cls) {
     return (
@@ -188,8 +217,15 @@ export default function LiveLobbyPage(props: Props) {
     ? cls.tutor_name.split(/\s+/).filter(Boolean).map((w) => w[0]).join("").slice(0, 2).toUpperCase()
     : "";
 
-  const startsIn = ts !== null ? ts - now : null;
-  const isLive = startsIn !== null && startsIn <= 0;
+  /* phase-a lane L3 (A16): the REAL start and end, read off the class itself
+     (starts_at + duration_min). "Live" used to be `startsIn <= 0`, true for ever
+     after the start — a class from last month still said "EN DIRECT". */
+  const parsedStart = Date.parse(cls.starts_at);
+  const startMs = Number.isFinite(parsedStart) ? parsedStart : ts;
+  const endMs = startMs !== null ? classEndMs({ scheduledAt: startMs, durationMin: cls.duration_min }) : null;
+  const startsIn = startMs !== null ? startMs - now : null;
+  const isLive = startsIn !== null && startsIn <= 0 && endMs !== null && now < endMs;
+  const ended = endMs !== null && now >= endMs;
   const showCountdown = startsIn !== null && startsIn > 0 && startsIn < DAY_MS;
 
   return (
@@ -217,7 +253,7 @@ export default function LiveLobbyPage(props: Props) {
               </Link>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "rgba(226,72,61,.18)", color: "var(--rose200)", border: "1px solid rgba(226,72,61,.4)", fontWeight: 700, fontSize: 13, padding: "5px 12px", borderRadius: 999 }}>
                 {isLive && <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--rose200)", animation: "blink 1.1s infinite" }} />}
-                {isLive ? c.liveNow : showCountdown ? t.live.tag : c.startsAt}
+                {isLive ? c.liveNow : ended ? c.ended : showCountdown ? t.live.tag : c.startsAt}
               </span>
             </div>
 
@@ -232,7 +268,7 @@ export default function LiveLobbyPage(props: Props) {
               )}
 
               {showCountdown ? (
-                <LiveCountdown ts={ts as number} />
+                <LiveCountdown ts={startMs as number} />
               ) : (
                 <div style={{ display: "inline-flex", alignItems: "center", gap: 7, color: "var(--on-dark)", fontSize: 13.5, fontWeight: 600, margin: "18px 0 6px" }}>
                   <Clock /> <time dateTime={cls.starts_at}>{cls.day} {monthLabel(cls.month, locale)} · {cls.time}</time> · {cls.duration_min} {t.common.min}

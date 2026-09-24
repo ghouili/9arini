@@ -13,12 +13,12 @@ const copy = bilingual({
   fr: {
     title: "Pour les profs : ta page et tes cours en direct",
     description:
-      "Profs : crée ta page gratuitement en 2 minutes, fixe ton tarif et donne tes cours en direct. Pendant le pilote, l'élève te paie en main propre — Tnajem ne prend rien.",
+      "Profs : crée ta page gratuitement en 2 minutes, fixe ton tarif et donne tes cours en direct. Pendant le pilote, Tnajem ne prend rien.", // phase-a lane L3 (A22)
   },
   ar: {
     title: "للأساتذة : صفحتك ودروسك مباشرة",
     description:
-      "أساتذة : اعمل صفحتك فابور في دقيقتين، حدّد تعريفتك، واعطي دروسك مباشرة. في فترة التجربة، التلميذ يخلّصك في يدك — Tnajem ما تاخذ والو.",
+      "أساتذة : اعمل صفحتك فابور في دقيقتين، حدّد تعريفتك، واعطي دروسك مباشرة. في فترة التجربة، Tnajem ما تاخذ والو.", // phase-a lane L3 (A22)
   },
 });
 

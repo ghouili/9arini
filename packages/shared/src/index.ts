@@ -50,3 +50,5 @@ export * from "./support-contact";
 // phase-a lane L2 — birth month + year, isAdult, the ALLOW_MINORS switch (A24). Pure.
 export * from "./age";
 // end phase-a lane L2
+// phase-a lane L3 (A22): the one payment story (D4). Pure strings — safe in the barrel.
+export * from "./payment-story";

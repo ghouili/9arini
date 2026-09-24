@@ -1,3 +1,5 @@
+import { isOpenForBooking, type ClassStatus } from "./class-time"; // phase-a lane L3 (A5)
+
 /* THE FREE FIRST SESSION — one rule, one place.
 
    The policy: a free first session is OPT-IN, per tutor, and OFF by default.
@@ -27,6 +29,35 @@ export function isEffectivelyFreeFirst(
   return tutorOptsIn === true && classIsFree === true;
 }
 
+/* ── ONCE PER STUDENT PER TUTOR (D2, phase-a lane L3 · A6) ─────────────────
+
+   isEffectivelyFreeFirst says whether a CLASS offers the free first session. A
+   BOOKING is free only if, in addition, the student has not already had it with
+   this tutor: no other free booking with them that is still live, and no free
+   seat of theirs that they cancelled late themselves. POST /bookings evaluates
+   that inside the seat-claim transaction, under a (student, tutor) advisory lock,
+   so two simultaneous bookings cannot both take it.
+
+   It COMES BACK when the tutor cancels (the student did not choose that), when
+   the student cancels 48h or more before, when the platform releases the seat
+   (block, consent withdrawal), and when a late cancel is waived because the
+   tutor moved the class. It is SPENT only by the student's own late, un-waived
+   cancellation of a free seat — the one case the 40% rule would apply to. The
+   ledger row carries FREE_FIRST_SPENT_REASON so the booking path can see it:
+   bookings.is_free is overwritten when a cancelled row is re-booked, the ledger
+   is not. */
+export const FREE_FIRST_SPENT_REASON = "free-first-spent";
+
+/** Does this cancellation spend the student's free first session with the tutor? */
+export function cancelSpendsFreeFirst(input: {
+  actor: "student" | "tutor" | "system";
+  wasFree: boolean | null | undefined;
+  late: boolean;
+  waived: boolean;
+}): boolean {
+  return input.actor === "student" && input.wasFree === true && input.late && !input.waived;
+}
+
 /** Does this tutor advertise a free first session AT ALL?
 
     Separate from the per-class question because tutor-level surfaces — the
@@ -34,6 +65,23 @@ export function isEffectivelyFreeFirst(
     for tutors with no published class, and used to make the claim anyway. */
 export function tutorOffersFreeFirst(tutorOptsIn: boolean | null | undefined): boolean {
   return tutorOptsIn === true;
+}
+
+/* phase-a lane L3 (A5) — may the storefront's LINK PREVIEW (the WhatsApp card,
+   the Google snippet) promise a free first session?
+
+   Only when the promise can be kept by tapping the link: the tutor's toggle is on
+   AND at least one class still open for booking is a free first session. It used
+   to follow the toggle alone, so a tutor with only paid classes — or none — was
+   advertised to every stranger as "1ère séance offerte". */
+export function advertisesFreeFirst(
+  tutorOptsIn: boolean | null | undefined,
+  classes: readonly { is_free_first: boolean | null | undefined; starts_at: string; status?: ClassStatus }[],
+): boolean {
+  return (
+    tutorOffersFreeFirst(tutorOptsIn) &&
+    classes.some((c) => isOpenForBooking(c) && isEffectivelyFreeFirst(tutorOptsIn, c.is_free_first))
+  );
 }
 
 /* ── A free first session promised in FREE TEXT ─────────────────────────────

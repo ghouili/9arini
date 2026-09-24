@@ -195,15 +195,16 @@ describe("canOpenAnotherClass", () => {
 
 describe("the labels /tarifs renders", () => {
   test("the class-limit bullet matches the enforced number, in both locales", () => {
-    assert.equal(classLimitLabel(1, "fr"), "1 cours en ligne");
-    assert.equal(classLimitLabel(5, "fr"), "Jusqu'à 5 cours");
-    assert.equal(classLimitLabel(null, "fr"), "Cours illimités");
+    // phase-a lane L3 (A25): the limit counts SESSIONS (D3), and now says so.
+    assert.equal(classLimitLabel(1, "fr"), "1 séance publiée à la fois");
+    assert.equal(classLimitLabel(5, "fr"), "Jusqu'à 5 séances publiées à la fois");
+    assert.equal(classLimitLabel(null, "fr"), "Séances illimitées");
     assert.ok(classLimitLabel(5, "ar").includes("5"));
     assert.notEqual(classLimitLabel(null, "ar"), classLimitLabel(5, "ar"));
   });
 
   test("a changed limit changes the bullet — the page cannot advertise the old one", () => {
-    assert.equal(classLimitLabel(3, "fr"), "Jusqu'à 3 cours");
+    assert.equal(classLimitLabel(3, "fr"), "Jusqu'à 3 séances publiées à la fois"); // phase-a lane L3 (A25)
   });
 
   test('"2 mois offerts" is derived from the two prices', () => {

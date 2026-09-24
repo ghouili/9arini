@@ -9,6 +9,7 @@ import { isLocale, DEFAULT_LOCALE, type AppLocale } from "@/lib/locale";
 import { dict } from "@/lib/i18n";
 import { tutorStanding, isOpenForBooking } from "@tnajem/shared";
 import { publicTutorName, publicDisplayName } from "@tnajem/shared"; // phase-a lane L2 (A23)
+import { advertisesFreeFirst } from "@tnajem/shared"; // phase-a lane L3 (A5)
 
 type Props = { params: Promise<{ locale: string; slug: string }> };
 
@@ -121,7 +122,8 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
      used to promise a free first session for every one of them. It can be
      conditional here, unlike the site-wide description, precisely because we know
      WHICH tutor this is. */
-  const pitch = tutor.offers_free_first_session
+  // phase-a lane L3 (A5): the toggle AND a bookable free-first class, never the toggle alone.
+  const pitch = advertisesFreeFirst(tutor.offers_free_first_session, data.classes)
     ? "Réserve un cours en direct — 1ère séance offerte, sans engagement."
     : "Réserve un cours en direct — tarif affiché, sans engagement.";
   const description = tutor.bio ? `${clamp(tutor.bio, 120)} · ${pitch}` : `${tutor.subject}. ${pitch}`;
