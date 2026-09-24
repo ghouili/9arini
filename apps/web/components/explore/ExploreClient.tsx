@@ -239,7 +239,7 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
   return (
     <SiteShell>
       {/* Hero / filter section */}
-      <section className="border-b border-solid border-line bg-cream">
+      <section className="border-b border-solid border-line bg-band">
         <div className="container py-10 sm:py-12">
           {/* Eyebrow + heading */}
           <p className="mb-2 font-display text-[13px] font-semibold uppercase tracking-[0.16em] text-muted">

@@ -22,6 +22,11 @@
      clean readability win; white-on-rose surfaces (student live badge) also improve. */
   --green:#1B9C6F; --green50:#E3F4ED; --rose:#C9302B; --rose50:#FCEDEC;
   --line:#EADFCD; --lineCool:#E4EAF1;
+  /* UI Option A "Clair" (A1). ONE flat page background (= --cream) and ONE band
+     colour for the at-most-one alternating section per page. No gradients on the
+     page itself: the old sand + two radial washes (one a blue haze) tiled per
+     viewport and cut off mid-grid on /explore. */
+  --bg:#FBF7F0; --band:#F4ECDF;
 
   /* ── BRAND vs. TEXT-SAFE colour split ──────────────────────────────────────
      --ochre / --green above are the BRAND colours. At their brand value they are
@@ -106,10 +111,12 @@
      what it says. Every explicit border in this file uses the shorthand (`border:
      1px solid var(--line)`), which has class-level specificity and is unaffected. */
   *,*::before,*::after{border-width:0;border-style:solid;border-color:var(--line)}
-  html,body{height:100%}
-  body{font-family:var(--fb);color:var(--ink);-webkit-font-smoothing:antialiased;
-    background:radial-gradient(1100px 600px at 10% -8%,#FFF4E0 0%,transparent 52%),
-               radial-gradient(900px 720px at 110% 6%,#E6EFFA 0%,transparent 48%),var(--sand)}
+  /* min-height, not height: with html,body{height:100%} the body box was exactly
+     one viewport tall and its background painted per viewport, so on a long page
+     (/explore) the wash stopped halfway down the grid. Flat --bg, no gradients. */
+  html{height:100%}
+  body{min-height:100%;font-family:var(--fb);color:var(--ink);-webkit-font-smoothing:antialiased;
+    background:var(--bg)}
   html[dir="rtl"] body{font-family:var(--fa)}
   html[dir="rtl"] .l-screen *{font-family:var(--fa)}
   a{color:inherit;text-decoration:none}
