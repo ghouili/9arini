@@ -17,6 +17,8 @@ import { getSession } from "../lib/session";
 import { maskAndFlag } from "../lib/contact-guard";
 import { checkRateLimit } from "../lib/rate-limit";
 import { recomputeTutorStats } from "../lib/stats";
+import { isUniqueViolation } from "../lib/db-errors"; // phase-a lane L3 (A16)
+import { classEndMs } from "@tnajem/shared/live"; // phase-a lane L3 (A16)
 
 /* reviews · consent · notifications · live-room access.
 
@@ -82,6 +84,11 @@ export async function miscRoutes(app: FastifyInstance): Promise<void> {
     if (new Date(cls.scheduledAt).getTime() > Date.now()) {
       return { ok: false, error: "class-not-started" };
     }
+    /* phase-a lane L3 (A16): nor one still in progress. Reviews opened one minute
+       into the class; they open at start + duration, the real end. */
+    if (classEndMs(cls) > Date.now()) {
+      return { ok: false, error: "class-not-ended" };
+    }
 
     /* ZERO CONTACT EXCHANGE (Step 8) — MASKED here, not rejected.
 
@@ -112,8 +119,14 @@ export async function miscRoutes(app: FastifyInstance): Promise<void> {
         });
         await recomputeTutorStats(cls.tutorId, tx);
       });
-    } catch {
-      return { ok: false, error: "already-reviewed" }; // unique(student, class)
+    } catch (e) {
+      /* phase-a lane L3 (A16): ONLY the unique(student, class) key is "already
+         reviewed". Every other failure used to be reported as a duplicate too;
+         re-thrown, the error handler answers 500 and the UI says it did not work. */
+      if (isUniqueViolation(e, "reviews_student_id_class_id_unique")) {
+        return { ok: false, error: "already-reviewed" };
+      }
+      throw e;
     }
 
     /* The storefront shows the rating AND the review feed, both cached for 60s.
@@ -270,6 +283,9 @@ export async function miscRoutes(app: FastifyInstance): Promise<void> {
 
     const [cls] = await db.select().from(classes).where(eq(classes.id, classId)).limit(1);
     if (!cls) return { canJoin: false, reason: "not-found" };
+    /* phase-a lane L3 (A16): a CANCELLED class has no session and no room — for its
+       booked students and its tutor alike. The gate handed the room out anyway. */
+    if (cls.status === "cancelled") return { canJoin: false, reason: "cancelled" };
 
     const [tut] = await db.select().from(tutors).where(eq(tutors.id, cls.tutorId)).limit(1);
     if (tut?.profileId === uid) {

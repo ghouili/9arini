@@ -25,6 +25,20 @@ export function liveRoomUrl(roomToken: string): string {
   return base + roomToken;
 }
 
+/* phase-a lane L3 (A16) — WHEN A CLASS ENDS: start + duration, one definition.
+
+   Reviews opened one minute into a class and the live page said "EN DIRECT" for
+   ever after the start; both now read the real end. A missing or nonsensical
+   duration falls back to the column default (90 min) rather than to zero, which
+   would open reviews at the very start again. */
+export const DEFAULT_CLASS_DURATION_MIN = 90;
+
+export function classEndMs(cls: { scheduledAt: Date | string | number; durationMin?: number | null }): number {
+  const d = cls.durationMin;
+  const minutes = typeof d === "number" && Number.isFinite(d) && d > 0 ? d : DEFAULT_CLASS_DURATION_MIN;
+  return new Date(cls.scheduledAt).getTime() + minutes * 60_000;
+}
+
 /** Resolve the room a class actually uses: the tutor's own URL if set, else its token room. */
 export function resolveMeetUrl(cls: { roomToken: string; meetUrl?: string | null }): string {
   const own = (cls.meetUrl ?? "").trim();

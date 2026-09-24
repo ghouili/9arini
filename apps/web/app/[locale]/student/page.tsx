@@ -62,6 +62,7 @@ const copy = bilingual({
     already: "Tu as déjà noté ce cours.",
     notBooked: "Tu n'étais pas inscrit à ce cours.",
     notStarted: "Ce cours n'a pas encore eu lieu.",
+    notEnded: "Tu pourras noter ce cours une fois la séance terminée.", // phase-a lane L3 (A16)
     pickStars: "Choisis une note de 1 à 5 étoiles.",
     reviewErr: "L'avis n'est pas parti. Réessaie.",
     stars: (n: number) => `${n} étoile${n > 1 ? "s" : ""}`,
@@ -106,6 +107,7 @@ const copy = bilingual({
     already: "لقد نقّمت هذه الحصة من قبل.",
     notBooked: "ما كنتش محجوز في هذه الحصة.",
     notStarted: "هذه الحصة ما زالت ما صارتش.",
+    notEnded: "تنجّم تنقّم الحصة كي توفى.", // phase-a lane L3 (A16)
     pickStars: "اختار تقييم من 1 إلى 5 نجوم.",
     reviewErr: "التقييم ما مشاش. عاود حاول.",
     stars: (n: number) => `${n} نجوم`,
@@ -168,7 +170,16 @@ function RateBox({ item, onDone }: { item: StudentClass; onDone: () => void }) {
   async function submit() {
     if (rating < 1) { setMsg({ kind: "err", text: c.pickStars }); return; }
     setBusy(true);
-    const res = await createReview({ classId: item.classId, rating, text: text.trim() || undefined });
+    /* phase-a lane L3 (A16): a server failure now rejects instead of coming back
+       as "already-reviewed"; say it did not work rather than spin forever. */
+    let res: Awaited<ReturnType<typeof createReview>>;
+    try {
+      res = await createReview({ classId: item.classId, rating, text: text.trim() || undefined });
+    } catch {
+      setBusy(false);
+      setMsg({ kind: "err", text: c.reviewErr });
+      return;
+    }
     setBusy(false);
     if (res.ok) {
       setMsg({ kind: "ok", text: res.masked ? c.thanksMasked : c.thanks });
@@ -182,6 +193,7 @@ function RateBox({ item, onDone }: { item: StudentClass; onDone: () => void }) {
       text: e === "already-reviewed" ? c.already
         : e === "not-booked" ? c.notBooked
         : e === "class-not-started" ? c.notStarted
+        : e === "class-not-ended" ? c.notEnded // phase-a lane L3 (A16)
         : e === "invalid-rating" ? c.pickStars
         : c.reviewErr,
     });
