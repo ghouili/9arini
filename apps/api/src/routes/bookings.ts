@@ -11,6 +11,7 @@ import {
   isEffectivelyFreeFirst,
   cancellationOutcome,
   CANCEL_FREE_WINDOW_HOURS,
+  FREE_FIRST_SPENT_REASON, cancelSpendsFreeFirst, // phase-a lane L3 (A6)
 } from "@tnajem/shared";
 import { resolveMeetUrl } from "@tnajem/shared/live";
 import { rotateRoomToken } from "../lib/room-rotation";
@@ -39,6 +40,60 @@ import { isUniqueViolation } from "../lib/db-errors";
 /** phase-a lane L3 (A7): the unique key on bookings(class_id, student_id), as named
     in packages/db/sql/0000_init.sql and 0007_bookings_unique_class_student.sql. */
 export const BOOKING_CLASS_STUDENT_KEY = "bookings_class_id_student_id_unique";
+
+/* phase-a lane L3 (A6) — THE FREE FIRST SESSION, ONCE PER STUDENT PER TUTOR (D2).
+
+   `classOffers` is isEffectivelyFreeFirst (tutor toggle AND class flag). On top of
+   it the student must not already hold a live free booking with this tutor, nor
+   have spent it by cancelling a free seat late (the ledger row the cancel handler
+   marks FREE_FIRST_SPENT_REASON — see @tnajem/shared/free-first.ts for when it
+   comes back).
+
+   RACE-SAFE: the check-then-insert runs under pg_advisory_xact_lock keyed on
+   (student, tutor), taken as the FIRST statement of the seat-claim transaction and
+   released at its commit. Two simultaneous bookings by one student with one tutor
+   serialise here; the second one's reads (READ COMMITTED: a fresh snapshot per
+   statement) see the first one's committed free seat. Only free-first bookings
+   take the lock, and every booking tx takes it before any row lock, so it cannot
+   deadlock against the class/tutor row locks. No schema change. */
+type BookingTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+async function freeFirstSeatFor(
+  tx: BookingTx,
+  studentId: string,
+  tutorId: string,
+  classOffers: boolean,
+): Promise<boolean> {
+  if (!classOffers) return false;
+  await tx.execute(raw`select pg_advisory_xact_lock(hashtextextended(${`free-first:${studentId}:${tutorId}`}, 0))`);
+  const [held] = await tx
+    .select({ id: bookings.id })
+    .from(bookings)
+    .innerJoin(classes, eq(bookings.classId, classes.id))
+    .where(
+      and(
+        eq(bookings.studentId, studentId),
+        eq(classes.tutorId, tutorId),
+        eq(bookings.isFree, true),
+        raw`coalesce(${bookings.status}, 'reserved') <> 'cancelled'`,
+      ),
+    )
+    .limit(1);
+  if (held) return false;
+  const [spent] = await tx
+    .select({ id: cancellations.id })
+    .from(cancellations)
+    .innerJoin(classes, eq(cancellations.classId, classes.id))
+    .where(
+      and(
+        eq(cancellations.actorProfileId, studentId),
+        eq(cancellations.actor, "student"),
+        eq(classes.tutorId, tutorId),
+        eq(cancellations.reason, FREE_FIRST_SPENT_REASON),
+      ),
+    )
+    .limit(1);
+  return !spent;
+}
 
 const reserveBody = z.object({ classId: z.string() });
 const cancelBody = z.object({ bookingId: z.string() });
@@ -131,6 +186,8 @@ export async function bookingRoutes(app: FastifyInstance): Promise<void> {
     let outcome: SeatOutcome;
     try {
       outcome = await db.transaction(async (tx): Promise<SeatOutcome> => {
+        // phase-a lane L3 (A6): FIRST statement — it may take the (student, tutor) lock.
+        const isFree = await freeFirstSeatFor(tx, uid, cls.tutorId, isEffectivelyFreeFirst(tut.offersFreeFirstSession, cls.isFreeFirst));
         const [existing] = await tx
           .select()
           .from(bookings)
@@ -160,7 +217,7 @@ export async function bookingRoutes(app: FastifyInstance): Promise<void> {
             .update(bookings)
             .set({
               status: "reserved",
-              isFree: isEffectivelyFreeFirst(tut.offersFreeFirstSession, cls.isFreeFirst),
+              isFree, // phase-a lane L3 (A6): the CURRENT rule, once per student per tutor
               createdAt: raw`now()`,
             })
             .where(eq(bookings.id, existing.id));
@@ -175,7 +232,8 @@ export async function bookingRoutes(app: FastifyInstance): Promise<void> {
                simply by a class row left over from when the column defaulted to
                true. is_free on a booking is what decides whether money is owed;
                it does not get to be a UI detail. */
-            isFree: isEffectivelyFreeFirst(tut.offersFreeFirstSession, cls.isFreeFirst),
+            // phase-a lane L3 (A6): and once per student per tutor (D2) — freeFirstSeatFor.
+            isFree,
             status: "reserved",
           });
         }
@@ -355,7 +413,14 @@ export async function bookingRoutes(app: FastifyInstance): Promise<void> {
           /* WHY the number is what it is. A ledger row reading "late, nothing
              retained" with no explanation is one a future reader has to guess at,
              and the guess would be "a bug". */
-          reason: movedAfterBooking ? "class-rescheduled-waiver" : null,
+          /* phase-a lane L3 (A6): a FREE seat the student cancels late (and not
+             waived) spends their free first session with this tutor; the booking
+             path reads this reason (freeFirstSeatFor). */
+          reason: movedAfterBooking
+            ? "class-rescheduled-waiver"
+            : cancelSpendsFreeFirst({ actor: "student", wasFree: bk.isFree, late: outcome.late, waived: false })
+              ? FREE_FIRST_SPENT_REASON
+              : null,
         })
         .onConflictDoNothing();
 

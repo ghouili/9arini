@@ -36,7 +36,8 @@ const copy = bilingual({
     payTitle: "À payer sur Tnajem",
     payAmount: "0 TND",
     noCard: "Aucun paiement en ligne. Tu règles ton prof directement.",
-    freeSession: "Cette séance est offerte par ton prof.",
+    // phase-a lane L3 (A6): once per student per tutor (D2) — true for every reader.
+    freeSession: "Offerte si c'est ta 1ʳᵉ séance avec ce prof.",
     paidSession: (p: number) =>
       `Cette séance est à ${p} TND — tu la règles directement avec ton prof, après.`,
     nextSessions: (p: number) =>
@@ -88,7 +89,7 @@ const copy = bilingual({
     payTitle: "اللي تخلّصو في Tnajem",
     payAmount: "0 د.ت",
     noCard: "ما فماش خلاص أونلاين. تخلّص أستاذك مباشرة.",
-    freeSession: "هذه الحصة مقدّمة مجاناً من أستاذك.",
+    freeSession: "فابور كان هي أول حصة ليك مع هالأستاذ.", // phase-a lane L3 (A6)
     paidSession: (p: number) =>
       `هذه الحصة بـ ${p} د.ت — تخلّصها مباشرة مع أستاذك، من بعد.`,
     nextSessions: (p: number) =>
