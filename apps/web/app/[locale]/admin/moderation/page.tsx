@@ -32,6 +32,7 @@ const copy = bilingual({
     lead: "Signalements, demandes de retrait et photos à valider.",
     toVerifications: "Vérifications",
     toAccounts: "Comptes",
+    toPlans: "Offres", // phase-a lane L5 (A18.15)
     deniedTitle: "Accès réservé",
     deniedNote: "Cette page est réservée aux administrateurs.",
     signIn: "Se connecter",
@@ -75,6 +76,7 @@ const copy = bilingual({
     lead: "التبليغات، طلبات السحب والتصاور اللي تستنّى.",
     toVerifications: "التثبّت",
     toAccounts: "الحسابات",
+    toPlans: "العروض", // phase-a lane L5 (A18.15)
     deniedTitle: "الدخول محجوز",
     deniedNote: "الصفحة هاذي محجوزة للأدمين برك.",
     signIn: "ادخل",
@@ -183,6 +185,8 @@ export default function AdminModerationPage() {
                 <Link href="/admin/verifications" className="linklike">{c.toVerifications}</Link>
                 {" · "}
                 <Link href="/admin/accounts" className="linklike">{c.toAccounts}</Link>
+                {" · "}
+                <Link href="/admin/plans" className="linklike">{c.toPlans}</Link>{/* phase-a lane L5 (A18.15) */}
               </p>
             )}
           </div>
