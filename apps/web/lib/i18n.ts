@@ -75,8 +75,6 @@ const fr = {
   checkout: {
     title: "Confirmer ta réservation",
     nextSessions: "Séances suivantes",
-    payPaid: (p: number) => `Réserver — ${p} TND à régler au prof`,
-    noCharge: "Aucun paiement en ligne. Tu règles ton prof directement.",
     okTitle: "C'est réservé !",
     okBody: "Ta place est confirmée. On t'envoie le lien sur WhatsApp.",
     okCta: "Voir mes cours",
@@ -98,7 +96,6 @@ const fr = {
     /* These once described an online checkout and a revenue split. Payments are
        off, so the pilot split is 100/0 and no rail exists to name. */
     s2t: "Tes élèves réservent", s2p: "Tu vois leur prénom et leur réservation dans ton tableau de bord.",
-    s3t: "Ils te paient directement", s3p: "De la main à la main pendant le pilote. Tnajem ne prend aucune commission. Le paiement en ligne arrivera plus tard.",
     trend: (p: number) => `+${p}% vs le mois dernier`,
     cashout: "Retirer vers Flouci",
     recent: "Activité récente",
@@ -286,8 +283,6 @@ const ar: typeof fr = {
   checkout: {
     title: "أكّد حجزك",
     nextSessions: "الحصص الجاية",
-    payPaid: (p: number) => `احجز — ${p} د.ت تخلّصهم للأستاذ`,
-    noCharge: "ما فماش خلاص أونلاين. تخلّص أستاذك مباشرة.",
     okTitle: "حجزت بلاصتك!",
     okBody: "مكانك مؤكّد. نبعثولك الرابط على واتساب.",
     okCta: "شوف حصصي",
@@ -307,7 +302,6 @@ const ar: typeof fr = {
     how: "كيفاش يخدم",
     s1t: "شارك اللينك متاعك", s1p: "لتلامذتك توّا وللناس اللي يتبعوك.",
     s2t: "تلاميذك يحجزو", s2p: "تشوف إسمهم الأول والحجز متاعهم في لوحتك.",
-    s3t: "يخلّصوك مباشرة", s3p: "يد بيد في فترة التجربة. Tnajem ما تاخذ حتى عمولة. الخلاص أونلاين يجي من بعد.",
     trend: (p: number) => `+${p}% مقارنة بالشهر الفارط`,
     cashout: "اسحب لفلوسي",
     recent: "النشاط الأخير",
