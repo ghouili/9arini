@@ -18,6 +18,7 @@ import {
 } from "@tnajem/shared";
 import { paymentsEnabled, tutorBalanceTnd } from "@tnajem/shared/payments";
 import { resolveMeetUrl } from "@tnajem/shared/live";
+import type { Role } from "@tnajem/shared"; // phase-a lane L2 (A17)
 import { db } from "../db";
 import { getSession } from "../lib/session";
 import { recomputeTutorStats } from "../lib/stats";
@@ -385,6 +386,8 @@ export async function classRoutes(app: FastifyInstance): Promise<void> {
   app.get("/dashboard", async (req): Promise<DashboardResult> => {
     const session = await getSession(req);
     if (!session) return null;
+    // phase-a lane L2 (A17): the role check lost in the split — a student got "Crée ta vitrine".
+    if (session.profile.role !== "tutor") return { wrongRole: session.profile.role as Role };
     const uid = session.profile.id;
 
     const [mine] = await db.select().from(tutors).where(eq(tutors.profileId, uid)).limit(1);
