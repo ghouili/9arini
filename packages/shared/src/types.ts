@@ -288,7 +288,12 @@ export type MessageThreadDetail = {
   iAm: "tutor" | "student" | "guardian";
   studentIsMinor: boolean;
   messages: MessageItem[];
+  // phase-a lane L1 (A2): open, or closed — the UI shows the banner and disables the composer.
+  state: ThreadStateShown;
 };
+
+// phase-a lane L1 (A2) — see ./thread-state.ts for when and why a thread closes.
+export type ThreadStateShown = "open" | "closed" | "closed:booking-cancelled" | "closed:class-ended";
 
 /* ---- Wrong-role result ----
    /dashboard serves tutors and /student serves students, but nothing stopped a

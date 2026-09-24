@@ -7,7 +7,9 @@ import {
 import {
   isUuid,
   isMinorBirthYear,
+  messageBodyText,
   publicDisplayName,
+  shownThreadState, // phase-a lane L1 (A2)
   classWhen,
   CONSENT_POLICY_VERSION,
   type GuardianChild,
@@ -16,6 +18,7 @@ import {
 import { db } from "../db";
 import { getSession } from "../lib/session";
 import { releaseBookings, upcomingBookingsOf } from "../lib/booking-release";
+import { threadState } from "../lib/thread-state"; // phase-a lane L1 (A2)
 
 /* PARENT ACCOUNTS (Step 14).
 
@@ -334,6 +337,8 @@ export async function guardianRoutes(app: FastifyInstance): Promise<void> {
          invitation to a feature that does not exist. */
       iAm: "guardian",
       studentIsMinor: true,
+      // phase-a lane L1 (A2): a closed thread stays readable here; the page shows the banner.
+      state: shownThreadState(await threadState(thread.id)),
       messages: rows.map((m) => ({
         id: m.id,
         /* `mine` is FALSE for every message: none of them are the guardian's.
@@ -343,7 +348,7 @@ export async function guardianRoutes(app: FastifyInstance): Promise<void> {
         /* Whose message it is, so a parent can follow the conversation at all.
            First names only — the child's is theirs to see, the tutor's is the
            same first name every other surface shows. */
-        body: m.body,
+        body: messageBodyText(m.body), // phase-a lane L1 (A20): stored escaped, read as typed
         masked: m.masked,
         at: new Date(m.createdAt).toISOString(),
         fromChild: m.senderProfileId === thread.studentProfileId,

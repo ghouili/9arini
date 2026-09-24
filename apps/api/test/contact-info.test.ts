@@ -197,6 +197,85 @@ describe("maskContactInfo — for channels where rejecting loses the point", () 
 });
 
 /* ══════════════════════════════════════════════════════════════════════════════
+   phase-a lane L1 (A1) — THE MASK REMOVES THE HANDLE, NOT JUST THE APP NAME.
+
+   CEO report finding 1, confirmed by running it: "wa.me/21624555666" reached the
+   student as "[masqué]/21624555666". Overlapping matches were DROPPED instead of
+   merged, so the platform rule's short "wa.me" won and the URL rule's full link
+   was thrown away — and "216 24 555 666" lost only its first eight digits because
+   a bare 216 prefix was not a country code. Each row: the input, and what must
+   NOT survive the mask.
+   ══════════════════════════════════════════════════════════════════════════════ */
+describe("A1 — maskContactInfo removes the whole handle or number", () => {
+  const cases: [string, string[]][] = [
+    ["wa.me/21624555666", ["24555666", "21624555666"]],
+    ["https://wa.me/21624555666?text=salut", ["24555666"]],
+    ["t.me/amine_tn", ["amine_tn"]],
+    ["facebook.com/amine.ben", ["amine.ben"]],
+    ["www.instagram.com/amine.ben/", ["amine.ben"]],
+    ["216 24 555 666", ["555", "666"]],
+    ["+216 24 555 666", ["555 666"]],
+    ["00216-24-555-666", ["555"]],
+    ["wa . me / 216 24 555 666", ["555"]],
+    ["mon insta c'est @amine.ben", ["amine.ben"]],
+  ];
+
+  for (const [input, forbidden] of cases) {
+    test(`${JSON.stringify(input)} leaks none of ${JSON.stringify(forbidden)}`, () => {
+      const out = maskContactInfo(input);
+      for (const f of forbidden) {
+        assert.ok(!out.includes(f), `${JSON.stringify(input)} -> ${JSON.stringify(out)} still contains ${JSON.stringify(f)}`);
+      }
+    });
+    test(`${JSON.stringify(input)}: the mask is a fixed point`, () => {
+      /* Whatever the mask leaves behind must not itself be contact info. If it
+         were, the student would be reading a handle the filter already "found". */
+      const out = maskContactInfo(input);
+      const again = detectContactInfo(out);
+      assert.equal(again.found, false, `${JSON.stringify(out)} still scans as ${again.kinds.join(",")}`);
+    });
+  }
+
+  test("merging keeps the MOST SPECIFIC kind for the report", () => {
+    // Priority now only chooses the label; the masked span is the union.
+    assert.deepEqual(detectContactInfo("wa.me/21624555666").kinds, ["social-platform"]);
+    assert.deepEqual(detectContactInfo("facebook.com/amine.ben").kinds, ["social-platform"]);
+  });
+
+  test("a platform name followed by a path is masked with its path", () => {
+    const out = maskContactInfo("instagram/amine.ben");
+    assert.ok(!out.includes("amine.ben"), out);
+  });
+
+  test("a link's query string goes with it", () => {
+    const out = maskContactInfo("wa.me?text=21624555666");
+    assert.ok(!out.includes("24555666"), out);
+  });
+
+  describe("the false-positive guards still hold", () => {
+    const clean = [
+      "Programme officiel 2024-2025",
+      "annales 2023 2024",
+      "2024-2025",
+      "25 TND, 40 TND, 60 TND",
+      "50 TND la séance",
+      "Séance à 15h30",
+      "de 14h30 à 16h00",
+      "x = 24 555",
+      "216 élèves inscrits",
+      "Exercice 216, page 24",
+    ];
+    for (const text of clean) {
+      test(JSON.stringify(text), () => {
+        const scan = detectContactInfo(text);
+        assert.equal(scan.found, false, `flagged as ${scan.kinds.join(",")}`);
+        assert.equal(maskContactInfo(text), text);
+      });
+    }
+  });
+});
+
+/* ══════════════════════════════════════════════════════════════════════════════
    THE ALLOW-LIST
    ══════════════════════════════════════════════════════════════════════════════ */
 describe("publicDisplayName — first name only", () => {

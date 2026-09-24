@@ -8,8 +8,10 @@ import {
 import {
   isUuid,
   isMinorBirthYear,
+  messageBodyText,
   parseMessageBody,
   publicDisplayName,
+  shownThreadState,
   vUuid,
   vOptionalText,
   type MessageThreadSummary,
@@ -19,6 +21,7 @@ import { db } from "../db";
 import { getSession } from "../lib/session";
 import { maskAndFlag } from "../lib/contact-guard";
 import { checkRateLimit } from "../lib/rate-limit";
+import { threadState } from "../lib/thread-state";
 
 /* MESSAGING (Step 8b) — the channel that replaces the contact details Step 8
    closed.
@@ -35,10 +38,12 @@ import { checkRateLimit } from "../lib/rate-limit";
    ══════════════════════════════════════════════════════════════════════════════
    THREE THINGS HAPPEN TO EVERY MESSAGE, IN THIS ORDER.
    ══════════════════════════════════════════════════════════════════════════════
-     1. SANITISE  parseMessageBody strips markup. messages.body is the product's
-                  only stored-XSS surface: user-authored, persisted, rendered to
-                  somebody else. Stripping on the way in means the database never
-                  holds a payload for a future consumer to render unescaped.
+     1. SANITISE  parseMessageBody escapes & < > (phase-a A20: escape, don't
+                  strip). messages.body is the product's only stored-XSS surface:
+                  user-authored, persisted, rendered to somebody else. Escaping on
+                  the way in means the database never holds a payload for a future
+                  consumer to render unescaped; messageBodyText() decodes it for
+                  the JSON a reader gets, which apps/web renders as a text node.
      2. MASK      detectContactInfo, then remove what it found. NOT rejected —
                   see the header of lib/contact-guard.ts. A message is a
                   conversation; refusing it loses the point the person was making,
@@ -277,10 +282,12 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
       withName: publicDisplayName(other?.fullName ?? null),
       iAm: me.role,
       studentIsMinor: me.studentIsMinor,
+      // phase-a A2: the banner and the disabled composer. Reasons shown are filtered.
+      state: shownThreadState(await threadState(me.threadId)),
       messages: rows.map((m) => ({
         id: m.id,
         mine: m.senderProfileId === session.profile.id,
-        body: m.body,
+        body: messageBodyText(m.body), // phase-a A20: stored escaped, read as typed
         masked: m.masked,
         at: new Date(m.createdAt).toISOString(),
       })),
@@ -299,23 +306,24 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
     const me = await participantIn(req.params.id, session.profile.id);
     if (!me) return { ok: false, error: "not-found" };
 
-    /* A CANCELLED BOOKING ENDS THE CONVERSATION, for sending. Both sides keep the
-       history, but a minor who cancels to get away from a tutor must not keep
-       receiving messages — each one a notification (security review, 15 Sept 2026). */
-    const [live] = await db
-      .select({ status: bookings.status })
-      .from(messageThreads)
-      .innerJoin(bookings, eq(bookings.id, messageThreads.bookingId))
-      .where(eq(messageThreads.id, me.threadId))
-      .limit(1);
-    if (!live || live.status === "cancelled") return { ok: false, error: "booking-cancelled" };
+    /* A CLOSED CONVERSATION TAKES NO NEW MESSAGES (phase-a A2). Both sides keep
+       the history, but a minor who cancels to get away from a tutor must not keep
+       receiving messages — each one a notification (security review, 15 Sept 2026)
+       — and neither may anyone once consent is withdrawn, an account is blocked, or
+       the class ended THREAD_CLOSE_DAYS ago. threadState() is the one place that
+       decides. A cancelled booking keeps its own error code (the existing
+       contract); every other reason is one neutral "thread-closed", because the
+       tutor is never told WHY (consent, block). */
+    const state = await threadState(me.threadId);
+    if (state === "closed:booking-cancelled") return { ok: false, error: "booking-cancelled" };
+    if (state !== "open") return { ok: false, error: "thread-closed" };
 
     /* Keyed on the SENDER, not the IP: the abuse being prevented is one account
        flooding another, and a shared connection must not throttle a classroom. */
     const rl = await checkRateLimit(`msg:send:${session.profile.id}`, SEND_LIMIT, SEND_WINDOW_MS);
     if (!rl.ok) return { ok: false, error: "too-many-requests" };
 
-    // 1. SANITISE — markup never reaches the database.
+    // 1. SANITISE — markup never reaches the database live: & < > are escaped.
     const text = parseMessageBody(parsed.data.body);
     if (!text.ok) return { ok: false, error: text.error };
 
@@ -349,7 +357,7 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
       ok: true,
       id: row.id,
       at: new Date(row.createdAt).toISOString(),
-      body,
+      body: messageBodyText(body),
       /* The sender is told when their own message was edited. Silently altering
          someone's words and delivering the result is how a filter turns into a
          trust problem. */

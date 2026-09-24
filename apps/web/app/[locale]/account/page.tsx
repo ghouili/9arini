@@ -9,8 +9,12 @@ import { SiteShell } from "@/components/SiteShell";
 import { DeleteAccount } from "@/components/account/DeleteAccount";
 import { UserText } from "@/components/UserText";
 import { bilingual } from "@/lib/i18n";
+import { supportWhatsAppHref } from "@tnajem/shared";
 
-const WA_LINK = "https://wa.me/216XXXXXXXX";
+/* phase-a A12 (decision D5): the support number is InnoviaBurst's, read from the
+   environment — never hard-coded — and the row is hidden when it is unset or not
+   digits only. Written as process.env.NEXT_PUBLIC_… so Next inlines it at build. */
+const WA_LINK = supportWhatsAppHref(process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP);
 
 /* Page-local copy (lib/i18n.ts is shared/read-only). */
 const copy = bilingual({
@@ -142,8 +146,10 @@ export default function AccountPage() {
               </span>
             </div>
 
-            {/* Help / WhatsApp row */}
+            {/* Help / WhatsApp row — only when a real number is configured (A12). */}
+            {WA_LINK && (
             <a
+              data-testid="support-whatsapp"
               href={WA_LINK}
               target="_blank"
               rel="noopener noreferrer"
@@ -170,6 +176,7 @@ export default function AccountPage() {
               </div>
               <Forward className="text-muted w-[18px] h-[18px] shrink-0" aria-hidden="true" />
             </a>
+            )}
 
           </div>
 

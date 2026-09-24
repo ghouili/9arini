@@ -101,6 +101,10 @@ export default defineConfig({
            depend on whoever happens to be in the developer's .env. */
         ADMIN_EMAILS: "e2e-admin@tnajem.invalid",
         API_URL: "http://127.0.0.1:4000",
+        /* phase-a lane L1 (A12): pinned UNSET, so zero-contact-copy.spec.ts proves the
+           /account support row is hidden whatever the developer's .env holds. Blank
+           here beats .env, as with MAIL_* above. */
+        NEXT_PUBLIC_SUPPORT_WHATSAPP: "",
       },
     },
   ],

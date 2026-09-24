@@ -164,14 +164,27 @@ test.describe("what happens to a message", () => {
     expect(res.masked, "a normal sentence must not be flagged").toBe(false);
   });
 
-  test("an empty or markup-only message is refused", async () => {
+  test("an empty message is refused", async () => {
     const p = await pair();
     const threadId = await openThread(p.studentToken, p.booking.id);
-    for (const body of ["", "   ", "<script>alert(1)</script>"]) {
+    for (const body of ["", "   "]) {
       const res = await api(`/threads/${threadId}/messages`, p.studentToken, { body });
       expect(res.ok, JSON.stringify(body)).toBe(false);
       expect(res.error).toBe("message-empty");
     }
+  });
+
+  test("a markup-only message is kept INERT, not deleted (phase-a A20)", async () => {
+    /* Escape, don't strip: the stored row holds no live tag, and the reader gets
+       back the literal characters, rendered as text. */
+    const p = await pair();
+    const threadId = await openThread(p.studentToken, p.booking.id);
+    const res = await api(`/threads/${threadId}/messages`, p.studentToken, { body: "<script>alert(1)</script>" });
+    expect(res.ok).toBe(true);
+    const [row] = await sql<{ body: string }[]>`select body from messages where thread_id = ${threadId} limit 1`;
+    expect(row.body, "a tag was persisted").not.toMatch(/[<>]/);
+    const detail = (await api(`/threads/${threadId}`, p.tutorToken)) as { messages: { body: string }[] };
+    expect(detail.messages[0].body).toBe("<script>alert(1)</script>");
   });
 
   test("the counterparty sees a FIRST NAME, never the full one", async () => {
