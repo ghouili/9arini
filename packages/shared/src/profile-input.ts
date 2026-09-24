@@ -1,5 +1,6 @@
 import { vText, vOptionalPhone, normalizePhone, isValidPhone } from "./validation";
 import { STUDENT_LEVELS, type StudentLevel } from "./types";
+import { normalizeSubjects } from "./subjects"; // phase-a lane L5 (A18.12)
 
 /* Input normalisation for the student profile.
 
@@ -59,16 +60,11 @@ export function parseStudentProfile(input: StudentProfileInput): ParseResult {
 
   /* Free text from the client, stored comma-joined (the tutors.languages
      convention). Bound the count AND each entry, dedupe, and strip commas so one
-     entry can never smuggle in extra ones when the string is split on read. */
-  const subjects = Array.isArray(input.subjects)
-    ? Array.from(
-        new Set(
-          input.subjects
-            .map((x) => (typeof x === "string" ? x.replace(/,/g, " ").trim().slice(0, 40) : ""))
-            .filter(Boolean),
-        ),
-      ).slice(0, 8)
-    : [];
+     entry can never smuggle in extra ones when the string is split on read.
+     phase-a lane L5 (A18.12): stored as CANONICAL CODES (math, physique, …) —
+     "Maths" and "رياضيات" are one subject, not two. A value that maps to no code
+     is kept as typed, never dropped. See ./subjects.ts. */
+  const subjects = Array.isArray(input.subjects) ? normalizeSubjects(input.subjects) : [];
 
   return { ok: true, value: { fullName: name.value, level, subjects, phone: normalizedPhone } };
 }

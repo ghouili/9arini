@@ -45,3 +45,5 @@ export * from "./plans";
 export * from "./levels";
 // phase-a lane L5 — where a class stands: upcoming · live · done · cancelled (A18.10). Pure.
 export * from "./class-phase";
+// phase-a lane L5 — subjects stored as canonical codes, translated for display (A18.12). Pure.
+export * from "./subjects";

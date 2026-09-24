@@ -170,3 +170,22 @@ test.describe("A18.11 — 'Prochaine séance' is the next session", () => {
     await expect(aside).not.toContainText(cancelled.title);
   });
 });
+
+test.describe("A18.12 — subjects are saved as codes, shown in the viewer's language", () => {
+  test("picked in Arabic, stored as a code, shown in French", async ({ browser }) => {
+    const student = await seedProfile({ role: "student", birthYear: 1995, fullName: "Élève Codes" });
+    const ctx = await contextAs(browser, student.id);
+    const page = await ctx.newPage();
+    await page.goto("/ar/student/welcome", { waitUntil: "networkidle" });
+    await page.locator('[data-subject="math"]').click();
+    await page.getByRole("button", { name: "كمّل" }).click();
+    await expect.poll(async () => (await sql<{ subjects: string | null }[]>`
+      select subjects from profiles where id = ${student.id}`)[0].subjects, { timeout: 15_000 }).toBe("math");
+
+    await page.goto("/fr/student/welcome", { waitUntil: "networkidle" });
+    const chip = page.locator('[data-subject="math"]');
+    await expect(chip).toHaveText("Maths");
+    await expect(chip).toHaveAttribute("aria-pressed", "true");
+    await ctx.close();
+  });
+});
