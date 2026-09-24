@@ -7,7 +7,7 @@ import {
 } from "@tnajem/db";
 import {
   isUuid,
-  isMinorBirthYear,
+  isAdult,
   parseYouTubeId,
   safeFileName,
   vText,
@@ -452,7 +452,8 @@ export async function materialRoutes(app: FastifyInstance): Promise<void> {
     /* RULE 3, and it is checked FIRST — before the file is even read. A minor's
        photograph should not exist in this process's memory, let alone on disk,
        for the moments between reading it and refusing it. */
-    if (isMinorBirthYear(session.profile.birthYear)) {
+    // phase-a/integrate (A24): month-aware and fail-safe — a missing month is a minor.
+    if (!isAdult(session.profile.birthYear, session.profile.birthMonth)) {
       return { ok: false, error: "minor-no-photo" };
     }
 

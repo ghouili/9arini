@@ -11,6 +11,7 @@ import {
   normalizeEmail,
   isValidEmail,
   detectContactInfo,
+  messageBodyText,
 } from "@tnajem/shared";
 import { db } from "../db";
 import { destroyProfileSessions, getSession } from "../lib/session";
@@ -84,7 +85,8 @@ async function subjectContext(items: { kind: string; id: string | null }[]): Pro
       /* The evidence itself, and whether a minor is in the conversation: an admin must
          see both to judge it. Conversations have no admin page, so no link.
          phase-a lane L4 (A28): the RAW body, hidden or not — admins judge the evidence. */
-      out.set(`message:${m.id}`, { label: `${m.minor ? "[−18] " : ""}${m.body.slice(0, 300)}`, href: null, hidden: m.hiddenAt !== null });
+      // phase-a/integrate (A20): bodies are stored escaped; the admin reads them as typed.
+      out.set(`message:${m.id}`, { label: `${m.minor ? "[−18] " : ""}${messageBodyText(m.body).slice(0, 300)}`, href: null, hidden: m.hiddenAt !== null });
     }
   }
   const reviewIds = ids("review");
