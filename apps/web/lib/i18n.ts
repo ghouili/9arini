@@ -162,6 +162,8 @@ const fr = {
     info: "Ton parent recevra un e-mail pour confirmer.",
   },
   account: { title: "Mon profil", language: "Langue", logout: "Se déconnecter", role: "Rôle", help: "Aide & support (WhatsApp)" },
+  // phase-a lane L5 (A18.13): role NAMES for /account — never the sign-up button text.
+  roles: { student: "Élève", tutor: "Prof", guardian: "Parent", admin: "Admin" },
   verif: {
     badge: "Vérifié",
     draftTitle: "Vérifie ton compte pour passer en ligne",
@@ -357,6 +359,8 @@ const ar: typeof fr = {
     info: "وليّك باش يوصلو إيميل باش يأكّد.",
   },
   account: { title: "حسابي", language: "اللغة", logout: "تسجيل الخروج", role: "الدور", help: "مساعدة (واتساب)" },
+  // phase-a lane L5 (A18.13)
+  roles: { student: "تلميذ", tutor: "أستاذ", guardian: "وليّ", admin: "أدمين" },
   verif: {
     badge: "موثّق",
     draftTitle: "وثّق حسابك باش تولّي على الخط",

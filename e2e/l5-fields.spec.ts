@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { seedProfile, seedTutor, seedClass } from "./support/seed";
+import { seedProfile, seedTutor, seedClass, seedAdmin } from "./support/seed";
 import { contextAs } from "./support/journey";
 import { sql } from "./support/db";
 
@@ -186,6 +186,31 @@ test.describe("A18.12 — subjects are saved as codes, shown in the viewer's lan
     const chip = page.locator('[data-subject="math"]');
     await expect(chip).toHaveText("Maths");
     await expect(chip).toHaveAttribute("aria-pressed", "true");
+    await ctx.close();
+  });
+});
+
+test.describe("A18.13 — /account names the role", () => {
+  for (const [role, fr, ar] of [["tutor", "Prof", "أستاذ"], ["student", "Élève", "تلميذ"]] as const) {
+    test(`${role}: "${fr}" / "${ar}", never the sign-up button text`, async ({ browser }) => {
+      const me = await seedProfile({ role, birthYear: 1990 });
+      const ctx = await contextAs(browser, me.id);
+      const page = await ctx.newPage();
+      await page.goto("/fr/account", { waitUntil: "networkidle" });
+      await expect(page.locator("main")).toContainText(fr);
+      await expect(page.locator("main")).not.toContainText("Je suis");
+      await page.goto("/ar/account", { waitUntil: "networkidle" });
+      await expect(page.locator("main")).toContainText(ar);
+      await ctx.close();
+    });
+  }
+
+  test("an admin reads 'Admin'", async ({ browser }) => {
+    const admin = await seedAdmin(); // ADMIN_EMAILS is pinned to this identity in playwright.config.ts
+    const ctx = await contextAs(browser, admin.id);
+    const page = await ctx.newPage();
+    await page.goto("/fr/account", { waitUntil: "networkidle" });
+    await expect(page.locator("main")).toContainText("Admin");
     await ctx.close();
   });
 });

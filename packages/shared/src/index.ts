@@ -47,3 +47,5 @@ export * from "./levels";
 export * from "./class-phase";
 // phase-a lane L5 — subjects stored as canonical codes, translated for display (A18.12). Pure.
 export * from "./subjects";
+// phase-a lane L5 — which role /account names: Élève · Prof · Parent · Admin (A18.13). Pure.
+export * from "./account-role";

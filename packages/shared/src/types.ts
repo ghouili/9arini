@@ -522,6 +522,8 @@ export type Me = {
   role: string;
   email: string | null;
   phone: string | null;
+  // phase-a lane L5 (A18.13): on the admin allowlist — the account page names the role "Admin".
+  isAdmin?: boolean;
 };
 
 /** One public storefront reference, for app/sitemap.ts. */
