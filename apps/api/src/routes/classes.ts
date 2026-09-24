@@ -16,7 +16,7 @@ import {
   publicProfile,
   publicInitials,
 } from "@tnajem/shared";
-import { parseClassLevel } from "@tnajem/shared"; // phase-a lane L5 (A18.7)
+import { parseClassLevel, sortLevels, isLevelCode } from "@tnajem/shared"; // phase-a lane L5 (A18.7)
 import { classPhase } from "@tnajem/shared"; // phase-a lane L5 (A18.10)
 import { checkClassLimits } from "@tnajem/shared/class-input"; // phase-a lane L5 (A18.16): the ONE limits schema
 import { paymentsEnabled, tutorBalanceTnd } from "@tnajem/shared/payments";
@@ -279,7 +279,10 @@ export async function classRoutes(app: FastifyInstance): Promise<void> {
       // unverified tutor's page would 404 for the booked student who can still see this.
       tutor_slug: tut && tut.status === "verified" && !tut.suspendedAt && !tut.erasedAt ? tut.slug : null,
       tutor_subject: tut?.subject ?? null,
-      tutor_level: tut?.level ?? null,
+      // phase-a/integrate (A9 × A18.7): the chosen levels (codes) and the class's own
+      // level; the page translates them. Never the legacy tutors.level ('Bac' default).
+      tutor_levels: sortLevels(tut?.levels),
+      level: isLevelCode(c.level) ? c.level : null,
     };
   });
 

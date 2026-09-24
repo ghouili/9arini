@@ -64,8 +64,9 @@ export type ClassItem = {
   // send a student to the wrong storefront. Optional: only GET /classes/:id sets them.
   tutor_slug?: string | null;
   tutor_subject?: string | null;
-  /** tutors.level as stored today (A18.7 reconciles it with the levels list at merge). */
-  tutor_level?: string | null;
+  /** phase-a/integrate (A9 × A18.7): the levels the tutor CHOSE, as codes — never the
+      legacy tutors.level column, which still holds the old 'Bac' default. */
+  tutor_levels?: LevelCode[];
   // phase-a lane L5 (A18.7): the one level this class is for, if the tutor set it.
   level?: LevelCode | null;
 };

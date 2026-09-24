@@ -27,9 +27,16 @@ describe("GET /classes/:id — the tutor is identified by slug, not by name", ()
     assert.equal(resB.body.tutor_slug, b.slug, `B's class must link to B's slug: ${resB.raw}`);
     assert.notEqual(resB.body.tutor_slug, a.slug);
     assert.equal(resB.body.tutor_subject, "Mathématiques", resB.raw);
-    assert.equal(resB.body.tutor_level, "Bac", resB.raw);
+    // phase-a/integrate (A9 × A18.7): the CHOSEN levels, never the legacy 'Bac' default.
+    assert.deepEqual(resB.body.tutor_levels, [], resB.raw);
+    assert.equal("tutor_level" in resB.body, false, resB.raw);
 
+    const { sql } = await import("./support/fx");
+    await sql`update tutors set levels = ${["bac", "secondaire"]} where id = ${a.id}`;
+    await sql`update classes set level = 'bac' where id = ${klassA.id}`;
     const resA = await call(app, "GET", `/classes/${klassA.id}`, null);
+    assert.deepEqual(resA.body.tutor_levels, ["secondaire", "bac"], resA.raw);
+    assert.equal(resA.body.level, "bac", resA.raw);
     assert.equal(resA.body.tutor_slug, a.slug, `A's class must link to A's slug: ${resA.raw}`);
   });
 });

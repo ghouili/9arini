@@ -8,7 +8,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { UserText } from "@/components/UserText";
 import { ReportButton } from "@/components/ReportButton";
 import { getClass } from "@/app/actions";
-import { isOpenForBooking, monthLabel, type ClassItem } from "@tnajem/shared";
+import { isOpenForBooking, monthLabel, LEVEL_LABELS, type ClassItem } from "@tnajem/shared";
 import { bilingual } from "@/lib/i18n";
 
 
@@ -209,7 +209,12 @@ export default function ClassDetailPage(props: { params: Promise<{ id: string }>
   const backHref = tutorSlug ? `/${tutorSlug}` : "/explore";
   // Real subject/level from the tutor row — shown only when we actually have it.
   const tutorSubject = cls.tutor_subject ?? "";
-  const tutorLevel = cls.tutor_level ?? "";
+  /* phase-a/integrate (A18.7): the class's own level if the tutor set one, else the
+     levels the tutor chose — codes from the API, labelled here in the page's
+     language. Nothing chosen → nothing shown (no default "Bac"). */
+  const tutorLevel = cls.level
+    ? LEVEL_LABELS[cls.level][locale]
+    : (cls.tutor_levels ?? []).map((l) => LEVEL_LABELS[l][locale]).join(" · ");
   const tutorMeta = [tutorSubject, tutorLevel && !tutorSubject.includes(tutorLevel) ? tutorLevel : ""]
     .filter(Boolean)
     .join(" · ");
