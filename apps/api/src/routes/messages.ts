@@ -7,7 +7,7 @@ import {
 } from "@tnajem/db";
 import {
   isUuid,
-  isMinorBirthYear,
+  isAdult,
   messageBodyText,
   parseMessageBody,
   publicDisplayName,
@@ -168,7 +168,7 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
     }
 
     const [student] = await db
-      .select({ birthYear: profiles.birthYear })
+      .select({ birthYear: profiles.birthYear, birthMonth: profiles.birthMonth })
       .from(profiles)
       .where(eq(profiles.id, bk.studentId))
       .limit(1);
@@ -183,7 +183,8 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
         classId: bk.classId,
         tutorProfileId: bk.tutorProfileId,
         studentProfileId: bk.studentId,
-        studentIsMinor: isMinorBirthYear(student?.birthYear ?? null),
+        // phase-a/integrate (A24): month-aware and fail-safe, like every other minor check.
+        studentIsMinor: !isAdult(student?.birthYear ?? null, student?.birthMonth ?? null),
       })
       .onConflictDoNothing();
 

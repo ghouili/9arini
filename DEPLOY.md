@@ -72,6 +72,7 @@ API_HOST=127.0.0.1                         # loopback only; nginx is the front d
 API_URL=http://127.0.0.1:4000              # server-side only, NEVER NEXT_PUBLIC_
 NEXT_PUBLIC_SITE_URL=https://tnajem.tn     # canonical origin
 NEXT_PUBLIC_SUPPORT_WHATSAPP=              # optional: support number, digits only (e.g. country code + number, no "+"); empty = the /account support row is hidden
+ALLOW_MINORS=                              # leave EMPTY: the pilot is adults only (Phase A, D6). "1" re-opens minor sign-up + booking with guardian consent — only after Phase D
 
 # ── Login e-mail (without this, nobody outside dev can log in) ─────────────
 OTP_CHANNEL=email
@@ -325,6 +326,7 @@ there, so the major on the box is whatever you put there. Both Dockerfiles pin 2
 | `DATABASE_URL` `AUTH_SECRET` `DOC_ENCRYPTION_KEY` `CRON_SECRET` | §3. Losing `DOC_ENCRYPTION_KEY` makes every stored ID scan unreadable |
 | `NEXT_PUBLIC_SITE_URL` `CORS_ORIGINS` `TRUSTED_PROXIES` `COOKIE_DOMAIN` | §3. `NEXT_PUBLIC_SITE_URL` is **baked into the bundle at build time** |
 | `NEXT_PUBLIC_SUPPORT_WHATSAPP` | optional, empty by default: InnoviaBurst's support number, digits only, no `+`. Baked in at build time; empty or invalid hides the "Aide & support" row on `/account` |
+| `ALLOW_MINORS` | leave **unset/empty**: adults-only pilot (decision D6). Read by both the API and the web server; only `"1"` lets minors sign up and book (guardian consent still enforced). Don't set it before Phase D (parent accounts) |
 | `ADMIN_EMAILS` `OTP_CHANNEL` `LOG_LEVEL` `PAYMENTS_ENABLED` | leave `PAYMENTS_ENABLED` **unset** until counsel signs off |
 | `STORAGE_DRIVER` `STORAGE_DIR` | `local` + `/var/lib/tnajem/storage`, or `s3` + the `S3_*` secrets |
 | `MAIL_HOST` `MAIL_PORT` `MAIL_SECURE` `MAIL_USER` `MAIL_PASS` `MAIL_FROM_NAME` `MAIL_FROM_ADDRESS` `MAIL_REPLY_TO` | **required**: `db:check` opens a real SMTP connection and the deploy stops if it fails |
