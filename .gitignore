@@ -41,3 +41,5 @@ logs/
 backups/
 test-results/
 playwright-report/
+# UI Option A before/after screenshots (e2e/visual/option-a.capture.ts). Local only.
+ui-option-a/
