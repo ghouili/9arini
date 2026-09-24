@@ -410,7 +410,10 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
                         meta row. It is now rendered ONCE, in flow, in the rating
                         slot below, which is exactly what it stands in for. */}
                     <div className="flex items-start gap-3.5">
-                      <div className="grid size-16 shrink-0 place-items-center rounded-[var(--r)] bg-gradient-to-br from-blue to-blue700 font-display text-xl font-bold text-paper">
+                      {/* UI Option A (A6): ONE avatar style for a tutor — the same .avatar
+                          (amber → ochre, ink initials) as their own page. It was
+                          cobalt here and ochre there for the same person. */}
+                      <div className="avatar sq size-16 text-xl font-bold">
                         {tutor.avatar_initials}
                       </div>
 
