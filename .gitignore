@@ -35,6 +35,8 @@ logs/
 
 # E2E suite artifacts
 .e2e-storage/
+# Per-lane storage for Phase A worktrees (the lane-env helper points STORAGE_DIR here).
+.lane-storage/
 # db:backup output — every user's personal data. Never commit.
 backups/
 test-results/
