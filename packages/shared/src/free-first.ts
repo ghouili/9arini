@@ -1,3 +1,5 @@
+import { isOpenForBooking, type ClassStatus } from "./class-time"; // phase-a lane L3 (A5)
+
 /* THE FREE FIRST SESSION — one rule, one place.
 
    The policy: a free first session is OPT-IN, per tutor, and OFF by default.
@@ -63,6 +65,23 @@ export function cancelSpendsFreeFirst(input: {
     for tutors with no published class, and used to make the claim anyway. */
 export function tutorOffersFreeFirst(tutorOptsIn: boolean | null | undefined): boolean {
   return tutorOptsIn === true;
+}
+
+/* phase-a lane L3 (A5) — may the storefront's LINK PREVIEW (the WhatsApp card,
+   the Google snippet) promise a free first session?
+
+   Only when the promise can be kept by tapping the link: the tutor's toggle is on
+   AND at least one class still open for booking is a free first session. It used
+   to follow the toggle alone, so a tutor with only paid classes — or none — was
+   advertised to every stranger as "1ère séance offerte". */
+export function advertisesFreeFirst(
+  tutorOptsIn: boolean | null | undefined,
+  classes: readonly { is_free_first: boolean | null | undefined; starts_at: string; status?: ClassStatus }[],
+): boolean {
+  return (
+    tutorOffersFreeFirst(tutorOptsIn) &&
+    classes.some((c) => isOpenForBooking(c) && isEffectivelyFreeFirst(tutorOptsIn, c.is_free_first))
+  );
 }
 
 /* ── A free first session promised in FREE TEXT ─────────────────────────────

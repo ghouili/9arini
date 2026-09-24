@@ -156,7 +156,8 @@ const copy = bilingual({
     commPoints: [
       "Le même taux sur toutes les formules — 10 %, quel que soit ton volume.",
       "Ton élève te paie en main propre ? Tnajem ne prend rien et ne facture rien.",
-      "La 1ʳᵉ séance est toujours offerte à l'élève — et sans commission.",
+      // phase-a lane L3 (A5): it is the tutor's opt-in (off by default), once per student per tutor (D2).
+      "Si ton prof l'offre, ta 1ʳᵉ séance avec lui est gratuite.",
     ],
 
     cmpTitle: "Ce que prennent les autres",
@@ -272,7 +273,7 @@ const copy = bilingual({
     commPoints: [
       "نفس النسبة في الخطط الكل — 10 %، مهما كان حجمك.",
       "التلميذ خلّصك في يدك ؟ Tnajem ما تاخذ والو وما تفوتر والو.",
-      "أول حصة تبقى ديما فابور للتلميذ — وبلا عمولة.",
+      "كان أستاذك يعطيها، أول حصة معاه تكون فابور.", // phase-a lane L3 (A5)
     ],
 
     cmpTitle: "شنوّة ياخذو الآخرين",
