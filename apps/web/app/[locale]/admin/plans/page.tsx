@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Link } from "@/components/Link";
-import { Button, Spinner, Chip } from "@/components/ui";
+import { Button, Spinner, Tag } from "@/components/ui";
 import { useLocale } from "@/components/LocaleProvider";
 import { useToast } from "@/components/useToast";
 import { SiteShell } from "@/components/SiteShell";
@@ -274,7 +274,7 @@ export default function AdminPlansPage() {
                         {c.priceUnit(tnd(p.monthlyMillimes))} {c.perMonth}
                       </span>
                       <span className="text-muted">· {classLimitLabel(p.maxClasses, locale)}</span>
-                      {p.exploreBoost > 0 && <Chip kind="sand">{c.boost}</Chip>}
+                      {p.exploreBoost > 0 && <Tag kind="neutral">{c.boost}</Tag>}
                     </li>
                   ))}
                 </ul>
@@ -296,12 +296,12 @@ export default function AdminPlansPage() {
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <UserText as="b" className="font-display text-[15px]">{row.fullName}</UserText>
-                              <Chip kind={row.granted ? "soft" : "sand"}>
+                              <Tag kind="neutral">
                                 {row.granted ? row.planCode : c.onPilot}
-                              </Chip>
-                              <Chip kind={row.status === "verified" ? "free" : "sand"}>
+                              </Tag>
+                              <Tag kind={row.status === "verified" ? "success" : "neutral"}>
                                 {c.statusLabels[row.status] ?? row.status}
-                              </Chip>
+                              </Tag>
                             </div>
                             <p className="text-[13px] text-muted mt-1">
                               {c.openClasses(row.openClasses)}{" "}

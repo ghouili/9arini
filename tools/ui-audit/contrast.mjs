@@ -61,6 +61,10 @@ const PAIRS = [
   ["Chips", "--rose", "--rose50", "normal", ".chip-rose", "globals.css:111"],
   ["Chips", "--green-ink", "--green50", "normal", "Nouveau badge", "ExploreClient.tsx:405"],
   ["Chips", "--green-ink", "--green50", "normal", "done chip", "dashboard/page.tsx:405"],
+  // UI Option A (A5): the three status tags.
+  ["Chips", "--ochre-ink", "--ochre-tint", "normal", ".tag-soon (Bientôt / Pas encore facturé)", "globals.css .tag-soon"],
+  ["Chips", "--blue700", "--blue50", "normal", ".tag-neutral (Nouveau prof / levels / Recommandé)", "globals.css .tag-neutral"],
+  ["Chips", "--green-ink", "--green50", "normal", ".tag-success", "globals.css .tag-success"],
   ["Chips", "--blue", "--blue50", "normal", ".thumb month", "globals.css:148"],
 
   // ── body / meta text on every surface ──

@@ -3,7 +3,7 @@
 import { Link } from "@/components/Link";
 import { SiteShell } from "@/components/SiteShell";
 import { useLocale } from "@/components/LocaleProvider";
-import { Card, CardFooter, Chip } from "@/components/ui";
+import { Card, CardFooter, Tag } from "@/components/ui";
 import { Check, Shield, Wallet, Star } from "@/components/icons";
 import { bilingual } from "@/lib/i18n";
 import { Reveal } from "@/components/Reveal";
@@ -443,7 +443,7 @@ function PlanCard({
         <span className="font-display font-bold text-[17px] text-ink">{plan.name}</span>
         {/* "Recommandé", never "le plus populaire": no tutor is on any plan yet,
             so a popularity claim would be fabricated social proof. */}
-        {highlighted && <Chip kind="soft">{c.recommended}</Chip>}
+        {highlighted && <Tag kind="neutral">{c.recommended}</Tag>}
       </div>
 
       <div className="tf-who mb-3">{plan.who}</div>
@@ -482,7 +482,7 @@ function PlanCard({
           on the 0 TND plan would be noise. */}
       {plan.billed && !paymentsEnabled && (
         <div className="mt-2.5">
-          <Chip kind="sand">{c.notBilled}</Chip>
+          <Tag kind="soon">{c.notBilled}</Tag>
         </div>
       )}
 
@@ -517,7 +517,7 @@ function PlanCard({
         {plan.soon.length > 0 && (
           <li className="tf-soon-head" aria-hidden="true">
             <span className="tf-soon-rule" />
-            <Chip kind="sand">{c.soonChip}</Chip>
+            <Tag kind="soon">{c.soonChip}</Tag>
           </li>
         )}
         {plan.soon.map((f) => (

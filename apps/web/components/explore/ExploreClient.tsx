@@ -22,7 +22,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@/components/Link";
 import { useLocale } from "@/components/LocaleProvider";
-import { Verified, Chip } from "@/components/ui";
+import { Verified, Tag } from "@/components/ui";
 import { Search, Users, Bolt } from "@/components/icons";
 import { SiteShell } from "@/components/SiteShell";
 import { TutorStanding } from "@/components/TutorStanding";
@@ -429,7 +429,7 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
                             layout hides at narrow widths is not a disclosure. */}
                         {tutor.featured && (
                           <div className="mt-1.5">
-                            <Chip kind="sand">{c.featuredBadge}</Chip>
+                            <Tag kind="neutral">{c.featuredBadge}</Tag>
                           </div>
                         )}
                         {/* line-clamp-2, not truncate: "Prof de Maths · Lycée & Bac"
@@ -441,7 +441,7 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
                         {tutor.levels.length > 0 && (
                           <div className="mt-1.5 flex flex-wrap gap-1.5" data-e2e="card-levels">
                             {tutor.levels.map((code) => (
-                              <span key={code} className="chip chip-soft">
+                              <span key={code} className="tag tag-neutral">
                                 {LEVEL_LABELS[code][locale === "ar" ? "ar" : "fr"]}
                               </span>
                             ))}

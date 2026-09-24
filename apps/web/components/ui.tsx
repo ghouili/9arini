@@ -7,6 +7,7 @@
 import { Children, cloneElement, isValidElement, useId } from "react";
 import type { ReactNode, ReactElement, CSSProperties } from "react";
 import Image from "next/image";
+import { Clock } from "./icons";
 
 type BtnProps = {
   children: ReactNode;
@@ -102,6 +103,24 @@ const CHIP_KIND = {
 
 export function Chip({ children, kind = "soft", className = "", style }: { children: ReactNode; kind?: "free" | "soft" | "sand" | "rose"; className?: string; style?: CSSProperties }) {
   return <span className={`chip ${CHIP_KIND[kind]}${className ? ` ${className}` : ""}`} style={style}>{children}</span>;
+}
+
+/* UI Option A (A5): status tags — one meaning per colour (see .tag-* in globals.css).
+   Literal class names in a map, for the same purge reason as BTN_VARIANT above.
+   "soon" carries the clock: it is the only tag that means "not yet". */
+const TAG_KIND = {
+  soon: "tag-soon",
+  neutral: "tag-neutral",
+  success: "tag-success",
+} as const;
+
+export function Tag({ children, kind = "neutral", className = "", style }: { children: ReactNode; kind?: keyof typeof TAG_KIND; className?: string; style?: CSSProperties }) {
+  return (
+    <span className={`tag ${TAG_KIND[kind]}${className ? ` ${className}` : ""}`} style={style}>
+      {kind === "soon" && <Clock />}
+      {children}
+    </span>
+  );
 }
 
 /* THE MONOGRAM IS THE DEFAULT, and it stays the default. Most tutors will never

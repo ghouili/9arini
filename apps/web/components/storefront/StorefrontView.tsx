@@ -296,7 +296,7 @@ export function StorefrontView({
                 {tutor.levels.length > 0 && (
                   <ul className="sf-levels flex flex-wrap gap-1.5 mt-1.5" role="list" aria-label={c.levelsAria} data-e2e="sf-levels">
                     {tutor.levels.map((code) => (
-                      <li key={code} className="chip chip-soft">{LEVEL_LABELS[code][locale === "ar" ? "ar" : "fr"]}</li>
+                      <li key={code} className="tag tag-neutral">{LEVEL_LABELS[code][locale === "ar" ? "ar" : "fr"]}</li>
                     ))}
                   </ul>
                 )}
@@ -666,7 +666,9 @@ export function StorefrontView({
           display:flex;align-items:center;gap:8px;margin-top:10px;
           font-size:13.5px;color:var(--on-blue);flex-wrap:wrap;
         }
-        .sf-newtag{background:rgba(255,255,255,.16);border-radius:999px;padding:3px 10px;font-weight:700;font-size:13px;white-space:nowrap}
+        /* UI Option A (A5): "Nouveau prof" on the hero is the shared .tag.tag-neutral
+           (blue50 + blue700); this rule only keeps it from inheriting the hero's white. */
+        .sf-newtag{color:var(--blue700)}
         @media (max-width:520px){
           /* 88px avatar + Arabic name + share button do not fit at 320px. The size
              is an inline style on <Avatar>, hence !important. */

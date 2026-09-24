@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import { PAYMENT_STORY, type PaymentAudience } from "@tnajem/shared";
-import { Chip } from "@/components/ui";
+import { Tag } from "@/components/ui";
 
 /* phase-a lane L3 (A22) — THE ONE PAYMENT SENTENCE (decision D4), wherever the
    product says how a student pays: "Tu paies en ligne, via Tnajem, avant la
@@ -33,7 +33,7 @@ export function PaymentStory({
     <span className={className} style={style} data-payment-story={enabled ? "live" : "soon"}>
       {!enabled && (
         <>
-          <Chip kind="sand">{s.soon}</Chip>{" "}
+          <Tag kind="soon">{s.soon}</Tag>{" "}
         </>
       )}
       {s[audience]}
