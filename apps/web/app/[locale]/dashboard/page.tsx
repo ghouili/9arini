@@ -16,6 +16,7 @@ import { buildTutorSteps, STEP_COPY } from "@/lib/onboarding-steps";
 import type { OnboardingStep, StepState } from "@/lib/onboarding-steps";
 import type { DashboardData, DashboardBooking, NotificationItem, DashboardResult } from "@tnajem/shared";
 import { initials, monthLabel, formatLongDate } from "@tnajem/shared";
+import { classPhase, type ClassPhase } from "@tnajem/shared"; // phase-a lane L5 (A18.10)
 import { bilingual } from "@/lib/i18n";
 
 /* Page-local copy (never edit lib/i18n.ts from here). FR + Derija, RTL-safe.
@@ -89,6 +90,11 @@ const copy = bilingual({
       "On compte les cours à venir. Un cours annulé ou déjà passé libère la place.",
     planUntil: (d: string) => `Jusqu'au ${d}.`,
     planSeeTarifs: "Voir les offres",
+    // phase-a lane L5 (A18.10): where each class stands
+    phaseUpcoming: "À venir",
+    phaseLive: "En direct",
+    phaseDone: "Terminée",
+    phaseCancelled: "Annulée",
   },
   ar: {
     signedOutTitle: "ادخل لحسابك باش تشوف لوحتك",
@@ -145,6 +151,11 @@ const copy = bilingual({
     planUsageNote: "نحسبو الدروس الجايّة برك. درس تلغى ولا فات يرجّعلك البلاصة.",
     planUntil: (d: string) => `حتى لـ ${d}.`,
     planSeeTarifs: "شوف العروض",
+    // phase-a lane L5 (A18.10)
+    phaseUpcoming: "جاية",
+    phaseLive: "دايركت",
+    phaseDone: "وفات",
+    phaseCancelled: "تلغات",
   },
 });
 
@@ -847,6 +858,20 @@ function BookingsPanel({ d }: { d: DashboardData }) {
   );
 }
 
+// phase-a lane L5 (A18.10): À venir · En direct · Terminée · Annulée.
+function PhaseChip({ phase, c }: { phase: ClassPhase; c: CopyDict }) {
+  const [label, kind] =
+    phase === "live" ? [c.phaseLive, "chip-free"]
+      : phase === "done" ? [c.phaseDone, "chip-sand"]
+      : phase === "cancelled" ? [c.phaseCancelled, "chip-rose"]
+      : [c.phaseUpcoming, "chip-soft"];
+  return (
+    <span className={`chip ${kind} mt-1.5`} data-e2e="class-phase" data-phase={phase}>
+      {label}
+    </span>
+  );
+}
+
 // ── Real: tutor with a live storefront ──────────────────────────────────────
 function RealDashboard(
   { d, steps, onChanged }: { d: DashboardData; steps: OnboardingStep[]; onChanged: () => void },
@@ -916,6 +941,8 @@ function RealDashboard(
                 <div className="flex-1 min-w-0">
                   <UserText as="div" style={{ fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{cl.title}</UserText>
                   <time className="block text-[13px] text-muted mt-0.5" dateTime={cl.starts_at}>{cl.day} {monthLabel(cl.month, locale)} · {cl.time}</time>
+                  {/* phase-a lane L5 (A18.10): a cancelled or finished class no longer looks live. */}
+                  <PhaseChip phase={classPhase(cl)} c={c} />
                 </div>
                 <div className="text-end flex-none ms-auto">
                   <div className="qd-num font-display font-bold text-ink">{cl.price_tnd} TND</div>

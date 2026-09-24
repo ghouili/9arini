@@ -43,3 +43,5 @@ export * from "./uploads";
 export * from "./plans";
 // phase-a lane L5 — canonical codes for school levels (A18.7). Pure.
 export * from "./levels";
+// phase-a lane L5 — where a class stands: upcoming · live · done · cancelled (A18.10). Pure.
+export * from "./class-phase";

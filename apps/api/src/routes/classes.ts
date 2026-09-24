@@ -17,6 +17,7 @@ import {
   publicInitials,
 } from "@tnajem/shared";
 import { parseClassLevel } from "@tnajem/shared"; // phase-a lane L5 (A18.7)
+import { classPhase } from "@tnajem/shared"; // phase-a lane L5 (A18.10)
 import { paymentsEnabled, tutorBalanceTnd } from "@tnajem/shared/payments";
 import { resolveMeetUrl } from "@tnajem/shared/live";
 import { db } from "../db";
@@ -453,6 +454,9 @@ export async function classRoutes(app: FastifyInstance): Promise<void> {
         seats: c.seats ?? 0,
         seats_left: Math.max(0, (c.seats ?? 0) - (c.seatsTaken ?? 0)),
         status: c.status ?? "scheduled",
+        // phase-a lane L5 (A18.10): real end time + where the class stands (À venir · En direct · Terminée · Annulée).
+        duration_min: c.durationMin ?? 90,
+        phase: classPhase({ starts_at: d.toISOString(), duration_min: c.durationMin, status: c.status }),
       };
     });
 

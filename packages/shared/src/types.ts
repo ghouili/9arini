@@ -1,4 +1,5 @@
 import type { LevelCode } from "./levels"; // phase-a lane L5 (A18.7)
+import type { ClassPhase } from "./class-phase"; // phase-a lane L5 (A18.10)
 
 export type Locale = "fr" | "ar";
 export type Role = "tutor" | "student" | "guardian";
@@ -110,6 +111,9 @@ export type DashboardClass = {
   seats: number;
   seats_left: number;
   status: ClassItem["status"];
+  // phase-a lane L5 (A18.10): real duration, and where the class stands when the API answered.
+  duration_min?: number;
+  phase?: ClassPhase;
 };
 
 // A pack (downloadable revision material) as shown on the dashboard.

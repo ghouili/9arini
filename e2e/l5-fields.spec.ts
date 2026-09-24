@@ -131,3 +131,23 @@ test.describe("A18.9 — materials can be attached to a class, and say who sees 
     await ctx.close();
   });
 });
+
+test.describe("A18.10 — dashboard status badges", () => {
+  test("upcoming, finished and cancelled classes each carry their badge", async ({ browser }) => {
+    const me = await seedProfile({ role: "tutor", birthYear: 1985 });
+    const tutor = await seedTutor({ profileId: me.id, status: "verified" });
+    const upcoming = await seedClass({ tutorId: tutor.id, hoursFromNow: 72 });
+    const finished = await seedClass({ tutorId: tutor.id, hoursFromNow: -5 });
+    const cancelled = await seedClass({ tutorId: tutor.id, hoursFromNow: 48 });
+    await sql`update classes set status = 'cancelled' where id = ${cancelled.id}`;
+
+    const ctx = await contextAs(browser, me.id);
+    const page = await ctx.newPage();
+    await page.goto("/fr/dashboard", { waitUntil: "networkidle" });
+    const badge = (id: string) => page.locator(`a[href="/fr/class/${id}"] [data-e2e=class-phase]`);
+    await expect(badge(upcoming.id)).toHaveText("À venir");
+    await expect(badge(finished.id)).toHaveText("Terminée");
+    await expect(badge(cancelled.id)).toHaveText("Annulée");
+    await ctx.close();
+  });
+});
