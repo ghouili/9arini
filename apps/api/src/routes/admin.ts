@@ -61,6 +61,16 @@ const rejectBody = z.object({ tutorId: z.string(), note: z.string().optional() }
 /** A refusal reason the tutor will read in their notification. */
 const REJECT_NOTE_MIN = 5;
 
+/* phase-a lane L4 (A15): the Décret 2015-1619 declaration must belong to the round
+   being approved. POST /verification stamps it with the same instant as
+   submitted_at, so a declaration older than submitted_at belongs to an earlier
+   round (or to nothing: a dossier from before 0024 has none at all).
+   LEGAL-REVIEW: whether a declaration plus an admin check meets the obligation. */
+function declarationCoversRound(t: { publicTeacherDeclaredAt: Date | null; submittedAt: Date | null }): boolean {
+  if (!t.publicTeacherDeclaredAt) return false;
+  return !t.submittedAt || t.publicTeacherDeclaredAt.getTime() >= t.submittedAt.getTime();
+}
+
 export async function adminRoutes(app: FastifyInstance): Promise<void> {
   /* ── POST /verification (multipart) ──────────────────────────────────────── */
   app.post("/verification", async (req, reply) => {
@@ -221,12 +231,14 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
             sizeBytes: w.bytes.length, // the document's size, not the sealed object's
           });
         }
+        // phase-a lane L4 (A15): ONE instant — the declaration belongs to this round.
+        const submittedNow = new Date();
         await tx
           .update(tutors)
           .set({
             status: "pending",
-            submittedAt: new Date(),
-            publicTeacherDeclaredAt: new Date(),
+            submittedAt: submittedNow,
+            publicTeacherDeclaredAt: submittedNow,
             publicTeacherDeclarationVersion: PUBLIC_TEACHER_DECLARATION_VERSION,
             reviewNote: null,
             experienceYears: years,
@@ -428,6 +440,11 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
        It must then still be null. Omitting the field is a 400. */
     const reviewed = parsed.data.submittedAt === null ? null : new Date(parsed.data.submittedAt);
     if (reviewed && Number.isNaN(reviewed.getTime())) return reply.code(400).send({ error: "bad-request" });
+    /* phase-a lane L4 (A15): NO DECLARATION, NO APPROVAL. Only the UI used to remind
+       the admin. A 4xx and nothing written — no status, no audit row, no message. */
+    if (t.status === "pending" && !declarationCoversRound(t)) {
+      return reply.code(422).send({ ok: false, error: "declaration-missing" });
+    }
     const [decided] = await db
       .update(tutors)
       .set({ status: "verified", verified: true, reviewedAt: new Date(), reviewNote: null })
@@ -438,6 +455,8 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
           reviewed
             ? raw`date_trunc('milliseconds', ${tutors.submittedAt}) = ${reviewed.toISOString()}::timestamptz`
             : isNull(tutors.submittedAt),
+          // phase-a lane L4 (A15): re-checked in the UPDATE, like the status and version.
+          raw`${tutors.publicTeacherDeclaredAt} is not null and (${tutors.submittedAt} is null or ${tutors.publicTeacherDeclaredAt} >= ${tutors.submittedAt})`,
         ),
       )
       .returning({ id: tutors.id });

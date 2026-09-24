@@ -446,7 +446,13 @@ export async function approveTutor(input: { tutorId: string; submittedAt: string
   /* PORTED to apps/api (POST /admin/verifications/approve). Self-approval refusal
      and the "must be pending" gate moved with it; call() replays the revalidate
      envelope so the tutor's page and the sitemap go live immediately. */
-  return call<{ ok: boolean; error?: string }>("/admin/verifications/approve", input);
+  try {
+    return await call<{ ok: boolean; error?: string }>("/admin/verifications/approve", input);
+  } catch (e) {
+    // phase-a lane L4 (A15): 422 = no Décret 2015-1619 declaration for this round.
+    if ((e as { status?: number }).status === 422) return { ok: false, error: "declaration-missing" };
+    throw e;
+  }
 }
 
 export async function rejectTutor(input: { tutorId: string; note?: string }): Promise<{ ok: boolean; error?: string }> {

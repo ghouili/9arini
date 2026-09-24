@@ -57,6 +57,8 @@ const copy = bilingual({
     previousRounds: "Soumissions précédentes",
     previousRound: (d: string) => `Soumission du ${d}`,
     previousNote: "Pour comparaison seulement : la décision porte sur les documents ci-dessus.",
+    // phase-a lane L4 (A15)
+    declarationMissing: "Impossible de valider : ce dossier n'a pas la déclaration du décret 2015-1619. Refuse-le avec ce motif pour que le prof la fasse.",
   },
   ar: {
     eyebrow: "أدمين",
@@ -102,6 +104,8 @@ const copy = bilingual({
     previousRounds: "الملفات اللي تبعثو قبل",
     previousRound: (d: string) => `ملف نهار ${d}`,
     previousNote: "للمقارنة برك: القرار يخص الوثائق اللي الفوق.",
+    // phase-a lane L4 (A15)
+    declarationMissing: "ما تنجّمش تقبلو: الملف هذا ما فيهش تصريح الأمر 2015-1619. ارفضو بالسبب هذا باش المعلّم يعمل التصريح.",
   },
 });
 
@@ -224,6 +228,7 @@ export default function AdminVerificationsPage() {
       case "not-pending": return c.notPending;
       case "changed-since-review": return c.changedSinceReview;
       case "self-approval-forbidden": return c.selfDecision;
+      case "declaration-missing": return c.declarationMissing; // phase-a lane L4 (A15)
       default: return c.error;
     }
   }

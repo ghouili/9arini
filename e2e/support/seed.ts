@@ -159,3 +159,15 @@ export async function seedVerificationDoc(tutorId: string): Promise<{ id: string
     returning id`;
   return { id: row.id, fileName };
 }
+
+// phase-a lane L4 (A15) ─────────────────────────────────────────────────────────
+/** The Décret 2015-1619 declaration for the tutor's CURRENT round — what POST
+    /verification writes. The API refuses to approve without it, so a spec that
+    seeds a pending tutor and approves it has to seed this too. Call it AFTER
+    setting submitted_at: the declaration is stamped with the same instant. */
+export async function seedDeclaration(tutorId: string): Promise<void> {
+  await sql`update tutors
+               set public_teacher_declared_at = coalesce(submitted_at, now()),
+                   public_teacher_declaration_version = '2026-09-15'
+             where id = ${tutorId}`;
+}

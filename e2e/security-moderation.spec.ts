@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { sql } from "./support/db";
-import { seedAdmin, seedProfile, seedTutor } from "./support/seed";
+import { seedAdmin, seedProfile, seedTutor, seedDeclaration } from "./support/seed";
 import { mintSession } from "./support/session";
 import { api, auditActions } from "./support/journey";
 import { e2eStore } from "./support/store";
@@ -18,6 +18,7 @@ test.describe("security: a tutor approval is bound to the submission the admin r
     const reviewed = "2026-09-15T10:00:00.123Z";
     const resubmitted = "2026-09-15T10:05:00.456Z";
     await sql`update tutors set submitted_at = ${resubmitted} where id = ${tutor.id}`;
+    await seedDeclaration(tutor.id); // phase-a lane L4 (A15): no declaration, no approval
 
     expect(await api("/admin/verifications/approve", adminToken, { tutorId: tutor.id, submittedAt: reviewed }))
       .toEqual({ ok: false, error: "changed-since-review" });
