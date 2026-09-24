@@ -42,8 +42,9 @@ function stripComments(src: string): string {
    • lib/i18n.ts — the shared dictionary, add-only for a lane. Its payment keys
      (checkout.noCharge, checkout.payPaid, dashboard.s3t/s3p) are rendered by
      nothing; the test below proves that, and the orchestrator deletes them.
-   • /terms and /privacy — rewritten last by lane L6 (A19) against the merged code. */
-const EXCLUDED = [/lib[\\/]i18n\.ts$/, /\[locale\][\\/]terms[\\/]/, /\[locale\][\\/]privacy[\\/]/];
+   phase-a lane L6 (A19): /terms and /privacy are rewritten against the merged code
+   and are scanned like every other page (their own proof: legal-truth.test.ts). */
+const EXCLUDED = [/lib[\\/]i18n\.ts$/];
 
 const CONTRADICTIONS: [RegExp, string][] = [
   [/en main propre/i, "cash in hand"],

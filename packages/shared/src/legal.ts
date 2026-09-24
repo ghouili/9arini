@@ -55,12 +55,16 @@ export const CONSENT_TEXT = "Consentement du parent/tuteur pour un compte de moi
 /* ── Published documents ─────────────────────────────────────────────────────── */
 
 /** LEGAL-REVIEW: version of /privacy. Both documents are drafts pending counsel; the
-    banner on each page says so. A new version is recorded on the next consent. */
-export const PRIVACY_POLICY_VERSION = "2026-09-15";
+    banner on each page says so. A new version is recorded on the next consent.
+    phase-a lane L6 (A19): 2026-09-15 → 2026-09-24, the Phase A rewrite (adult-only
+    pilot, conversations that close, moderation, first name + initial, …), so a
+    consent recorded from now on points at the text it was actually given under. */
+export const PRIVACY_POLICY_VERSION = "2026-09-24";
 
 /** LEGAL-REVIEW: version of /terms, recorded against every account created under it
-    (profiles.terms_version). Re-acceptance of a new version is not built. */
-export const TERMS_VERSION = "2026-09-15";
+    (profiles.terms_version). Re-acceptance of a new version is not built.
+    phase-a lane L6 (A19): 2026-09-15 → 2026-09-24, same reason as above. */
+export const TERMS_VERSION = "2026-09-24";
 
 /** Consents are recorded against the privacy policy they were given under. */
 export const CONSENT_POLICY_VERSION = PRIVACY_POLICY_VERSION;

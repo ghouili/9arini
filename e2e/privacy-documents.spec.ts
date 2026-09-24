@@ -18,7 +18,8 @@ const text = async (page: import("@playwright/test").Page, path: string) => {
 test.describe("privacy: the published documents match the code", () => {
   test("/fr/privacy quotes the enforced periods and describes deletion, access and cookies as built", async ({ page }) => {
     const t = await text(page, "/fr/privacy");
-    expect(t).toContain("Version du 15 septembre 2026");
+    // phase-a lane L6 (A19): PRIVACY_POLICY_VERSION moved to 2026-09-24 with the Phase A rewrite.
+    expect(t).toContain("Version du 24 septembre 2026");
     expect(t).toContain(`${ID_DOCUMENT_RETENTION_DAYS} jours après la décision`);
     expect(t).toContain(`Nous te laissons ${DELETION_GRACE_DAYS} jours pour changer d'avis`);
     expect(t).toContain("ton compte est anonymisé");
@@ -43,7 +44,9 @@ test.describe("privacy: the published documents match the code", () => {
     expect(t).not.toContain("قائمة محدودة من الأرقام");
   });
 
-  test("/terms: deletion is self-service, nothing is promised by SMS, and reporting needs no account", async ({ page }) => {
+  /* phase-a lane L6 (A19): a page, a class or a document is reported signed out; a MESSAGE
+     needs a participant's account (e2e/legal-truth.spec.ts checks that sentence). */
+  test("/terms: deletion is self-service, nothing is promised by SMS, and reporting a page needs no account", async ({ page }) => {
     const fr = await text(page, "/fr/terms");
     expect(fr).toContain("Tu peux supprimer ton compte à tout moment depuis « Mon compte »");
     expect(fr).toContain(`La suppression a lieu ${DELETION_GRACE_DAYS} jours plus tard`);
