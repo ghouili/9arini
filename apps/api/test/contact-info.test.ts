@@ -233,6 +233,14 @@ describe("A1 — maskContactInfo removes the whole handle or number", () => {
       const out = maskContactInfo(input);
       const again = detectContactInfo(out);
       assert.equal(again.found, false, `${JSON.stringify(out)} still scans as ${again.kinds.join(",")}`);
+      /* phase-a/verify-fix (D4): the detector alone is not a guard here — the OLD
+         detector did not recognise its own leftovers either ("[masqué]/21624555666"
+         scanned clean), so this test passed with the A1 fix reverted. What is left
+         around the placeholders must carry no digit run of 3+ (separators ignored)
+         and no handle-shaped token (letters joined by "." or "_"). */
+      const residue = out.split("[masqué]").join(" ");
+      assert.doesNotMatch(residue.replace(/[\s.\-/+()]/g, ""), /\d{3}/, `${JSON.stringify(out)} leaves digits behind`);
+      assert.doesNotMatch(residue, /[\p{L}\d]+[._][\p{L}\d_]+/u, `${JSON.stringify(out)} leaves a handle behind`);
     });
   }
 
