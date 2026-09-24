@@ -122,6 +122,13 @@ export async function moderationRoutes(app: FastifyInstance): Promise<void> {
     const rl = await checkRateLimit(`report:${ipBucket(req.ip)}`, 10, 60 * 60_000);
     if (!rl.ok) return { ok: false, error: "too-many-requests" };
 
+    /* phase-a/integrate (A19): a MESSAGE is reported from its conversation, by a
+       signed-in participant — POST /messages/:id/report checks that and files the
+       queue row itself. This public, no-account door is for pages, classes and
+       documents; taking a message id here would let anyone holding one file
+       against a conversation they are not in, and /privacy says otherwise. */
+    if (parsed.data.subjectKind === "message") return { ok: false, error: "report-in-conversation" };
+
     const reason = vText(parsed.data.reason, { field: "reason", max: 2000, min: 10 });
     if (!reason.ok) return { ok: false, error: reason.error };
 
