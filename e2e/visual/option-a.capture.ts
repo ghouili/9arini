@@ -49,7 +49,11 @@ async function settle(page: Page): Promise<void> {
 }
 
 async function contextFor(browser: Browser, who: Who, viewport: { width: number; height: number }, ids: Record<Exclude<Who, "anon">, string>) {
-  const ctx = await browser.newContext({ viewport, deviceScaleFactor: 1 });
+  /* reducedMotion: the landing pages reveal their sections on scroll, and a full-page
+     screenshot never scrolls — those sections came out EMPTY. Under reduced motion
+     the Reveal components render in place (the same path a real visitor with that
+     preference gets). */
+  const ctx = await browser.newContext({ viewport, deviceScaleFactor: 1, reducedMotion: "reduce" });
   if (who !== "anon") {
     await loginAs(ctx, ids[who]);
     /* The header reads the readable role HINT cookie a real login sets (lib/auth.ts
