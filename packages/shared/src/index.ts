@@ -41,3 +41,6 @@ export * from "./uploads";
 /* Plans and entitlements (Step 16). Pure numbers and predicates — /tarifs is a
    client component and renders its prices straight from this catalogue. */
 export * from "./plans";
+// phase-a lane L2 — birth month + year, isAdult, the ALLOW_MINORS switch (A24). Pure.
+export * from "./age";
+// end phase-a lane L2

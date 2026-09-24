@@ -93,7 +93,7 @@ export async function requestOtp(input: { identifier: string; locale?: string })
   return call("/auth/otp/request", input);
 }
 
-export async function verifyOtp(input: { identifier: string; code: string; role?: "tutor" | "student"; locale?: string; birthYear?: number }):
+export async function verifyOtp(input: { identifier: string; code: string; role?: "tutor" | "student"; locale?: string; birthYear?: number; birthMonth?: number /* phase-a lane L2 (A24) */ }):
   Promise<{ ok: boolean; role?: string; needsConsent?: boolean; created?: boolean; roleMismatch?: boolean; needsProfile?: boolean; hasStorefront?: boolean; error?: string; retryAfter?: number }> {
   if (demoFallback) {
     await setDemoCookie(input.role === "tutor" ? "tutor" : "student");

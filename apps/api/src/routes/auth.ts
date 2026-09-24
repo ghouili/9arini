@@ -11,9 +11,12 @@ import {
   normalizePhone,
   isValidEmail,
   isValidPhone,
-  isMinorBirthYear,
   vBirthYear,
   TERMS_VERSION,
+  // phase-a lane L2 (A24)
+  vBirthMonth,
+  isAdult,
+  minorsAllowed,
 } from "@tnajem/shared";
 import { mailEnabled, sendMail } from "@tnajem/shared/mail";
 import { smsEnabled, sendSms } from "@tnajem/shared/sms";
@@ -56,6 +59,7 @@ const verifyOtpBody = z.object({
   role: z.enum(["tutor", "student"]).optional(),
   locale: z.string().optional(),
   birthYear: z.number().optional(),
+  birthMonth: z.number().optional(), // phase-a lane L2 (A24)
 });
 
 /** The client address, as forwarded by the web app. Fastify resolves this through
@@ -195,6 +199,8 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     // Self-reported at student signup; used ONLY for the minor-consent gate.
     // Tutors are verified adults (ID check), so we never record an age for them.
     const birthYear = requestedRole === "student" ? vBirthYear(input.birthYear) : null;
+    // phase-a lane L2 (A24): the MONTH too — a year alone passes a December-born 17-year-old.
+    const birthMonth = requestedRole === "student" ? vBirthMonth(input.birthMonth) : null;
 
     /* Look the account up by the identity column the ACTIVE channel owns. Under
        OTP_CHANNEL=sms that is profiles.phone; under email, profiles.email. Both
@@ -215,6 +221,16 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
          prove they own it, which is a user-enumeration oracle. One extra message
          on a rare path beats letting anyone probe who is on the platform. */
       if (!requestedRole) return { ok: false, error: "no-account" };
+      /* phase-a lane L2 (A24) — THE ADULT-ONLY PILOT (D6), on EVERY sign-up path.
+         The signup form's "J'ai déjà un code" link skips the send step, and the
+         birth date used to be optional here, so an account could be born with no
+         age at all. Month and year are both required, and while ALLOW_MINORS is
+         off a minor gets no account. Checked after the code is proven, for the
+         reason given above: an answer about an account only reaches its owner. */
+      if (requestedRole === "student") {
+        if (birthYear == null || birthMonth == null) return { ok: false, error: "birth-date-required" };
+        if (!minorsAllowed() && !isAdult(birthYear, birthMonth)) return { ok: false, error: "adults-only" };
+      }
       // Only the ACTIVE channel's column is written. The other stays null until
       // the user supplies it — the phone is an optional CONTACT collected during
       // onboarding, not a login credential.
@@ -226,7 +242,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         .insert(profiles)
         /* The terms this account is created under (0023). The signup screen says that
            creating the account accepts them, with links: this is the record of it. */
-        .values({ ...identity, role: requestedRole, locale, birthYear, termsVersion: TERMS_VERSION, termsAcceptedAt: new Date() })
+        .values({ ...identity, role: requestedRole, locale, birthYear, birthMonth, termsVersion: TERMS_VERSION, termsAcceptedAt: new Date() })
         .onConflictDoNothing()
         .returning();
       if (inserted) {
@@ -244,6 +260,13 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       await db.update(profiles).set({ birthYear }).where(eq(profiles.id, profile.id));
       profile = { ...profile, birthYear };
     }
+    /* phase-a lane L2 (A24): the same one-time fill for an UNKNOWN birth month
+       (every account created before 0025 has none), and only alongside the birth
+       year already on file — so it can complete a date, never move one. */
+    if (!created && profile.role === "student" && profile.birthMonth == null && birthMonth != null && profile.birthYear === birthYear) {
+      await db.update(profiles).set({ birthMonth }).where(eq(profiles.id, profile.id));
+      profile = { ...profile, birthMonth };
+    }
     // NOTE: an existing profile's role is deliberately NOT overwritten from input
     // — otherwise anyone could flip their own role by re-authenticating.
 
@@ -256,9 +279,9 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
 
     let needsConsent = false;
     /* Guardian consent is a MINORS-only requirement (INPDP). Adults skip it;
-       unknown age fails safe (isMinorBirthYear treats null as minor), matching
-       reserveSeat's gate. */
-    if (profile.role === "student" && isMinorBirthYear(profile.birthYear)) {
+       unknown age fails safe (isAdult treats a missing month or year as a minor),
+       matching reserveSeat's gate. phase-a lane L2 (A24): month-aware. */
+    if (profile.role === "student" && !isAdult(profile.birthYear, profile.birthMonth)) {
       const [c] = await db
         .select({ id: consents.id })
         .from(consents)

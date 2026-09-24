@@ -58,7 +58,7 @@ test.describe("OTP under concurrency", () => {
     const code = await recoverOtp(id);
 
     const results = await Promise.all(
-      Array.from({ length: 5 }, () => verify(id, code, { role: "student", birthYear: 1995 })),
+      Array.from({ length: 5 }, () => verify(id, code, { role: "student", birthYear: 1995, birthMonth: 3 /* phase-a lane L2 (A24) */ })),
     );
     expect(results.map((r) => r.status), "no request may crash").toEqual([200, 200, 200, 200, 200]);
     expect(results.filter((r) => r.json.ok === true), "exactly one caller consumes the code").toHaveLength(1);
@@ -90,13 +90,13 @@ test.describe("OTP under concurrency", () => {
     const code = await recoverOtp(id);
     const wrong = String((Number(code) + 1) % 1_000_000).padStart(6, "0");
 
-    const results = await Promise.all(Array.from({ length: 8 }, () => verify(id, wrong, { role: "student", birthYear: 1995 })));
+    const results = await Promise.all(Array.from({ length: 8 }, () => verify(id, wrong, { role: "student", birthYear: 1995, birthMonth: 3 /* phase-a lane L2 (A24) */ })));
     expect(results.every((r) => r.status === 200 && r.json.error === "invalid-code")).toBe(true);
 
     const [row] = await sql<{ attempts: number }[]>`select attempts from otp_codes where identifier = ${id}`;
     expect(row.attempts, "the budget binds a burst").toBe(5);
 
-    const late = await verify(id, code, { role: "student", birthYear: 1995 });
+    const late = await verify(id, code, { role: "student", birthYear: 1995, birthMonth: 3 /* phase-a lane L2 (A24) */ });
     expect(late.json, "a code whose budget is spent is dead, even the right one").toMatchObject({ ok: false, error: "invalid-code" });
     const [p] = await sql<{ n: number }[]>`select count(*)::int n from profiles where email = ${id}`;
     expect(p.n).toBe(0);

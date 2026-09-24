@@ -82,6 +82,12 @@ export default defineConfig({
         MAIL_FROM_ADDRESS: "",
         TWILIO_ACCOUNT_SID: "",
         TWILIO_AUTH_TOKEN: "",
+        /* phase-a lane L2 (A24). The pilot is adults only by default, but the
+           guardian-consent machinery must keep being PROVEN (§2: consent is checked
+           on the server for every minor's booking), and the guardian, consent and
+           minor-journey specs seed minors who book. So the suite runs with minors
+           ON; the default-off gate is proven by apps/api/test/a24-adult-pilot.test.ts. */
+        ALLOW_MINORS: "1",
       },
     },
     {
@@ -101,6 +107,8 @@ export default defineConfig({
            depend on whoever happens to be in the developer's .env. */
         ADMIN_EMAILS: "e2e-admin@tnajem.invalid",
         API_URL: "http://127.0.0.1:4000",
+        // phase-a lane L2 (A24): the same switch as the API, so the signup copy matches it.
+        ALLOW_MINORS: "1",
       },
     },
   ],

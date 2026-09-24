@@ -91,7 +91,7 @@ test.describe("privacy: an account records the terms it was created under", () =
     await resetRateLimits();
     const email = `e2e-terms-${Date.now()}@tnajem.invalid`;
     expect((await api("/auth/otp/request", undefined, { identifier: email, locale: "fr" })).ok).toBe(true);
-    const verified = await api("/auth/otp/verify", undefined, { identifier: email, code: await recoverOtp(email), role: "student", birthYear: 1995 });
+    const verified = await api("/auth/otp/verify", undefined, { identifier: email, code: await recoverOtp(email), role: "student", birthYear: 1995, birthMonth: 3 /* phase-a lane L2 (A24) */ });
     expect(verified.created).toBe(true);
     const [p] = await sql<{ terms_version: string; fresh: boolean }[]>`
       select terms_version, terms_accepted_at > now() - interval '1 minute' as fresh from profiles where email = ${email}`;

@@ -74,6 +74,9 @@ const COPY = {
     newStudent: "Je suis élève / parent",
     noAccountHint: "Pas encore de compte ?",
     errNeedPhone: "Entre ton numéro de téléphone.",
+    // phase-a lane L2 (A24): no parent path while ALLOW_MINORS is off (parents come with Dm1).
+    newStudentAdult: "Je suis élève",
+    // end phase-a lane L2
   },
   ar: {
     lead: "حطّ الإيميل متاعك : نبعثولك كود. بلا كلمة سرّ.",
@@ -109,6 +112,9 @@ const COPY = {
     newStudent: "أنا تلميذ / ولي",
     noAccountHint: "ما عندكش حساب ؟",
     errNeedPhone: "حطّ نمرة تليفونك.",
+    // phase-a lane L2 (A24): no parent path while ALLOW_MINORS is off (parents come with Dm1).
+    newStudentAdult: "أنا تلميذ",
+    // end phase-a lane L2
   },
 } as const;
 
@@ -116,9 +122,20 @@ const COPY = {
    back to sms swaps this form to a phone field on the next restart — no rebuild,
    no code change. Everything below is written against a neutral "identifier" for
    the same reason. */
-export function AuthInner({ next, channel }: { next: string | null; channel: OtpChannel }) {
+export function AuthInner({
+  next,
+  channel,
+  minorsAllowed = false,
+}: {
+  next: string | null;
+  channel: OtpChannel;
+  /** phase-a lane L2 (A24): ALLOW_MINORS, read per request by the server shell. */
+  minorsAllowed?: boolean;
+}) {
   const { t, locale } = useLocale();
   const c = COPY[locale];
+  // phase-a lane L2 (A24): "Je suis élève / parent" only while minors (and so parents) are in.
+  const studentCta = minorsAllowed ? c.newStudent : c.newStudentAdult;
   const router = useLocalizedRouter();
   const isEmail = channel === "email";
 
@@ -317,7 +334,7 @@ export function AuthInner({ next, channel }: { next: string | null; channel: Otp
                   {c.newTutor}
                 </Link>
                 <Link href={signupHref("/signup/eleve")} className="btn btn-ghost">
-                  {c.newStudent}
+                  {studentCta}
                 </Link>
               </div>
             </div>
@@ -539,7 +556,7 @@ export function AuthInner({ next, channel }: { next: string | null; channel: Otp
                   href={signupHref("/signup/eleve")}
                   className="linklike inline-flex items-center justify-center min-h-[44px] min-w-[44px]"
                 >
-                  {c.newStudent}
+                  {studentCta}
                 </Link>
               </div>
             </div>

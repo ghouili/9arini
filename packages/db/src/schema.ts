@@ -101,6 +101,9 @@ export const profiles = pgTable("profiles", {
   phone: text("phone").unique(),
   locale: text("locale").notNull().default("fr"),
   birthYear: integer("birth_year"),
+  // phase-a lane L2 (A24) — 0025_birth_month.sql: 1–12, NULL = unknown (isAdult treats it as a minor).
+  birthMonth: integer("birth_month"),
+  // end phase-a lane L2
   /* ---- Student profile (collected at /student/welcome) ----
      Nullable on purpose: the welcome screen is skippable, and every profile
      written before scripts/sql/0004_student_profile.sql predates these columns.

@@ -35,7 +35,9 @@ test("student journey: minor signup → consent → explore → book → live ga
   await test.step("a 14-year-old signs up and is sent to guardian consent", async () => {
     await page.goto("/fr/signup/eleve");
     await page.locator('input[type="email"]').fill(address);
-    await page.locator("select").selectOption(String(new Date().getFullYear() - 14));
+    // phase-a lane L2 (A24): month AND year. Minors are allowed here: playwright.config sets ALLOW_MINORS=1.
+    await page.getByLabel("Mois de naissance", { exact: true }).selectOption("3");
+    await page.getByLabel("Année de naissance", { exact: true }).selectOption(String(new Date().getFullYear() - 14));
     await page.locator("form").first().evaluate((f: HTMLFormElement) => f.requestSubmit());
     await expect.poll(async () => (await sql<{ n: number }[]>`select count(*)::int n from otp_codes where identifier = ${address}`)[0].n, { timeout: 20_000 }).toBe(1);
     const code = await recoverOtp(address);

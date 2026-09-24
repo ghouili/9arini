@@ -42,7 +42,9 @@ test("a student signs up with a real OTP and lands signed in", async ({ page }) 
      minor-consent gate. Leave it blank and HTML5 validation swallows the submit
      with no error in the page, the console, or the server log: the form simply
      does nothing. (Same trap as the required `price` field on new-class.) */
-  await page.locator("select").selectOption("1995");
+  // phase-a lane L2 (A24): month AND year, two selects now.
+  await page.getByLabel("Mois de naissance", { exact: true }).selectOption("3");
+  await page.getByLabel("Année de naissance", { exact: true }).selectOption("1995");
 
   /* form.requestSubmit(), not button.click().
 

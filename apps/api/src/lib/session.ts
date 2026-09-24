@@ -26,6 +26,7 @@ export type SessionProfile = {
   email: string | null;
   phone: string | null;
   birthYear: number | null;
+  birthMonth: number | null; // phase-a lane L2 (A24): isAdult needs month + year
   locale: string | null;
 };
 
@@ -79,6 +80,7 @@ export async function getSession(req: FastifyRequest): Promise<Session | null> {
       email: profiles.email,
       phone: profiles.phone,
       birthYear: profiles.birthYear,
+      birthMonth: profiles.birthMonth, // phase-a lane L2 (A24)
       locale: profiles.locale,
     })
     .from(sessions)
@@ -122,6 +124,7 @@ export async function getSession(req: FastifyRequest): Promise<Session | null> {
       email: row.email,
       phone: row.phone,
       birthYear: row.birthYear,
+      birthMonth: row.birthMonth, // phase-a lane L2 (A24)
       locale: row.locale,
     },
   };

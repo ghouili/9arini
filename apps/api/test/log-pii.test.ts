@@ -64,8 +64,10 @@ async function login(address: string, role: "student" | "tutor" | undefined, bir
   assert.equal(req.body?.ok, true, `otp request failed: ${JSON.stringify(req.body)}`);
   const code = String(req.body?.devCode);
   const wrong = code === "000000" ? "111111" : "000000";
-  await call("POST", "/auth/otp/verify", null, { identifier: address, code: wrong, role, birthYear });
-  const ok = await call("POST", "/auth/otp/verify", null, { identifier: address, code, role, birthYear });
+  // phase-a lane L2 (A24): sign-up needs a birth month as well as the year.
+  const birthMonth = birthYear ? 1 : undefined;
+  await call("POST", "/auth/otp/verify", null, { identifier: address, code: wrong, role, birthYear, birthMonth });
+  const ok = await call("POST", "/auth/otp/verify", null, { identifier: address, code, role, birthYear, birthMonth });
   const session = ok.body?.session as { token: string } | undefined;
   assert.ok(session?.token, `verify failed: ${JSON.stringify(ok.body)}`);
   cookieJar.set(address, session.token);

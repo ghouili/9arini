@@ -14,9 +14,13 @@
    and one proven in Playwright are proven about the same thing. */
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { buildServer } from "../../src/server";
-import { sql } from "../../src/db";
+import { sql as dbSql } from "../../src/db";
 
-export { sql };
+/* phase-a lane L2 (typecheck): src/db types its handle as nullable, so `sql\`…\``
+   failed `tsc` in every file using it ("not all constituents are callable"). A route
+   test without a database proves nothing — fail loudly here instead. */
+if (!dbSql) throw new Error("route tests need DATABASE_URL (see test/support/fx.ts)");
+export const sql = dbSql;
 
 export type App = Awaited<ReturnType<typeof buildServer>>;
 
@@ -39,16 +43,22 @@ export async function seedProfile(
   opts: {
     role?: "student" | "tutor" | "guardian";
     birthYear?: number | null;
+    /* phase-a lane L2 (A24): isAdult needs the month. Defaults to January whenever
+       a birth year is set, so "birthYear: 1990" still means an adult; pass null
+       for an unknown month. */
+    birthMonth?: number | null;
     fullName?: string;
     email?: string;
   } = {},
 ): Promise<Profile> {
   const t = tag();
+  const birthYear = opts.birthYear === undefined ? 1990 : opts.birthYear;
+  const birthMonth = opts.birthMonth !== undefined ? opts.birthMonth : birthYear == null ? null : 1; // phase-a lane L2 (A24)
   const [row] = await sql<Profile[]>`
-    insert into profiles (id, email, role, locale, full_name, birth_year)
+    insert into profiles (id, email, role, locale, full_name, birth_year, birth_month)
     values (${randomUUID()}, ${opts.email ?? fxEmail(t)}, ${opts.role ?? "student"}, 'fr',
             ${opts.fullName ?? `FX ${t}`},
-            ${opts.birthYear === undefined ? 1990 : opts.birthYear})
+            ${birthYear}, ${birthMonth})
     returning id, email, role`;
   return row;
 }
@@ -172,3 +182,62 @@ export async function stopApp(app: App | undefined): Promise<void> {
   await app?.close();
   await sql.end({ timeout: 5 });
 }
+
+// phase-a lane L2 ─────────────────────────────────────────────────────────────
+/* SIGN-UP THROUGH THE REAL OTP ENDPOINTS (A24, A14).
+
+   Every inject() comes from 127.0.0.1, and the per-IP OTP budgets (10 requests /
+   10 min, 30 verifies / 15 min) live in Postgres, shared by every test process
+   running in parallel. A random private address per file gives each caller its
+   own budget instead of spending everybody's.
+
+   The identifier is fx-tagged, so cleanup() removes the profile and its sessions
+   like any other fixture row. */
+export function fxClientIp(): string {
+  const b = randomBytes(3);
+  return `10.${b[0]}.${b[1]}.${b[2]}`;
+}
+
+/** A fresh fx-tagged address for a sign-up the API itself will create. */
+export const fxSignupEmail = (): string => fxEmail(tag());
+
+/** POST /auth/otp/request then /auth/otp/verify with `body`, from `ip`. */
+export async function otpVerify(
+  app: App,
+  ip: string,
+  body: { identifier: string; role?: "student" | "tutor"; birthYear?: number; birthMonth?: number },
+): Promise<Res> {
+  // No provider configured → the API returns the code on screen (dev posture).
+  for (const k of ["MAIL_HOST", "MAIL_USER", "MAIL_PASS", "MAIL_FROM_ADDRESS"]) process.env[k] = "";
+  const req = await app.inject({
+    method: "POST",
+    url: "/auth/otp/request",
+    payload: { identifier: body.identifier, locale: "fr" },
+    remoteAddress: ip,
+  });
+  const code = String((JSON.parse(req.body) as { devCode?: string }).devCode);
+  const res = await app.inject({
+    method: "POST",
+    url: "/auth/otp/verify",
+    payload: { ...body, code, locale: "fr" },
+    remoteAddress: ip,
+  });
+  return { status: res.statusCode, body: res.body ? JSON.parse(res.body) : null, raw: res.body };
+}
+
+/** The Tunis (year, month) `monthsAgo` months before now — "17 years 11 months ago"
+    is monthsAgo = 17 * 12 + 11. Month is 1–12. */
+export function tunisMonthsAgo(monthsAgo: number, now: Date = new Date()): { year: number; month: number } {
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "Africa/Tunis", year: "numeric", month: "numeric" })
+    .formatToParts(now);
+  const y = Number(parts.find((p) => p.type === "year")?.value);
+  const m = Number(parts.find((p) => p.type === "month")?.value);
+  const total = y * 12 + (m - 1) - monthsAgo;
+  return { year: Math.floor(total / 12), month: (total % 12) + 1 };
+}
+
+/** rate_limits rows keyed on this file's address. Call from after(). */
+export async function cleanupIp(ip: string): Promise<void> {
+  await sql`delete from rate_limits where key like ${`%:${ip}`}`;
+}
+// end phase-a lane L2 ─────────────────────────────────────────────────────────
