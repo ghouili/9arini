@@ -90,8 +90,10 @@ const PHONE_RE = new RegExp(
      titled "E2E Published <Date.now()>" was rejected as a phone number. Order
      references, ISBNs and IDs are all the same shape. */
   `(?<!\\d)` +
-    // country code, optional
-    `(?:(?:\\+|00)${SEP}216${SEP})?` +
+    /* country code, optional — and "+"/"00" optional INSIDE it (phase-a A1).
+       "216 24 555 666" is how people actually write it; without the bare form the
+       first eight digits "21624555" matched as the number and " 666" survived. */
+    `(?:(?:(?:\\+|00)${SEP})?216${SEP})?` +
     // 8 digits starting 2/4/5/9, separators allowed between any of them
     `[2459](?:${SEP}\\d){7}` +
     `(?!\\d)`,
@@ -145,7 +147,15 @@ const HANDLE_RE = /(?<![\w@.])@[a-z0-9._]{3,}/gi;
    domain "fin.Le", and French prose is full of a word, a full stop and a capital
    letter with no space between them. Demanding a path is what keeps ordinary
    sentences out while still catching the link shorteners that actually matter. */
-const URL_RE = /(?:https?:\/\/|www\.)[^\s<>()]+|\b[\p{L}\d][\p{L}\d-]*\.(?:tn|com|net|org|fr|io|me|co|app|link|page)\b(?:\/[^\s<>()]*)?|\b[\p{L}\d][\p{L}\d-]*\.[a-z]{2,6}\/[^\s<>()]*/giu;
+/* Shape 2's tail takes a query or fragment as well as a path (phase-a A1):
+   "wa.me?text=…" is a link with everything after the host still in it. */
+const URL_RE = /(?:https?:\/\/|www\.)[^\s<>()]+|\b[\p{L}\d][\p{L}\d-]*\.(?:tn|com|net|org|fr|io|me|co|app|link|page)\b(?:[/?#][^\s<>()]*)?|\b[\p{L}\d][\p{L}\d-]*\.[a-z]{2,6}\/[^\s<>()]*/giu;
+
+/* What follows a PLATFORM name when it is really an address: optional domain
+   labels, then a path, query or fragment glued to it. "instagram/amine.ben" names
+   the app AND the profile; masking only "instagram" hands over the profile.
+   Requires the / ? or # so "Instagram. Le cours…" is not extended into prose. */
+const PLATFORM_TAIL = /(?:\.[a-z]{2,6})*[/?#][^\s<>()]*/iy;
 const URL_ALLOW = /(?:^|\.)(?:youtube\.com|youtu\.be|youtube-nocookie\.com)$/i;
 
 function hostOf(raw: string): string | null {
@@ -230,14 +240,26 @@ export function detectContactInfo(input: string | null | undefined): ContactScan
 
   scan(SPELLED_RE, "spelled-digits", digits);
   scan(PLATFORM_RE, "social-platform", digits);
+  /* A platform name with an address glued to it covers the address too
+     (phase-a A1): the handle after "instagram/" is the part that reaches someone. */
+  for (const m of matches) {
+    if (m.kind !== "social-platform") continue;
+    PLATFORM_TAIL.lastIndex = m.end;
+    const tail = PLATFORM_TAIL.exec(digits);
+    if (tail) m.end += tail[0].length;
+  }
   scan(HANDLE_RE, "social-handle", digits);
 
-  /* Overlaps resolve by SPECIFICITY, not by length.
+  /* Overlaps are MERGED, and the specificity priority only picks the LABEL.
 
-     "www.facebook.com/amine" and "wa.me/21698123456" match both the URL rule and
-     the platform rule, and the URL match is longer — so sorting by length kept
-     the vaguer answer. A moderator reading "social-platform" learns what happened;
-     "url" makes them go and look. Lower number wins. */
+     They used to be resolved by dropping: "wa.me/21624555666" matched the
+     platform rule ("wa.me") and the URL rule (the whole link), the platform rule
+     won on specificity, and the URL match was thrown away — so the mask removed
+     "wa.me" and delivered the number (CEO report, finding 1). Now every group of
+     overlapping matches becomes ONE match over their union, and it is reported
+     under the most specific kind in the group. A moderator reading
+     "social-platform" learns what happened; "url" makes them go and look. Lower
+     number wins. */
   const PRIORITY: Record<ContactKind, number> = {
     email: 0,
     "social-platform": 1,
@@ -246,15 +268,18 @@ export function detectContactInfo(input: string | null | undefined): ContactScan
     "social-handle": 4,
     url: 5,
   };
-  const sorted = [...matches].sort(
-    (a, b) => PRIORITY[a.kind] - PRIORITY[b.kind] || a.start - b.start || b.end - a.end,
-  );
+  const sorted = [...matches].sort((a, b) => a.start - b.start || b.end - a.end);
   const kept: ContactMatch[] = [];
   for (const m of sorted) {
-    // Drop anything overlapping a match we already kept at higher specificity.
-    if (!kept.some((k) => m.start < k.end && k.start < m.end)) kept.push(m);
+    const last = kept[kept.length - 1];
+    if (last && m.start < last.end) {
+      // Overlaps the group being built: widen it, and keep the more specific label.
+      last.end = Math.max(last.end, m.end);
+      if (PRIORITY[m.kind] < PRIORITY[last.kind]) last.kind = m.kind;
+    } else {
+      kept.push({ ...m });
+    }
   }
-  kept.sort((a, b) => a.start - b.start);
 
   return {
     found: kept.length > 0,
@@ -279,6 +304,8 @@ export function maskContactInfo(input: string | null | undefined, replacement = 
   if (matches.length === 0) return text;
   let out = "";
   let cursor = 0;
+  /* detectContactInfo returns MERGED, non-overlapping spans (phase-a A1), so each
+     one is replaced whole. The guard stays as a belt for any future caller. */
   for (const m of [...matches].sort((a, b) => a.start - b.start)) {
     if (m.start < cursor) continue; // overlapping; already covered
     out += text.slice(cursor, m.start) + replacement;
