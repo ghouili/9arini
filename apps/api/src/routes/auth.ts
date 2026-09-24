@@ -196,11 +196,13 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
        the signup screens the only place a profile is born. */
     const requestedRole = input.role === "tutor" ? "tutor" : input.role === "student" ? "student" : null;
     const locale = input.locale === "ar" ? "ar" : "fr";
-    // Self-reported at student signup; used ONLY for the minor-consent gate.
-    // Tutors are verified adults (ID check), so we never record an age for them.
-    const birthYear = requestedRole === "student" ? vBirthYear(input.birthYear) : null;
-    // phase-a lane L2 (A24): the MONTH too — a year alone passes a December-born 17-year-old.
-    const birthMonth = requestedRole === "student" ? vBirthMonth(input.birthMonth) : null;
+    /* Self-reported at signup. phase-a lane L2 (A24, A14): month + year, and for
+       BOTH roles — a student's drives the adult-only pilot and the consent gate; a
+       tutor's is the 18+ rule, because /signup/prof used to ask no age at all and
+       only the manual ID review stood between a 16-year-old and a storefront. */
+    const birthYear = requestedRole ? vBirthYear(input.birthYear) : null;
+    // A year alone passes a December-born 17-year-old as 18 from January.
+    const birthMonth = requestedRole ? vBirthMonth(input.birthMonth) : null;
 
     /* Look the account up by the identity column the ACTIVE channel owns. Under
        OTP_CHANNEL=sms that is profiles.phone; under email, profiles.email. Both
@@ -227,9 +229,11 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
          age at all. Month and year are both required, and while ALLOW_MINORS is
          off a minor gets no account. Checked after the code is proven, for the
          reason given above: an answer about an account only reaches its owner. */
-      if (requestedRole === "student") {
-        if (birthYear == null || birthMonth == null) return { ok: false, error: "birth-date-required" };
-        if (!minorsAllowed() && !isAdult(birthYear, birthMonth)) return { ok: false, error: "adults-only" };
+      if (birthYear == null || birthMonth == null) return { ok: false, error: "birth-date-required" };
+      // phase-a lane L2 (A14): a tutor teaches children — 18+, whatever ALLOW_MINORS says.
+      if (requestedRole === "tutor" && !isAdult(birthYear, birthMonth)) return { ok: false, error: "minor-cannot-teach" };
+      if (requestedRole === "student" && !minorsAllowed() && !isAdult(birthYear, birthMonth)) {
+        return { ok: false, error: "adults-only" };
       }
       // Only the ACTIVE channel's column is written. The other stays null until
       // the user supplies it — the phone is an optional CONTACT collected during

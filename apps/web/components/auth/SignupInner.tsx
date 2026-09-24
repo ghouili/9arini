@@ -119,6 +119,9 @@ const COPY = {
     bdAdultsNote: "Le pilote est réservé aux 18 ans et plus.",
     errNeedBirthDate: "Choisis le mois et l'année de naissance.",
     errAdultsOnly: "Le pilote est réservé aux 18 ans et plus. Merci de ton intérêt pour Tnajem !",
+    // A14 — a tutor must be 18+, whatever ALLOW_MINORS says
+    bdTutorNote: "Pour enseigner sur Tnajem, il faut avoir 18 ans ou plus. Ta date de naissance n'est jamais publique.",
+    errTutorMinor: "Il faut avoir 18 ans ou plus pour enseigner sur Tnajem.",
     // end phase-a lane L2
   },
   ar: {
@@ -198,6 +201,9 @@ const COPY = {
     bdAdultsNote: "فترة التجربة كان للي عندهم 18 سنة ولا أكثر.",
     errNeedBirthDate: "اختار الشهر والعام متاع الولادة.",
     errAdultsOnly: "فترة التجربة كان للي عندهم 18 سنة ولا أكثر. يعيشك على اهتمامك بـ Tnajem !",
+    // A14 — a tutor must be 18+, whatever ALLOW_MINORS says
+    bdTutorNote: "باش تقرّي في Tnajem لازمك 18 سنة ولا أكثر. تاريخ ولادتك ما يبان لحتّى حد.",
+    errTutorMinor: "لازمك 18 سنة ولا أكثر باش تقرّي في Tnajem.",
     // end phase-a lane L2
   },
 } as const;
@@ -224,9 +230,10 @@ export function SignupInner({
   const router = useLocalizedRouter();
   const isStudent = role === "student";
   const isEmail = channel === "email";
-  // phase-a lane L2 (A24): who is asked a birth date, and whether a minor may continue.
-  const asksBirthDate = isStudent;
-  const adultsOnly = !minorsAllowed;
+  // phase-a lane L2 (A24, A14): who is asked a birth date, and whether a minor may continue.
+  // Everyone is asked; a TUTOR must be 18+ whatever ALLOW_MINORS says (A14).
+  const asksBirthDate = true;
+  const adultsOnly = !isStudent || !minorsAllowed;
 
   const [identifier, setIdentifier] = useState("");
   const [birthYear, setBirthYear] = useState("");
@@ -256,7 +263,7 @@ export function SignupInner({
     if (!asksBirthDate) return true;
     if (!birthYear || !birthMonth) { invalid("birth", c.errNeedBirthDate); return false; }
     if (adultsOnly && !isAdult(Number(birthYear), Number(birthMonth))) {
-      invalid("birth", c.errAdultsOnly);
+      invalid("birth", isStudent ? c.errAdultsOnly : c.errTutorMinor);
       return false;
     }
     return true;
@@ -411,6 +418,7 @@ export function SignupInner({
       // phase-a lane L2 (A24): the server's refusals, in the same words as the form's own.
       if (res.error === "adults-only") { invalid("birth", c.errAdultsOnly); return; }
       if (res.error === "birth-date-required") { invalid("birth", c.errNeedBirthDate); return; }
+      if (res.error === "minor-cannot-teach") { invalid("birth", c.errTutorMinor); return; } // A14
       setError(t.extra.error);
       return;
     }
@@ -574,7 +582,9 @@ export function SignupInner({
                     </select>
                   </div>
                 </div>
-                <p className="text-[13px] text-muted mt-1.5 leading-[1.5]">{adultsOnly ? c.bdAdultsNote : c.byNote}</p>
+                <p className="text-[13px] text-muted mt-1.5 leading-[1.5]">
+                  {!isStudent ? c.bdTutorNote : adultsOnly ? c.bdAdultsNote : c.byNote}
+                </p>
               </Field>
             )}
 

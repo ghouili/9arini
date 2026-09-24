@@ -98,7 +98,7 @@ describe("security: no personal data reaches a log line", () => {
   test("login, profile writes, conflicts, throttling, admin lookup and deletion log no address or number", async () => {
     await login(STUDENT, "student", 1995);
     await login(OTHER, "student", 1996);
-    await login(ADMIN, "tutor");
+    await login(ADMIN, "tutor", 1985); // phase-a lane L2 (A14): /signup/prof asks an age now
 
     // Profile writes carrying a phone number, then the unique-phone conflict.
     assert.equal((await call("POST", "/profile/student", STUDENT, { fullName: "Pii Student", phone: PHONE })).body?.ok, true);

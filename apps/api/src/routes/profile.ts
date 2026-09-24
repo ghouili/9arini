@@ -2,7 +2,8 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { eq, classes, profiles, tutors, sql as raw } from "@tnajem/db";
 import {
-  isMinorBirthYear,
+  isAdult, // phase-a lane L2 (A14)
+  vBirthMonth, // phase-a lane L2 (A14)
   vBirthYear,
   parseStudentProfile,
   type OnboardingState,
@@ -21,6 +22,7 @@ import { getSession, rotateSession } from "../lib/session";
 const becomeTutorBody = z.object({
   confirm: z.boolean(),
   birthYear: z.number().optional(),
+  birthMonth: z.number().optional(), // phase-a lane L2 (A14)
 });
 
 const studentProfileBody = z.object({
@@ -51,13 +53,19 @@ export async function profileRoutes(app: FastifyInstance): Promise<void> {
     /* Age. Prefer what is already on file — a student cannot re-declare
        themselves older to get the role, exactly as verifyOtp only ever fills an
        UNKNOWN age. */
-    let birthYear = session.profile.birthYear;
-    if (birthYear == null) {
-      birthYear = vBirthYear(input.birthYear);
-      if (birthYear == null) return { ok: false, error: "age-required" };
-      await db.update(profiles).set({ birthYear }).where(eq(profiles.id, session.profile.id));
+    /* phase-a lane L2 (A14): month + year, the same fail-safe isAdult() as
+       /signup/prof. Each part is taken from input ONLY when unknown on file, both
+       are validated before anything is written, and a missing part is asked for
+       ("age-required") — never assumed. */
+    const needYear = session.profile.birthYear == null;
+    const needMonth = session.profile.birthMonth == null;
+    const birthYear = needYear ? vBirthYear(input.birthYear) : session.profile.birthYear;
+    const birthMonth = needMonth ? vBirthMonth(input.birthMonth) : session.profile.birthMonth;
+    if (birthYear == null || birthMonth == null) return { ok: false, error: "age-required" };
+    if (needYear || needMonth) {
+      await db.update(profiles).set({ birthYear, birthMonth }).where(eq(profiles.id, session.profile.id));
     }
-    if (isMinorBirthYear(birthYear)) return { ok: false, error: "minor-cannot-teach" };
+    if (!isAdult(birthYear, birthMonth)) return { ok: false, error: "minor-cannot-teach" };
 
     await db.update(profiles).set({ role: "tutor" }).where(eq(profiles.id, session.profile.id));
 

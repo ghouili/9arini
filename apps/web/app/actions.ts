@@ -200,7 +200,7 @@ export async function saveConsent(input: {
 
    Role changes must also refresh ROLE_HINT_COOKIE or <SiteHeader> renders the old
    role for the rest of the session's 30 days — hence setRoleHint(). */
-export async function becomeTutor(input: { confirm: boolean; birthYear?: number }): Promise<ActionResult> {
+export async function becomeTutor(input: { confirm: boolean; birthYear?: number; birthMonth?: number /* phase-a lane L2 (A14) */ }): Promise<ActionResult> {
   if (!input?.confirm) return { ok: false, error: "not-confirmed" };
 
   if (demoFallback) {
