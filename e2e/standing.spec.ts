@@ -17,17 +17,23 @@ import { seedTutor, seedClass, seedProfile, seedBooking } from "./support/seed";
 
    ADDED, never edited into an existing spec. */
 
-async function exploreCard(page: Page, name: string) {
+/* phase-a/integrate (A23): students see a tutor as first name + initial, and the
+   first name keeps letters only. So each tutor gets a unique LETTERS-ONLY first
+   name, and the card is found by that — the full name no longer reaches /explore. */
+const uniqueFirst = (prefix: string) =>
+  `${prefix}${[...randomBytes(6)].map((b) => String.fromCharCode(97 + (b % 26))).join("")}`;
+
+async function exploreCard(page: Page, first: string) {
   await page.goto("/fr/explore");
-  await page.getByRole("searchbox").fill(name);
-  const card = page.locator("a.u-card", { hasText: name });
-  await expect(card, `the /explore card for ${name} must appear`).toHaveCount(1, { timeout: 15_000 });
+  await page.getByRole("searchbox").fill(first);
+  const card = page.locator("a.u-card", { hasText: first });
+  await expect(card, `the /explore card for ${first} must appear`).toHaveCount(1, { timeout: 15_000 });
   return card;
 }
 
 test("no reviews: 'Nouveau prof' on both surfaces, and no student count anywhere", async ({ page }) => {
-  const name = `Standing New ${randomBytes(4).toString("hex")}`;
-  const tutor = await seedTutor({ status: "verified", fullName: name });
+  const first = uniqueFirst("Standingnew");
+  const tutor = await seedTutor({ status: "verified", fullName: `${first} Tutor` });
   // A student-count mirror with no reviews behind it — exactly the 14 Sept shape.
   await sql`update tutors set students_count = 1240, rating = 4.9 where id = ${tutor.id}`;
 
@@ -39,14 +45,14 @@ test("no reviews: 'Nouveau prof' on both surfaces, and no student count anywhere
     /1[\s ,.]?240/,
   );
 
-  const card = await exploreCard(page, name);
+  const card = await exploreCard(page, first);
   await expect(card, "the /explore card says the same thing").toContainText("Nouveau prof");
   expect(await card.innerText(), "no rating and no student count on the card").not.toMatch(/4[.,]9|1[\s ,.]?240|avis/);
 });
 
 test("with a review: the same rating, review count and student count on both surfaces", async ({ page }) => {
-  const name = `Standing Rated ${randomBytes(4).toString("hex")}`;
-  const tutor = await seedTutor({ status: "verified", fullName: name });
+  const first = uniqueFirst("Standingrated");
+  const tutor = await seedTutor({ status: "verified", fullName: `${first} Tutor` });
   const klass = await seedClass({ tutorId: tutor.id, hoursFromNow: -48 });
   const student = await seedProfile({ role: "student", fullName: "Sarra Mejri" });
   await seedBooking({ classId: klass.id, studentId: student.id, status: "attended" });
@@ -61,7 +67,7 @@ test("with a review: the same rating, review count and student count on both sur
   await expect(hero).toContainText("3 élèves");
   await expect(hero, "a rated tutor is not new").not.toContainText("Nouveau");
 
-  const card = await exploreCard(page, name);
+  const card = await exploreCard(page, first);
   await expect(card).toContainText("4,0");
   await expect(card).toContainText("(1 avis)");
   await expect(card).toContainText("3 élèves");

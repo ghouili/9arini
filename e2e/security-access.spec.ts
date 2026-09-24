@@ -57,29 +57,40 @@ test.describe("security: a room link does not outlive the seat it was given for"
 });
 
 test.describe("security: a guardian's access follows the current consent", () => {
-  test("correcting the consent to another address ends the first address's access at once", async () => {
+  /* phase-a/integrate (A13). This used to prove the child could move the consent to
+     another address and end the first address's access at once — which is exactly
+     the hole A13 closes: a second address of the child's own was enough to unlink
+     the real parent. Now: before any guardian account is linked the child can still
+     fix a typo; once one is linked, the address is locked for the child. */
+  test("before a guardian is linked the child can correct the address; after, the change is refused and access stays", async () => {
     const child = await seedProfile({ role: "student", birthYear: new Date().getFullYear() - 15 });
-    const wrongAdult = await seedProfile({ role: "guardian", birthYear: 1980 });
-    const realParent = await seedProfile({ role: "guardian", birthYear: 1981 });
+    const typo = await seedProfile({ role: "guardian", birthYear: 1979 });
+    const parent = await seedProfile({ role: "guardian", birthYear: 1980 });
+    const other = await seedProfile({ role: "guardian", birthYear: 1981 });
     const childToken = await mintSession(child.id);
 
     const consent = (addr: string) =>
       api("/consent", childToken, { guardianName: "Parent E2E", guardianPhone: "+21620000000", guardianEmail: addr });
 
-    expect((await consent(wrongAdult.email)).ok).toBe(true);
-    const wrongToken = await mintSession(wrongAdult.id);
-    const first = (await api("/guardian/children", wrongToken)) as unknown as { id: string }[];
+    // No guardian account has looked yet: a typo is still the child's to fix.
+    expect((await consent(typo.email)).ok).toBe(true);
+    expect((await consent(parent.email)).ok, "an unlinked address can still be corrected").toBe(true);
+
+    const parentToken = await mintSession(parent.id);
+    const first = (await api("/guardian/children", parentToken)) as unknown as { id: string }[];
     expect(first.map((c) => c.id), "the address on the consent is linked").toContain(child.id);
 
-    expect((await consent(realParent.email)).ok).toBe(true);
-    const afterFix = (await api("/guardian/children", wrongToken)) as unknown as { id: string }[];
-    expect(afterFix.map((c) => c.id), "the old address sees nothing once the consent names someone else").not.toContain(child.id);
+    expect(await consent(other.email), "a linked guardian cannot be replaced by the child").toEqual({
+      ok: false,
+      error: "guardian-locked",
+    });
+    const after = (await api("/guardian/children", parentToken)) as unknown as { id: string }[];
+    expect(after.map((c) => c.id), "the linked parent keeps access").toContain(child.id);
+    const others = (await api("/guardian/children", await mintSession(other.id))) as unknown as { id: string }[];
+    expect(others.map((c) => c.id), "the address the child typed gets nothing").not.toContain(child.id);
     const [links] = await sql<{ n: number }[]>`
-      select count(*)::int n from guardian_links where guardian_profile_id = ${wrongAdult.id} and minor_profile_id = ${child.id}`;
-    expect(links.n, "and the link row itself is gone").toBe(0);
-
-    const real = (await api("/guardian/children", await mintSession(realParent.id))) as unknown as { id: string }[];
-    expect(real.map((c) => c.id)).toContain(child.id);
+      select count(*)::int n from guardian_links where guardian_profile_id = ${parent.id} and minor_profile_id = ${child.id}`;
+    expect(links.n, "and the link row is untouched").toBe(1);
   });
 });
 

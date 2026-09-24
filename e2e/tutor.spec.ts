@@ -59,8 +59,10 @@ test("a verified tutor's storefront is public and shows no contact details", asy
 
   const res = await page.goto(`/fr/${tutor.slug}`);
   expect(res?.status()).toBe(200);
-  // phase-a lane L2 (A23): "E2E Tutor <tag>" is shown as "E2E T." — first name + initial.
-  await expect(page.locator("h1").first()).toContainText(/E2E T\./);
+  /* phase-a lane L2 (A23): "E2E Tutor <tag>" is shown as first name + initial. The
+     public name keeps only the letters of the first name (publicDisplayName strips
+     anything that could smuggle a number), so "E2E" renders as "EE": "EE T.". */
+  await expect(page.locator("h1").first()).toContainText(/EE T\./);
 
   /* Step 8 will make this a hard, product-wide rule. Asserting it NOW means the
      Stage A port cannot quietly regress it before then.

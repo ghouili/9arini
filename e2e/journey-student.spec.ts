@@ -22,7 +22,9 @@ test("student journey: minor signup → consent → explore → book → live ga
 
   /* phase-a lane L2 (A23): students see "first name + initial", so the unique part
      lives in the FIRST name — the only part a student can search for or read. */
-  const tutorFirst = `Nour${randomBytes(2).toString("hex")}`;
+  /* Letters only (phase-a/integrate, A23): the public name keeps only the letters of
+     the first name — "Nourb921" is shown as "Nourb" — so a hex tag would not match. */
+  const tutorFirst = `Nour${[...randomBytes(4)].map((b) => String.fromCharCode(97 + (b % 26))).join("")}`;
   const tutorName = `${tutorFirst} Journey`;
   const tutorProfile = await seedProfile({ role: "tutor", birthYear: 1984 });
   const tutor = await seedTutor({ profileId: tutorProfile.id, status: "verified", fullName: tutorName });
