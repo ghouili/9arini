@@ -152,8 +152,14 @@ const fr = {
       "C'est avec cette adresse que le parent se connecte à son propre compte, pour voir les séances réservées et lire les conversations de son enfant.",
     errGEmail: "Cette adresse e-mail n'est pas valide.",
     errGSelf: "Utilise l'adresse du parent, pas la tienne.",
-    agree: "Je confirme être le parent/tuteur et j'accepte la politique de confidentialité.",
     submit: "Activer le compte",
+    // phase-a lane L5 (A18.1): the child no longer declares to be the parent — the
+    // old `agree` tick was a false statement on a legal record, and was never
+    // even sent to the server.
+    // LEGAL-REVIEW: consent wording. The parent-side e-mail confirmation is Dm3
+    // (Phase D). This line is shown only while ALLOW_MINORS=1, which stays off
+    // until Dm3 exists.
+    info: "Ton parent recevra un e-mail pour confirmer.",
   },
   account: { title: "Mon profil", language: "Langue", logout: "Se déconnecter", role: "Rôle", help: "Aide & support (WhatsApp)" },
   verif: {
@@ -346,8 +352,9 @@ const ar: typeof fr = {
       "بالإيميل هذا الولي يدخل للحساب متاعو، باش يشوف الحصص المحجوزة ويقرا محادثات ولدو.",
     errGEmail: "الإيميل هذا موش صحيح.",
     errGSelf: "استعمل إيميل الولي، موش متاعك.",
-    agree: "نأكّد أني الولي ونقبل سياسة الخصوصية.",
     submit: "فعّل الحساب",
+    // phase-a lane L5 (A18.1) — LEGAL-REVIEW: consent wording (see fr.consent.info).
+    info: "وليّك باش يوصلو إيميل باش يأكّد.",
   },
   account: { title: "حسابي", language: "اللغة", logout: "تسجيل الخروج", role: "الدور", help: "مساعدة (واتساب)" },
   verif: {

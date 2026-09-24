@@ -101,6 +101,11 @@ export default defineConfig({
            depend on whoever happens to be in the developer's .env. */
         ADMIN_EMAILS: "e2e-admin@tnajem.invalid",
         API_URL: "http://127.0.0.1:4000",
+        /* phase-a lane L5 (A18.1): the guardian-consent form only renders while
+           ALLOW_MINORS=1 (app/[locale]/auth/consent/layout.tsx). The suite keeps
+           exercising the minor + guardian flows, so the web server runs with it
+           on; lane L2 sets the API side of the same switch. */
+        ALLOW_MINORS: "1",
       },
     },
   ],

@@ -66,7 +66,9 @@ function ConsentInner() {
      the only field on this form that can ever resolve to an account — the
      phone never could. */
   const [gEmail, setGEmail] = useState("");
-  const [agreed, setAgreed] = useState(false);
+  /* phase-a lane L5 (A18.1): no "je suis le parent" tick. The CHILD fills this
+     form, so that tick was a false statement on a legal record (and it was never
+     sent to the server anyway). The form now says what really happens next. */
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   /* The two refusals a parent can fix are both about THEIR e-mail, so they go on
@@ -76,7 +78,7 @@ function ConsentInner() {
   const emailRef = useRef<HTMLInputElement>(null);
 
   async function handleSubmit() {
-    if (!agreed || !gName.trim() || !gPhone.trim() || !gEmail.trim()) return;
+    if (!gName.trim() || !gPhone.trim() || !gEmail.trim()) return;
     setLoading(true);
     setError(null);
     setEmailError(null);
@@ -106,7 +108,7 @@ function ConsentInner() {
   }
 
   const canSubmit =
-    agreed && gName.trim().length > 0 && gPhone.trim().length > 0 && gEmail.trim().length > 0 && !loading;
+    gName.trim().length > 0 && gPhone.trim().length > 0 && gEmail.trim().length > 0 && !loading;
 
   return (
     <SiteShell>
@@ -226,45 +228,29 @@ function ConsentInner() {
               </div>
             </Field>
 
-            {/* Checkbox agreement */}
-            <label
+            {/* phase-a lane L5 (A18.1): an informational line, not a declaration.
+                LEGAL-REVIEW: consent wording — the parent's own confirmation is
+                Dm3 (Phase D); this page only renders while ALLOW_MINORS=1
+                (see layout.tsx). */}
+            <p
+              data-e2e="consent-info"
               style={{
                 display: "flex",
                 alignItems: "flex-start",
-                gap: 12,
-                cursor: "pointer",
+                gap: 10,
                 padding: "14px",
-                border: agreed ? "1.6px solid var(--blue)" : "1.6px solid var(--line)",
+                border: "1.6px solid var(--line)",
                 borderRadius: "var(--r-s)",
-                background: agreed ? "var(--blue50)" : "var(--paper)",
+                background: "var(--paper)",
                 marginBottom: 22,
-                transition: ".16s",
+                fontSize: 13,
+                color: "var(--ink2)",
+                lineHeight: 1.55,
               }}
             >
-              <input
-                type="checkbox"
-                checked={agreed}
-                onChange={(e) => setAgreed(e.target.checked)}
-                style={{
-                  width: 18,
-                  height: 18,
-                  accentColor: "var(--blue)",
-                  flexShrink: 0,
-                  marginTop: 2,
-                  cursor: "pointer",
-                }}
-              />
-              <span
-                style={{
-                  fontSize: 13,
-                  color: agreed ? "var(--blue)" : "var(--ink2)",
-                  lineHeight: 1.55,
-                  fontWeight: agreed ? 600 : 400,
-                }}
-              >
-                {t.consent.agree}
-              </span>
-            </label>
+              <Mail style={{ width: 18, height: 18, flexShrink: 0, marginTop: 1, color: "var(--blue)" }} />
+              <span>{t.consent.info}</span>
+            </p>
 
             {/* Error display — role="alert" so screen readers announce a failed save */}
             {error && (
