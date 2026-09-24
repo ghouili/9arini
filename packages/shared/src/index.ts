@@ -52,3 +52,11 @@ export * from "./age";
 // end phase-a lane L2
 // phase-a lane L3 (A22): the one payment story (D4). Pure strings — safe in the barrel.
 export * from "./payment-story";
+// phase-a lane L5 — canonical codes for school levels (A18.7). Pure.
+export * from "./levels";
+// phase-a lane L5 — where a class stands: upcoming · live · done · cancelled (A18.10). Pure.
+export * from "./class-phase";
+// phase-a lane L5 — subjects stored as canonical codes, translated for display (A18.12). Pure.
+export * from "./subjects";
+// phase-a lane L5 — which role /account names: Élève · Prof · Parent · Admin (A18.13). Pure.
+export * from "./account-role";

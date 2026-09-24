@@ -63,9 +63,9 @@ test("student journey: minor signup → consent → explore → book → live ga
 
   await test.step("the guardian consents on the consent screen", async () => {
     await page.getByPlaceholder("…", { exact: true }).fill("Sami Parent");
-    await page.getByPlaceholder("+216 …").fill("+216 20 000 000");
+    // phase-a lane L5 (A18.2): the guardian's phone is no longer asked for.
     await page.getByPlaceholder("parent@example.com").fill(email(`e2e-jguardian-${randomBytes(3).toString("hex")}`));
-    await page.getByRole("checkbox").check();
+    // phase-a lane L5 (A18.1): no "je suis le parent" tick any more — the child fills this form.
     await page.getByRole("button", { name: "Activer le compte" }).click();
     await expect.poll(async () => (await sql<{ n: number }[]>`select count(*)::int n from consents where minor_id = ${studentId}`)[0].n, { timeout: 15_000 }).toBe(1);
   });

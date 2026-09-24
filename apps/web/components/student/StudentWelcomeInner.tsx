@@ -28,6 +28,7 @@ import { User, Book, Phone } from "@/components/icons";
 import { saveStudentProfile } from "@/app/actions";
 import { SiteShell } from "@/components/SiteShell";
 import { STUDENT_LEVELS } from "@tnajem/shared";
+import { subjectLabel, normalizeSubjects, type SubjectCode } from "@tnajem/shared"; // phase-a lane L5 (A18.12)
 import type { StudentLevel, StudentProfile } from "@tnajem/shared";
 
 const COPY = {
@@ -109,18 +110,12 @@ const LEVEL_LABEL: Record<StudentLevel, { fr: string; ar: string }> = {
 
 /* Suggestions only — saveStudentProfile accepts any bounded strings, so this list
    can grow without a migration. Kept short so it stays scannable on a 320px phone. */
-const SUBJECTS = [
-  { fr: "Maths", ar: "رياضيات" },
-  { fr: "Physique", ar: "فيزياء" },
-  { fr: "SVT", ar: "علوم الحياة" },
-  { fr: "Français", ar: "فرنسية" },
-  { fr: "Anglais", ar: "إنقليزية" },
-  { fr: "Arabe", ar: "عربية" },
-  { fr: "Histoire-Géo", ar: "تاريخ وجغرافيا" },
-  { fr: "Philosophie", ar: "فلسفة" },
-  { fr: "Informatique", ar: "إعلامية" },
-  { fr: "Économie", ar: "اقتصاد" },
-] as const;
+/* phase-a lane L5 (A18.12): the chips carry CANONICAL CODES (@tnajem/shared
+   subjects.ts) and only their label is translated. They used to store the label
+   in the page's language, so one student's subjects read "Maths,فيزياء". */
+const SUBJECTS: readonly SubjectCode[] = [
+  "math", "physique", "svt", "francais", "anglais", "arabe", "histoire-geo", "philosophie", "informatique", "economie",
+];
 
 // saveStudentProfile caps the list at 8; stop the user at the same number rather
 // than silently dropping their last choices on the server.
@@ -139,7 +134,7 @@ export function StudentWelcomeInner({
 
   const [name, setName] = useState(initial.fullName ?? "");
   const [level, setLevel] = useState<string>(initial.level ?? "");
-  const [subjects, setSubjects] = useState<string[]>(initial.subjects);
+  const [subjects, setSubjects] = useState<string[]>(normalizeSubjects(initial.subjects)); // phase-a lane L5 (A18.12): legacy labels → codes
   /* Optional number. Signup is by email now, so this is where a student's phone is
      collected — for Tnajem's own reminders (SMS), and NEVER shown to the tutor:
      the zero-contact rule (Step 8) holds for students too (phase-a A3). */
@@ -273,15 +268,18 @@ export function StudentWelcomeInner({
             <div className="field">
               <span className="field-label" id="sw-subjects-label">{c.subjects}</span>
               <div role="group" aria-labelledby="sw-subjects-label" className="flex flex-wrap gap-2 mt-1">
-                {SUBJECTS.map((s) => {
-                  const label = s[locale];
-                  const on = subjects.includes(label);
+                {/* phase-a lane L5 (A18.12): the codes, plus any stored value that maps to
+                    no code (kept, shown as typed, still removable). */}
+                {[...SUBJECTS, ...subjects.filter((v) => !(SUBJECTS as readonly string[]).includes(v))].map((s) => {
+                  const label = subjectLabel(s, locale);
+                  const on = subjects.includes(s);
                   const full = !on && subjects.length >= MAX_SUBJECTS;
                   return (
                     <button
-                      key={s.fr}
+                      key={s}
                       type="button"
-                      onClick={() => toggleSubject(label)}
+                      data-subject={s}
+                      onClick={() => toggleSubject(s)}
                       aria-pressed={on}
                       disabled={full}
                       className={`min-h-[44px] px-3.5 rounded-[999px] text-[13.5px] font-semibold border transition-colors ${

@@ -10,6 +10,7 @@ import { DeleteAccount } from "@/components/account/DeleteAccount";
 import { UserText } from "@/components/UserText";
 import { bilingual } from "@/lib/i18n";
 import { supportWhatsAppHref } from "@tnajem/shared";
+import { accountRole } from "@tnajem/shared"; // phase-a lane L5 (A18.13)
 
 /* phase-a A12 (decision D5): the support number is InnoviaBurst's, read from the
    environment — never hard-coded — and the row is hidden when it is unset or not
@@ -33,7 +34,7 @@ const copy = bilingual({
 export default function AccountPage() {
   const { t, locale } = useLocale();
   const c = copy[locale];
-  const [me, setMe] = useState<{ name: string | null; role: string; email: string | null; phone: string | null } | null>(null);
+  const [me, setMe] = useState<{ name: string | null; role: string; email: string | null; phone: string | null; isAdmin?: boolean } | null>(null); // phase-a lane L5 (A18.13): + isAdmin
 
   useEffect(() => { getMe().then(setMe).catch(() => setMe(null)); }, []);
 
@@ -142,7 +143,8 @@ export default function AccountPage() {
               <span
                 className="text-[13px] font-bold py-1.5 px-3.5 rounded-[999px] bg-blue50 text-blue shrink-0 min-h-8 inline-flex items-center"
               >
-                {me?.role === "tutor" ? t.auth.asTutor : t.auth.asStudent}
+                {/* phase-a lane L5 (A18.13): a role NAME (Élève · Prof · Parent · Admin), not the sign-up button text. */}
+                {me ? t.roles[accountRole(me)] : null}
               </span>
             </div>
 

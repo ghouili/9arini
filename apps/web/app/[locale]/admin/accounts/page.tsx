@@ -26,6 +26,7 @@ const copy = bilingual({
     lead: "Cherche un compte par son email pour le bloquer ou le débloquer.",
     toVerifications: "Vérifications en attente",
     toModeration: "Signalements et photos",
+    toPlans: "Offres des profs", // phase-a lane L5 (A18.15)
     emailLabel: "Email du compte",
     search: "Chercher",
     searching: "Recherche…",
@@ -63,6 +64,7 @@ const copy = bilingual({
     lead: "لوّج على حساب بالإيميل متاعو باش تحظرو ولا تنحّي الحظر.",
     toVerifications: "الطلبات اللي تستنّى",
     toModeration: "التبليغات والتصاور",
+    toPlans: "عروض الأساتذة", // phase-a lane L5 (A18.15)
     emailLabel: "إيميل الحساب",
     search: "لوّج",
     searching: "قاعد يلوّج…",
@@ -144,6 +146,14 @@ export default function AdminAccountsPage() {
     if (!searching) void load(email);
   }
 
+  /* phase-a lane L5 (A18.14): the moderation queue links a signed-in reporter here
+     as ?email=… — the search field arrives filled in (the lookup stays the API's,
+     admins only). */
+  useEffect(() => {
+    const prefill = new URLSearchParams(window.location.search).get("email");
+    if (prefill) setEmail(prefill);
+  }, []);
+
   async function onBlock() {
     if (!account || busy) return;
     if (reason.trim().length < 5) { showToast(c.reasonRequired); return; }
@@ -207,6 +217,8 @@ export default function AdminAccountsPage() {
                 <Link href="/admin/verifications" className="linklike">{c.toVerifications}</Link>
                 {" · "}
                 <Link href="/admin/moderation" className="linklike">{c.toModeration}</Link>
+                {" · "}
+                <Link href="/admin/plans" className="linklike">{c.toPlans}</Link>{/* phase-a lane L5 (A18.15) */}
               </p>
             )}
           </div>

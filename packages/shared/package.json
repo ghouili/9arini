@@ -16,7 +16,8 @@
     "./payments": "./src/payments.ts",
     "./live": "./src/live.ts",
     "./legal": "./src/legal.ts",
-    "./observability": "./src/observability.ts"
+    "./observability": "./src/observability.ts",
+    "./class-input": "./src/class-input.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

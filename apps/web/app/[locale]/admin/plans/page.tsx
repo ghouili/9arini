@@ -26,6 +26,10 @@ const copy = bilingual({
   fr: {
     eyebrow: "ADMIN",
     title: "Offres des profs",
+    // phase-a lane L5 (A18.15): admin nav
+    toVerifications: "Vérifications",
+    toAccounts: "Comptes",
+    toModeration: "Modération",
     count: (n: number) => (n === 1 ? "1 prof" : `${n} profs`),
     loading: "Chargement…",
     deniedTitle: "Accès réservé",
@@ -78,6 +82,10 @@ const copy = bilingual({
   ar: {
     eyebrow: "أدمين",
     title: "عروض الأساتذة",
+    // phase-a lane L5 (A18.15)
+    toVerifications: "التثبّت",
+    toAccounts: "الحسابات",
+    toModeration: "المراقبة",
     count: (n: number) => (n === 1 ? "أستاذ واحد" : `${n} أساتذة`),
     loading: "قاعد يحمّل…",
     deniedTitle: "الدخول محجوز",
@@ -213,6 +221,16 @@ export default function AdminPlansPage() {
                 <Users className="w-[15px] h-[15px]" />
                 {c.count(items.length)}
               </div>
+            )}
+            {/* phase-a lane L5 (A18.15): the admin nav, both ways — this page was reachable from nowhere. */}
+            {!loading && admin && (
+              <p className="mt-2.5" data-e2e="admin-nav">
+                <Link href="/admin/verifications" className="linklike">{c.toVerifications}</Link>
+                {" · "}
+                <Link href="/admin/accounts" className="linklike">{c.toAccounts}</Link>
+                {" · "}
+                <Link href="/admin/moderation" className="linklike">{c.toModeration}</Link>
+              </p>
             )}
           </div>
 

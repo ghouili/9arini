@@ -35,6 +35,7 @@ import { useToast } from "@/components/useToast";
 import { UserText } from "@/components/UserText";
 import { vSlug, mentionsFreeFirstSession } from "@tnajem/shared";
 import type { OnboardingState } from "@tnajem/shared";
+import { LEVEL_CODES, LEVEL_LABELS, sortLevels, type LevelCode } from "@tnajem/shared"; // phase-a lane L5 (A18.7)
 import { bilingual } from "@/lib/i18n";
 import { COMMISSION_PCT, requirePlan, tnd } from "@tnajem/shared";
 
@@ -92,6 +93,10 @@ const copy = bilingual({
     errGeneric: "Ça n'a pas marché. Réessaie.",
     errContactInfo:
       "Enlève le numéro, l'email ou le lien : les coordonnées ne sont pas autorisées sur ta page. Les élèves te contactent via Tnajem.",
+    // phase-a lane L5 (A18.7)
+    levels: "Les niveaux que tu enseignes",
+    levelsHelp: "Choisis-en un ou plusieurs. Les élèves filtrent par niveau dans Explorer.",
+    errLevel: "Ce niveau n'existe pas.",
   },
   ar: {
     yourName: "اسمك…",
@@ -131,6 +136,10 @@ const copy = bilingual({
     errGeneric: "ما مشاتش. عاود حاول.",
     errContactInfo:
       "نحّي النمرة، الإيميل ولا الرابط: معلومات الاتصال موش مسموحة في صفحتك. التلامذة يوصلولك عبر Tnajem.",
+    // phase-a lane L5 (A18.7)
+    levels: "المستويات اللي تقرّيها",
+    levelsHelp: "اختار واحد ولا أكثر. التلامذة يفلترو بالمستوى في اكتشف.",
+    errLevel: "المستوى هذا موش موجود.",
   },
 });
 
@@ -179,6 +188,10 @@ export function OnboardingInner({ state }: { state: OnboardingState | null }) {
   const draft = state?.draft ?? null;
   const [name, setName] = useState(draft?.fullName ?? "");
   const [subject, setSubject] = useState(draft?.subject ?? "");
+  // phase-a lane L5 (A18.7): the levels taught — codes, translated only for display.
+  const [levels, setLevels] = useState<LevelCode[]>(state?.levels ?? []);
+  const toggleLevel = (code: LevelCode) =>
+    setLevels((cur) => (cur.includes(code) ? cur.filter((x) => x !== code) : sortLevels([...cur, code])));
   const [bio, setBio] = useState(draft?.bio ?? "");
   /* Optional CONTACT number. Signup is by email now, so this is where a tutor's
      phone is collected — it is what lets notify() text them about a new booking.
@@ -278,6 +291,7 @@ export function OnboardingInner({ state }: { state: OnboardingState | null }) {
       case "invalid-phone": return c.errPhone;
       case "not-a-tutor": return c.errNotTutor;
       case "not-authenticated": return c.errAuth;
+      case "invalid-level": return c.errLevel; // phase-a lane L5 (A18.7)
       default: return c.errGeneric;
     }
   }
@@ -295,7 +309,7 @@ export function OnboardingInner({ state }: { state: OnboardingState | null }) {
     setFieldError(null);
     let res: Awaited<ReturnType<typeof createTutor>>;
     try {
-      res = await createTutor({ name, subject, bio, slug, phone: phone || null });
+      res = await createTutor({ name, subject, bio, slug, phone: phone || null, levels }); // phase-a lane L5 (A18.7): + levels
     } catch {
       setPublishing(false);
       setError(c.errGeneric);
@@ -373,6 +387,31 @@ export function OnboardingInner({ state }: { state: OnboardingState | null }) {
                     />
                   </div>
                 </Field>
+
+                {/* phase-a lane L5 (A18.7): levels — a multi-select, stored as codes. */}
+                <div className="field">
+                  <span className="field-label" id="ob-levels-label">{c.levels}</span>
+                  <div role="group" aria-labelledby="ob-levels-label" data-e2e="levels" className="flex flex-wrap gap-2 mt-1">
+                    {LEVEL_CODES.map((code) => {
+                      const on = levels.includes(code);
+                      return (
+                        <button
+                          key={code}
+                          type="button"
+                          aria-pressed={on}
+                          data-level={code}
+                          onClick={() => toggleLevel(code)}
+                          className={`min-h-[44px] px-3.5 rounded-[999px] text-[13.5px] font-semibold border transition-colors ${
+                            on ? "border-blue bg-blue50 text-blue" : "border-line bg-paper text-ink2 hover:border-blue"
+                          }`}
+                        >
+                          {LEVEL_LABELS[code][locale]}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="help">{c.levelsHelp}</div>
+                </div>
 
                 <Field label={t.onboarding.bio} error={errorFor("bio")}>
                   <div className="inp" style={bio ? { borderColor: "var(--blue)" } : undefined}>

@@ -36,6 +36,8 @@ import { tutorStanding, isOpenForBooking, monthLabel, formatNumericDate, type St
 // phase-a lane L3 (A22): a SERVER component, so it may read the real switch.
 import { paymentsEnabled } from "@tnajem/shared/payments";
 import { PaymentStory } from "@/components/PaymentStory";
+import { LEVEL_LABELS } from "@tnajem/shared"; // phase-a lane L5 (A18.7)
+import { nextSessionOf } from "@tnajem/shared"; // phase-a lane L5 (A18.11)
 
 
 /* Component-local copy (FR + Tunisian Derija). lib/i18n.ts is owned elsewhere, so
@@ -99,6 +101,13 @@ const copy = bilingual({
     allFullTitle: "Toutes les séances sont complètes",
     allFullBody:
       "Ce prof affiche complet. Reviens quand il publiera de nouvelles dates — ou trouve un autre prof dès maintenant.",
+    // phase-a lane L5 (A18.7)
+    levelsAria: "Niveaux enseignés",
+    // phase-a lane L5 (A18.8)
+    packPriceLabel: "Prix du prof",
+    packFree: "Gratuit",
+    // phase-a lane L5 (A18.11)
+    nextWithSeat: "Prochaine séance avec une place",
   },
   ar: {
     verifiedLabel: "أستاذ مؤكّد من Tnajem",
@@ -114,13 +123,13 @@ const copy = bilingual({
       "الصفحة متاعو محلولة، أما ما فماش حصة جاية مبرمجة. عاود شوف قريب — ولا لوّج على أستاذ آخر توّا.",
     noClassesCta: "شوف أساتذة أخرين",
 
-    free: "مجانية",
+    free: "فابور",
     then: (p: number) => `من بعد ${p} د.ت للحصة`,
     perSession: "للحصة",
     seats: (n: number) =>
       n <= 0 ? "كامل" : n === 1 ? "بلاصة وحدة تبقات" : n === 2 ? "زوز بلايص تبقاو" : `${n} بلايص تبقاو`,
 
-    freeFirst: "الحصة الأولى مجانية",
+    freeFirst: "أول حصة فابور",
     noCard: "بلا التزام",
     cancel24: "إلغاء مجاني 48 ساعة قبل",
     payDirect:
@@ -131,11 +140,18 @@ const copy = bilingual({
     how2: "يوصلك رابط الحصة في « حصصي ».",
 
     nextSession: "الحصة الجاية",
-    classesAria: "الحصص المباشرة متاع الأستاذ",
+    classesAria: "الحصص الدايركت متاع الأستاذ",
     packsNote: "اطلبهم من أستاذك في الحصة — ما فماش شراء هوني.",
     allFullTitle: "الحصص الكل كاملة",
     allFullBody:
-      "هذا الأستاذ كامل توّا. عاود شوف كي يزيد دواتم جداد — ولا لوّج على أستاذ آخر توّا.",
+      "هذا الأستاذ كامل توّا. عاود شوف كي يزيد حصص جداد — ولا لوّج على أستاذ آخر توّا.",
+    // phase-a lane L5 (A18.7)
+    levelsAria: "المستويات اللي يقرّيها",
+    // phase-a lane L5 (A18.8)
+    packPriceLabel: "ثمن الأستاذ",
+    packFree: "فابور",
+    // phase-a lane L5 (A18.11)
+    nextWithSeat: "الحصة الجاية اللي فيها بلاصة",
   },
 });
 
@@ -183,8 +199,13 @@ export function StorefrontView({
      has a seat — sending every visitor at classes[0] when classes[0] is full is a
      guaranteed trip to the "Plus de places" error. If every class is full we say so
      instead of offering the CTA at all. */
-  const firstClass = classes.find((k) => k.seats_left > 0) ?? classes[0];
-  const allFull = Boolean(firstClass) && firstClass.seats_left <= 0;
+  /* phase-a lane L5 (A18.11): "Prochaine séance" used to be the first class WITH A
+     SEAT, so a full Monday class was skipped and Thursday's shown as "next". Now
+     `nextClass` is the earliest upcoming, non-cancelled class (full or not) and
+     `firstClass` — what every CTA books — the earliest one that still has a seat. */
+  const { next: nextClass, bookable } = nextSessionOf(data.classes);
+  const firstClass = bookable ?? undefined;
+  const allFull = Boolean(nextClass) && !bookable;
 
   /* The shared CTA string promises a free first session. Only say that when the
      class we'd actually book IS the free one; otherwise fall back to a neutral,
@@ -269,6 +290,14 @@ export function StorefrontView({
                   {tutor.verified && <Verified label={c.verifiedLabel} />}
                 </h1>
                 <UserText as="div" className="sf-subject">{tutor.subject}</UserText>
+                {/* phase-a lane L5 (A18.7): the levels this tutor chose — nothing when none, never a default. */}
+                {tutor.levels.length > 0 && (
+                  <ul className="sf-levels flex flex-wrap gap-1.5 mt-1.5" role="list" aria-label={c.levelsAria} data-e2e="sf-levels">
+                    {tutor.levels.map((code) => (
+                      <li key={code} className="chip chip-soft">{LEVEL_LABELS[code][locale === "ar" ? "ar" : "fr"]}</li>
+                    ))}
+                  </ul>
+                )}
 
                 <div className="sf-hero-meta">
                   <TutorStanding standing={standing} locale={locale} variant="hero" />
@@ -325,7 +354,7 @@ export function StorefrontView({
                 {classes.length > 0 && <span className="sf-count">{classes.length}</span>}
               </div>
 
-              {!firstClass ? (
+              {!nextClass /* phase-a lane L5 (A18.11): no class at all, not "no class with a seat" */ ? (
                 /* Honest empty state — no phantom card, no CTA to a class that
                    does not exist. */
                 <NoBooking />
@@ -349,6 +378,8 @@ export function StorefrontView({
                           <div className="sf-row-main">
                             <UserText as="h3" className="sf-row-title">{cls.title}</UserText>
                             <div className="metaline">
+                              {/* phase-a lane L5 (A18.7): the class's own level, when the tutor set one. */}
+                              {cls.level && <span data-e2e="class-level">{LEVEL_LABELS[cls.level][locale === "ar" ? "ar" : "fr"]}</span>}
                               <span>
                                 <Clock />
                                 <time dateTime={cls.starts_at}>{cls.time}</time> · {cls.duration_min} {t.common.min}
@@ -404,6 +435,13 @@ export function StorefrontView({
                         <div className="sf-pack-main">
                           <UserText as="h3" className="sf-pack-title">{pack.title}</UserText>
                           <div className="metaline"><UserText>{pack.meta}</UserText></div>
+                        </div>
+                        {/* phase-a lane L5 (A18.8): the price the tutor set — a true fact, shown
+                            as theirs. Nothing is bought here (packsNote says so), so no
+                            "Bientôt" and no payment wording. */}
+                        <div className="sf-pack-price" data-e2e="pack-price">
+                          <b>{pack.price_tnd > 0 ? <>{pack.price_tnd} {t.common.tnd}</> : c.packFree}</b>
+                          <span>{c.packPriceLabel}</span>
                         </div>
                       </li>
                     ))}
@@ -487,6 +525,26 @@ export function StorefrontView({
                     {/* Which class this button actually books — naming it removes
                         the guesswork when the tutor has several. */}
                     <div className="sf-panel-label">{c.nextSession}</div>
+                    {/* phase-a lane L5 (A18.11): the next session is FULL — say so, then
+                        offer the next class that still has a seat. */}
+                    {nextClass && nextClass.id !== firstClass.id && (
+                      <div data-e2e="next-full">
+                        <UserText as="div" className="sf-panel-title">{nextClass.title}</UserText>
+                        <div className="metaline sf-panel-meta">
+                          <span>
+                            <Calendar />
+                            <time dateTime={nextClass.starts_at}>
+                              {nextClass.day} {localMonth(nextClass.month)} · {nextClass.time}
+                            </time>
+                          </span>
+                          <span className="sf-soldout">
+                            <Users />
+                            {c.seats(0)}
+                          </span>
+                        </div>
+                        <div className="sf-panel-label" style={{ marginTop: 16 }}>{c.nextWithSeat}</div>
+                      </div>
+                    )}
                     <UserText as="div" className="sf-panel-title">{firstClass.title}</UserText>
                     <div className="metaline sf-panel-meta">
                       <span>
@@ -682,7 +740,10 @@ export function StorefrontView({
         .sf-pack{flex-direction:row;gap:12px;align-items:center;padding:12px 14px}
         .sf-pack-ic{flex:none;width:40px;height:40px;border-radius:12px;background:var(--green50);
           color:var(--green);display:grid;place-items:center}
-        .sf-pack-main{min-width:0}
+        .sf-pack-main{min-width:0;flex:1}
+        .sf-pack-price{flex:none;margin-inline-start:auto;text-align:end;display:grid;gap:2px}
+        .sf-pack-price b{font-family:var(--fd);font-size:15px;color:var(--ink);white-space:nowrap}
+        .sf-pack-price span{font-size:12px;color:var(--muted);white-space:nowrap}
         .sf-pack-title{font-weight:700;font-size:13.5px;line-height:1.35;margin-bottom:4px;overflow-wrap:anywhere}
         .sf-packs-note{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.55}
 

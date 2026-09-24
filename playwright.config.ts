@@ -112,6 +112,10 @@ export default defineConfig({
            here beats .env, as with MAIL_* above. */
         NEXT_PUBLIC_SUPPORT_WHATSAPP: "",
         // phase-a lane L2 (A24): the same switch as the API, so the signup copy matches it.
+        /* phase-a lane L5 (A18.1): the guardian-consent form only renders while
+           ALLOW_MINORS=1 (app/[locale]/auth/consent/layout.tsx). The suite keeps
+           exercising the minor + guardian flows, so the web server runs with it
+           on; lane L2 sets the API side of the same switch. */
         ALLOW_MINORS: "1",
       },
     },

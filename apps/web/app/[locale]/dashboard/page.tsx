@@ -16,6 +16,7 @@ import { buildTutorSteps, STEP_COPY } from "@/lib/onboarding-steps";
 import type { OnboardingStep, StepState } from "@/lib/onboarding-steps";
 import type { DashboardData, DashboardBooking, NotificationItem, DashboardResult } from "@tnajem/shared";
 import { initials, monthLabel, formatLongDate } from "@tnajem/shared";
+import { classPhase, type ClassPhase } from "@tnajem/shared"; // phase-a lane L5 (A18.10)
 import { bilingual } from "@/lib/i18n";
 import { PaymentStory } from "@/components/PaymentStory"; // phase-a lane L3 (A22)
 
@@ -93,6 +94,11 @@ const copy = bilingual({
       "On compte les séances à venir. Une séance annulée ou déjà passée libère la place.",
     planUntil: (d: string) => `Jusqu'au ${d}.`,
     planSeeTarifs: "Voir les offres",
+    // phase-a lane L5 (A18.10): where each class stands
+    phaseUpcoming: "À venir",
+    phaseLive: "En direct",
+    phaseDone: "Terminée",
+    phaseCancelled: "Annulée",
   },
   ar: {
     signedOutTitle: "ادخل لحسابك باش تشوف لوحتك",
@@ -117,9 +123,9 @@ const copy = bilingual({
     notifTitle: "الإشعارات",
     notifEmpty: "ما فماش جديد توّا.",
     justNow: "توّا",
-    minsAgo: (n: number) => `منذ ${n} د`,
-    hoursAgo: (n: number) => `منذ ${n} س`,
-    daysAgo: (n: number) => `منذ ${n} يوم`,
+    minsAgo: (n: number) => `هاذي ${n} دقيقة`,
+    hoursAgo: (n: number) => `هاذي ${n} ساعة`,
+    daysAgo: (n: number) => `هاذي ${n} يوم`,
 
     howTitle: "كيفاش يخدم", // phase-a lane L3 (A22)
     h1t: "إنتي تحدّد ثمنك",
@@ -151,6 +157,11 @@ const copy = bilingual({
     planUsageNote: "نحسبو الحصص الجايّة برك. حصة تلغات ولا فاتت ترجّعلك البلاصة.",
     planUntil: (d: string) => `حتى لـ ${d}.`,
     planSeeTarifs: "شوف العروض",
+    // phase-a lane L5 (A18.10)
+    phaseUpcoming: "جاية",
+    phaseLive: "دايركت",
+    phaseDone: "وفات",
+    phaseCancelled: "تلغات",
   },
 });
 
@@ -622,7 +633,8 @@ function FreeFirstPanel({ d, c }: { d: DashboardData; c: CopyDict }) {
   }
 
   return (
-    <div className="panel panel-pad mb-[clamp(14px,2vw,22px)]">
+    /* id: the new-class form links here while the option is off (phase-a lane L5, A18.6). */
+    <div id="free-first" className="panel panel-pad mb-[clamp(14px,2vw,22px)]" style={{ scrollMarginTop: 84 }}>
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="min-w-0 flex-1">
           <h2 className="font-display text-[16px] font-bold mb-1">{c.ffTitle}</h2>
@@ -859,6 +871,20 @@ function BookingsPanel({ d }: { d: DashboardData }) {
   );
 }
 
+// phase-a lane L5 (A18.10): À venir · En direct · Terminée · Annulée.
+function PhaseChip({ phase, c }: { phase: ClassPhase; c: CopyDict }) {
+  const [label, kind] =
+    phase === "live" ? [c.phaseLive, "chip-free"]
+      : phase === "done" ? [c.phaseDone, "chip-sand"]
+      : phase === "cancelled" ? [c.phaseCancelled, "chip-rose"]
+      : [c.phaseUpcoming, "chip-soft"];
+  return (
+    <span className={`chip ${kind} mt-1.5`} data-e2e="class-phase" data-phase={phase}>
+      {label}
+    </span>
+  );
+}
+
 // ── Real: tutor with a live storefront ──────────────────────────────────────
 function RealDashboard(
   { d, steps, onChanged }: { d: DashboardData; steps: OnboardingStep[]; onChanged: () => void },
@@ -928,6 +954,8 @@ function RealDashboard(
                 <div className="flex-1 min-w-0">
                   <UserText as="div" style={{ fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{cl.title}</UserText>
                   <time className="block text-[13px] text-muted mt-0.5" dateTime={cl.starts_at}>{cl.day} {monthLabel(cl.month, locale)} · {cl.time}</time>
+                  {/* phase-a lane L5 (A18.10): a cancelled or finished class no longer looks live. */}
+                  <PhaseChip phase={classPhase(cl)} c={c} />
                 </div>
                 <div className="text-end flex-none ms-auto">
                   <div className="qd-num font-display font-bold text-ink">{cl.price_tnd} TND</div>

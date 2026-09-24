@@ -4,6 +4,7 @@ import {
   publicTutorName, // phase-a lane L2 (A23)
   classWhen,
   isEffectivelyFreeFirst,
+  levelsLabel, sortLevels, isLevelCode, // phase-a lane L5 (A18.7)
   type Storefront,
   type Tutor,
   type ClassItem,
@@ -47,7 +48,9 @@ export async function getStorefrontData(slug: string): Promise<Storefront | null
     slug: t.slug,
     full_name: shownName,
     subject: t.subject,
-    level: t.level ?? "Bac",
+    // phase-a lane L5 (A18.7): no more "Bac" fallback — the levels the tutor chose, and their FR labels.
+    level: levelsLabel(t.levels, "fr"),
+    levels: sortLevels(t.levels),
     bio: t.bio ?? "",
     avatar_initials: initials(shownName),
     rating: Number(t.rating ?? 0),
@@ -80,6 +83,7 @@ export async function getStorefrontData(slug: string): Promise<Storefront | null
          anyone who opened the storefront. They ship only from GET /classes/:id and
          /classes/:id/join, to the owning tutor or a student with a live booking. */
       status: c.status ?? "scheduled",
+      level: isLevelCode(c.level) ? c.level : null, // phase-a lane L5 (A18.7)
     };
   };
 

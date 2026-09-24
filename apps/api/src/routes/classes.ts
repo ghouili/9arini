@@ -16,6 +16,9 @@ import {
   publicProfile,
   publicInitials,
 } from "@tnajem/shared";
+import { parseClassLevel } from "@tnajem/shared"; // phase-a lane L5 (A18.7)
+import { classPhase } from "@tnajem/shared"; // phase-a lane L5 (A18.10)
+import { checkClassLimits } from "@tnajem/shared/class-input"; // phase-a lane L5 (A18.16): the ONE limits schema
 import { paymentsEnabled, tutorBalanceTnd } from "@tnajem/shared/payments";
 import { resolveMeetUrl } from "@tnajem/shared/live";
 import type { Role } from "@tnajem/shared"; // phase-a lane L2 (A17)
@@ -40,6 +43,7 @@ const createClassBody = z.object({
   meetUrl: z.string().optional(),
   whiteboardUrl: z.string().optional(),
   quizUrl: z.string().optional(),
+  level: z.string().nullable().optional(), // phase-a lane L5 (A18.7): optional level code
 });
 
 const createPackBody = z.object({
@@ -57,24 +61,34 @@ export async function classRoutes(app: FastifyInstance): Promise<void> {
 
     // Was accepting past dates, negative prices and arbitrary meetUrl strings
     // (javascript: …). Every one of these validators is load-bearing.
-    const title = vText(input.title, { field: "title", max: 120, min: 3 });
-    if (!title.ok) return { ok: false, error: title.error };
-    const description = vOptionalText(input.description, { field: "description", max: 1000 });
-    if (!description.ok) return { ok: false, error: description.error };
+    /* phase-a lane L5 (A18.16): title, description, duration, price and seats are
+       checked by the ONE schema the new-class form imports too
+       (@tnajem/shared/class-input). It used to be vText/vInt here with limits of
+       120 / 480 / 500 while the form said 80 / 240 / 200. FOUNDER defaults:
+       title 120, duration 240, seats 200. Same error codes as before. */
+    const limits = checkClassLimits({
+      title: input.title,
+      description: input.description,
+      durationMin: input.durationMin,
+      seats: input.seats,
+      priceTnd: input.priceTnd,
+    });
+    if (!limits.ok) return { ok: false, error: limits.error };
+    const title = { value: limits.value.title };
+    const description = { value: limits.value.description || null };
+    const duration = { value: limits.value.durationMin };
+    const price = { value: Math.round(limits.value.priceTnd * 100) / 100 };
+    const seats = { value: limits.value.seats };
     const when = vFutureDate(input.scheduledAt, { field: "date" });
     if (!when.ok) return { ok: false, error: when.error };
-    const duration = vInt(input.durationMin, { field: "duration", min: 15, max: 480 });
-    if (!duration.ok) return { ok: false, error: duration.error };
-    const price = vPrice(input.priceTnd, { field: "price", max: 5000 });
-    if (!price.ok) return { ok: false, error: price.error };
-    const seats = vInt(input.seats, { field: "seats", min: 1, max: 500 });
-    if (!seats.ok) return { ok: false, error: seats.error };
     const meetUrl = vOptionalUrl(input.meetUrl, { field: "meet-url" });
     if (!meetUrl.ok) return { ok: false, error: meetUrl.error };
     const whiteboardUrl = vOptionalUrl(input.whiteboardUrl, { field: "whiteboard-url" });
     if (!whiteboardUrl.ok) return { ok: false, error: whiteboardUrl.error };
     const quizUrl = vOptionalUrl(input.quizUrl, { field: "quiz-url" });
     if (!quizUrl.ok) return { ok: false, error: quizUrl.error };
+    const level = parseClassLevel(input.level); // phase-a lane L5 (A18.7)
+    if (!level.ok) return { ok: false, error: level.error };
 
     const session = await getSession(req);
     if (!session) return { ok: false, error: "not-authenticated" };
@@ -93,6 +107,13 @@ export async function classRoutes(app: FastifyInstance): Promise<void> {
        moment it exists. Creating the storefront stays open: that is the step that
        gets them INTO verification. */
     if (mine.status !== "verified") return { ok: false, error: "not-verified" };
+
+    /* phase-a lane L5 (A18.6): the per-class free-first flag only means something
+       while the tutor's own option is on (isEffectivelyFreeFirst). The form now
+       disables the box and links to the setting; refusing it here too means a
+       crafted POST cannot store a promise the tutor never switched on, which would
+       silently go live the day they did. */
+    if (input.isFreeFirst && !mine.offersFreeFirstSession) return { ok: false, error: "free-first-off" };
 
     /* ── THE PLAN LIMIT (Step 16) ─────────────────────────────────────────────
 
@@ -147,6 +168,7 @@ export async function classRoutes(app: FastifyInstance): Promise<void> {
       meetUrl: meetUrl.value,
       whiteboardUrl: whiteboardUrl.value,
       quizUrl: quizUrl.value,
+      level: level.value, // phase-a lane L5 (A18.7)
     });
 
     // The storefront lists this tutor's classes — the web drops its 60s ISR entry.
@@ -451,6 +473,9 @@ export async function classRoutes(app: FastifyInstance): Promise<void> {
         seats: c.seats ?? 0,
         seats_left: Math.max(0, (c.seats ?? 0) - (c.seatsTaken ?? 0)),
         status: c.status ?? "scheduled",
+        // phase-a lane L5 (A18.10): real end time + where the class stands (À venir · En direct · Terminée · Annulée).
+        duration_min: c.durationMin ?? 90,
+        phase: classPhase({ starts_at: d.toISOString(), duration_min: c.durationMin, status: c.status }),
       };
     });
 

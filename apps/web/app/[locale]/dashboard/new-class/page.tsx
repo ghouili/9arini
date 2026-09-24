@@ -1,20 +1,24 @@
 "use client";
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "@/components/Link";
 import { Button, Field } from "@/components/ui";
 import { useLocale } from "@/components/LocaleProvider";
 import { Back, Video, Board, Quiz, Shield } from "@/components/icons";
-import { createClass } from "@/app/actions";
+import { createClass, getOnboardingState } from "@/app/actions";
 import { useToast } from "@/components/useToast";
 import { SiteShell } from "@/components/SiteShell";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { bilingual } from "@/lib/i18n";
+import { LEVEL_CODES, LEVEL_LABELS } from "@tnajem/shared"; // phase-a lane L5 (A18.7)
+/* phase-a lane L5 (A18.16): the SAME limits schema POST /classes enforces — the
+   form used to say 80 / 240 / 200 while the server said 120 / 480 / 500. */
+import { CLASS_LIMITS, checkClassLimits } from "@tnajem/shared/class-input";
 
 /* A tutor must be verified before publishing (enforced server-side in createClass).
    Without a specific message this failure is opaque and unfixable-looking. */
 const NOT_VERIFIED_MSG = {
   fr: "Ton profil doit d'abord être vérifié. Va dans « Vérification » pour envoyer tes documents.",
-  ar: "لازم بروفايلك يتثبّت الأول. أمشي لـ « التثبّت » وابعث وثائقك.",
+  ar: "لازم بروفايلك يتثبّت الأول. امشي لـ « التثبّت » وابعث وثائقك.",
 } as const;
 
 /* Step 8. A class title and description are PUBLIC storefront copy, so contact
@@ -62,10 +66,17 @@ const copy = bilingual({
     errDescription: "La description ne peut pas dépasser 1000 caractères.",
     errDate: "Choisis une date et une heure valides.",
     errDatePast: "Choisis une date à venir.",
-    errDuration: "Choisis une durée valide, en minutes.",
+    errDuration: `Choisis une durée entre ${CLASS_LIMITS.durationMin} et ${CLASS_LIMITS.durationMax} minutes.`, // phase-a lane L5 (A18.16)
     errPrice: "Le prix doit être entre 0 et 5000 TND.",
-    errSeats: "Choisis un nombre de places valide.",
+    errSeats: `Choisis entre ${CLASS_LIMITS.seatsMin} et ${CLASS_LIMITS.seatsMax} places.`, // phase-a lane L5 (A18.16)
     errUrl: "Ce lien n'est pas valide : il doit commencer par https://",
+    // phase-a lane L5 (A18.6)
+    ffOff: "Active d'abord l'option dans tes réglages",
+    ffOffErr: "La 1ʳᵉ séance offerte est désactivée dans tes réglages. Active-la d'abord, ou décoche la case.",
+    // phase-a lane L5 (A18.7)
+    level: "Niveau (optionnel)",
+    levelNone: "Tous niveaux",
+    errLevel: "Choisis un niveau de la liste.",
   },
   ar: {
     lead: "عنوان، وقت، وثمنك. الحصة تبان في صفحتك، والتلامذة يحجزو بكليكة.",
@@ -78,16 +89,23 @@ const copy = bilingual({
     errDescription: "الوصف ما ينجّمش يفوت 1000 حرف.",
     errDate: "اختار تاريخ ووقت صحاح.",
     errDatePast: "اختار تاريخ جاي.",
-    errDuration: "اختار مدّة صحيحة، بالدقايق.",
+    errDuration: `اختار مدّة بين ${CLASS_LIMITS.durationMin} و ${CLASS_LIMITS.durationMax} دقيقة.`, // phase-a lane L5 (A18.16)
     errPrice: "الثمن لازم يكون بين 0 و 5000 د.ت.",
-    errSeats: "اختار عدد بلايص صحيح.",
+    errSeats: `اختار بين ${CLASS_LIMITS.seatsMin} و ${CLASS_LIMITS.seatsMax} بلاصة.`, // phase-a lane L5 (A18.16)
     errUrl: "الرابط هذا موش صحيح : لازم يبدا بـ https://",
+    // phase-a lane L5 (A18.6)
+    ffOff: "فعّل الخيار الأول في الإعدادات متاعك",
+    ffOffErr: "الحصة الأولى فابور مطفية في الإعدادات متاعك. فعّلها الأول، ولا نحّي العلامة.",
+    // phase-a lane L5 (A18.7)
+    level: "المستوى (اختياري)",
+    levelNone: "المستويات الكل",
+    errLevel: "اختار مستوى من الليستة.",
   },
 });
 
 /* The fields createClass validates, by the name its error codes use:
    "invalid-price", "price-too-high", "date-in-past", "invalid-meet-url"… */
-const CLASS_FIELDS = ["title", "description", "date", "duration", "price", "seats", "meet-url", "whiteboard-url", "quiz-url"] as const;
+const CLASS_FIELDS = ["title", "description", "date", "duration", "price", "seats", "meet-url", "whiteboard-url", "quiz-url", "level"] as const; // phase-a lane L5 (A18.7): + level
 type ClassField = (typeof CLASS_FIELDS)[number];
 
 /** The field a createClass refusal names, or null when it is not about one field. */
@@ -107,10 +125,24 @@ export default function NewClassPage() {
   const [duration, setDuration] = useState("90");
   const [price, setPrice] = useState("");
   const [seats, setSeats] = useState("20");
+  const [level, setLevel] = useState(""); // phase-a lane L5 (A18.7): "" = no level (optional)
   const [videoUrl, setVideoUrl] = useState("");
   const [whiteboardUrl, setWhiteboardUrl] = useState("");
   const [quizUrl, setQuizUrl] = useState("");
   const [freeFirst, setFreeFirst] = useState(false);
+  /* phase-a lane L5 (A18.6): the tutor's own free-first option. The per-class box
+     only means something while it is on (isEffectivelyFreeFirst), so it is
+     disabled — and points at the setting — until it is. null = not known yet. */
+  const [ffOption, setFfOption] = useState<boolean | null>(null);
+  useEffect(() => {
+    let alive = true;
+    getOnboardingState()
+      .then((s) => { if (alive) setFfOption(Boolean(s?.offersFreeFirstSession)); })
+      .catch(() => { if (alive) setFfOption(false); });
+    return () => { alive = false; };
+  }, []);
+  const ffDisabled = ffOption !== true;
+  const toggleFreeFirst = () => { if (!ffDisabled) setFreeFirst((v) => !v); };
   const [submitted, setSubmitted] = useState(false);
   // Only ever true when the server action itself reports demo mode (no DB).
   const [demo, setDemo] = useState(false);
@@ -131,6 +163,7 @@ export default function NewClassPage() {
     "meet-url": useRef<HTMLInputElement>(null),
     "whiteboard-url": useRef<HTMLInputElement>(null),
     "quiz-url": useRef<HTMLInputElement>(null),
+    level: useRef<HTMLSelectElement>(null), // phase-a lane L5 (A18.7)
   };
   const errorFor = (field: ClassField) => (fieldError?.field === field ? fieldError.message : undefined);
   const clearError = (field: ClassField) => { if (fieldError?.field === field) setFieldError(null); };
@@ -142,18 +175,33 @@ export default function NewClassPage() {
       case "duration": return c.errDuration;
       case "price": return c.errPrice;
       case "seats": return c.errSeats;
+      case "level": return c.errLevel; // phase-a lane L5 (A18.7)
       default: return c.errUrl;
     }
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setSubmitted(true);
     setFieldError(null);
+    /* phase-a lane L5 (A18.16): the shared schema first — a refusal lands on its
+       field before any round trip, with the same code the server would send. */
+    const limits = checkClassLimits({
+      title, description: desc, durationMin: Number(duration), seats: Number(seats), priceTnd: Number(price),
+    });
+    if (!limits.ok) {
+      const field = fieldOf(limits.error);
+      if (field) {
+        setFieldError({ field, message: messageForField(field, limits.error) });
+        refs[field].current?.focus();
+        return;
+      }
+    }
+    setSubmitted(true);
     const res = await createClass({
       title, description: desc, scheduledAt: datetime,
       durationMin: Number(duration), priceTnd: Number(price), seats: Number(seats),
-      isFreeFirst: freeFirst, meetUrl: videoUrl, whiteboardUrl, quizUrl,
+      isFreeFirst: freeFirst && !ffDisabled, meetUrl: videoUrl, whiteboardUrl, quizUrl,
+      level: level || null, // phase-a lane L5 (A18.7)
     });
     if (res.ok) {
       setDemo(Boolean(res.demo));
@@ -178,6 +226,7 @@ export default function NewClassPage() {
       showToast(
         res.error === "not-verified" ? NOT_VERIFIED_MSG[locale]
           : res.error === "contact-info-not-allowed" ? CONTACT_INFO_MSG[locale]
+          : res.error === "free-first-off" ? c.ffOffErr // phase-a lane L5 (A18.6)
           : t.extra.error,
       );
     }
@@ -237,7 +286,7 @@ export default function NewClassPage() {
                         value={title}
                         onChange={(e) => { setTitle(e.target.value); clearError("title"); }}
                         required
-                        maxLength={80}
+                        maxLength={CLASS_LIMITS.titleMax} /* phase-a lane L5 (A18.16) */
                       />
                     </div>
                   </Field>
@@ -277,8 +326,8 @@ export default function NewClassPage() {
                         <div className="inp">
                           <input
                             type="number"
-                            min={15}
-                            max={240}
+                            min={CLASS_LIMITS.durationMin}
+                            max={CLASS_LIMITS.durationMax} /* phase-a lane L5 (A18.16) */
                             step={15}
                             ref={refs.duration}
                             value={duration}
@@ -313,13 +362,31 @@ export default function NewClassPage() {
                     <div className="inp">
                       <input
                         type="number"
-                        min={1}
-                        max={200}
+                        min={CLASS_LIMITS.seatsMin}
+                        max={CLASS_LIMITS.seatsMax} /* phase-a lane L5 (A18.16) */
                         ref={refs.seats}
                         value={seats}
                         onChange={(e) => { setSeats(e.target.value); clearError("seats"); }}
                         required
                       />
+                    </div>
+                  </Field>
+
+                  {/* phase-a lane L5 (A18.7): an optional level for this class, as a code. */}
+                  <Field label={c.level} error={errorFor("level")}>
+                    <div className="inp">
+                      <select
+                        ref={refs.level}
+                        value={level}
+                        onChange={(e) => { setLevel(e.target.value); clearError("level"); }}
+                        data-e2e="class-level"
+                        className="min-w-0 flex-1 bg-transparent"
+                      >
+                        <option value="">{c.levelNone}</option>
+                        {LEVEL_CODES.map((code) => (
+                          <option key={code} value={code}>{LEVEL_LABELS[code][locale]}</option>
+                        ))}
+                      </select>
                     </div>
                   </Field>
 
@@ -384,29 +451,34 @@ export default function NewClassPage() {
                     </Field>
                   </div>
 
-                  {/* Free-first checkbox */}
+                  {/* Free-first checkbox — phase-a lane L5 (A18.6): disabled while the
+                      tutor's own option is off, with the way to switch it on. */}
                   <div
                     className="card"
                     role="checkbox"
-                    aria-checked={freeFirst}
+                    aria-checked={freeFirst && !ffDisabled}
+                    aria-disabled={ffDisabled}
                     aria-label={t.createClass.freeFirst}
-                    tabIndex={0}
+                    aria-describedby={ffDisabled && ffOption !== null ? "ff-off-note" : undefined}
+                    data-e2e="free-first-box"
+                    tabIndex={ffDisabled ? -1 : 0}
                     onKeyDown={(e) => {
                       if (e.key === " " || e.key === "Enter") {
                         e.preventDefault();
-                        setFreeFirst((v) => !v);
+                        toggleFreeFirst();
                       }
                     }}
-                    onClick={() => setFreeFirst((v) => !v)}
+                    onClick={toggleFreeFirst}
                     style={{
                       padding: "14px 16px",
-                      marginBottom: 20,
+                      marginBottom: ffDisabled ? 8 : 20,
                       display: "flex",
                       alignItems: "center",
                       gap: 14,
-                      cursor: "pointer",
-                      border: freeFirst ? "2px solid var(--green)" : "1px solid var(--line)",
-                      background: freeFirst ? "var(--green50)" : "var(--paper)",
+                      cursor: ffDisabled ? "not-allowed" : "pointer",
+                      opacity: ffDisabled ? 0.6 : 1,
+                      border: freeFirst && !ffDisabled ? "2px solid var(--green)" : "1px solid var(--line)",
+                      background: freeFirst && !ffDisabled ? "var(--green50)" : "var(--paper)",
                       transition: ".15s",
                     }}
                   >
@@ -417,15 +489,15 @@ export default function NewClassPage() {
                         height: 22,
                         minWidth: 22,
                         borderRadius: 7,
-                        border: freeFirst ? "none" : "2px solid var(--line)",
-                        background: freeFirst ? "var(--green)" : "transparent",
+                        border: freeFirst && !ffDisabled ? "none" : "2px solid var(--line)",
+                        background: freeFirst && !ffDisabled ? "var(--green)" : "transparent",
                         display: "grid",
                         placeItems: "center",
                         flexShrink: 0,
                         transition: ".15s",
                       }}
                     >
-                      {freeFirst && (
+                      {freeFirst && !ffDisabled && (
                         <svg viewBox="0 0 24 24" width="14" height="14" stroke="#fff" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="5 13 10 18 19 7" />
                         </svg>
@@ -438,6 +510,12 @@ export default function NewClassPage() {
                       </div>
                     </div>
                   </div>
+                  {/* phase-a lane L5 (A18.6): where to switch the option on. */}
+                  {ffDisabled && ffOption !== null && (
+                    <p id="ff-off-note" data-e2e="free-first-off" className="text-[13px] text-muted mb-5 leading-[1.5]">
+                      <Link href="/dashboard#free-first" className="linklike text-[13px]">{c.ffOff}</Link>
+                    </p>
+                  )}
 
                   {/* Submit */}
                   <Button type="submit" variant="primary" disabled={submitted}>

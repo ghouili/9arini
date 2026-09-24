@@ -1,3 +1,6 @@
+import type { LevelCode } from "./levels"; // phase-a lane L5 (A18.7)
+import type { ClassPhase } from "./class-phase"; // phase-a lane L5 (A18.10)
+
 export type Locale = "fr" | "ar";
 export type Role = "tutor" | "student" | "guardian";
 export type Rail = "flouci" | "konnect" | "d17";
@@ -8,7 +11,9 @@ export type Tutor = {
   slug: string;
   full_name: string;
   subject: string;       // e.g. "Prof de Maths · Bac"
-  level: string;         // "Bac"
+  level: string;         // phase-a lane L5 (A18.7): the FR labels of `levels` ("Collège · Bac"), "" when none — never a default
+  // phase-a lane L5 (A18.7): the levels this tutor teaches, as codes (translate with levelLabel).
+  levels: LevelCode[];
   bio: string;
   avatar_initials: string;
   rating: number;
@@ -61,6 +66,8 @@ export type ClassItem = {
   tutor_subject?: string | null;
   /** tutors.level as stored today (A18.7 reconciles it with the levels list at merge). */
   tutor_level?: string | null;
+  // phase-a lane L5 (A18.7): the one level this class is for, if the tutor set it.
+  level?: LevelCode | null;
 };
 
 export type Pack = {
@@ -111,6 +118,9 @@ export type DashboardClass = {
   seats: number;
   seats_left: number;
   status: ClassItem["status"];
+  // phase-a lane L5 (A18.10): real duration, and where the class stands when the API answered.
+  duration_min?: number;
+  phase?: ClassPhase;
 };
 
 // A pack (downloadable revision material) as shown on the dashboard.
@@ -381,6 +391,8 @@ export type OnboardingState = {
      The form warns when the bio promises a free session this option does not
      honour — see mentionsFreeFirstSession. */
   offersFreeFirstSession: boolean;
+  // phase-a lane L5 (A18.7): the storefront's saved levels, to pre-fill the form ([] when none).
+  levels?: LevelCode[];
 };
 
 // ---- Explore feed ----
@@ -390,7 +402,9 @@ export type ExploreTutor = {
   slug: string;
   full_name: string;
   subject: string;
-  level: string;
+  level: string; // phase-a lane L5 (A18.7): FR labels of `levels`, "" when none
+  // phase-a lane L5 (A18.7): the levels this tutor teaches, as codes.
+  levels: LevelCode[];
   bio: string;
   avatar_initials: string;
   rating: number;          // 0 when nobody has reviewed yet
@@ -481,6 +495,9 @@ export type AdminReport = {
   reason: string;
   reporterEmail: string | null;
   createdAt: string;
+  // phase-a lane L5 (A18.14): the signed-in reporter's role and account e-mail (null = nobody was signed in).
+  reporterRole?: string | null;
+  reporterAccountEmail?: string | null;
 };
 
 /** An open copyright claim on a material. */
@@ -534,6 +551,8 @@ export type Me = {
   role: string;
   email: string | null;
   phone: string | null;
+  // phase-a lane L5 (A18.13): on the admin allowlist — the account page names the role "Admin".
+  isAdmin?: boolean;
 };
 
 /** One public storefront reference, for app/sitemap.ts. */

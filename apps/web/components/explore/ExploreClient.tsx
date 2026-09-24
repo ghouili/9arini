@@ -31,6 +31,7 @@ import { getExploreTutors } from "@/app/actions";
 import { demoStorefrontList } from "@/lib/demo";
 import { tutorStanding, type ExploreTutor } from "@tnajem/shared";
 import { bilingual } from "@/lib/i18n";
+import { LEVEL_CODES, LEVEL_LABELS, isLevelCode } from "@tnajem/shared"; // phase-a lane L5 (A18.7)
 
 /* ── Page-local copy (FR + Tunisian Derija) ── */
 const copy = bilingual({
@@ -56,6 +57,9 @@ const copy = bilingual({
     noResultsBody: "Essaie une autre matière, ou un autre mot.",
     clear: "Effacer les filtres",
     loading: "On cherche…",
+    // phase-a lane L5 (A18.7)
+    levelsLabel: "Niveau",
+    allLevels: "Tous niveaux",
   },
   ar: {
     heroSub: "أساتذة توانسة، منقّحين واحد واحد. كل واحد يحدد أسعارو.",
@@ -73,6 +77,9 @@ const copy = bilingual({
     noResultsBody: "جرّب مادة أخرى، ولا كلمة أخرى.",
     clear: "امسح الفلاتر",
     loading: "قاعدين نلوّجو…",
+    // phase-a lane L5 (A18.7)
+    levelsLabel: "المستوى",
+    allLevels: "المستويات الكل",
   },
 });
 
@@ -90,6 +97,7 @@ const DEMO_PREVIEW: ExploreTutor[] = demoStorefrontList().map(({ tutor, classes 
   full_name: tutor.full_name,
   subject: tutor.subject,
   level: tutor.level,
+  levels: tutor.levels, // phase-a lane L5 (A18.7)
   bio: tutor.bio,
   avatar_initials: tutor.avatar_initials,
   rating: 0,
@@ -129,6 +137,7 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
 
   const [q, setQ] = useState("");
   const [subj, setSubj] = useState("all");
+  const [lvl, setLvl] = useState("all"); // phase-a lane L5 (A18.7): a level code, or "all"
   // Seeded from the server render (SSR includes the real tutors → crawlable, no
   // client round-trip for the first paint). null from the server = demo mode.
   const [tutors, setTutors] = useState<ExploreTutor[]>(initial ?? DEMO_PREVIEW);
@@ -148,6 +157,9 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
   useEffect(() => {
     const slug = new URLSearchParams(window.location.search).get("subject");
     if (slug && termFor(slug)) setSubj(slug);
+    // phase-a lane L5 (A18.7): ?level=<code> too.
+    const level = new URLSearchParams(window.location.search).get("level");
+    if (isLevelCode(level)) setLvl(level);
   }, []);
 
   useEffect(() => {
@@ -163,6 +175,7 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
       getExploreTutors({
         subject: termFor(subj),
         q: q.trim() || undefined,
+        level: isLevelCode(lvl) ? lvl : undefined, // phase-a lane L5 (A18.7)
       })
         .then((res) => {
           if (id !== reqId.current) return; // stale
@@ -185,20 +198,27 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
     }, debounce);
 
     return () => clearTimeout(timer);
-  }, [q, subj]);
+  }, [q, subj, lvl]); // phase-a lane L5 (A18.7): + lvl
 
   const SUBJECTS = [
     { key: "all", label: t.extra.allSubjects },
     ...SUBJECT_FILTERS.map((s) => ({ key: s.slug, label: locale === "ar" ? s.ar : s.fr })),
   ];
 
-  const hasFilters = subj !== "all" || q.trim().length > 0;
+  const hasFilters = subj !== "all" || lvl !== "all" || q.trim().length > 0; // phase-a lane L5 (A18.7): + lvl
+
+  // phase-a lane L5 (A18.7): the level chips, labelled in the viewer's language.
+  const LEVELS = [
+    { key: "all", label: c.allLevels },
+    ...LEVEL_CODES.map((code) => ({ key: code as string, label: LEVEL_LABELS[code][locale === "ar" ? "ar" : "fr"] })),
+  ];
 
   // In demo mode the server can't filter for us — filter the preview client-side
   // so the chips and the search box still visibly work.
   const visible = demo
     ? tutors.filter((tu) => {
         const term = termFor(subj);
+        if (isLevelCode(lvl) && !tu.levels.includes(lvl)) return false; // phase-a lane L5 (A18.7)
         const matchSubj = !term || tu.subject.includes(term);
         const ql = q.trim().toLowerCase();
         const matchQ =
@@ -213,6 +233,7 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
   function clearFilters() {
     setQ("");
     setSubj("all");
+    setLvl("all"); // phase-a lane L5 (A18.7)
   }
 
   return (
@@ -263,6 +284,30 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
                   }`}
                 >
                   {s.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* phase-a lane L5 (A18.7): the level filter — the codes each tutor chose. */}
+          <div className="mt-3 flex flex-wrap items-center gap-2" role="group" aria-label={c.levelsLabel} data-e2e="level-filter">
+            <span className="text-[13px] font-semibold text-muted">{c.levelsLabel}</span>
+            {LEVELS.map((l) => {
+              const active = lvl === l.key;
+              return (
+                <button
+                  key={l.key}
+                  type="button"
+                  onClick={() => setLvl(l.key)}
+                  aria-pressed={active}
+                  data-level={l.key}
+                  className={`inline-flex min-h-[44px] cursor-pointer items-center whitespace-nowrap rounded-full border border-solid px-4 text-[13px] font-semibold transition-colors ${
+                    active
+                      ? "border-blue bg-blue text-paper shadow-[var(--sh-s)]"
+                      : "border-line bg-paper text-ink2 hover:border-blue hover:text-blue"
+                  }`}
+                >
+                  {l.label}
                 </button>
               );
             })}
@@ -392,6 +437,16 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
                         <UserText as="div" className="mt-1 line-clamp-2 text-[13px] leading-snug text-muted">
                           {tutor.subject}
                         </UserText>
+                        {/* phase-a lane L5 (A18.7): the levels this tutor chose — nothing when none. */}
+                        {tutor.levels.length > 0 && (
+                          <div className="mt-1.5 flex flex-wrap gap-1.5" data-e2e="card-levels">
+                            {tutor.levels.map((code) => (
+                              <span key={code} className="chip chip-soft">
+                                {LEVEL_LABELS[code][locale === "ar" ? "ar" : "fr"]}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
 

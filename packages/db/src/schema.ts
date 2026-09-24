@@ -142,7 +142,9 @@ export const tutors = pgTable("tutors", {
   slug: text("slug").notNull().unique(),
   fullName: text("full_name").notNull(),
   subject: text("subject").notNull(),
-  level: text("level").default("Bac"),
+  level: text("level"), // phase-a lane L5 (A18.7): legacy, kept; the 'Bac' default is dropped in 0027_levels.sql
+  // phase-a lane L5 (A18.7): the levels taught, as @tnajem/shared LEVEL_CODES (0027_levels.sql).
+  levels: text("levels").array().notNull().default([]),
   bio: text("bio"),
   /* THE PHOTO. Renamed from the dead `avatar_url` column, which was declared and
      never once written or read — a URL is the wrong shape for this: nothing is
@@ -281,6 +283,8 @@ export const classes = pgTable("classes", {
   replayUrl: text("replay_url"),
   status: classStatus("status").default("scheduled"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  // phase-a lane L5 (A18.7): optional, one @tnajem/shared LEVEL_CODES code (0027_levels.sql).
+  level: text("level"),
 }, (t) => ({
   /* THE storefront query: getStorefront() does `where tutor_id = ?` on every
      viral page hit; getDashboard does the same; getExploreTutors aggregates
@@ -773,7 +777,7 @@ export const consents = pgTable("consents", {
   id: uuid("id").primaryKey().defaultRandom(),
   minorId: uuid("minor_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
   guardianName: text("guardian_name").notNull(),
-  guardianPhone: text("guardian_phone").notNull(),
+  guardianPhone: text("guardian_phone"), // phase-a lane L5 (A18.2): nullable — optional, not collected (0027_consent_phone_optional.sql)
   /* THE GUARDIAN'S E-MAIL, and it is what turns this row from a record INTO a
      link (Step 14). Login is e-mail OTP, so an address is the only identifier
      that can ever resolve to an account; the phone never could.

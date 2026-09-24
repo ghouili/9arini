@@ -184,7 +184,17 @@ export async function moderationRoutes(app: FastifyInstance): Promise<void> {
       .orderBy(desc(reports.createdAt))
       .limit(200);
     const context = await subjectContext(rows.map((r) => ({ kind: r.subjectKind, id: r.subjectId })));
+    /* phase-a lane L5 (A18.14): who filed it, when they were signed in — role and
+       account e-mail, for admins only (this route is behind requireAdmin). A report
+       with no account on the row is the only one the queue calls anonymous. */
+    const reporterIds = [...new Set(rows.map((r) => r.reporterProfileId).filter((x): x is string => Boolean(x)))];
+    const reporterRows = reporterIds.length
+      ? await db.select({ id: profiles.id, role: profiles.role, email: profiles.email }).from(profiles).where(inArray(profiles.id, reporterIds))
+      : [];
+    const reporterOf = new Map(reporterRows.map((p) => [p.id, p]));
     return rows.map((r) => ({
+      reporterRole: (r.reporterProfileId && reporterOf.get(r.reporterProfileId)?.role) || null, // phase-a lane L5 (A18.14)
+      reporterAccountEmail: (r.reporterProfileId && reporterOf.get(r.reporterProfileId)?.email) || null, // phase-a lane L5 (A18.14)
       id: r.id,
       subjectKind: r.subjectKind,
       subjectId: r.subjectId,

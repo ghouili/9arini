@@ -37,6 +37,7 @@ const devYassine = (): Storefront => ({
   tutor: {
     id: "yassine", slug: "yassine-math", full_name: "Yassine Khelifi",
     subject: "Prof de Maths · Bac", level: "Bac",
+    levels: ["bac"], // phase-a lane L5 (A18.7)
     // No free-session promise in the bio: the badge renders from offers_free_first_session below.
     bio: "« Spécialiste révisions Bac. On révise les dérivées, intégrales et annales — en darija, à ton rythme. »",
     avatar_initials: "YK", rating: 0, students_count: 0, verified: true,
@@ -56,7 +57,7 @@ const devYassine = (): Storefront => ({
    different tutor's page, with a working "Réserver". Now each demo slug resolves
    to its own tutor and anything else is not found, exactly like the real API.
    No rating, no student count: nothing here may invent social proof. */
-const devTutorOnly = (tutor: Pick<Storefront["tutor"], "id" | "slug" | "full_name" | "subject" | "level" | "bio" | "avatar_initials">): Storefront => ({
+const devTutorOnly = (tutor: Pick<Storefront["tutor"], "id" | "slug" | "full_name" | "subject" | "level" | "levels" | "bio" | "avatar_initials">): Storefront => ({ // phase-a lane L5 (A18.7): + levels
   tutor: { ...tutor, rating: 0, students_count: 0, verified: true, offers_free_first_session: false, has_photo: false },
   classes: [],
   packs: [],
@@ -66,13 +67,15 @@ export const devStorefronts = (): Record<string, Storefront> => ({
   "yassine-math": devYassine(),
   "sonia-physique": devTutorOnly({
     id: "sonia", slug: "sonia-physique", full_name: "Sonia Trabelsi",
-    subject: "Prof de Physique · Lycée & Bac", level: "Bac",
+    subject: "Prof de Physique · Lycée & Bac", level: "Secondaire · Bac",
+    levels: ["secondaire", "bac"], // phase-a lane L5 (A18.7)
     bio: "Physique-chimie sans par cœur : on comprend, puis on s'entraîne sur les annales.",
     avatar_initials: "ST",
   }),
   "leila-primaire": devTutorOnly({
     id: "leila", slug: "leila-primaire", full_name: "Leïla Ben Amor",
-    subject: "Maths & Français · Primaire & Collège", level: "Collège",
+    subject: "Maths & Français · Primaire & Collège", level: "Primaire · Collège",
+    levels: ["primaire", "college"], // phase-a lane L5 (A18.7)
     /* Arabic script, on purpose: user text renders with dir="auto", and this is the
        fixture that proves an Arabic bio still reads RTL — see packages/db/src/seed.ts. */
     bio: "« القواعد قبل كل شي. بالصبر، بالدارجة، وتمارين للدار. »",
