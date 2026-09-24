@@ -80,7 +80,10 @@
   /* Rose steps for the legal notice and the checkout/booking alerts. */
   --rose700:#9E2C23; --rose600:#8A3A34; --rose300:#F5C2BC; --rose200:#FFD3CE;
   --r-s:12px; --r:18px; --r-l:24px; --r-xl:30px;
-  --sh-s:0 4px 14px -8px rgba(16,31,51,.30);
+  /* UI Option A (A2): cards read by their 1px --line border first; the shadow is
+     a soft lift, not the edge. Shared by .card, .panel, .u-card and every surface
+     that uses var(--sh-s). */
+  --sh-s:0 1px 2px rgba(16,31,51,.05), 0 8px 24px -18px rgba(16,31,51,.25);
   --sh:0 14px 34px -16px rgba(16,31,51,.40);
   --sh-l:0 26px 60px -26px rgba(16,31,51,.50);
   --fd:var(--font-display),'Space Grotesk',system-ui,sans-serif;
