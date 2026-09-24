@@ -197,6 +197,8 @@ export type StudentClass = {
   status: string;        // class status (scheduled/live/done/cancelled)
   meetUrl?: string;
   replayUrl?: string;
+  // phase-a lane L3 (A21): TND a late cancel of this seat would retain (0: free seat, or moved after booking).
+  lateCancelRetainedTnd?: number;
 };
 
 // Real student dashboard payload (see getStudentDashboard in app/actions.ts).

@@ -12,6 +12,7 @@ import {
   cancellationOutcome,
   CANCEL_FREE_WINDOW_HOURS,
   FREE_FIRST_SPENT_REASON, cancelSpendsFreeFirst, // phase-a lane L3 (A6)
+  movedAfterBooking as isMovedAfterBooking, lateCancelRetainedTnd, retainedShare, // phase-a lane L3 (A21)
 } from "@tnajem/shared";
 import { resolveMeetUrl } from "@tnajem/shared/live";
 import { rotateRoomToken } from "../lib/room-rotation";
@@ -340,9 +341,8 @@ export async function bookingRoutes(app: FastifyInstance): Promise<void> {
        Comparing the booking's creation to classes.rescheduled_at is the whole
        rule — a student who booked AFTER the move chose the new time and is held
        to the normal window like anyone else. */
-    const movedAfterBooking =
-      cls.rescheduledAt != null &&
-      new Date(bk.createdAt).getTime() < new Date(cls.rescheduledAt).getTime();
+    // phase-a lane L3 (A21): the same shared definition the dashboard's warning uses.
+    const movedAfterBooking = isMovedAfterBooking(bk.createdAt, cls.rescheduledAt);
 
     const outcome = cancellationOutcome({
       scheduledAt: cls.scheduledAt,
@@ -461,7 +461,11 @@ export async function bookingRoutes(app: FastifyInstance): Promise<void> {
       late: outcome.late,
       amountTnd: outcome.amountTnd,
       retainedTnd: outcome.retainedTnd,
-      retainedPct: outcome.retainedPct,
+      /* phase-a lane L3 (A21): the share ACTUALLY retained — 0 for a free seat, a
+         waived one or an early cancel. It was the rate that applied (0.4 on a
+         free seat), and the screen said "40 %" beside nothing retained. */
+      retainedPct: retainedShare(outcome),
+      waived: movedAfterBooking,
       paymentsEnabled: paymentsEnabled(),
       revalidate: tut?.slug ? { tutors: [tut.slug] } : undefined,
     };
@@ -481,6 +485,10 @@ export async function bookingRoutes(app: FastifyInstance): Promise<void> {
       .select({
         bookingId: bookings.id,
         isFree: bookings.isFree,
+        // phase-a lane L3 (A21): what a late cancel of this seat would retain.
+        priceTnd: classes.priceTnd,
+        bookedAt: bookings.createdAt,
+        rescheduledAt: classes.rescheduledAt,
         classId: classes.id,
         title: classes.title,
         scheduledAt: classes.scheduledAt,
@@ -511,6 +519,12 @@ export async function bookingRoutes(app: FastifyInstance): Promise<void> {
         time,
         ts: d.getTime(),
         isFree: Boolean(r.isFree),
+        /* phase-a lane L3 (A21): the confirm box states THIS, not a flat "40 %" —
+           0 for a free seat and for a class moved after the booking. */
+        lateCancelRetainedTnd: lateCancelRetainedTnd({
+          amountTnd: r.isFree ? 0 : Number(r.priceTnd ?? 0),
+          waived: isMovedAfterBooking(r.bookedAt, r.rescheduledAt),
+        }),
         status: r.status ?? "scheduled",
         // Never blank: falls back to the class's private token room. This list is the
         // student's own live bookings, so the room is theirs to have.

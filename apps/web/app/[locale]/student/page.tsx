@@ -34,11 +34,19 @@ const copy = bilingual({
        The last sentence is not optional: nothing is charged today, and a bare
        percentage on screen reads as a debit. */
     cancelLateWarn: `Le cours est dans moins de ${CANCEL_FREE_WINDOW_HOURS}h. Tu peux quand même annuler, et ta place repart tout de suite — ${Math.round(LATE_CANCEL_RETAINED_PCT * 100)} % du prix de la place est noté comme retenu pour ton prof. Aucun montant n'est prélevé pendant le pilote.`,
+    /* phase-a lane L3 (A21): the REAL figure for this seat (GET /student/dashboard →
+       lateCancelRetainedTnd). The flat "40 %" above stays only as the fallback for a
+       payload without it. While payments are off this is the ledger outcome —
+       noted, never taken. */
+    cancelLateWarnAmount: (tnd: string) => `Le cours est dans moins de ${CANCEL_FREE_WINDOW_HOURS}h. Tu peux quand même annuler, et ta place repart tout de suite — ${tnd} TND (${Math.round(LATE_CANCEL_RETAINED_PCT * 100)} % du prix de la place) seront notés comme retenus pour ton prof dans le registre des annulations. Aucun montant n'est prélevé pendant le pilote.`,
+    cancelLateWarnNothing: `Le cours est dans moins de ${CANCEL_FREE_WINDOW_HOURS}h. Tu peux annuler, ta place repart tout de suite, et rien n'est retenu pour cette place.`,
+    cancelledLateAmount: (tnd: string) => `Réservation annulée, la place est de nouveau libre. C'était à moins de ${CANCEL_FREE_WINDOW_HOURS}h : ${tnd} TND sont notés comme retenus pour ton prof dans le registre des annulations. Rien n'est prélevé pendant le pilote.`,
+    cancelledLateCharged: (tnd: string) => `Réservation annulée, la place est de nouveau libre. C'était à moins de ${CANCEL_FREE_WINDOW_HOURS}h : ${tnd} TND sont retenus pour ton prof.`,
+    cancelledNothing: "Réservation annulée, la place est de nouveau libre. Rien n'est retenu pour cette place.",
     alreadyStarted: "Le cours a déjà commencé, on ne peut plus l'annuler en ligne. Écris à ton prof.",
     cancelErr: "L'annulation n'a pas marché. Réessaie.",
     messageTutor: "Écrire à",
     cancelled: "Réservation annulée. La place est de nouveau libre.",
-    cancelledLate: `Réservation annulée, la place est de nouveau libre. C'était à moins de ${CANCEL_FREE_WINDOW_HOURS}h : ${Math.round(LATE_CANCEL_RETAINED_PCT * 100)} % est noté comme retenu pour ton prof. Rien n'est prélevé pendant le pilote.`,
     free: "Gratuit",
     rate: "Noter mon prof",
     rateWith: (n: string) => `Comment était le cours avec ${n} ?`,
@@ -77,11 +85,16 @@ const copy = bilingual({
     cancelRule: `الإلغاء مجاني حتى ${CANCEL_FREE_WINDOW_HOURS} ساعة قبل الحصة.`,
     cancelLocked: "الحصة بدات — الإلغاء أونلاين مسكّر. اعلم أستاذك وهو يتفاهم معاك.",
     cancelLateWarn: `الحصة في أقل من ${CANCEL_FREE_WINDOW_HOURS} ساعة. تنجّم برك تلغي، ومكانك يرجع متوفّر على طول — ${Math.round(LATE_CANCEL_RETAINED_PCT * 100)} % من ثمن البلاصة يتسجّل كمستحق لأستاذك. ما يتخصم حتى مليم في فترة التجربة.`,
+    // phase-a lane L3 (A21)
+    cancelLateWarnAmount: (tnd: string) => `الحصة في أقل من ${CANCEL_FREE_WINDOW_HOURS} ساعة. تنجّم برك تلغي، ومكانك يرجع متوفّر على طول — ${tnd} د.ت (${Math.round(LATE_CANCEL_RETAINED_PCT * 100)} % من ثمن البلاصة) يتسجّلو كمستحق لأستاذك في سجلّ الإلغاءات. ما يتخصم حتى مليم في فترة التجربة.`,
+    cancelLateWarnNothing: `الحصة في أقل من ${CANCEL_FREE_WINDOW_HOURS} ساعة. تنجّم تلغي، ومكانك يرجع متوفّر على طول، وما يتحسب عليك حتى شي على هالبلاصة.`,
+    cancelledLateAmount: (tnd: string) => `الحجز تلغى، والمكان ولّى متوفّر. كان في أقل من ${CANCEL_FREE_WINDOW_HOURS} ساعة: ${tnd} د.ت يتسجّلو كمستحق لأستاذك في سجلّ الإلغاءات. ما يتخصم حتى مليم في فترة التجربة.`,
+    cancelledLateCharged: (tnd: string) => `الحجز تلغى، والمكان ولّى متوفّر. كان في أقل من ${CANCEL_FREE_WINDOW_HOURS} ساعة: ${tnd} د.ت يتحسبو لأستاذك.`,
+    cancelledNothing: "الحجز تلغى، والمكان ولّى متوفّر. ما يتحسب عليك حتى شي على هالبلاصة.",
     alreadyStarted: "الحصة بدات قبل، ما عادش تنجم تلغي أونلاين. اكتب لأستاذك.",
     cancelErr: "الإلغاء ما مشاش. عاود حاول.",
     messageTutor: "راسل",
     cancelled: "الحجز تلغى. المكان ولّى متوفّر.",
-    cancelledLate: `الحجز تلغى، والمكان ولّى متوفّر. كان في أقل من ${CANCEL_FREE_WINDOW_HOURS} ساعة: ${Math.round(LATE_CANCEL_RETAINED_PCT * 100)} % يتسجّل كمستحق لأستاذك. ما يتخصم حتى مليم في فترة التجربة.`,
     free: "مجاني",
     rate: "نقّم أستاذي",
     rateWith: (n: string) => `كيفاش كانت الحصة مع ${n} ؟`,
@@ -249,7 +262,11 @@ function RateBox({ item, onDone }: { item: StudentClass; onDone: () => void }) {
    rather than a single vague "cancelled" toast. A student who has just had 40%
    recorded against them should be told so on the same screen — and told, in the
    same breath, that nothing is taken during the pilot. */
-function UpcomingCard({ item, hero, onChanged }: { item: StudentClass; hero: boolean; onChanged: (late: boolean) => void }) {
+/* phase-a lane L3 (A21): what the server says was retained, not a flat "40 %". */
+type CancelOutcome = { late: boolean; retainedTnd: number; paymentsEnabled: boolean };
+const tndLabel = (n: number) => n.toLocaleString("fr-FR", { maximumFractionDigits: 2 });
+
+function UpcomingCard({ item, hero, onChanged }: { item: StudentClass; hero: boolean; onChanged: (outcome: CancelOutcome) => void }) {
   const { t, locale } = useLocale();
   const c = copy[locale];
   const [confirming, setConfirming] = useState(false);
@@ -287,7 +304,10 @@ function UpcomingCard({ item, hero, onChanged }: { item: StudentClass; hero: boo
        and by the time this resolves the browser's `now` may have drifted past a
        boundary the server evaluated differently. Fall back to the local guess
        only if the field is missing. */
-    if (res.ok) { onChanged(res.late ?? lateCancel); return; }
+    if (res.ok) {
+      onChanged({ late: res.late ?? lateCancel, retainedTnd: res.retainedTnd ?? 0, paymentsEnabled: res.paymentsEnabled ?? false });
+      return;
+    }
     setErr(res.error === "already-started" ? c.alreadyStarted : c.cancelErr);
   }
 
@@ -365,7 +385,14 @@ function UpcomingCard({ item, hero, onChanged }: { item: StudentClass; hero: boo
         <div style={{ marginTop: 12, padding: 12, borderRadius: 14, background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.14)" }}>
           <div className="text-[13px] font-bold mb-1">{c.cancelSure}</div>
           <div className="text-[13px] text-on-dark mb-2.5 leading-[1.5]">
-            {lateCancel ? c.cancelLateWarn : c.cancelRule}
+            {/* phase-a lane L3 (A21): the figure THIS seat would retain; 0 → "rien n'est retenu". */}
+            {!lateCancel
+              ? c.cancelRule
+              : item.lateCancelRetainedTnd === undefined
+                ? (item.isFree ? c.cancelLateWarnNothing : c.cancelLateWarn)
+                : item.lateCancelRetainedTnd > 0
+                  ? c.cancelLateWarnAmount(tndLabel(item.lateCancelRetainedTnd))
+                  : c.cancelLateWarnNothing}
           </div>
           <div className="flex gap-2 flex-wrap">
             <button
@@ -495,7 +522,17 @@ export default function StudentPage() {
                     key={item.bookingId}
                     item={item}
                     hero={i === 0}
-                    onChanged={(late) => { setFlash(late ? c.cancelledLate : c.cancelled); load(); }}
+                    onChanged={(o) => {
+                      // phase-a lane L3 (A21): the actual retained amount, as the ledger outcome while payments are off.
+                      setFlash(
+                        !o.late
+                          ? c.cancelled
+                          : o.retainedTnd > 0
+                            ? (o.paymentsEnabled ? c.cancelledLateCharged : c.cancelledLateAmount)(tndLabel(o.retainedTnd))
+                            : c.cancelledNothing,
+                      );
+                      load();
+                    }}
                   />
                 ))}
               </div>
