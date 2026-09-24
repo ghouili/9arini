@@ -32,4 +32,7 @@ if (!url) {
 const handle = createDb(url, { appName: "tnajem-api" });
 
 export const db = handle.db;
-export const sql = handle.sql;
+/* Non-null here: createDb types `sql` as nullable because apps/web may run without
+   a URL (ready:false), but this module exits above when DATABASE_URL is missing.
+   test/support/fx.ts calls it as a tagged template, which needs the real type. */
+export const sql = handle.sql!;
