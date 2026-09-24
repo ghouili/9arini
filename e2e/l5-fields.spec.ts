@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { seedProfile, seedTutor } from "./support/seed";
+import { seedProfile, seedTutor, seedClass } from "./support/seed";
 import { contextAs } from "./support/journey";
 import { sql } from "./support/db";
 
@@ -104,5 +104,30 @@ test.describe("A18.8 — a pack shows the tutor's price", () => {
     await expect(price).toContainText("TND");
     await expect(price).toContainText("Prix du prof");
     await expect(page.locator(".sf-packs")).not.toContainText("Bientôt");
+  });
+});
+
+test.describe("A18.9 — materials can be attached to a class, and say who sees them", () => {
+  test("the form offers the tutor's classes; the audience label follows the choice", async ({ browser }) => {
+    const me = await seedProfile({ role: "tutor", birthYear: 1985 });
+    const tutor = await seedTutor({ profileId: me.id, status: "verified" });
+    const klass = await seedClass({ tutorId: tutor.id, hoursFromNow: 96 });
+    const ctx = await contextAs(browser, me.id);
+    const page = await ctx.newPage();
+    await page.goto("/fr/dashboard/materials", { waitUntil: "networkidle" });
+
+    const vis = page.locator("[data-e2e=material-visibility] option[value=students]");
+    await expect(vis).toHaveText("Tous mes élèves");
+    await page.locator("[data-e2e=material-class]").selectOption(klass.id);
+    await expect(vis).toHaveText("Élèves de cette séance");
+
+    await page.locator("#m-title").fill("Corrigé L5 séance");
+    await page.locator("#m-yt").fill("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+    await page.getByRole("button", { name: "Ajouter", exact: true }).click();
+    await expect.poll(async () => (await sql<{ class_id: string | null }[]>`
+      select class_id from materials where tutor_id = ${tutor.id} and title = 'Corrigé L5 séance'`)[0]?.class_id ?? null,
+      { timeout: 15_000 }).toBe(klass.id);
+    await expect(page.locator("main")).toContainText("Élèves de cette séance");
+    await ctx.close();
   });
 });

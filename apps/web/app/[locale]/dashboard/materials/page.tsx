@@ -7,7 +7,9 @@ import { SiteShell } from "@/components/SiteShell";
 import { Book, Video, Forward } from "@/components/icons";
 import { UserText } from "@/components/UserText";
 import { getMyMaterials, createMaterial, deleteMaterial } from "@/app/actions";
+import { getDashboard } from "@/app/actions"; // phase-a lane L5 (A18.9)
 import type { MaterialItem } from "@tnajem/shared";
+import { monthLabel, type DashboardClass } from "@tnajem/shared"; // phase-a lane L5 (A18.9)
 import { bilingual } from "@/lib/i18n";
 
 /* THE TUTOR'S LIBRARY (Step 10).
@@ -41,9 +43,13 @@ const copy = bilingual({
     fYoutubeHelp: "On n'enregistre que l'identifiant de la vidéo, et on l'affiche sans cookie de suivi.",
     fVis: "Qui peut le voir",
     visPublic: "Tout le monde",
-    visStudents: "Mes élèves inscrits",
+    visStudents: "Tous mes élèves", // phase-a lane L5 (A18.9): labelled exactly that
+    visThisClass: "Élèves de cette séance", // phase-a lane L5 (A18.9)
     visPrivate: "Moi seulement",
-    visHelp: "Par défaut, seuls tes élèves inscrits y ont accès.",
+    visHelp: "Par défaut, seuls tes élèves inscrits y ont accès. Rattaché à une séance : seulement les élèves inscrits à cette séance.", // phase-a lane L5 (A18.9)
+    // phase-a lane L5 (A18.9): attach to a class
+    fClass: "Séance (optionnel)",
+    fClassNone: "Aucune séance en particulier",
     submit: "Ajouter",
     submitting: "Envoi…",
 
@@ -83,9 +89,13 @@ const copy = bilingual({
     fYoutubeHelp: "نسجّلو برك معرّف الفيديو، ونعرضوه بلا كوكي تتبّع.",
     fVis: "شكون ينجّم يشوفو",
     visPublic: "الكلّ",
-    visStudents: "تلامذتي المسجّلين",
+    visStudents: "تلامذتي الكل", // phase-a lane L5 (A18.9)
+    visThisClass: "تلامذة الحصة هاذي", // phase-a lane L5 (A18.9)
     visPrivate: "أنا برك",
-    visHelp: "بالافتراض، تلامذتك المسجّلين برك يوصلولو.",
+    visHelp: "بالافتراض، تلامذتك المسجّلين برك يوصلولو. كان تربطو بحصة: كان التلامذة اللي حاجزين في الحصة هاذي.", // phase-a lane L5 (A18.9)
+    // phase-a lane L5 (A18.9)
+    fClass: "الحصة (اختياري)",
+    fClassNone: "موش مربوطة بحصة",
     submit: "زيد",
     submitting: "قاعد يبعث…",
 
@@ -124,6 +134,23 @@ export default function MaterialsPage() {
     setItems(m ?? []);
   }, []);
   useEffect(() => { void load(); }, [load]);
+
+  /* phase-a lane L5 (A18.9): ATTACH TO A CLASS. The API always accepted classId;
+     there was no way to set it. A material attached to a class is for "Élèves de
+     cette séance" — the students booked in THAT class (enforced by canRead). */
+  const [classes, setClasses] = useState<DashboardClass[]>([]);
+  const [classId, setClassId] = useState("");
+  useEffect(() => {
+    let alive = true;
+    getDashboard()
+      .then((d) => {
+        if (!alive || !d || "wrongRole" in d) return;
+        setClasses(d.classes.filter((k) => k.status !== "cancelled"));
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
+  const classTitle = (id: string | undefined) => classes.find((k) => k.id === id)?.title;
 
   function messageFor(code: string | undefined): string {
     switch (code) {
@@ -164,6 +191,7 @@ export default function MaterialsPage() {
     if (!res?.ok) { setFlash({ kind: "err", text: messageFor(res?.error) }); return; }
     setFlash({ kind: "ok", text: c.okAdded });
     formRef.current?.reset();
+    setClassId(""); // phase-a lane L5 (A18.9)
     await load();
   }
 
@@ -248,13 +276,32 @@ export default function MaterialsPage() {
             />
             <p className="text-[13px] text-muted mt-1 mb-3 leading-[1.6]">{c.fYoutubeHelp}</p>
 
+            {/* phase-a lane L5 (A18.9): attach to one of the tutor's classes. */}
+            <label htmlFor="m-class" className="block text-[13px] font-semibold mb-1">{c.fClass}</label>
+            <select
+              id="m-class" name="classId" value={classId}
+              onChange={(e) => setClassId(e.target.value)}
+              data-e2e="material-class"
+              className="w-full text-[14px] rounded-[12px] p-3 mb-3 min-h-[46px]"
+              style={{ border: "1px solid var(--line)", background: "var(--paper)" }}
+            >
+              <option value="">{c.fClassNone}</option>
+              {classes.map((k) => (
+                <option key={k.id} value={k.id}>
+                  {k.title} · {k.day} {monthLabel(k.month, locale)} · {k.time}
+                </option>
+              ))}
+            </select>
+
             <label htmlFor="m-vis" className="block text-[13px] font-semibold mb-1">{c.fVis}</label>
             <select
               id="m-vis" name="visibility" defaultValue="students"
+              data-e2e="material-visibility"
               className="w-full text-[14px] rounded-[12px] p-3 min-h-[46px]"
               style={{ border: "1px solid var(--line)", background: "var(--paper)" }}
             >
-              <option value="students">{c.visStudents}</option>
+              {/* phase-a lane L5 (A18.9): the label says exactly who — this class, or all my students. */}
+              <option value="students">{classId ? c.visThisClass : c.visStudents}</option>
               <option value="public">{c.visPublic}</option>
               <option value="private">{c.visPrivate}</option>
             </select>
@@ -286,7 +333,9 @@ export default function MaterialsPage() {
                       <UserText as="div" className="text-[14px] font-semibold">{m.title}</UserText>
                       <div className="text-[12px] text-muted mt-0.5">
                         {m.visibility === "public" ? c.visPublic
-                          : m.visibility === "students" ? c.visStudents
+                          : m.visibility === "students"
+                            /* phase-a lane L5 (A18.9): attached → "Élèves de cette séance · <titre>". */
+                            ? (m.classId ? `${c.visThisClass}${classTitle(m.classId) ? ` · ${classTitle(m.classId)}` : ""}` : c.visStudents)
                           : c.visPrivate}
                       </div>
                     </div>

@@ -79,7 +79,7 @@ const SAFE_SERVE_MIME = new Set(["application/pdf", "image/png", "image/jpeg", "
 
 /** Everyone who may read a given material, resolved against the database. */
 async function canRead(
-  material: { id: string; tutorId: string; visibility: string },
+  material: { id: string; tutorId: string; visibility: string; classId?: string | null }, // phase-a lane L5 (A18.9): + classId
   uid: string | null,
 ): Promise<boolean> {
   if (material.visibility === "public") return true;
@@ -106,6 +106,9 @@ async function canRead(
         eq(classes.tutorId, material.tutorId),
         eq(bookings.studentId, uid),
         raw`coalesce(${bookings.status}, 'reserved') <> 'cancelled'`,
+        /* phase-a lane L5 (A18.9): attached to a class → "Élèves de cette séance":
+           a live booking in THAT class. No class → "Tous mes élèves", as before. */
+        material.classId ? eq(bookings.classId, material.classId) : undefined,
       ),
     );
   return (row?.n ?? 0) > 0;
