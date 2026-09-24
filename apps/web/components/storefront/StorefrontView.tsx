@@ -54,6 +54,7 @@ import { nextSessionOf } from "@tnajem/shared"; // phase-a lane L5 (A18.11)
 const copy = bilingual({
   fr: {
     verifiedLabel: "Prof vérifié par Tnajem",
+    verifiedPill: "Vérifié", // UI Option A (A4): the word on the hero badge
     reviewsTitle: "Avis des élèves",
     reviewsCount: (n: number) => (n === 1 ? "1 avis" : `${n} avis`),
     noReviewsTitle: "Pas encore d'avis",
@@ -111,6 +112,7 @@ const copy = bilingual({
   },
   ar: {
     verifiedLabel: "أستاذ مؤكّد من Tnajem",
+    verifiedPill: "متثبّت منّو", // UI Option A (A4): Derija, the home page's own word (h1Hi)
     reviewsTitle: "آراء التلامذة",
     reviewsCount: (n: number) => (n === 1 ? "تقييم واحد" : `${n} تقييم`),
     noReviewsTitle: "ما فماش تقييمات توّا",
@@ -287,7 +289,7 @@ export function StorefrontView({
               <div className="min-w-0">
                 <h1 className="web-h2 sf-name">
                   <UserText className="sf-name-txt">{tutor.full_name}</UserText>
-                  {tutor.verified && <Verified label={c.verifiedLabel} />}
+                  {tutor.verified && <Verified label={c.verifiedLabel} pill={c.verifiedPill} />}
                 </h1>
                 <UserText as="div" className="sf-subject">{tutor.subject}</UserText>
                 {/* phase-a lane L5 (A18.7): the levels this tutor chose — nothing when none, never a default. */}

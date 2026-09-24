@@ -193,7 +193,13 @@
   .chip-soft{background:var(--blue50);color:var(--blue)}
   .chip-sand{background:var(--sand);color:var(--ink2)}
   .chip-rose{background:var(--rose50);color:var(--rose)}
-  .verified{display:inline-grid;place-items:center;width:18px;height:18px;flex:none;border-radius:50%;background:var(--blue);color:#fff;vertical-align:middle}
+  /* UI Option A (A4): VERIFIED IS GREEN — the one place green means "checked by
+     Tnajem". --green-btn carries the white tick (4.61:1), and a 2px white ring
+     keeps the badge readable on the cobalt storefront banner. */
+  .verified{display:inline-grid;place-items:center;width:18px;height:18px;flex:none;border-radius:50%;background:var(--green-btn);color:#fff;vertical-align:middle;box-shadow:0 0 0 2px var(--paper)}
+  /* The worded pill — the tutor page hero only. */
+  .verified.verified-pill{display:inline-flex;align-items:center;gap:5px;width:auto;height:auto;border-radius:999px;
+    padding-block:3px;padding-inline:7px 10px;font-family:var(--fb);font-size:13px;font-weight:700;letter-spacing:0;line-height:1.3}
   .verified .ic{width:11px;height:11px;stroke-width:3}
   .stars{display:inline-flex;gap:1px;flex:none;color:var(--amber)}
   .stars .ic{width:13px;height:13px;fill:var(--amber);stroke:var(--ochre600);stroke-width:1.1}

@@ -54,6 +54,7 @@ const PAIRS = [
 
   // ── chips & badges (11.5px/700 → normal) ──
   ["Chips", W, "--green-btn", "normal", ".chip-free", "globals.css:108"],
+  ["Chips", W, "--green-btn", "normal", ".verified tick + .verified-pill word (A4)", "globals.css .verified"],
   ["Chips", W, "--green-btn", "normal", "pilot chip", "pour-les-profs:715"],
   ["Chips", "--blue", "--blue50", "normal", ".chip-soft", "globals.css:109"],
   ["Chips", "--ink2", "--sand", "normal", ".chip-sand", "globals.css:110"],

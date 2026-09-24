@@ -235,16 +235,20 @@ export function Spinner({ label }: { label?: string } = {}) {
   );
 }
 
-/* The blue tick. `.verified` is a fixed 18px circle with flex:none — without
+/* The verified tick (green since UI Option A, A4). `.verified` is a fixed 18px circle with flex:none — without
    that it deformed into an ellipse whenever it sat next to a truncated name in
    a tight flex row (explore card, storefront header, home hero). `label` adds
    screen-reader text: the tick carries real meaning ("prof vérifié") that was
    previously invisible to AT. Pass the localized string; omit for decorative use
    next to an existing "Vérifié" label. */
-export function Verified({ label }: { label?: string } = {}) {
+export function Verified({ label, pill }: { label?: string; pill?: string } = {}) {
+  /* UI Option A (A4): `pill` shows the WORD ("Vérifié" / "متثبّت منّو") beside the
+     tick — the tutor page hero only. Everywhere else it stays the round icon. The
+     accessible name is unchanged: `label` when given, else decorative. */
   return (
-    <span className="verified" role={label ? "img" : undefined} aria-label={label} aria-hidden={label ? undefined : true}>
-      <svg viewBox="0 0 24 24" className="ic"><polyline points="5 13 10 18 19 7" /></svg>
+    <span className={pill ? "verified verified-pill" : "verified"} role={label ? "img" : undefined} aria-label={label} aria-hidden={label ? undefined : true} title={pill ? label : undefined}>
+      <svg viewBox="0 0 24 24" className="ic" aria-hidden="true"><polyline points="5 13 10 18 19 7" /></svg>
+      {pill && <span>{pill}</span>}
     </span>
   );
 }
