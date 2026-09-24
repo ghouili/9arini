@@ -17,6 +17,9 @@ import { getSession } from "../lib/session";
 import { maskAndFlag } from "../lib/contact-guard";
 import { checkRateLimit } from "../lib/rate-limit";
 import { recomputeTutorStats } from "../lib/stats";
+// phase-a lane L2 (A13): a refused guardian change is logged
+import { auditAdmin } from "../lib/audit";
+import { logEvent } from "@tnajem/shared/observability";
 
 /* reviews · consent · notifications · live-room access.
 
@@ -186,6 +189,28 @@ export async function miscRoutes(app: FastifyInstance): Promise<void> {
     /* WITHDRAWN BY THE GUARDIAN: only the guardian gives it back (their account,
        /guardian). Otherwise a minor could undo the withdrawal by re-typing the form. */
     if (existing?.withdrawnAt) return { ok: false, error: "consent-withdrawn" };
+
+    /* phase-a lane L2 (A13) — A LINKED GUARDIAN CANNOT BE REPLACED BY THE CHILD.
+       Re-submitting with another address used to unlink the real parent on the
+       spot, silently: a second address of the child's own was enough to end the
+       oversight. Once the parent's account is linked to this consent, the address
+       is locked. Only the guardian (withdrawal — and a withdrawn consent is already
+       refused above) or an admin (removing the link) can change who it names.
+       The attempt goes on the audit log and the ops log — ids only, never an
+       address. Before any link exists the child can still fix a typo. */
+    if (existing && (existing.guardianEmail ?? "") !== guardianEmail) {
+      const [link] = await db
+        .select({ id: guardianLinks.id })
+        .from(guardianLinks)
+        .where(eq(guardianLinks.consentId, existing.id))
+        .limit(1);
+      if (link) {
+        await auditAdmin(null, "consent.guardian_change_refused", { kind: "consent", id: existing.id });
+        logEvent("warn", "guardian_change_refused", { consentId: existing.id });
+        return { ok: false, error: "guardian-locked" };
+      }
+    }
+    // end phase-a lane L2 (A13)
 
     const values = {
       guardianName: name.value,

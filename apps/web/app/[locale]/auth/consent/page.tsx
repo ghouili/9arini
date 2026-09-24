@@ -15,6 +15,13 @@ const extra = bilingual({
   ar: { withdrawn: "وليّك سحب موافقتو. هو برك ينجّم يرجّعها، من فضاء الولي متاعو." },
 });
 
+// phase-a lane L2 (A13): a linked guardian's address cannot be changed by the child.
+const lockedCopy = bilingual({
+  fr: { guardianLocked: "Ton parent ou tuteur a déjà relié son compte : son adresse ne peut plus être changée ici. Si c'est une erreur, contacte l'équipe Tnajem." },
+  ar: { guardianLocked: "وليّك ربط حسابو : الإيميل متاعو ما عادش يتبدّل من هوني. كان فما غلطة، كلّم فريق Tnajem." },
+});
+// end phase-a lane L2
+
 /* Guardian consent sits in the middle of a flow: proxy.ts / /live bounce a
    guest to /auth?next=<path> (e.g. /checkout?class=x), the OTP is verified, and a
    MINOR is routed here before they may use the app. ?next= is forwarded to this
@@ -102,6 +109,7 @@ function ConsentInner() {
       return;
     }
     if (res.error === "consent-withdrawn") { setError(extra[locale].withdrawn); return; }
+    if (res.error === "guardian-locked") { setError(lockedCopy[locale].guardianLocked); return; } // phase-a lane L2 (A13)
     setError(t.extra.error);
   }
 
