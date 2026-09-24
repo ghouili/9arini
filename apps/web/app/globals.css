@@ -222,7 +222,10 @@
   .avatar.sq{border-radius:14px;border-width:2px}
 
   /* ---- forms ---- */
-  .field{margin-bottom:14px}
+  /* display:block — <Field> renders a <label class="field">, and a label is INLINE,
+     so this margin never applied and every label sat against the control above it
+     (new class, new pack, onboarding). UI Option A (A9). */
+  .field{display:block;margin-bottom:14px}
   .field label{font-size:13px;font-weight:700;display:block;margin-bottom:7px}
   /* The PADDING lives on the control, not on the wrapper, and the wrapper
      stretches its children. Before, `.inp` carried 13px of vertical padding and
@@ -484,9 +487,20 @@
      box: as a bare 16px-tall run of text it measured 156x16, well under the
      44px the rest of the system holds itself to. Inline uses inside a sentence
      opt out with .linklike-inline. */
+  /* A plain text link, also when it is a <button> ("Signaler un problème"): with the
+     preflight reset off, a button kept the browser's grey fill and border — the
+     "grey box". UI Option A (A9). */
   .linklike{color:var(--blue);font-weight:700;cursor:pointer;
-    display:inline-flex;align-items:center;min-height:44px}
+    display:inline-flex;align-items:center;min-height:44px;
+    background:none;border:0;padding:0;font-family:inherit;font-size:inherit;text-align:start}
+  .linklike:hover{text-decoration:underline;text-underline-offset:3px}
   .linklike-inline{display:inline;min-height:0}
+  /* The admin tab row (components/admin/AdminTabs.tsx) — the current page in cobalt. */
+  .adm-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-block-start:14px}
+  .adm-tab{display:inline-flex;align-items:center;min-height:44px;padding-inline:16px;border-radius:999px;
+    border:1px solid var(--line);background:var(--paper);color:var(--ink2);font-weight:700;font-size:13.5px}
+  .adm-tab:hover{color:var(--blue);border-color:var(--blue)}
+  .adm-tab[aria-current="page"]{background:var(--blue50);color:var(--blue);border-color:var(--blue)}
   /* .hide-mobile/.hide-desktop deleted (zero usages). `display:revert` was a trap:
      on <a class="btn hide-mobile"> it reverted the anchor to display:inline, which
      silently killed the button's flex box — gap gone, min-height:44px inert. A

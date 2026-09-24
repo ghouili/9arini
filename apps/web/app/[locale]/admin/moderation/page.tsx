@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "@/components/Link";
+import { AdminTabs } from "@/components/admin/AdminTabs";
 import { Avatar, Button, Spinner } from "@/components/ui";
 import { useLocale } from "@/components/LocaleProvider";
 import { useToast } from "@/components/useToast";
@@ -193,14 +194,10 @@ export default function AdminModerationPage() {
             </span>
             <h1 className="web-h2">{c.title}</h1>
             {!checking && admin && (
-              <p className="muted mt-2 leading-[1.6]">
-                {c.lead}{" "}
-                <Link href="/admin/verifications" className="linklike">{c.toVerifications}</Link>
-                {" · "}
-                <Link href="/admin/accounts" className="linklike">{c.toAccounts}</Link>
-                {" · "}
-                <Link href="/admin/plans" className="linklike">{c.toPlans}</Link>{/* phase-a lane L5 (A18.15) */}
-              </p>
+              <>
+                <p className="muted mt-2 leading-[1.6]">{c.lead}</p>
+                <AdminTabs current="moderation" /> {/* UI Option A (A9) */}
+              </>
             )}
           </div>
 

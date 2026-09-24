@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Link } from "@/components/Link";
+import { AdminTabs } from "@/components/admin/AdminTabs";
 import { Button, Spinner, Tag } from "@/components/ui";
 import { useLocale } from "@/components/LocaleProvider";
 import { useToast } from "@/components/useToast";
@@ -223,15 +224,7 @@ export default function AdminPlansPage() {
               </div>
             )}
             {/* phase-a lane L5 (A18.15): the admin nav, both ways — this page was reachable from nowhere. */}
-            {!loading && admin && (
-              <p className="mt-2.5" data-e2e="admin-nav">
-                <Link href="/admin/verifications" className="linklike">{c.toVerifications}</Link>
-                {" · "}
-                <Link href="/admin/accounts" className="linklike">{c.toAccounts}</Link>
-                {" · "}
-                <Link href="/admin/moderation" className="linklike">{c.toModeration}</Link>
-              </p>
-            )}
+            {!loading && admin && <AdminTabs current="plans" /> /* UI Option A (A9) */}
           </div>
 
           {loading && (

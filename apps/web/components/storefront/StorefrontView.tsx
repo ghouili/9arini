@@ -74,6 +74,7 @@ const copy = bilingual({
     noClassesBody:
       "Sa page est ouverte, mais aucune séance à venir n'est programmée. Reviens bientôt — ou trouve un autre prof dès maintenant.",
     noClassesCta: "Voir d'autres profs",
+    noClassesLine: "Pas de séance programmée pour l'instant.", // UI Option A (A9): the main column's one line
 
     // ── Price / seats ──
     free: "Gratuite",
@@ -124,6 +125,7 @@ const copy = bilingual({
     noClassesBody:
       "الصفحة متاعو محلولة، أما ما فماش حصة جاية مبرمجة. عاود شوف قريب — ولا لوّج على أستاذ آخر توّا.",
     noClassesCta: "شوف أساتذة أخرين",
+    noClassesLine: "ما فماش حصة مبرمجة توّا.", // UI Option A (A9)
 
     free: "فابور",
     then: (p: number) => `من بعد ${p} د.ت للحصة`,
@@ -249,8 +251,9 @@ export function StorefrontView({
   }
 
   /* Shared dead-end state: no published class, or every class full. Rendered in the
-     main column AND in the aside so neither surface offers a CTA that resolves to
-     nothing — and both always hand the student a way out (/explore). */
+     ASIDE only since UI Option A (A9) — the main column says one muted line — and
+     it always hands the student a way out (/explore). With no class at all the
+     aside shows on phones too (data-sf-empty), so that way out never disappears. */
   function NoBooking({ center, full }: { center?: boolean; full?: boolean }) {
     return (
       <div className={`u-card u-card-pad sf-empty${center ? " sf-empty-center" : ""}`}>
@@ -358,8 +361,10 @@ export function StorefrontView({
 
               {!nextClass /* phase-a lane L5 (A18.11): no class at all, not "no class with a seat" */ ? (
                 /* Honest empty state — no phantom card, no CTA to a class that
-                   does not exist. */
-                <NoBooking />
+                   does not exist. UI Option A (A9): ONE muted line here; the full
+                   card, with "Voir d'autres profs", lives in the aside only — it
+                   used to be rendered twice. */
+                <p className="sf-noclass-line" data-e2e="sf-noclass-line">{c.noClassesLine}</p>
               ) : (
                 <ul className="sf-classes" role="list" aria-label={c.classesAria}>
                   {classes.map((cls) => {
@@ -511,7 +516,10 @@ export function StorefrontView({
             </div>
 
             {/* ── ASIDE (desktop sticky booking panel) ── */}
-            <aside data-sf-aside="true">
+            {/* data-sf-empty: with no class at all, this card is the page's ONLY way out
+                (UI Option A, A9 — the main column now says one line), so it also shows
+                below the main column on phones, where the aside is otherwise hidden. */}
+            <aside data-sf-aside="true" data-sf-empty={!firstClass ? "true" : undefined}>
               <div className="panel panel-pad sf-panel">
                 {/* No published class → nothing to book. Say so, and send the
                     student somewhere that works. NEVER a /checkout link without a
@@ -775,6 +783,7 @@ export function StorefrontView({
            whatever the specificity — an mb-0 utility on the element is simply
            inert. The flush variant has to live here too. */
         .sf-empty-body.is-flush{margin-bottom:0}
+        .sf-noclass-line{font-size:14px;color:var(--muted);margin:0}
         .sf-empty-cta{display:inline-flex;width:auto}
         .sf-empty-center .sf-empty-cta{width:100%}
 
@@ -812,7 +821,7 @@ export function StorefrontView({
           [data-sf-mobilecta="true"]{display:none}
         }
         @media (max-width:959px){
-          [data-sf-aside="true"]{display:none}
+          [data-sf-aside="true"]:not([data-sf-empty="true"]){display:none}
         }
       `}} />
     </SiteShell>
