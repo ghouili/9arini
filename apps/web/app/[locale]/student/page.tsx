@@ -478,6 +478,19 @@ export default function StudentPage() {
         </div>
       </section>
 
+      {/* phase-a/integrate (A21): the outcome message sits OUTSIDE the list branches.
+          Inside them, cancelling your only booking swapped in the empty state and the
+          message — the one place that says what was retained — never showed. */}
+      {flash && me && (
+        <section className="web-section tight !py-0">
+          <div className="container">
+            <div role="status" style={{ background: "var(--green50)", border: "1px solid rgba(27,156,111,.3)", color: "var(--green-ink)", borderRadius: 12, padding: "11px 13px", fontSize: 13, marginBottom: 14 }}>
+              {flash}
+            </div>
+          </div>
+        </section>
+      )}
+
       {loading ? (
         <section className="web-section tight">
           <div className="container grid place-items-center min-h-[200px]">
@@ -512,16 +525,6 @@ export default function StudentPage() {
         </section>
       ) : (
         <>
-          {flash && (
-            <section className="web-section tight !py-0">
-              <div className="container">
-                <div role="status" style={{ background: "var(--green50)", border: "1px solid rgba(27,156,111,.3)", color: "var(--green-ink)", borderRadius: 12, padding: "11px 13px", fontSize: 13, marginBottom: 14 }}>
-                  {flash}
-                </div>
-              </div>
-            </section>
-          )}
-
           {/* Upcoming — every card is a real booking */}
           {upcoming.length > 0 && (
             <section className="web-section tight">
