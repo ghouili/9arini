@@ -243,7 +243,17 @@ export default function CheckoutInner() {
   const handleConfirm = useCallback(async () => {
     setErr(null);
     setBusy(true);
-    const res = await reserveSeat({ classId });
+    /* phase-a lane L3 (A7): a server failure is now a real failure (the API no
+       longer answers "already booked" for it), and it rejects the action. Without
+       this catch the button stayed busy forever and nothing was said. */
+    let res: Awaited<ReturnType<typeof reserveSeat>>;
+    try {
+      res = await reserveSeat({ classId });
+    } catch {
+      setBusy(false);
+      setErr("generic");
+      return;
+    }
     setBusy(false);
     if (res.ok) { setDone(res.already ? "already" : "new"); return; }
     if (res.error === "not-authenticated") setErr("auth");

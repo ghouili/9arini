@@ -20,6 +20,7 @@ import { db } from "../db";
 import { getSession } from "../lib/session";
 import { checkRateLimit } from "../lib/rate-limit";
 import { recomputeTutorStats } from "../lib/stats";
+import { isUniqueViolation } from "../lib/db-errors";
 
 /* bookings — reserveSeat, cancelBooking, getStudentDashboard.
 
@@ -34,6 +35,10 @@ import { recomputeTutorStats } from "../lib/stats";
    domain, precisely so it could join THIS transaction. If it had stayed on the web
    side, the seat claim and the stats update would no longer share a transaction —
    and the lost-update race would return, reintroduced by the refactor. */
+
+/** phase-a lane L3 (A7): the unique key on bookings(class_id, student_id), as named
+    in packages/db/sql/0000_init.sql and 0007_bookings_unique_class_student.sql. */
+export const BOOKING_CLASS_STUDENT_KEY = "bookings_class_id_student_id_unique";
 
 const reserveBody = z.object({ classId: z.string() });
 const cancelBody = z.object({ bookingId: z.string() });
@@ -169,10 +174,15 @@ export async function bookingRoutes(app: FastifyInstance): Promise<void> {
         await recomputeTutorStats(cls.tutorId, tx);
         return "booked";
       });
-    } catch {
+    } catch (e) {
       /* unique(class_id, student_id) → a concurrent double-submit from the same
          student. The tx rolled back, so the seat was NOT consumed. Idempotent. */
-      return { ok: true, already: true };
+      /* phase-a lane L3 (A7): ONLY that key means "already booked". Every other
+         error (a dropped connection, a failed statement) used to land here too and
+         told the student "Tu avais déjà cette place" for a seat they did not get.
+         Re-thrown, the error handler answers 500 and the UI shows a real failure. */
+      if (isUniqueViolation(e, BOOKING_CLASS_STUDENT_KEY)) return { ok: true, already: true };
+      throw e;
     }
 
     if (outcome === "already") return { ok: true, already: true };

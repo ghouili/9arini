@@ -14,9 +14,13 @@
    and one proven in Playwright are proven about the same thing. */
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { buildServer } from "../../src/server";
-import { sql } from "../../src/db";
+import { sql as maybeSql } from "../../src/db";
 
-export { sql };
+/* phase-a lane L3: src/db exports createDb's `Sql | null`, which made this file
+   (and every test using `sql`) fail `npm run typecheck`. The API exits at boot
+   without DATABASE_URL, so a route test that got this far has a client. */
+if (!maybeSql) throw new Error("[fx] DATABASE_URL is required for route tests");
+export const sql = maybeSql;
 
 export type App = Awaited<ReturnType<typeof buildServer>>;
 
