@@ -23,6 +23,7 @@ import { paymentsEnabled, tutorBalanceTnd } from "@tnajem/shared/payments";
 import { resolveMeetUrl } from "@tnajem/shared/live";
 import type { Role } from "@tnajem/shared"; // phase-a lane L2 (A17)
 import { publicTutorName } from "@tnajem/shared"; // phase-a lane L2 (A23)
+import { freeFirstStillAvailable } from "../lib/free-first-entitlement"; // phase-a/integrate (A6)
 import { db } from "../db";
 import { getSession } from "../lib/session";
 import { recomputeTutorStats } from "../lib/stats";
@@ -235,13 +236,15 @@ export async function classRoutes(app: FastifyInstance): Promise<void> {
     const isOwner = Boolean(uid && tut?.profileId === uid);
 
     let hasBooking = false;
+    let bookedFree = false; // phase-a/integrate (A6)
     if (uid) {
       const [bk] = await db
-        .select({ status: bookings.status })
+        .select({ status: bookings.status, isFree: bookings.isFree })
         .from(bookings)
         .where(and(eq(bookings.classId, c.id), eq(bookings.studentId, uid)))
         .limit(1);
       hasBooking = Boolean(bk && bk.status !== "cancelled");
+      bookedFree = hasBooking && Boolean(bk?.isFree);
     }
     const entitled = isOwner || hasBooking;
 
@@ -256,6 +259,18 @@ export async function classRoutes(app: FastifyInstance): Promise<void> {
        session: anyone holding it can walk into a class full of minors. It ships
        exclusively to the owning tutor or a student with a live booking. Everything
        else about the class is public; these four fields are not. */
+    /* phase-a/integrate (A6 × D2): what the page and checkout PROMISE must match what
+       POST /bookings will do. The free first session is once per student per tutor,
+       so a student who already had it is not shown "1ʳᵉ séance gratuite" here. A
+       booked student sees what their own seat is; the tutor and a signed-out visitor
+       see the class's offer. */
+    const classOffers = isEffectivelyFreeFirst(tut?.offersFreeFirstSession, c.isFreeFirst);
+    const freeFirstShown = hasBooking
+      ? bookedFree
+      : classOffers && uid && !isOwner && tut
+        ? await freeFirstStillAvailable(db, uid, tut.id)
+        : classOffers;
+
     return {
       id: c.id,
       tutor_id: c.tutorId,
@@ -267,8 +282,9 @@ export async function classRoutes(app: FastifyInstance): Promise<void> {
       price_tnd: Number(c.priceTnd),
       seats: c.seats ?? 0,
       seats_left: Math.max(0, (c.seats ?? 0) - (c.seatsTaken ?? 0)),
-      // EFFECTIVE: the tutor's opt-in gates the per-class flag.
-      is_free_first: isEffectivelyFreeFirst(tut?.offersFreeFirstSession, c.isFreeFirst),
+      // EFFECTIVE: the tutor's opt-in gates the per-class flag — and, for a signed-in
+      // student, whether they still have their free first session with this tutor.
+      is_free_first: freeFirstShown,
       meet_url: entitled ? resolveMeetUrl(c) : undefined,
       whiteboard_url: entitled ? (c.whiteboardUrl ?? undefined) : undefined,
       quiz_url: entitled ? (c.quizUrl ?? undefined) : undefined,

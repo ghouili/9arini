@@ -25,6 +25,7 @@ import { getSession } from "../lib/session";
 import { checkRateLimit } from "../lib/rate-limit";
 import { recomputeTutorStats } from "../lib/stats";
 import { isUniqueViolation } from "../lib/db-errors";
+import { freeFirstStillAvailable } from "../lib/free-first-entitlement"; // phase-a/integrate (A6)
 
 /* bookings — reserveSeat, cancelBooking, getStudentDashboard.
 
@@ -68,34 +69,8 @@ async function freeFirstSeatFor(
 ): Promise<boolean> {
   if (!classOffers) return false;
   await tx.execute(raw`select pg_advisory_xact_lock(hashtextextended(${`free-first:${studentId}:${tutorId}`}, 0))`);
-  const [held] = await tx
-    .select({ id: bookings.id })
-    .from(bookings)
-    .innerJoin(classes, eq(bookings.classId, classes.id))
-    .where(
-      and(
-        eq(bookings.studentId, studentId),
-        eq(classes.tutorId, tutorId),
-        eq(bookings.isFree, true),
-        raw`coalesce(${bookings.status}, 'reserved') <> 'cancelled'`,
-      ),
-    )
-    .limit(1);
-  if (held) return false;
-  const [spent] = await tx
-    .select({ id: cancellations.id })
-    .from(cancellations)
-    .innerJoin(classes, eq(cancellations.classId, classes.id))
-    .where(
-      and(
-        eq(cancellations.actorProfileId, studentId),
-        eq(cancellations.actor, "student"),
-        eq(classes.tutorId, tutorId),
-        eq(cancellations.reason, FREE_FIRST_SPENT_REASON),
-      ),
-    )
-    .limit(1);
-  return !spent;
+  // The checks themselves are shared with GET /classes/:id (lib/free-first-entitlement.ts).
+  return freeFirstStillAvailable(tx, studentId, tutorId);
 }
 
 const reserveBody = z.object({ classId: z.string() });
