@@ -17,6 +17,7 @@ import type { OnboardingStep, StepState } from "@/lib/onboarding-steps";
 import type { DashboardData, DashboardBooking, NotificationItem, DashboardResult } from "@tnajem/shared";
 import { initials, monthLabel, formatLongDate } from "@tnajem/shared";
 import { bilingual } from "@/lib/i18n";
+import { PaymentStory } from "@/components/PaymentStory"; // phase-a lane L3 (A22)
 
 /* Page-local copy (never edit lib/i18n.ts from here). FR + Derija, RTL-safe.
    The shared t.dashboard.s1p/s2p/s3p keys are truthful but generic; this page
@@ -45,7 +46,8 @@ const copy = bilingual({
     attended: "Présent",
     bookedAgo: "Réservé",
     paymentsSoonTitle: "Les paiements arrivent bientôt",
-    paymentsSoonBody: "Pour l'instant tes élèves réservent sans payer en ligne : l'élève te paie directement, et tu gardes 100 %. Dès que Flouci et D17 sont branchés, ton solde s'affiche ici.",
+    // phase-a lane L3 (A22): no provider named, no second payment story (D4).
+    paymentsSoonBody: "Pour l'instant, aucun paiement ne passe par Tnajem et tu gardes 100 %. Dès que les paiements en ligne s'ouvrent, ton solde s'affiche ici.",
     notifTitle: "Notifications",
     notifEmpty: "Rien de neuf pour l'instant.",
     justNow: "à l'instant",
@@ -58,13 +60,14 @@ const copy = bilingual({
        same funnel with a different number of steps each. */
 
     // ── how you get paid (replaces the outdated shared strings) ──
-    howTitle: "Comment tu es payé, aujourd'hui",
+    howTitle: "Comment ça marche", // phase-a lane L3 (A22)
     h1t: "Tu fixes ton prix",
     h1b: "Classe par classe, sans plafond.",
     h2t: "L'élève réserve",
     h2b: "Son prénom et sa réservation arrivent ici, tout de suite.",
-    h3t: "Il te paie directement",
-    h3b: "De la main à la main pendant le pilote. Tnajem ne prend aucune commission. Le paiement en ligne arrivera plus tard.",
+    // phase-a lane L3 (A22): the HOW is <PaymentStory audience="tutor"> under h3b.
+    h3t: "Le paiement",
+    h3b: "Pendant le pilote, Tnajem ne prend aucune commission.",
     shareLabel: "Ton lien de prof",
     editStore: "Modifier ma page",
     materials: "Mes documents",
@@ -109,7 +112,7 @@ const copy = bilingual({
     attended: "حاضر",
     bookedAgo: "حجز",
     paymentsSoonTitle: "الخلاص أونلاين يوصل قريب",
-    paymentsSoonBody: "توّا التلاميذ يحجزو بلا ما يخلّصو على الخط : التلميذ يخلّصك مباشرة، وإنتي تحتفظ بـ 100 %. كي نربطو فلوسي و D17، رصيدك يبان هوني.",
+    paymentsSoonBody: "توّا، حتى خلاص ما يعدّي من Tnajem وإنتي تحتفظ بـ 100 %. كي يتحل الخلاص أونلاين، رصيدك يبان هوني.", // phase-a lane L3 (A22)
     notifTitle: "الإشعارات",
     notifEmpty: "ما فماش جديد توّا.",
     justNow: "توّا",
@@ -117,13 +120,14 @@ const copy = bilingual({
     hoursAgo: (n: number) => `منذ ${n} س`,
     daysAgo: (n: number) => `منذ ${n} يوم`,
 
-    howTitle: "كيفاش تتخلّص، اليوم",
+    howTitle: "كيفاش يخدم", // phase-a lane L3 (A22)
     h1t: "إنتي تحدّد ثمنك",
     h1b: "حصة بحصة، بلا سقف.",
     h2t: "التلميذ يحجز",
     h2b: "إسمو الأول والحجز متاعو يوصلو لهوني في الحين.",
-    h3t: "يخلّصك مباشرة",
-    h3b: "يد بيد في فترة التجربة. Tnajem ما تاخذ حتى عمولة. الخلاص أونلاين يجي من بعد.",
+    // phase-a lane L3 (A22)
+    h3t: "الخلاص",
+    h3b: "في فترة التجربة، Tnajem ما تاخذ حتى عمولة.",
     shareLabel: "اللينك متاعك متاع أستاذ",
     editStore: "عدّل صفحتي",
     materials: "وثائقي",
@@ -408,7 +412,8 @@ function NextSteps({ steps }: { steps: OnboardingStep[] }) {
 }
 
 // ── How you actually get paid during the pilot (honest, page-local copy) ────
-function HowItWorks({ c }: { c: CopyDict }) {
+function HowItWorks({ c, paymentsOn = false }: { c: CopyDict; paymentsOn?: boolean }) {
+  const { locale } = useLocale(); // phase-a lane L3 (A22)
   const steps = [
     { n: 1, title: c.h1t, body: c.h1b },
     { n: 2, title: c.h2t, body: c.h2b },
@@ -436,6 +441,12 @@ function HowItWorks({ c }: { c: CopyDict }) {
           <div className="min-w-0">
             <div className="text-[14px] font-semibold mb-0.5">{s.title}</div>
             <div className="text-[13px] text-muted leading-[1.55]">{s.body}</div>
+            {/* phase-a lane L3 (A22): the one payment story, labelled "Bientôt" while payments are off. */}
+            {s.n === 3 && (
+              <div className="text-[13px] text-muted leading-[1.55] mt-1">
+                <PaymentStory locale={locale} audience="tutor" enabled={paymentsOn} />
+              </div>
+            )}
           </div>
         </div>
       ))}
@@ -974,7 +985,7 @@ function RealDashboard(
       </div>
 
       <div className="mb-[clamp(14px,2vw,22px)]">
-        <HowItWorks c={c} />
+        <HowItWorks c={c} paymentsOn={d.paymentsEnabled} /> {/* phase-a lane L3 (A22) */}
       </div>
 
       {/* Cash-out CTA — only when payouts can actually happen. No promise otherwise. */}

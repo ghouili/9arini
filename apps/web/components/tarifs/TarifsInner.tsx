@@ -7,6 +7,7 @@ import { Card, CardFooter, Chip } from "@/components/ui";
 import { Check, Shield, Wallet, Star } from "@/components/icons";
 import { bilingual } from "@/lib/i18n";
 import { Reveal } from "@/components/Reveal";
+import { PaymentStory } from "@/components/PaymentStory"; // phase-a lane L3 (A22)
 import {
   planByCode, classLimitLabel, classLimitRule, monthsOffered, tnd, requirePlan,
   COMMISSION_PCT, commissionOn,
@@ -71,7 +72,7 @@ const copy = bilingual({
       "Les paiements en ligne sont actifs. Les formules ci-dessous sont facturées, et la commission de 10 % s'applique aux paiements traités par Tnajem.",
 
     plansTitle: "Les formules",
-    plansLead: "Tnajem coûte deux choses au prof, et jamais l'une sans l'autre : un abonnement mensuel, plus 10 % sur chaque élève payant — uniquement sur les paiements que Tnajem traite. L'élève, lui, ne paie jamais Tnajem.",
+    plansLead: "Tnajem coûte deux choses au prof, et jamais l'une sans l'autre : un abonnement mensuel, plus 10 % sur chaque élève payant — uniquement sur les paiements que Tnajem traite.", // phase-a lane L3 (A22): the student DOES pay via Tnajem (D4)
     /* WHICH NUMBER IS THE RULE. The "convient à N élèves" line is a sizing hint
        and nothing counts your students; what the server actually enforces is the
        number of cours you keep open at once. Saying so here is what stops a tutor
@@ -79,7 +80,7 @@ const copy = bilingual({
     // The same sentence /pour-les-profs shows — one source, so the two cannot drift.
     plansRule: classLimitRule("fr"),
     plusComm: "+ 10 % sur chaque élève payant",
-    plusCommNote: "Uniquement sur les paiements traités par Tnajem. Rien sur ce qu'on te règle en main propre.",
+    plusCommNote: "Uniquement sur les paiements traités par Tnajem.", // phase-a lane L3 (A22)
     notBilled: "Pas encore facturé",
     recommended: "Recommandé",
     perMonth: "/ mois",
@@ -111,7 +112,7 @@ const copy = bilingual({
           "Ta photo de profil (vérifiée avant publication)",
           "Messagerie avec tes élèves",
           "Tes fiches et vidéos pour tes élèves",
-          "Paiement en main propre — Tnajem ne prend rien",
+          // phase-a lane L3 (A22): "Paiement en main propre" removed — one payment story (D4).
         ],
         soon: [],
       },
@@ -147,15 +148,14 @@ const copy = bilingual({
     exRowFee: `Commission Tnajem (${COMMISSION_PCT} %)`,
     exRowSub: (name: string) => `Abonnement ${name}`,
     exRowNet: "Tu reçois",
-    exCashTitle: "Et si l'élève te paie en main propre ?",
-    exCash: `Tnajem ne prend aucune commission : tu gardes les ${nf(EX_PROCESSED_TND)} TND. Tu paies seulement l'abonnement, ${nf(EX_SUB)} TND.`,
+    // phase-a lane L3 (A22): the cash-in-hand case is gone — one payment story (D4).
     exToday: "Aujourd'hui, rien de tout ça n'est prélevé : les paiements en ligne sont désactivés, donc la commission est de 0 TND et aucun abonnement n'est facturé.",
 
     commTitle: "La commission",
     commLine: "10 %, sur une seule chose : les paiements que Tnajem traite lui-même.",
     commPoints: [
       "Le même taux sur toutes les formules — 10 %, quel que soit ton volume.",
-      "Ton élève te paie en main propre ? Tnajem ne prend rien et ne facture rien.",
+      // phase-a lane L3 (A22): the cash-in-hand point is gone — one payment story (D4).
       // phase-a lane L3 (A5): it is the tutor's opt-in (off by default), once per student per tutor (D2).
       "Si ton prof l'offre, ta 1ʳᵉ séance avec lui est gratuite.",
     ],
@@ -164,7 +164,7 @@ const copy = bilingual({
     cmpLead: "Taux publiés par les plateformes elles-mêmes, relevés en août 2026. Les modèles diffèrent — à toi de juger.",
     cmpUs: "Tnajem",
     cmpUsRate: `${COMMISSION_PCT} %`,
-    cmpUsBody: "10 %, uniquement sur les paiements traités par Tnajem. Rien sur ce que l'élève te règle en main propre.",
+    cmpUsBody: "10 %, uniquement sur les paiements traités par Tnajem.", // phase-a lane L3 (A22)
     /* THE RATE LEADS. This is the strongest argument the business has — 10 %
        against 18-33 % and 25 %+9 % — and it was set in 13.5px body copy in
        section five. Splitting the rate out lets it be typeset at display size
@@ -197,10 +197,10 @@ const copy = bilingual({
       "الخلاص أونلاين خدّام. الخطط اللي تحت ولّاو يتفوترو، والعمولة متاع 10 % تنطبق على الخلاص اللي يعدّي من Tnajem.",
 
     plansTitle: "الخطط",
-    plansLead: "Tnajem تكلّف الأستاذ زوز حاجات، وعمرها وحدة بلا لأخرى : اشتراك شهري، زائد 10 % على كل تلميذ خلّص — كان على الخلاص اللي تعدّيه Tnajem. أمّا التلميذ، عمرو ما يخلّص Tnajem.",
+    plansLead: "Tnajem تكلّف الأستاذ زوز حاجات، وعمرها وحدة بلا لأخرى : اشتراك شهري، زائد 10 % على كل تلميذ خلّص — كان على الخلاص اللي تعدّيه Tnajem.", // phase-a lane L3 (A22)
     plansRule: classLimitRule("ar"),
     plusComm: "+ 10 % على كل تلميذ خلّص",
-    plusCommNote: "كان على الخلاص اللي يعدّي من Tnajem. والو على اللي يخلّصك بيه في يدك.",
+    plusCommNote: "كان على الخلاص اللي يعدّي من Tnajem.", // phase-a lane L3 (A22)
     notBilled: "ما زال ما يتفوترش",
     recommended: "ننصحو بيها",
     perMonth: "/ في الشهر",
@@ -228,7 +228,7 @@ const copy = bilingual({
           "تصويرتك (تتثبّت قبل ما تتنشر)",
           "مراسلة مع تلامذتك",
           "الفيشات والفيديوهات متاع تلامذتك",
-          "الخلاص في يدك — Tnajem ما تاخذ والو",
+          // phase-a lane L3 (A22)
         ],
         soon: [],
       },
@@ -264,15 +264,14 @@ const copy = bilingual({
     exRowFee: `عمولة Tnajem (${COMMISSION_PCT} %)`,
     exRowSub: (name: string) => `اشتراك ${name}`,
     exRowNet: "يوصلك",
-    exCashTitle: "وكان التلميذ خلّصك في يدك ؟",
-    exCash: `Tnajem ما تاخذ حتى عمولة : تحتفظ بـ ${nf(EX_PROCESSED_TND)} دينار. تخلّص كان الاشتراك، ${nf(EX_SUB)} دينار.`,
+    // phase-a lane L3 (A22)
     exToday: "اليوم ما يتخلّص حتى شي من هذا : الخلاص أونلاين مطفي، معناها العمولة 0 دينار وحتى اشتراك ما يتفوتر.",
 
     commTitle: "العمولة",
     commLine: "10 %، على حاجة وحيدة : الخلاص اللي Tnajem تعدّيه هي بروحها.",
     commPoints: [
       "نفس النسبة في الخطط الكل — 10 %، مهما كان حجمك.",
-      "التلميذ خلّصك في يدك ؟ Tnajem ما تاخذ والو وما تفوتر والو.",
+      // phase-a lane L3 (A22)
       "كان أستاذك يعطيها، أول حصة معاه تكون فابور.", // phase-a lane L3 (A5)
     ],
 
@@ -280,7 +279,7 @@ const copy = bilingual({
     cmpLead: "نسب نشروها المنصّات بأنفسهم، مأخوذة في أوت 2026. النماذج تختلف — وإنتي احكم.",
     cmpUs: "Tnajem",
     cmpUsRate: `${COMMISSION_PCT} %`,
-    cmpUsBody: "10 %، كان على الخلاص اللي يعدّي من Tnajem. والو على اللي يخلّصك بيه في يدك.",
+    cmpUsBody: "10 %، كان على الخلاص اللي يعدّي من Tnajem.", // phase-a lane L3 (A22)
     cmpRows: [
       { name: "Preply", rate: "18–33 %", body: "حسب عدد الساعات اللي قرّيتها — و 100 % من كل حصة تجريبية مع تلميذ جديد." },
       { name: "Wyzant", rate: "25 % + 9 %", body: "25 % عمولة — الأستاذ يحتفظ بـ 75 % — وزيد 9 % فريسي خدمة على كل حصة." },
@@ -621,6 +620,8 @@ export function TarifsInner({ paymentsEnabled }: { paymentsEnabled: boolean }) {
             {/* The limit rule first: it is the one that explains the cards above. */}
             <p>{c.plansRule}</p>
             <p>{c.plusCommNote}</p>
+            {/* phase-a lane L3 (A22): the one payment story, gated on the REAL switch. */}
+            <p><PaymentStory locale={locale} audience="tutor" enabled={paymentsEnabled} /></p>
             <p>{c.soonNote}</p>
           </div>
         </div>
@@ -672,10 +673,7 @@ export function TarifsInner({ paymentsEnabled }: { paymentsEnabled: boolean }) {
                 </div>
               </div>
 
-              <div className="tf-ex-cash">
-                <div className="tf-ex-cash-t">{c.exCashTitle}</div>
-                <p>{c.exCash}</p>
-              </div>
+              {/* phase-a lane L3 (A22): the cash-in-hand case was here — one payment story (D4). */}
 
               {!paymentsEnabled && <p className="tf-ex-today">{c.exToday}</p>}
             </Reveal>

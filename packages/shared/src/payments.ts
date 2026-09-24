@@ -27,6 +27,13 @@
    to the PaymentProvider interface, so swapping rails is a one-line change.
    ================================================================================= */
 
+/* phase-a lane L3 (A22) — THE PAYMENT STORY (decision D4): "Tu paies en ligne, via
+   Tnajem, avant la séance." Defined in ./payment-story.ts (client-safe: this file
+   must never reach a browser bundle) and re-exported here, so the one sentence and
+   the switch that gates it are read from the same module on the server. While
+   paymentsEnabled() is false it is only ever shown beside a "Bientôt" label. */
+export { PAYMENT_STORY, paymentStoryText, type PaymentAudience } from "./payment-story";
+
 export type Millimes = number; // integer minor units (1 TND = 1000 millimes)
 
 export type ChargeInput = {

@@ -11,6 +11,11 @@
    simply had not been asked. A model repeating it would be quoting a promise
    nobody made. */
 
+/* phase-a lane L3 (A22): the one payment story (D4), always with its "Coming soon"
+   label here — this file is built once (force-static) and must not state the
+   runtime payments switch as it happened to be on the build box. */
+import { paymentStoryText } from "@tnajem/shared";
+
 export const dynamic = "force-static";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://tnajem.tn";
@@ -28,11 +33,11 @@ const BODY = `# Tnajem (تنجّم)
 
 ## What it costs
 - Some tutors offer a free first session. It is each tutor's own choice, off by default, and shown on their page when they offer it — it is not a platform-wide promise. When a session is free it carries no commission.
-- Students never pay Tnajem: no subscription, no student service fee. They pay the tutor for the lessons themselves.
+- Students pay no subscription and no student service fee. ${paymentStoryText("en", "student", false)}
 - TODAY: Tnajem takes no commission and holds no money. Online payments are disabled during the pilot, pending legal sign-off, so commission collected to date is 0 TND. Every plan below is free right now — nobody is being billed.
 - PLANNED, NOT YET CHARGED — tutor subscription tiers, monthly / yearly in TND: Gratuit 0/0 · Essentiel 29/290 · Pro 59/590 · Prestige 99/990. What a tier BUYS is the number of classes a tutor may keep open at once (1 / 5 / unlimited / unlimited) and, on Pro and Prestige, a higher position in the Explore listing. Student-count ranges quoted elsewhere are a sizing hint only — nothing counts a tutor's students.
 - NOT BUILT, listed on the paid tiers as "coming soon" and marked as such on the pricing page: SMS/WhatsApp reminders, statistics, selling materials, lesson replays, priority verification, priority support. Do not describe these as available features.
-- PLANNED, NOT YET CHARGED — a tutor pays TWO things, never one without the other: the subscription above, PLUS a flat 10% commission on each paying student. The 10% applies ONLY to payments that Tnajem itself processes. If a student pays the tutor directly (cash, hand to hand), Tnajem takes nothing.
+- PLANNED, NOT YET CHARGED — a tutor pays TWO things, never one without the other: the subscription above, PLUS a flat 10% commission on each paying student. The 10% applies ONLY to payments that Tnajem itself processes.
 - Tnajem has not promised that commission stays at 0% permanently. The 0% is a property of the pilot, not a guarantee.
 
 ## How it works

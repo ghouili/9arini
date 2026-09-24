@@ -31,6 +31,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { Wallet, Video, Share, Shield, Check, Users, Bolt, Forward } from "@/components/icons";
 import { bilingual } from "@/lib/i18n";
 import { Reveal as SharedReveal, useReveal } from "@/components/Reveal";
+import { PaymentStory } from "@/components/PaymentStory"; // phase-a lane L3 (A22)
 import { classLimitRule, COMMISSION_PCT, commissionOn, PLANS, requirePlan, tnd } from "@tnajem/shared";
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -81,7 +82,8 @@ const copy = bilingual({
     h1a: "Ta page de prof.",
     h1b: "Tes cours en direct.",
     h1c: "Tu gardes 100 % pendant le pilote.",
-    sub: "Crée ta page gratuitement en 2 minutes, fixe ton tarif, et donne tes cours en direct. Pendant le pilote, l'élève te paie en main propre : Tnajem ne prend rien.",
+    // phase-a lane L3 (A22): one payment story (D4) — <PaymentStory audience="tutor"> in the income section.
+    sub: "Crée ta page gratuitement en 2 minutes, fixe ton tarif, et donne tes cours en direct. Pendant le pilote, Tnajem ne prend rien.",
     ctaPrimary: "Crée ta page de prof",
     ctaGhost: "Voir les profs sur Tnajem",
     micro: `Gratuit pendant le pilote. Plus tard : ${COMMISSION_PCT} % sur chaque élève payant, uniquement sur les paiements traités par Tnajem, plus un abonnement — gratuit avec ${FREE_PLAN.maxClasses} cours en ligne à la fois, à partir de ${nf(tnd(requirePlan("essentiel").monthlyMillimes))} TND/mois au-delà.`,
@@ -98,7 +100,7 @@ const copy = bilingual({
     shareLinkLabel: "Ton lien",
     shareLinkExample: "tnajem.tn/ta-page",
     classFilling: "Classe en cours de remplissage",
-    phoneBadges: ["0 % aujourd'hui", "Paiement direct"],
+    phoneBadges: ["0 % aujourd'hui", "Ton tarif"], // phase-a lane L3 (A22)
     heroSceneLabel: "Illustration : une page de prof Tnajem — nom, matière, un cours en direct et le lien à partager.",
 
     // ce que tu obtiens
@@ -107,7 +109,7 @@ const copy = bilingual({
     f1t: "Ta page, ton lien",
     f1b: "Ton nom, ta matière, tes cours. Un seul lien à coller sur WhatsApp, Insta ou TikTok — c'est là que tes élèves réservent.",
     f2t: "Ton tarif — 100 % pour toi pendant le pilote",
-    f2b: `Tu fixes ton prix, cours par cours, sans plafond. Pendant le pilote, l'élève te paie en main propre et Tnajem ne prend rien. Plus tard, Tnajem coûtera deux choses : 10 % sur chaque élève payant — uniquement sur les paiements traités par Tnajem — plus un abonnement — gratuit tant que tu n'ouvres qu'un cours à la fois, à partir de ${nf(tnd(requirePlan("essentiel").monthlyMillimes))} TND/mois au-delà. Ton élève te paie en main propre ? On ne prend rien.`,
+    f2b: `Tu fixes ton prix, cours par cours, sans plafond. Pendant le pilote, Tnajem ne prend rien. Plus tard, Tnajem coûtera deux choses : 10 % sur chaque élève payant — uniquement sur les paiements traités par Tnajem — plus un abonnement — gratuit tant que tu n'ouvres qu'un cours à la fois, à partir de ${nf(tnd(requirePlan("essentiel").monthlyMillimes))} TND/mois au-delà.`, // phase-a lane L3 (A22)
     f3t: "Vérifié à la main",
     f3b: "On regarde ta pièce d'identité nous-mêmes, une par une. Une fois validé, ta page passe en ligne et apparaît dans Explorer. On te prévient dès que c'est fait.",
     f4t: "Cours en direct",
@@ -121,7 +123,8 @@ const copy = bilingual({
     s2t: "Fais-toi vérifier",
     s2b: "Envoie ta pièce d'identité. On vérifie à la main, puis ta page est publique.",
     s3t: "Partage et enseigne",
-    s3b: "Poste ton lien, publie ton cours. L'élève te paie directement, au tarif que tu affiches. Tu veux offrir la 1ʳᵉ séance ? Tu l'actives depuis ton tableau de bord — c'est ton choix, pas une règle Tnajem.",
+    // phase-a lane L3 (A22)
+    s3b: "Poste ton lien, publie ton cours, au tarif que tu affiches. Tu veux offrir la 1ʳᵉ séance ? Tu l'actives depuis ton tableau de bord — c'est ton choix, pas une règle Tnajem.",
 
     // l'exemple chiffré
     incomeEyebrow: "Combien tu peux gagner",
@@ -136,22 +139,24 @@ const copy = bilingual({
     inKeep: `${nf(EX_GROSS)} TND`,
     inYou: "Toi · 100 %",
     inFee: "Tnajem · 0 %",
-    inLaterLbl: "Plus tard, si l'élève paie via Tnajem",
+    inLaterLbl: "Plus tard, quand l'élève paiera via Tnajem", // phase-a lane L3 (A22)
     inLater: `${nf(EX_NET)} TND`,
     inLaterFee: `− ${nf(EX_COMMISSION)} (${COMMISSION_PCT} %) − ${nf(EX_SUB)} (abonnement, ${EX.courses} cours)`,
-    inLaterNote: "Payé en main propre : aucune commission.",
+    // phase-a lane L3 (A22): the HOW is <PaymentStory audience="tutor"> beside inWithdraw.
+    inLaterNote: "Aujourd'hui : 0 %, rien n'est prélevé.",
     inWithdraw:
-      "Pendant le pilote, l'élève te paie directement, de la main à la main. Tnajem ne prend aucune commission et ne touche pas à ton argent. Paiement en ligne : bientôt.",
+      "Pendant le pilote, Tnajem ne prend aucune commission et ne touche pas à ton argent.",
 
     // faq
     faqEyebrow: "Avant de te lancer",
     faqTitle: "Les questions qu'on nous pose",
     q1: "Combien Tnajem prend ?",
-    a1: `Rien, aujourd'hui. Pendant le pilote, tu gardes 100 % : l'élève te paie directement, Tnajem ne touche pas à l'argent. Plus tard, il y aura deux choses, et jamais l'une sans l'autre : 10 % sur chaque élève payant, uniquement sur les paiements traités par Tnajem, plus un abonnement — gratuit avec un seul cours en ligne à la fois, à partir de ${nf(tnd(requirePlan("essentiel").monthlyMillimes))} TND/mois au-delà. Rien sur ce qu'on te règle en main propre, et rien sur une séance que tu as choisi d'offrir. On te préviendra avant.`,
+    // phase-a lane L3 (A22)
+    a1: `Rien, aujourd'hui. Pendant le pilote, tu gardes 100 % : Tnajem ne touche pas à l'argent. Plus tard, il y aura deux choses, et jamais l'une sans l'autre : 10 % sur chaque élève payant, uniquement sur les paiements traités par Tnajem, plus un abonnement — gratuit avec un seul cours en ligne à la fois, à partir de ${nf(tnd(requirePlan("essentiel").monthlyMillimes))} TND/mois au-delà. Rien sur une séance que tu as choisi d'offrir. On te préviendra avant.`,
     q2: "Faut-il un diplôme ?",
     a2: "Non. Maîtrise ta matière, une bonne connexion, et tu démarres aujourd'hui. On vérifie ton identité à la main avant que ta page soit publiée.",
     q3: "Si un élève ne vient pas ?",
-    a3: "Tu peux déplacer la séance depuis ton tableau de bord — tes élèves sont prévenus, et ceux qui avaient réservé l'ancien horaire peuvent annuler sans frais. Comme aucun paiement ne passe par Tnajem, tout arrangement se règle directement entre toi et l'élève.",
+    a3: "Tu peux déplacer la séance depuis ton tableau de bord — tes élèves sont prévenus, et ceux qui avaient réservé l'ancien horaire peuvent annuler sans frais.", // phase-a lane L3 (A22)
 
     // final
     finalTitle: "Ta page de prof t'attend.",
@@ -165,7 +170,7 @@ const copy = bilingual({
     h1a: "صفحتك متاع أستاذ.",
     h1b: "دروسك مباشرة.",
     h1c: "وتحتفظ بـ 100 % في فترة التجربة.",
-    sub: "اعمل صفحتك فابور في دقيقتين، حدّد تعريفتك، واعطي دروسك مباشرة. في فترة التجربة، التلميذ يخلّصك في يدك : Tnajem ما تاخذ والو.",
+    sub: "اعمل صفحتك فابور في دقيقتين، حدّد تعريفتك، واعطي دروسك مباشرة. في فترة التجربة، Tnajem ما تاخذ والو.", // phase-a lane L3 (A22)
     ctaPrimary: "اعمل صفحتك متاع أستاذ",
     ctaGhost: "شوف الأساتذة في Tnajem",
     micro: `فابور في فترة التجربة. من بعد : ${COMMISSION_PCT} % على كل تلميذ خلّص، كان على الخلاص اللي يعدّي من Tnajem، زائد اشتراك — فابور بـ ${FREE_PLAN.maxClasses} درس أونلاين في نفس الوقت، ومن ${nf(tnd(requirePlan("essentiel").monthlyMillimes))} دينار في الشهر لفوق.`,
@@ -181,7 +186,7 @@ const copy = bilingual({
     shareLinkLabel: "اللينك متاعك",
     shareLinkExample: "tnajem.tn/صفحتك",
     classFilling: "القسم في طور التعمير",
-    phoneBadges: ["0 % اليوم", "خلاص مباشر"],
+    phoneBadges: ["0 % اليوم", "ثمنك إنتي"], // phase-a lane L3 (A22)
     heroSceneLabel: "رسم توضيحي : صفحة أستاذ في Tnajem — إسم، مادة، درس مباشر واللينك اللي تشاركو.",
 
     featEyebrow: "شنوّة باش تاخذ",
@@ -189,7 +194,7 @@ const copy = bilingual({
     f1t: "صفحتك، ولينكك",
     f1b: "إسمك، مادتك، دروسك. لينك وحيد تلصقو في واتساب، إنستا ولا تيكتوك — ومن غادي تلامذتك يحجزو.",
     f2t: "ثمنك إنتي — 100 % متاعك في فترة التجربة",
-    f2b: `إنتي تحدّد ثمنك، درس بدرس، بلا سقف. في فترة التجربة، التلميذ يخلّصك في يدك وTnajem ما تاخذ والو. من بعد، Tnajem باش تكلّف زوز حاجات : 10 % على كل تلميذ خلّص — كان على الخلاص اللي يعدّي من Tnajem — زائد اشتراك — فابور مادام عندك درس واحد محلول، ومن ${nf(tnd(requirePlan("essentiel").monthlyMillimes))} دينار في الشهر لفوق. التلميذ خلّصك في يدك؟ ما ناخذو والو.`,
+    f2b: `إنتي تحدّد ثمنك، درس بدرس، بلا سقف. في فترة التجربة، Tnajem ما تاخذ والو. من بعد، Tnajem باش تكلّف زوز حاجات : 10 % على كل تلميذ خلّص — كان على الخلاص اللي يعدّي من Tnajem — زائد اشتراك — فابور مادام عندك درس واحد محلول، ومن ${nf(tnd(requirePlan("essentiel").monthlyMillimes))} دينار في الشهر لفوق.`, // phase-a lane L3 (A22)
     f3t: "التثبّت يتعمل بيدينا",
     f3b: "نشوفو بطاقة تعريفك بيدينا، وحدة وحدة. كي تتقبل، صفحتك تولّي أونلاين وتبان في «اكتشف». نعلموك كي يكمل الأمر.",
     f4t: "دروس مباشرة",
@@ -202,7 +207,8 @@ const copy = bilingual({
     s2t: "تثبّت من هويتك",
     s2b: "ابعث بطاقة تعريفك. نتثبّتو بيدينا، ومن بعد صفحتك تولّي ظاهرة للناس.",
     s3t: "شارك وقرّي",
-    s3b: "انشر لينكك، وانشر درسك. التلميذ يخلّصك مباشرة بالثمن اللي تبيّنو. وكان تحب تعطي الحصة الأولى بلاش، تفعّلها من لوحتك — هذا اختيارك إنتي، موش قاعدة متاع Tnajem.",
+    // phase-a lane L3 (A22)
+    s3b: "انشر لينكك، وانشر درسك، بالثمن اللي تبيّنو. وكان تحب تعطي الحصة الأولى بلاش، تفعّلها من لوحتك — هذا اختيارك إنتي، موش قاعدة متاع Tnajem.",
 
     incomeEyebrow: "قداش تنجم تربح",
     incomeTitle: "حدّد تعريفتك. اليوم، تحتفظ بالكل.",
@@ -215,21 +221,23 @@ const copy = bilingual({
     inKeep: `${nf(EX_GROSS)} دينار`,
     inYou: "إنتي · 100 %",
     inFee: "Tnajem · 0 %",
-    inLaterLbl: "من بعد، كان التلميذ خلّص من Tnajem",
+    inLaterLbl: "من بعد، كي يخلّص التلميذ على Tnajem", // phase-a lane L3 (A22)
     inLater: `${nf(EX_NET)} دينار`,
     inLaterFee: `− ${nf(EX_COMMISSION)} (${COMMISSION_PCT} %) − ${nf(EX_SUB)} (اشتراك، ${EX.courses} دروس)`,
-    inLaterNote: "خلّصك في يدك : ما فما حتى عمولة.",
+    // phase-a lane L3 (A22)
+    inLaterNote: "اليوم : 0 %، ما يتخصم حتى شي.",
     inWithdraw:
-      "في فترة التجربة، التلميذ يخلّصك مباشرة، يد بيد. Tnajem ما تاخذ حتى عمولة وما تلمسش فلوسك. الخلاص أونلاين : قريب.",
+      "في فترة التجربة، Tnajem ما تاخذ حتى عمولة وما تلمسش فلوسك.",
 
     faqEyebrow: "قبل ما تبدا",
     faqTitle: "الأسئلة اللي يسقسيونا عليها",
     q1: "قدّاش تاخذ Tnajem ؟",
-    a1: `والو، اليوم. في فترة التجربة تحتفظ بـ 100 % : التلميذ يخلّصك مباشرة، وTnajem ما تلمسش الفلوس. من بعد باش يوليو زوز حاجات، وعمرها وحدة بلا لأخرى : 10 % على كل تلميذ خلّص، كان على الخلاص اللي يعدّي من Tnajem، زائد اشتراك — فابور بدرس أونلاين واحد في نفس الوقت، ومن ${nf(tnd(requirePlan("essentiel").monthlyMillimes))} دينار في الشهر لفوق. والو على اللي يخلّصك بيه في يدك، ووالو على حصة إنتي اخترت تعطيها بلاش. ونعلموك قبل.`,
+    // phase-a lane L3 (A22)
+    a1: `والو، اليوم. في فترة التجربة تحتفظ بـ 100 % : Tnajem ما تلمسش الفلوس. من بعد باش يوليو زوز حاجات، وعمرها وحدة بلا لأخرى : 10 % على كل تلميذ خلّص، كان على الخلاص اللي يعدّي من Tnajem، زائد اشتراك — فابور بدرس أونلاين واحد في نفس الوقت، ومن ${nf(tnd(requirePlan("essentiel").monthlyMillimes))} دينار في الشهر لفوق. والو على حصة إنتي اخترت تعطيها بلاش. ونعلموك قبل.`,
     q2: "يلزم شهادة ؟",
     a2: "لا. اتقن مادتك، كنكسيون مليحة، وتبدا اليوم. نتثبّتو من هويتك بيدينا قبل ما تتنشر صفحتك.",
     q3: "كان التلميذ ما جاش ؟",
-    a3: "تنجّم تبدّل وقت الحصة من لوحتك — تلامذتك يتعلمو، واللي كانو حاجزين الوقت القديم ينجّمو يلغيو بلا خسارة. وبما إلي حتى خلاص ما يعدّي من Tnajem، أي اتفاق يتعمل مباشرة بيناتكم.",
+    a3: "تنجّم تبدّل وقت الحصة من لوحتك — تلامذتك يتعلمو، واللي كانو حاجزين الوقت القديم ينجّمو يلغيو بلا خسارة.", // phase-a lane L3 (A22)
 
     finalTitle: "صفحتك متاع أستاذ تستنّى فيك.",
     finalSub: "اعملها في دقيقتين.",
@@ -481,6 +489,7 @@ function CrossLink({ label, align = "start" }: { label: string; align?: "start" 
    split that is true today (0 % commission, tutor paid directly). */
 function IncomePanel({ c }: { c: Copy }) {
   const { ref, armed } = useReveal<HTMLDivElement>();
+  const { locale } = useLocale(); // phase-a lane L3 (A22)
   return (
     <div
       ref={ref}
@@ -531,7 +540,11 @@ function IncomePanel({ c }: { c: Copy }) {
 
         <div className="trust trust-dark relative z-[2] mt-[18px]">
           <Shield />
-          <p>{c.inWithdraw}</p>
+          <p>
+            {c.inWithdraw}{" "}
+            {/* phase-a lane L3 (A22): the one payment story, labelled "Bientôt" while payments are off. */}
+            <PaymentStory locale={locale} audience="tutor" />
+          </p>
         </div>
       </div>
     </div>

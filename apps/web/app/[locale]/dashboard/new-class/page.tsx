@@ -50,7 +50,7 @@ const PLAN_LIMIT_CTA = { fr: "Voir les offres", ar: "شوف العروض" } as c
 const copy = bilingual({
   fr: {
     lead: "Un titre, une date, ton prix. Ta classe apparaît sur ta page, et les élèves réservent en un clic.",
-    priceHelp: "Tu fixes ton prix. Tu gardes 100 % — pendant le pilote l'élève te paie directement.",
+    priceHelp: "Tu fixes ton prix. Tu gardes 100 % pendant le pilote : Tnajem ne prend rien.", // phase-a lane L3 (A22)
     // The API reads the typed time as Tunis time, wherever the tutor is (packages/shared/src/time.ts).
     dateHelp: "Heure de Tunisie.",
     verifNote: "Ta classe se publie une fois ton compte vérifié.",
@@ -68,7 +68,7 @@ const copy = bilingual({
   },
   ar: {
     lead: "عنوان، وقت، وثمنك. الحصة تبان في صفحتك، والتلامذة يحجزو بكليكة.",
-    priceHelp: "إنتي تحدّد ثمنك. تحتفظ بـ 100 % — في فترة التجربة التلميذ يخلّصك مباشرة.",
+    priceHelp: "إنتي تحدّد ثمنك. تحتفظ بـ 100 % في فترة التجربة : Tnajem ما تاخذ والو.", // phase-a lane L3 (A22)
     dateHelp: "بتوقيت تونس.",
     verifNote: "الحصة تتنشر كي يتثبّت حسابك.",
     verifCta: "ثبّت حسابي",

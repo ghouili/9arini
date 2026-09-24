@@ -44,8 +44,8 @@ export async function generateMetadata(props: { params: Promise<{ locale: string
      on the site description: /explore lists MANY tutors, so no single answer to
      "is the first session free?" is true of the page. It is per tutor now. */
   const description = ar
-    ? "تصفّح الأساتذة التوانسة المؤكّدين على Tnajem — رياضيات، فيزياء، فرنسية، إنقليزية وأكثر، من الابتدائي للباك. الخلاص بالدينار."
-    : "Parcours les profs particuliers tunisiens vérifiés sur Tnajem — maths, physique, français, anglais et plus, du primaire au Bac. Paiement en dinar.";
+    ? "تصفّح الأساتذة التوانسة المؤكّدين على Tnajem — رياضيات، فيزياء، فرنسية، إنقليزية وأكثر، من الابتدائي للباك." // phase-a lane L3 (A22): "الخلاص بالدينار" removed
+    : "Parcours les profs particuliers tunisiens vérifiés sur Tnajem — maths, physique, français, anglais et plus, du primaire au Bac."; // phase-a lane L3 (A22): "Paiement en dinar" removed
   // Through pageMetadata: a bare openGraph object here replaced the layout's and
   // dropped the og:image, siteName and twitter card from every shared /explore link.
   return pageMetadata({ locale, path: "/explore", title, description });

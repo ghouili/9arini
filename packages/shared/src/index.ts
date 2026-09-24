@@ -41,3 +41,5 @@ export * from "./uploads";
 /* Plans and entitlements (Step 16). Pure numbers and predicates — /tarifs is a
    client component and renders its prices straight from this catalogue. */
 export * from "./plans";
+// phase-a lane L3 (A22): the one payment story (D4). Pure strings — safe in the barrel.
+export * from "./payment-story";

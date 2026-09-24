@@ -9,6 +9,7 @@ import { UserText } from "@/components/UserText";
 import { getClass, reserveSeat } from "@/app/actions";
 import { isOpenForBooking, monthLabel, type ClassItem } from "@tnajem/shared";
 import { bilingual } from "@/lib/i18n";
+import { PaymentStory } from "@/components/PaymentStory"; // phase-a lane L3 (A22)
 
 
 /* Payments are OFF for the pilot (lib/payments.ts). This screen is a free
@@ -35,13 +36,15 @@ const copy = bilingual({
     // ── Money (true for the pilot: Tnajem takes nothing, ever, today) ──
     payTitle: "À payer sur Tnajem",
     payAmount: "0 TND",
-    noCard: "Aucun paiement en ligne. Tu règles ton prof directement.",
+    // phase-a lane L3 (A22): true today; HOW you will pay is <PaymentStory> below, labelled "Bientôt".
+    noCard: "Aucun paiement en ligne pendant le pilote.",
     // phase-a lane L3 (A6): once per student per tutor (D2) — true for every reader.
     freeSession: "Offerte si c'est ta 1ʳᵉ séance avec ce prof.",
+    // phase-a lane L3 (A22): the price only — no second payment story.
     paidSession: (p: number) =>
-      `Cette séance est à ${p} TND — tu la règles directement avec ton prof, après.`,
+      `Cette séance est à ${p} TND.`,
     nextSessions: (p: number) =>
-      `Séances suivantes : ${p} TND, directement avec ton prof, si ça te convient.`,
+      `Séances suivantes : ${p} TND, si ça te convient.`,
 
     // ── What happens next ──
     nextTitle: "Ce qui se passe ensuite",
@@ -88,12 +91,12 @@ const copy = bilingual({
 
     payTitle: "اللي تخلّصو في Tnajem",
     payAmount: "0 د.ت",
-    noCard: "ما فماش خلاص أونلاين. تخلّص أستاذك مباشرة.",
+    noCard: "ما فماش خلاص أونلاين في فترة التجربة.", // phase-a lane L3 (A22)
     freeSession: "فابور كان هي أول حصة ليك مع هالأستاذ.", // phase-a lane L3 (A6)
     paidSession: (p: number) =>
-      `هذه الحصة بـ ${p} د.ت — تخلّصها مباشرة مع أستاذك، من بعد.`,
+      `هذه الحصة بـ ${p} د.ت.`, // phase-a lane L3 (A22)
     nextSessions: (p: number) =>
-      `الحصص الموالية : ${p} د.ت، مباشرة مع أستاذك، كان عجبك.`,
+      `الحصص الموالية : ${p} د.ت، كان عجبك.`,
 
     nextTitle: "شنوّة يصير من بعد",
     next1: "بلاصتك تتحجز في الحين.",
@@ -454,6 +457,10 @@ export default function CheckoutInner() {
           ) : (
             c.paidSession(cls.price_tnd)
           )}
+          {/* phase-a lane L3 (A22): the one payment story, labelled "Bientôt" while payments are off. */}
+          <div className="mt-2">
+            <PaymentStory locale={locale} />
+          </div>
         </div>
       </div>
 
