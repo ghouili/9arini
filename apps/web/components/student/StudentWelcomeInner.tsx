@@ -48,7 +48,8 @@ const COPY = {
 
     phone: "Ton numéro (optionnel)",
     phonePh: "+216 …",
-    phoneHelp: "Pour que ton prof puisse te joindre avant la séance. On ne l'affiche jamais publiquement.",
+    // phase-a A3: the number is Tnajem's, for reminders — never the tutor's way to reach you.
+    phoneHelp: "Uniquement pour les rappels de Tnajem sur tes séances. Ton prof ne le voit jamais.",
     errPhone: "Ce numéro n'est pas valide.",
 
     subjects: "Les matières qui t'intéressent",
@@ -79,7 +80,7 @@ const COPY = {
 
     phone: "نمرتك (اختياري)",
     phonePh: "+216 …",
-    phoneHelp: "باش أستاذك ينجم يتصل بيك قبل الحصة. ما نظهروهاش للناس.",
+    phoneHelp: "نستعملوها كان باش Tnajem تفكّرك بحصصك. أستاذك عمرو ما يشوفها.",
     errPhone: "هذي النمرة موش صحيحة.",
 
     subjects: "المواد اللي تهمّك",
@@ -139,8 +140,9 @@ export function StudentWelcomeInner({
   const [name, setName] = useState(initial.fullName ?? "");
   const [level, setLevel] = useState<string>(initial.level ?? "");
   const [subjects, setSubjects] = useState<string[]>(initial.subjects);
-  /* Optional CONTACT number. Signup is by email now, so this is where a student's
-     phone is collected — and it is what keeps the tutor's call button working. */
+  /* Optional number. Signup is by email now, so this is where a student's phone is
+     collected — for Tnajem's own reminders (SMS), and NEVER shown to the tutor:
+     the zero-contact rule (Step 8) holds for students too (phase-a A3). */
   const [phone, setPhone] = useState(initial.phone ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
