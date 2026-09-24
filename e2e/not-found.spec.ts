@@ -49,7 +49,8 @@ test("a verified tutor's slug still resolves with 200", async ({ page }) => {
   const res = await page.goto(`/fr/${tutor.slug}`);
 
   expect(res?.status(), "a real storefront must not be caught by the 404").toBe(200);
-  await expect(page.locator("main h1"), "the real tutor's page renders").toContainText("Resolvable Tutor");
+  // phase-a lane L2 (A23): shown as first name + initial.
+  await expect(page.locator("main h1"), "the real tutor's page renders").toContainText("Resolvable T.");
 });
 
 test("every top-level route is a reserved slug", () => {

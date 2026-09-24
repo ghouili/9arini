@@ -1,6 +1,7 @@
 import { and, asc, eq, classes as classesT, packs as packsT, tutors } from "@tnajem/db";
 import {
   initials,
+  publicTutorName, // phase-a lane L2 (A23)
   classWhen,
   isEffectivelyFreeFirst,
   type Storefront,
@@ -37,14 +38,18 @@ export async function getStorefrontData(slug: string): Promise<Storefront | null
     .orderBy(asc(classesT.scheduledAt));
   const pks = await db.select().from(packsT).where(eq(packsT.tutorId, t.id));
 
+  /* phase-a lane L2 (A23) — D1: the public page names the tutor "Mohamed B.". The
+     full name never leaves this function; `full_name` keeps its key for the web. */
+  const shownName = publicTutorName(t.fullName) ?? "";
+
   const tutor: Tutor = {
     id: t.id,
     slug: t.slug,
-    full_name: t.fullName,
+    full_name: shownName,
     subject: t.subject,
     level: t.level ?? "Bac",
     bio: t.bio ?? "",
-    avatar_initials: initials(t.fullName),
+    avatar_initials: initials(shownName),
     rating: Number(t.rating ?? 0),
     students_count: t.studentsCount ?? 0,
     verified: Boolean(t.verified),
@@ -59,7 +64,7 @@ export async function getStorefrontData(slug: string): Promise<Storefront | null
     return {
       id: c.id,
       tutor_id: t.id,
-      tutor_name: t.fullName,
+      tutor_name: shownName, // phase-a lane L2 (A23)
       title: c.title,
       description: c.description ?? undefined,
       // starts_at + day/month/time, all in Tunis — never this process's timezone.

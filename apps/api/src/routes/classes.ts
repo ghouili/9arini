@@ -19,6 +19,7 @@ import {
 import { paymentsEnabled, tutorBalanceTnd } from "@tnajem/shared/payments";
 import { resolveMeetUrl } from "@tnajem/shared/live";
 import type { Role } from "@tnajem/shared"; // phase-a lane L2 (A17)
+import { publicTutorName } from "@tnajem/shared"; // phase-a lane L2 (A23)
 import { db } from "../db";
 import { getSession } from "../lib/session";
 import { recomputeTutorStats } from "../lib/stats";
@@ -236,7 +237,7 @@ export async function classRoutes(app: FastifyInstance): Promise<void> {
     return {
       id: c.id,
       tutor_id: c.tutorId,
-      tutor_name: tut?.fullName ?? "",
+      tutor_name: isOwner ? (tut?.fullName ?? "") : (publicTutorName(tut?.fullName) ?? ""), // phase-a lane L2 (A23): D1, the owner sees their own full name
       title: c.title,
       description: c.description ?? undefined,
       ...classWhen(d), // Tunis time

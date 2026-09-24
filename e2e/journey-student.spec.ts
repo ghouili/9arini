@@ -20,7 +20,10 @@ test("student journey: minor signup → consent → explore → book → live ga
   test.setTimeout(240_000);
   await resetRateLimits();
 
-  const tutorName = `Nour Journey ${randomBytes(2).toString("hex")}`;
+  /* phase-a lane L2 (A23): students see "first name + initial", so the unique part
+     lives in the FIRST name — the only part a student can search for or read. */
+  const tutorFirst = `Nour${randomBytes(2).toString("hex")}`;
+  const tutorName = `${tutorFirst} Journey`;
   const tutorProfile = await seedProfile({ role: "tutor", birthYear: 1984 });
   const tutor = await seedTutor({ profileId: tutorProfile.id, status: "verified", fullName: tutorName });
   const early = await seedClass({ tutorId: tutor.id, hoursFromNow: 96, priceTnd: 30, isFreeFirst: false });
@@ -67,10 +70,10 @@ test("student journey: minor signup → consent → explore → book → live ga
 
   await test.step("explore → storefront → class page → checkout: the seat is claimed", async () => {
     await page.goto("/fr/explore");
-    await page.locator('input[type="search"]').fill(tutorName);
+    await page.locator('input[type="search"]').fill(tutorFirst);
     await page.locator(`a[href="/fr/${tutor.slug}"]`).first().click();
     await page.waitForURL(new RegExp(`/fr/${tutor.slug}$`));
-    await expect(page.locator("main h1").first()).toContainText(tutorName);
+    await expect(page.locator("main h1").first()).toContainText(`${tutorFirst} J.`); // phase-a lane L2 (A23)
     await page.locator(`a[href="/fr/class/${early.id}"]`).first().click();
     await page.waitForURL(new RegExp(`/fr/class/${early.id}`));
     await page.locator("a.cd-cta").first().click();

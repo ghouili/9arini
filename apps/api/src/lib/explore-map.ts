@@ -1,4 +1,5 @@
 import { initials, type ExploreTutor } from "@tnajem/shared";
+import { publicTutorName } from "@tnajem/shared"; // phase-a lane L2 (A23)
 
 /* One explore card. Split out only so routes/tutors.ts stays readable; the shape
    is exactly what apps/web rendered before the port. */
@@ -23,13 +24,16 @@ export function toExploreTutor(
      ship an UNLABELLED boosted card. */
   featured = false,
 ): ExploreTutor {
+  /* phase-a lane L2 (A23) — D1: "Mohamed B." on Explore and in search results;
+     the last name is never sent. `full_name` keeps its key for the web. */
+  const shownName = publicTutorName(t.fullName) ?? "";
   return {
     slug: t.slug,
-    full_name: t.fullName,
+    full_name: shownName,
     subject: t.subject,
     level: t.level ?? "",
     bio: t.bio ?? "",
-    avatar_initials: initials(t.fullName),
+    avatar_initials: initials(shownName),
     /* Straight from the reviews table — tutors.rating is only a cached mirror, and
        a tutor with no reviews must show 0 (the UI renders "Nouveau"), never a
        fabricated score. */

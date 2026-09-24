@@ -82,7 +82,7 @@ test.describe("static rendering and 404s", () => {
     expect(first.headers["cache-control"]).toContain("s-maxage=60");
     const second = await head(request, `/fr/${tutor.slug}`);
     expect(second.headers["x-nextjs-cache"]).toBe("HIT");
-    expect(second.body).toContain("Cached Storefront Tutor");
+    expect(second.body).toContain("Cached S."); // phase-a lane L2 (A23): first name + initial
   });
 
   test("unknown URLs are a localized 404 that is never cached", async ({ request }) => {
