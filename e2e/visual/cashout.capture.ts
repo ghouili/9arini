@@ -10,12 +10,14 @@ import { BASE_URL } from "../support/env";
    like option-a.capture.ts) is run against servers started WITH the flag:
      PAYMENTS_ENABLED=1 on both servers, then
      npx playwright test -c e2e/visual/visual.config.ts cashout
+   Set E2E_PAYMENTS_ON=1 for the run (it skips otherwise).
    It asserts the button is the ochre primary (no longer green) and saves
    screenshots to ui-a-plus/cashout-*.png. */
 
 const OUT = resolve("ui-a-plus");
 
 test("cash-out (payments on): ochre btn-primary on the dashboard and the payout page", async ({ browser }) => {
+  test.skip(process.env.E2E_PAYMENTS_ON !== "1", "needs servers started with PAYMENTS_ENABLED=1 (set E2E_PAYMENTS_ON=1)");
   await mkdir(OUT, { recursive: true });
   const profile = await seedProfile({ role: "tutor", birthYear: 1990, fullName: "Yassine Kallel" });
   await seedTutor({ status: "verified", profileId: profile.id, fullName: "Yassine Kallel" });
