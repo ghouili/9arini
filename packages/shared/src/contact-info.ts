@@ -129,6 +129,79 @@ const EMAIL_RE = new RegExp(
 const PLATFORM_RE =
   /(whats\s*app|wa\.me|واتساب|واتس اب|telegram|t\.me|تلغرام|تيليجرام|viber|signal\b|messenger|instagram|insta\b|انستا|انستغرام|snap\s*chat|سناب|tiktok|تيك توك|facebook|فيسبوك|\bfb\b|discord|skype|zoom\.us|imo\b)/giu;
 
+/* ── Phase A+ · P1 (A29) ───────────────────────────────────────────────────────
+   SOFT platform words: "snap" and "wa" are ordinary words too ("un snap de la
+   leçon", Derija "wa" = "and"), so they count as a platform ONLY when a handle
+   follows them. The hard names above count on their own, as before. */
+const SOFT_PLATFORM_RE = /(?<![\p{L}\d])(snap|wa)(?![\p{L}\d.])/giu;
+
+/* A HANDLE after a platform name, within the next 3 tokens: "snap: amine.ben",
+   "tiktok amine_tn". Handle-like = ASCII word characters and dots, 3+ long, AND
+   either a dot, underscore or digit in it (what a handle has and a word does not),
+   or it is the first word after "platform:". A plain word after the platform
+   ("tiktok demain") is left alone — prose, not an address. Only the handle's own
+   characters are masked, never the words in between. */
+const HANDLE_TOKEN = /^[A-Za-z0-9._]{3,}$/;
+const TOKEN_EDGE = /[:：,;!?"'«»()[\]]/;
+function handleAfter(text: string, from: number): { start: number; end: number } | null {
+  const colon = /^\s*[:：]/.test(text.slice(from, from + 4));
+  const re = /\S+/g;
+  re.lastIndex = from;
+  let seen = 0;
+  for (let t = re.exec(text); t && seen < 3; t = re.exec(text)) {
+    let s = t.index;
+    let e = t.index + t[0].length;
+    while (s < e && TOKEN_EDGE.test(text[s])) s++;
+    while (e > s && (TOKEN_EDGE.test(text[e - 1]) || text[e - 1] === ".")) e--;
+    if (s === e) continue; // punctuation on its own ("snap : …") is not a token
+    const tok = text.slice(s, e);
+    if (HANDLE_TOKEN.test(tok) && (/[._\d]/.test(tok) || (colon && seen === 0))) return { start: s, end: e };
+    seen++;
+  }
+  return null;
+}
+
+/* A PHONE WRITTEN HALF IN WORDS: "vingt-quatre 555 666", "vingt quatre, 555, 666".
+   A run of number words and digit groups is ONE candidate; it is a phone when it
+   holds at least one word AND one digit group and adds up to 8+ digits. Word
+   values are approximate on purpose (a tens word = 2 digits, "vingt-quatre" = 2,
+   a unit = 1): the only question is "is this long enough to be a number". Pure
+   digit runs stay with PHONE_RE (and its year/price exclusions); pure word runs
+   stay with SPELLED_RE. */
+const UNIT_FR = "z[ée]ro|un|deux|trois|quatre|cinq|six|sept|huit|neuf";
+const TEEN_FR = "dix|onze|douze|treize|quatorze|quinze|seize";
+const TENS_FR = "vingt|trente|quarante|cinquante|soixante|septante|huitante|octante|nonante|cent";
+const NUM_WORD = `(?:${UNIT_FR}|${TEEN_FR}|${TENS_FR}|${NUM_WORDS_AR})`;
+const MIXED_TOKEN = `(?:\\d+|(?<![\\p{L}])${NUM_WORD}(?![\\p{L}]))`;
+const MIXED_RE = new RegExp(`${MIXED_TOKEN}(?:[\\s,.\\-]+${MIXED_TOKEN})+`, "giu");
+function mixedDigitCount(run: string): number {
+  let total = 0;
+  let words = 0;
+  let groups = 0;
+  let prev: "unit" | "tens" | "teen" | "digits" | null = null;
+  for (const tok of run.split(/[\s,.\-]+/).filter(Boolean)) {
+    const w = tok.toLowerCase();
+    if (/^\d+$/.test(w)) { total += w.length; groups++; prev = "digits"; continue; }
+    words++;
+    if (new RegExp(`^(?:${TENS_FR})$`).test(w)) {
+      total += prev === "unit" && w === "vingt" ? 1 : 2; // quatre-vingt: the unit already counted 1
+      prev = "tens";
+    } else if (new RegExp(`^(?:${TEEN_FR})$`).test(w)) {
+      total += prev === "tens" ? 0 : 2; // soixante-dix, quatre-vingt-dix
+      prev = "teen";
+    } else {
+      total += prev === "tens" ? 0 : 1; // vingt-quatre: one two-digit number
+      prev = "unit";
+    }
+  }
+  return words > 0 && groups > 0 ? total : 0;
+}
+
+/* Email with a SPACE before "@" is only an email when a real TLD follows. People
+   do write "amine @ gmail . com" to dodge filters — but "c'est @amine.ben" is a
+   handle after a word, and reading it as est@amine.ben masked "est" (P1). */
+const EMAIL_TLD = /\.\s*(?:com|net|org|fr|tn|io|me|co|edu|gov|info|biz|de|uk|be|ch|ca|us|eu|app|dev|ma|dz|it|es)\s*$|(?:\(|\[|\{)\s*dot|\s+dot\s+/i;
+
 /* An @handle. Requires 3+ characters so it cannot fire on "@" alone, and is
    anchored to a non-word boundary so an email's local part is not double-counted
    (the email rule already covers that case and reports it more precisely). */
@@ -221,7 +294,7 @@ export function detectContactInfo(input: string | null | undefined): ContactScan
 
   /* Email FIRST: an address contains dots and would otherwise be reported as a
      URL too, which tells a moderator less, not more. */
-  scan(EMAIL_RE, "email", digits);
+  scan(EMAIL_RE, "email", digits, (raw) => !/\s@/.test(raw) || EMAIL_TLD.test(raw)); // P1: "c'est @amine.ben" is not est@amine.ben
 
   scan(URL_RE, "url", digits, (raw) => {
     const host = hostOf(raw);
@@ -239,6 +312,8 @@ export function detectContactInfo(input: string | null | undefined): ContactScan
   );
 
   scan(SPELLED_RE, "spelled-digits", digits);
+  // P1: a phone written half in words and half in digits.
+  scan(MIXED_RE, "phone", digits, (raw) => mixedDigitCount(raw) >= 8);
   scan(PLATFORM_RE, "social-platform", digits);
   /* A platform name with an address glued to it covers the address too
      (phase-a A1): the handle after "instagram/" is the part that reaches someone. */
@@ -247,6 +322,19 @@ export function detectContactInfo(input: string | null | undefined): ContactScan
     PLATFORM_TAIL.lastIndex = m.end;
     const tail = PLATFORM_TAIL.exec(digits);
     if (tail) m.end += tail[0].length;
+  }
+  /* P1: the soft names ("snap", "wa") are a platform only when a handle follows. */
+  SOFT_PLATFORM_RE.lastIndex = 0;
+  for (const m of digits.matchAll(SOFT_PLATFORM_RE)) {
+    if (m.index === undefined) continue;
+    if (handleAfter(digits, m.index + m[0].length)) push("social-platform", m.index, m.index + m[0].length);
+  }
+  /* P1: every platform name also masks the handle that follows it — the handle's
+     own characters only, so the words in between survive. */
+  for (const m of [...matches]) {
+    if (m.kind !== "social-platform") continue;
+    const h = handleAfter(digits, m.end);
+    if (h) push("social-handle", h.start, h.end);
   }
   scan(HANDLE_RE, "social-handle", digits);
 

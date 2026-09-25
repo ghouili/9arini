@@ -351,3 +351,71 @@ describe("contactFieldPaths — the structural guard for whole payloads", () => 
     assert.deepEqual(contactFieldPaths({ bio: "Bac 2025, 50 TND, exercice 24" }), []);
   });
 });
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   Phase A+ · P1 (A29) — the gaps found on 24 Sept.
+
+   1. A platform named without a link ("snap: amine.ben", "tiktok amine_tn") left
+      the handle readable: only a glued "/path" extended the mask.
+   2. A phone written half in words ("vingt-quatre 555 666") had only 6 digits
+      and nothing spelled-out long enough, so it went through whole.
+   3. Over-masking: "mon insta c'est @amine.ben" lost "est" — the email rule read
+      "est @amine.ben" as est@amine.ben.
+   ══════════════════════════════════════════════════════════════════════════════ */
+describe("P1 — a platform's handle, a half-spelled number, and nothing more", () => {
+  const leaks: [string, string[]][] = [
+    ["snap: amine.ben", ["amine.ben"]],
+    ["snapchat amine.ben", ["amine.ben"]],
+    ["mon insta: amine.ben", ["amine.ben"]],
+    ["ajoute moi sur tiktok amine_tn", ["amine_tn"]],
+    ["whatsapp vingt-quatre 555 666", ["555 666"]],
+    ["appelle: vingt quatre, 555, 666", ["555"]],
+    ["wa: 24 555 666", ["555 666"]],
+  ];
+  for (const [input, forbidden] of leaks) {
+    test(`${JSON.stringify(input)} leaks none of ${JSON.stringify(forbidden)}`, () => {
+      const out = maskContactInfo(input);
+      for (const f of forbidden) {
+        assert.ok(!out.includes(f), `${JSON.stringify(input)} -> ${JSON.stringify(out)} still contains ${JSON.stringify(f)}`);
+      }
+    });
+  }
+
+  /* The invariant, over the new cases AND the ten A1 cases: what the mask leaves
+     must not itself scan as contact info. */
+  const A1 = [
+    "wa.me/21624555666", "https://wa.me/21624555666?text=salut", "t.me/amine_tn", "facebook.com/amine.ben",
+    "www.instagram.com/amine.ben/", "216 24 555 666", "+216 24 555 666", "00216-24-555-666",
+    "wa . me / 216 24 555 666", "mon insta c'est @amine.ben",
+  ];
+  for (const input of [...leaks.map(([i]) => i), ...A1]) {
+    test(`${JSON.stringify(input)}: the mask is a fixed point`, () => {
+      const out = maskContactInfo(input);
+      const again = detectContactInfo(out);
+      assert.equal(again.found, false, `${JSON.stringify(out)} still scans as ${again.kinds.join(",")}`);
+    });
+  }
+
+  test("only the handle goes: 'mon insta c'est @amine.ben' keeps 'mon' and 'c'est'", () => {
+    const out = maskContactInfo("mon insta c'est @amine.ben");
+    assert.ok(out.includes("mon"), out);
+    assert.ok(out.includes("c'est"), out);
+    assert.ok(!out.includes("amine.ben"), out);
+  });
+
+  const untouched = [
+    "2024-2025",
+    "x = 24 555",
+    "le cours coûte 45 TND",
+    "rdv à 14h30",
+    "si x < 5 alors y > 2",
+    "chapitre 3.2.1",
+    "page 216",
+    "snap de la leçon", // a platform word with no handle after it
+  ];
+  for (const input of untouched) {
+    test(`${JSON.stringify(input)} comes out unchanged`, () => {
+      assert.equal(maskContactInfo(input), input);
+    });
+  }
+});
