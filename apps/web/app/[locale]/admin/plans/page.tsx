@@ -28,9 +28,6 @@ const copy = bilingual({
     eyebrow: "ADMIN",
     title: "Offres des profs",
     // phase-a lane L5 (A18.15): admin nav
-    toVerifications: "Vérifications",
-    toAccounts: "Comptes",
-    toModeration: "Modération",
     count: (n: number) => (n === 1 ? "1 prof" : `${n} profs`),
     loading: "Chargement…",
     deniedTitle: "Accès réservé",
@@ -84,9 +81,6 @@ const copy = bilingual({
     eyebrow: "أدمين",
     title: "عروض الأساتذة",
     // phase-a lane L5 (A18.15)
-    toVerifications: "التثبّت",
-    toAccounts: "الحسابات",
-    toModeration: "المراقبة",
     count: (n: number) => (n === 1 ? "أستاذ واحد" : `${n} أساتذة`),
     loading: "قاعد يحمّل…",
     deniedTitle: "الدخول محجوز",

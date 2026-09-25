@@ -43,3 +43,7 @@ test-results/
 playwright-report/
 # UI Option A before/after screenshots (e2e/visual/option-a.capture.ts). Local only.
 ui-option-a/
+# Local Claude Code state (worktrees, agent scratch). Never committed. (Phase A+ U5)
+.claude/
+# Phase A+ screenshots (ui:shots-a → ui-a-plus/after, the cash-out capture). Local only.
+ui-a-plus/

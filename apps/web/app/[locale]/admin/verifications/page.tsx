@@ -17,9 +17,6 @@ const copy = bilingual({
   fr: {
     eyebrow: "ADMIN",
     title: "Vérifications en attente",
-    toAccounts: "Bloquer ou débloquer un compte",
-    toModeration: "Signalements et photos",
-    toPlans: "Offres des profs", // phase-a lane L5 (A18.15)
     count: (n: number) => (n === 1 ? "1 demande" : `${n} demandes`),
     loading: "Chargement des demandes…",
     deniedTitle: "Accès réservé",
@@ -69,9 +66,6 @@ const copy = bilingual({
   ar: {
     eyebrow: "أدمين",
     title: "الطلبات اللي تستنّى",
-    toAccounts: "احظر ولا نحّي الحظر على حساب",
-    toModeration: "التبليغات والتصاور",
-    toPlans: "عروض الأساتذة", // phase-a lane L5 (A18.15)
     count: (n: number) => (n === 1 ? "طلب واحد" : `${n} طلبات`),
     loading: "قاعدين نحمّلو الطلبات…",
     deniedTitle: "الدخول محجوز",
