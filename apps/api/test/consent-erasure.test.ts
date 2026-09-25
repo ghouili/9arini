@@ -20,7 +20,7 @@ before(async () => {
 });
 after(async () => {
   for (const id of erasedProfiles) {
-    await sql`delete from admin_actions where subject_id = ${id}`;
+    // Audit rows stay: admin_actions is append-only since Phase A+ (0031).
     await sql`delete from sessions where profile_id = ${id}`;
     await sql`delete from profiles where id = ${id}`;
   }

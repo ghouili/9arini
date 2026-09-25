@@ -179,14 +179,15 @@ export async function subscriptionRoutes(app: FastifyInstance): Promise<void> {
         note: note.value,
         expiresAt,
       });
+      // Phase A+ (P3): the grant and its audit row commit together.
+      await auditAdmin(
+        session.profile.id,
+        "subscription.grant",
+        { kind: "tutor", id: tutor.id },
+        [code, months ? `${months}m` : "open-ended", note.value ?? ""].filter(Boolean).join(" · "),
+        tx,
+      );
     });
-
-    await auditAdmin(
-      session.profile.id,
-      "subscription.grant",
-      { kind: "tutor", id: tutor.id },
-      [code, months ? `${months}m` : "open-ended", note.value ?? ""].filter(Boolean).join(" · "),
-    );
 
     /* The plan changes /explore ordering and the tutor's own cached storefront,
        so both drop. A tutor granted Pro who does not move for an hour reads as
@@ -217,21 +218,19 @@ export async function subscriptionRoutes(app: FastifyInstance): Promise<void> {
       .limit(1);
     if (!tutor) return { ok: false, error: "not-found" };
 
-    const closed = await db
-      .update(subscriptions)
-      .set({ status: "cancelled", note: note.value })
-      .where(and(eq(subscriptions.tutorId, tutor.id), eq(subscriptions.status, "active")))
-      .returning({ id: subscriptions.id });
+    // Phase A+ (P3): the revocation and its audit row commit together.
+    const closed = await db.transaction(async (tx) => {
+      const rows = await tx
+        .update(subscriptions)
+        .set({ status: "cancelled", note: note.value })
+        .where(and(eq(subscriptions.tutorId, tutor.id), eq(subscriptions.status, "active")))
+        .returning({ id: subscriptions.id });
+      if (rows.length > 0) await auditAdmin(session.profile.id, "subscription.revoke", { kind: "tutor", id: tutor.id }, note.value, tx);
+      return rows;
+    });
 
     // Idempotent: revoking nothing is not an error, it is the state being asked for.
     if (closed.length === 0) return { ok: true, already: true };
-
-    await auditAdmin(
-      session.profile.id,
-      "subscription.revoke",
-      { kind: "tutor", id: tutor.id },
-      note.value,
-    );
     return { ok: true, revalidate: { tutors: [tutor.slug], publicTutors: true } };
   });
 }

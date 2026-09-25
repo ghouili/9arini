@@ -38,7 +38,7 @@ before(async () => {
 
 after(async () => {
   if (consentIds.length) {
-    await sql`delete from admin_actions where subject_kind = 'consent' and subject_id in ${sql(consentIds)}`;
+    // Audit rows stay: admin_actions is append-only since Phase A+ (0031).
   }
   const people = [...minorIds, ...guardianIds];
   if (people.length) {

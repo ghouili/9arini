@@ -23,7 +23,7 @@ before(async () => {
 after(async () => {
   for (const c of cleanups) {
     await rm(join(storageBase(), "avatars", c.tutorId), { recursive: true, force: true });
-    await sql`delete from admin_actions where subject_id = ${c.profileId}`;
+    // Audit rows stay: admin_actions is append-only since Phase A+ (0031).
     await sql`delete from verification_traces where tutor_id = ${c.tutorId}`;
     await sql`delete from retired_slugs where slug_hash = ${slugHash(c.slug)}`;
     await sql`delete from rate_limits where key like ${`%${c.profileId}%`}`.catch(() => undefined);

@@ -32,7 +32,7 @@ before(async () => {
 });
 after(async () => {
   if (tutorIds.length) await sql`delete from subscriptions where tutor_id in ${sql(tutorIds)}`;
-  await sql`delete from admin_actions where admin_profile_id = ${adminId}`;
+  // Audit rows stay: admin_actions is append-only since Phase A+ (0031).
   for (const [k, v] of Object.entries(saved)) {
     if (v === undefined) delete process.env[k];
     else process.env[k] = v;

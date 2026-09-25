@@ -10,15 +10,18 @@ import { db } from "../db";
    tutor?" has an answer, and so an admin knows their actions are attributable
    before they take one.
 
-   ── WHY IT NEVER THROWS ──────────────────────────────────────────────────────
-   Failing a moderation action because its log line could not be written would
-   make the audit trail a liveness dependency of moderation itself: the day the
-   table has a problem, nobody can remove abusive content. The action is the
-   thing that protects users; the log describes it.
-
-   That is a deliberate trade and it has a cost — a lost row is a gap nobody
-   notices — so the failure is LOGGED loudly rather than swallowed, which is what
-   makes the gap findable.
+   ── NO AUDIT ROW, NO ACTION (Phase A+ · P3, D13) ────────────────────────────
+   This used to swallow a failed write ("a moderation action must not depend on
+   its log line"). The cost of that trade was an action with no record — and the
+   table was not even tamper-proof. Both are closed now:
+     • admin_actions is APPEND-ONLY in the database (0031: a trigger refuses any
+       UPDATE or DELETE, save the FK's own set-null when a profile is deleted);
+     • the write THROWS. Callers pass their transaction (`q`), so the action and
+       its row commit together or not at all — approve, reject, block, unblock,
+       hide, report resolution, plan grant/revoke, avatar and takedown decisions.
+       A failed audit write fails the request and changes nothing.
+   The failure is still logged as an `audit_write_failed` event first, so an alert
+   sees it even when the caller's own error handling is terse.
 
    ── WHAT MUST NOT GO IN `note` ───────────────────────────────────────────────
    Third-party personal data. A note reading "removed — contained the student's
@@ -42,14 +45,18 @@ export async function auditAdminStrict(
   });
 }
 
+/** Anything that can run an insert: `db`, or the caller's transaction. */
+type Writer = Pick<typeof db, "insert">;
+
 export async function auditAdmin(
   adminProfileId: string | null,
   action: string,
   subject: { kind: string; id: string } | null,
   note?: string | null,
+  q: Writer = db,
 ): Promise<void> {
   try {
-    await db.insert(adminActions).values({
+    await q.insert(adminActions).values({
       adminProfileId,
       action,
       subjectKind: subject?.kind ?? null,
@@ -67,5 +74,6 @@ export async function auditAdmin(
       subjectId: subject?.id,
       detail: (err as { code?: string }).code ?? (err as Error).name,
     });
+    throw err; // Phase A+ (P3): no audit row, no action — the caller's transaction rolls back.
   }
 }

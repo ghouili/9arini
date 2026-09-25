@@ -159,10 +159,10 @@ export async function adminAccountRoutes(app: FastifyInstance): Promise<void> {
       if (!row) return false;
       if (t) await tx.update(tutors).set({ suspendedAt: new Date() }).where(eq(tutors.id, t.id));
       await tx.delete(sessions).where(eq(sessions.profileId, p.id));
+      await auditAdmin(session.profile.id, "account.block", { kind: "profile", id: p.id }, null, tx); // Phase A+ (P3)
       return true;
     });
     if (!blocked) return { ok: true, already: true };
-    await auditAdmin(session.profile.id, "account.block", { kind: "profile", id: p.id });
 
     /* 2. Then release everyone the account was holding. Students are told the class
        will not take place — never that the tutor was blocked. */
@@ -214,10 +214,10 @@ export async function adminAccountRoutes(app: FastifyInstance): Promise<void> {
         .set({ suspendedAt: null })
         .where(eq(tutors.profileId, profileId.value))
         .returning({ slug: tutors.slug });
+      await auditAdmin(session.profile.id, "account.unblock", { kind: "profile", id: profileId.value }, null, tx); // Phase A+ (P3)
       return { slug: t?.slug ?? null };
     });
     if (!result) return { ok: false, error: "not-found" };
-    await auditAdmin(session.profile.id, "account.unblock", { kind: "profile", id: profileId.value });
 
     /* Classes cancelled by the block stay cancelled: students were told they would
        not happen. The tutor publishes new ones. */

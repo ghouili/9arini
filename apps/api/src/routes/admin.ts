@@ -506,14 +506,17 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
         if (d && expectedName !== null && t.profileId) {
           await tx.update(profiles).set({ fullName: d.fullName }).where(eq(profiles.id, t.profileId));
         }
+        // Phase A+ (P3): the audit row commits WITH the decision, or neither does.
+        if (d) {
+          await auditAdmin(session.profile.id, "verification.approve", { kind: "tutor", id: t.id },
+            expectedName !== null ? "re-review: rename" : "re-review: documents", tx);
+        }
         return d;
       });
       if (!decidedRe) {
         const [now] = await db.select().from(tutors).where(eq(tutors.id, t.id)).limit(1);
         return { ok: false, error: now && hasOpenReReview(now) ? "changed-since-review" : "not-pending" };
       }
-      await auditAdmin(session.profile.id, "verification.approve", { kind: "tutor", id: t.id },
-        expectedName !== null ? "re-review: rename" : "re-review: documents");
       if (t.profileId) {
         await notify(db, t.profileId, {
           kind: "verification_approved",
@@ -527,24 +530,28 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
       return { ok: true, revalidate: { tutors: [t.slug], publicTutors: true } };
     }
 
-    const [decided] = await db
-      .update(tutors)
-      .set({ status: "verified", verified: true, reviewedAt: new Date(), reviewNote: null })
-      .where(
-        and(
-          eq(tutors.id, tutorId.value),
-          eq(tutors.status, "pending"),
-          versionCond,
-          // phase-a lane L4 (A15): re-checked in the UPDATE, like the status and version.
-          declarationCond,
-        ),
-      )
-      .returning({ id: tutors.id });
+    // Phase A+ (P3): the verification and its audit row commit together, or neither does.
+    const decided = await db.transaction(async (tx) => {
+      const [d] = await tx
+        .update(tutors)
+        .set({ status: "verified", verified: true, reviewedAt: new Date(), reviewNote: null })
+        .where(
+          and(
+            eq(tutors.id, tutorId.value),
+            eq(tutors.status, "pending"),
+            versionCond,
+            // phase-a lane L4 (A15): re-checked in the UPDATE, like the status and version.
+            declarationCond,
+          ),
+        )
+        .returning({ id: tutors.id });
+      if (d) await auditAdmin(session.profile.id, "verification.approve", { kind: "tutor", id: t.id }, null, tx);
+      return d;
+    });
     if (!decided) {
       const [now] = await db.select({ status: tutors.status }).from(tutors).where(eq(tutors.id, tutorId.value)).limit(1);
       return { ok: false, error: now?.status === "pending" ? "changed-since-review" : "not-pending" };
     }
-    await auditAdmin(session.profile.id, "verification.approve", { kind: "tutor", id: t.id });
 
     if (t.profileId) {
       await notify(db, t.profileId, {
@@ -589,13 +596,16 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
        tutor stays verified under the approved name. Un-verifying a live tutor is
        still an account block, never this. */
     if (hasOpenReReview(t)) {
-      const [decidedRe] = await db
-        .update(tutors)
-        .set({ pendingFullName: null, reviewedAt: new Date(), reviewNote: note.value })
-        .where(and(eq(tutors.id, t.id), openReReviewSql))
-        .returning({ id: tutors.id });
+      const decidedRe = await db.transaction(async (tx) => {
+        const [d] = await tx
+          .update(tutors)
+          .set({ pendingFullName: null, reviewedAt: new Date(), reviewNote: note.value })
+          .where(and(eq(tutors.id, t.id), openReReviewSql))
+          .returning({ id: tutors.id });
+        if (d) await auditAdmin(session.profile.id, "verification.reject", { kind: "tutor", id: t.id }, "re-review: stays verified", tx); // Phase A+ (P3)
+        return d;
+      });
       if (!decidedRe) return { ok: false, error: "not-pending" };
-      await auditAdmin(session.profile.id, "verification.reject", { kind: "tutor", id: t.id }, "re-review: stays verified");
       if (t.profileId) {
         await notify(db, t.profileId, {
           kind: "verification_rejected",
@@ -611,15 +621,19 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
        undocumented way to un-verify a live tutor — no reason required, no audit
        row, their bookings untouched. Taking a verified tutor down is an account
        block (routes/admin-accounts.ts), which says what happens to their classes. */
-    const [decided] = await db
-      .update(tutors)
-      .set({ status: "rejected", verified: false, reviewedAt: new Date(), reviewNote: note.value })
-      .where(and(eq(tutors.id, tutorId.value), eq(tutors.status, "pending")))
-      .returning({ id: tutors.id });
-    if (!decided) return { ok: false, error: "not-pending" };
     /* The reason stays in tutors.review_note; the audit row records the decision,
-       not a second copy of text written about a person. */
-    await auditAdmin(session.profile.id, "verification.reject", { kind: "tutor", id: t.id });
+       not a second copy of text written about a person. Phase A+ (P3): one
+       transaction — no rejection without its row. */
+    const decided = await db.transaction(async (tx) => {
+      const [d] = await tx
+        .update(tutors)
+        .set({ status: "rejected", verified: false, reviewedAt: new Date(), reviewNote: note.value })
+        .where(and(eq(tutors.id, tutorId.value), eq(tutors.status, "pending")))
+        .returning({ id: tutors.id });
+      if (d) await auditAdmin(session.profile.id, "verification.reject", { kind: "tutor", id: t.id }, null, tx);
+      return d;
+    });
+    if (!decided) return { ok: false, error: "not-pending" };
 
     if (t.profileId) {
       await notify(db, t.profileId, {

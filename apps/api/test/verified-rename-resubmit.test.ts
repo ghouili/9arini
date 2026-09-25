@@ -40,7 +40,7 @@ after(async () => {
     for (const d of docs) await objectStore().delete(d.storage_path).catch(() => "missing");
     await objectStore().pruneEmpty(`verification/${id}`).catch(() => undefined);
     await sql`delete from verification_docs where tutor_id = ${id}`;
-    await sql`delete from admin_actions where subject_id = ${id}`;
+    // Audit rows stay: admin_actions is append-only since Phase A+ (0031).
     await sql`delete from rate_limits where key like ${`%${id}%`}`.catch(() => undefined);
   }
   await stopApp(app);

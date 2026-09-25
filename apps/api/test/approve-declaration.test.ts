@@ -22,7 +22,7 @@ before(async () => {
   adminCookie = await login(admin.id);
 });
 after(async () => {
-  for (const id of tutorIds) await sql`delete from admin_actions where subject_id = ${id}`;
+  // Audit rows stay: admin_actions is append-only since Phase A+ (0031).
   await stopApp(app);
 });
 
