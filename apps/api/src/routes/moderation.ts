@@ -232,22 +232,19 @@ export async function moderationRoutes(app: FastifyInstance): Promise<void> {
     if (!r) return { ok: false, error: "not-found" };
     if (r.status !== "open") return { ok: true, already: true }; // idempotent
 
-    await db
-      .update(reports)
-      .set({
-        status: parsed.data.action,
-        resolvedAt: raw`now()`,
-        resolvedBy: session.profile.id,
-        resolutionNote: note.value,
-      })
-      .where(eq(reports.id, r.id));
-
-    await auditAdmin(
-      session.profile.id,
-      `report.${parsed.data.action}`,
-      { kind: "report", id: r.id },
-      note.value,
-    );
+    // Phase A+ (P3): the resolution and its audit row commit together.
+    await db.transaction(async (tx) => {
+      await tx
+        .update(reports)
+        .set({
+          status: parsed.data.action,
+          resolvedAt: raw`now()`,
+          resolvedBy: session.profile.id,
+          resolutionNote: note.value,
+        })
+        .where(eq(reports.id, r.id));
+      await auditAdmin(session.profile.id, `report.${parsed.data.action}`, { kind: "report", id: r.id }, note.value, tx);
+    });
     return { ok: true };
   });
 
@@ -282,35 +279,40 @@ export async function moderationRoutes(app: FastifyInstance): Promise<void> {
     if (!isUuid(id)) return { ok: false, error: "not-found" };
 
     const set = { hiddenAt: raw`now()`, hiddenBy: session.profile.id, hiddenReason: reason.value };
-    let hidden: { id: string } | undefined;
+    const kind = parsed.data.kind;
+    const reportId = parsed.data.reportId;
+    /* Phase A+ (P3): the hide, its audit row, the report it answers and THAT audit
+       row are one transaction — content is never hidden without a record. */
+    const hidden = await db.transaction(async (tx) => {
+      const [h] = kind === "message"
+        ? await tx.update(messages).set(set)
+            .where(and(eq(messages.id, id), isNull(messages.hiddenAt)))
+            .returning({ id: messages.id })
+        : await tx.update(reviews).set(set)
+            .where(and(eq(reviews.id, id), isNull(reviews.hiddenAt)))
+            .returning({ id: reviews.id });
+      if (!h) return null;
+      await auditAdmin(session.profile.id, `${kind}.hide`, { kind, id }, null, tx);
+      if (reportId && isUuid(reportId)) {
+        const [closed] = await tx
+          .update(reports)
+          .set({ status: "actioned", resolvedAt: raw`now()`, resolvedBy: session.profile.id, resolutionNote: "content hidden" })
+          .where(and(eq(reports.id, reportId), eq(reports.status, "open"), eq(reports.subjectId, id)))
+          .returning({ id: reports.id });
+        if (closed) await auditAdmin(session.profile.id, "report.actioned", { kind: "report", id: closed.id }, "content hidden", tx);
+      }
+      return h;
+    });
+    if (!hidden) {
+      if (!(await subjectExists(kind, id))) return { ok: false, error: "not-found" };
+      return { ok: true, already: true }; // hidden by someone else first: idempotent
+    }
     let revalidateSlug: string | null = null;
-    if (parsed.data.kind === "message") {
-      [hidden] = await db.update(messages).set(set)
-        .where(and(eq(messages.id, id), isNull(messages.hiddenAt)))
-        .returning({ id: messages.id });
-      if (!hidden && !(await subjectExists("message", id))) return { ok: false, error: "not-found" };
-    } else {
-      [hidden] = await db.update(reviews).set(set)
-        .where(and(eq(reviews.id, id), isNull(reviews.hiddenAt)))
-        .returning({ id: reviews.id });
-      if (!hidden && !(await subjectExists("review", id))) return { ok: false, error: "not-found" };
+    if (kind === "review") {
       // The public storefront's review feed is cached: the hide must reach it now.
       const [t] = await db.select({ slug: tutors.slug }).from(reviews)
         .innerJoin(tutors, eq(reviews.tutorId, tutors.id)).where(eq(reviews.id, id)).limit(1);
       revalidateSlug = t?.slug ?? null;
-    }
-    if (!hidden) return { ok: true, already: true }; // hidden by someone else first: idempotent
-
-    await auditAdmin(session.profile.id, `${parsed.data.kind}.hide`, { kind: parsed.data.kind, id });
-
-    const reportId = parsed.data.reportId;
-    if (reportId && isUuid(reportId)) {
-      const [closed] = await db
-        .update(reports)
-        .set({ status: "actioned", resolvedAt: raw`now()`, resolvedBy: session.profile.id, resolutionNote: "content hidden" })
-        .where(and(eq(reports.id, reportId), eq(reports.status, "open"), eq(reports.subjectId, id)))
-        .returning({ id: reports.id });
-      if (closed) await auditAdmin(session.profile.id, "report.actioned", { kind: "report", id: closed.id }, "content hidden");
     }
 
     return { ok: true, ...(revalidateSlug ? { revalidate: { tutors: [revalidateSlug] } } : {}) };

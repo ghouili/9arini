@@ -169,10 +169,10 @@ export default function AccountPage() {
             >
               <div className="flex items-center gap-3 min-w-0">
                 <div
-                  className="w-10 h-10 min-w-10 rounded-[11px] bg-green50 grid place-items-center shrink-0"
+                  className="w-10 h-10 min-w-10 rounded-[11px] bg-blue50 grid place-items-center shrink-0" /* Phase A+ (U1): decorative, not a success */
                   aria-hidden="true"
                 >
-                  <Phone style={{ width: 18, height: 18, stroke: "var(--green)" }} />
+                  <Phone style={{ width: 18, height: 18, stroke: "var(--blue)" }} />
                 </div>
                 <span className="text-[15px] font-semibold min-w-0">{t.account.help}</span>
               </div>

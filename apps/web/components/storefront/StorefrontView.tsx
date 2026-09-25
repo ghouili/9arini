@@ -29,6 +29,7 @@ import {
   Calendar,
   Check,
   Gift,
+  Info, // Phase A+ (U1)
 } from "@/components/icons";
 import { SiteShell } from "@/components/SiteShell";
 import { UserText } from "@/components/UserText";
@@ -586,8 +587,9 @@ export function StorefrontView({
                     </Link>
 
                     {/* What is actually true in the pilot: nothing is charged here. */}
-                    <div className="trust sf-trust">
-                      <Shield />
+                    {/* Phase A+ (U1): information, in blue — green is Vérifié and success only. */}
+                    <div className="note-info sf-trust">
+                      <Info />
                       <p>
                         {c.payDirect}{" "}
                         {/* phase-a lane L3 (A22) */}
@@ -750,8 +752,8 @@ export function StorefrontView({
         /* ── packs (informational only — nothing is purchasable) ── */
         .sf-packs{list-style:none;display:grid;gap:8px;margin:0;padding:0}
         .sf-pack{flex-direction:row;gap:12px;align-items:center;padding:12px 14px}
-        .sf-pack-ic{flex:none;width:40px;height:40px;border-radius:12px;background:var(--green50);
-          color:var(--green);display:grid;place-items:center}
+        .sf-pack-ic{flex:none;width:40px;height:40px;border-radius:12px;background:var(--blue50);
+          color:var(--blue);display:grid;place-items:center} /* Phase A+ (U1): a decorative tile, not a success */
         .sf-pack-main{min-width:0;flex:1}
         .sf-pack-price{flex:none;margin-inline-start:auto;text-align:end;display:grid;gap:2px}
         .sf-pack-price b{font-family:var(--fd);font-size:15px;color:var(--ink);white-space:nowrap}

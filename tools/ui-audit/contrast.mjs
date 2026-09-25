@@ -64,7 +64,11 @@ const PAIRS = [
   // UI Option A (A5): the three status tags.
   ["Chips", "--ochre-ink", "--ochre-tint", "normal", ".tag-soon (Bientôt / Pas encore facturé)", "globals.css .tag-soon"],
   ["Chips", "--blue700", "--blue50", "normal", ".tag-neutral (Nouveau prof / levels / Recommandé)", "globals.css .tag-neutral"],
+  ["Chips", "--blue700", "--blue50", "normal", "pilot tag \"Pilote · réservé aux 18 ans et +\" (FR + AR, .tag-neutral)", "components/PilotTag.tsx"],
   ["Chips", "--green-ink", "--green50", "normal", ".tag-success", "globals.css .tag-success"],
+  // Phase A+ (U3): "En direct" — paper + ink, the rose dot.
+  ["Chips", "--ink", "--paper", "normal", ".tag-live label (dashboard, live room, Pour les profs mock)", "globals.css .tag-live"],
+  ["UI (advisory)", "--rose", "--paper", "ui", ".tag-live rose dot", "globals.css .tag-live::before"],
   ["Chips", "--blue", "--blue50", "normal", ".thumb month", "globals.css:148"],
 
   // ── body / meta text on every surface ──
@@ -89,6 +93,9 @@ const PAIRS = [
   ["Body text", "--muted", "--blue50", "normal", ".thumb span", "globals.css:150"],
   ["Body text", "--muted", "--green50", "normal", ".muted in green callout", "globals.css:178"],
   ["Body text", "--green-ink", "--green50", "normal", ".trust p / .cd-callout", "globals.css:180"],
+  // Phase A+ (U1): information is blue.
+  ["Body text", "--blue700", "--blue50", "normal", ".note-info text / .cd-callout / .ck-cancel", "globals.css .note-info"],
+  ["UI (advisory)", "--blue", "--blue50", "ui", ".note-info icon", "globals.css .note-info>.ic"],
 
   // ── coloured text on light surfaces ──
   ["Accent text", "--blue", "--paper", "normal", ".linklike / .sec a", "globals.css:313"],

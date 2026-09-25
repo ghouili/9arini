@@ -25,9 +25,6 @@ const copy = bilingual({
     eyebrow: "ADMIN",
     title: "Comptes",
     lead: "Cherche un compte par son email pour le bloquer ou le débloquer.",
-    toVerifications: "Vérifications en attente",
-    toModeration: "Signalements et photos",
-    toPlans: "Offres des profs", // phase-a lane L5 (A18.15)
     emailLabel: "Email du compte",
     search: "Chercher",
     searching: "Recherche…",
@@ -63,9 +60,6 @@ const copy = bilingual({
     eyebrow: "أدمين",
     title: "الحسابات",
     lead: "لوّج على حساب بالإيميل متاعو باش تحظرو ولا تنحّي الحظر.",
-    toVerifications: "الطلبات اللي تستنّى",
-    toModeration: "التبليغات والتصاور",
-    toPlans: "عروض الأساتذة", // phase-a lane L5 (A18.15)
     emailLabel: "إيميل الحساب",
     search: "لوّج",
     searching: "قاعد يلوّج…",

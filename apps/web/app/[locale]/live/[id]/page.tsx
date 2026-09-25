@@ -251,8 +251,9 @@ export default function LiveLobbyPage(props: Props) {
               <Link href="/student" className="iconbtn" aria-label={t.common.back} style={{ background: "rgba(255,255,255,.12)", color: "#fff" }}>
                 <Back />
               </Link>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "rgba(226,72,61,.18)", color: "var(--rose200)", border: "1px solid rgba(226,72,61,.4)", fontWeight: 700, fontSize: 13, padding: "5px 12px", borderRadius: 999 }}>
-                {isLive && <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--rose200)", animation: "blink 1.1s infinite" }} />}
+              {/* Phase A+ (U3): the shared live pill (paper, ink, a rose dot) while live;
+                  a neutral tag for the other states. */}
+              <span className={isLive ? "tag tag-live" : "tag tag-neutral"}>
                 {isLive ? c.liveNow : ended ? c.ended : showCountdown ? t.live.tag : c.startsAt}
               </span>
             </div>

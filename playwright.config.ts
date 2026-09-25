@@ -119,5 +119,25 @@ export default defineConfig({
         ALLOW_MINORS: "1",
       },
     },
+    /* Phase A+ (P4): the SAME build, a second web process with ALLOW_MINORS UNSET.
+       The adults-only pilot tag must show exactly when the flag is off, and the web
+       server above runs with it on (the consent specs need it). Nothing is rebuilt:
+       Playwright starts these in order, so the build above is done by now.
+       e2e/pilot-tag.spec.ts reaches it through E2E_PILOT_BASE_URL. */
+    {
+      command: "npm run start:standalone -w @tnajem/web",
+      url: "http://localhost:3212/fr",
+      reuseExistingServer: REUSE,
+      timeout: 120_000,
+      env: {
+        ...SERVER_TZ,
+        PORT: "3212",
+        STORAGE_DIR: resolve(process.env.E2E_STORAGE_DIR ?? ".e2e-storage"),
+        ADMIN_EMAILS: "e2e-admin@tnajem.invalid",
+        API_URL: "http://127.0.0.1:4000",
+        NEXT_PUBLIC_SUPPORT_WHATSAPP: "",
+        ALLOW_MINORS: "", // blank beats .env, as with MAIL_* above
+      },
+    },
   ],
 });

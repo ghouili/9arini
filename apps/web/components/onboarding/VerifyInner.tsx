@@ -534,7 +534,7 @@ export function VerifyInner({ state }: { state: OnboardingState | null }) {
               to photograph their national ID for a brand they met 90 seconds ago;
               the reassurance used to sit only UNDER the upload, where it argues
               with a decision already made. */}
-          <div className="trust mb-4">
+          <div className="note-info mb-4">{/* Phase A+ (U1): information, in blue */}
             <Shield />
             <div className="min-w-0">
               <b className="block text-[13px] font-bold mb-1">{c.whyTitle}</b>
@@ -574,7 +574,7 @@ export function VerifyInner({ state }: { state: OnboardingState | null }) {
           ))}
 
           {/* INPDP reassurance */}
-          <div className="trust mt-1">
+          <div className="note-info mt-1">
             <Lock />
             <p>{c.inpdp}</p>
           </div>

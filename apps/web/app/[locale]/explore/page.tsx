@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ExploreClient } from "@/components/explore/ExploreClient";
 import { getExploreTutors } from "@/app/actions";
+import { minorsAllowed } from "@tnajem/shared"; // Phase A+ (P4)
 import { isLocale, DEFAULT_LOCALE, type AppLocale } from "@/lib/locale";
 import { pageMetadata } from "@/lib/metadata";
 
@@ -56,5 +57,6 @@ export default async function ExplorePage() {
   // [] (real DB, no verified tutor yet) → honest empty state.
   // [..] → the real, verified catalogue, rendered into the SSR HTML.
   const initial = await getExploreTutors({});
-  return <ExploreClient initial={initial} />;
+  // Phase A+ (P4): this route renders per request, so the flag is the server's, now.
+  return <ExploreClient initial={initial} adultsOnly={!minorsAllowed()} />;
 }

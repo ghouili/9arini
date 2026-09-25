@@ -32,9 +32,6 @@ const copy = bilingual({
     eyebrow: "ADMIN",
     title: "Modération",
     lead: "Signalements, demandes de retrait et photos à valider.",
-    toVerifications: "Vérifications",
-    toAccounts: "Comptes",
-    toPlans: "Offres", // phase-a lane L5 (A18.15)
     deniedTitle: "Accès réservé",
     deniedNote: "Cette page est réservée aux administrateurs.",
     signIn: "Se connecter",
@@ -82,9 +79,6 @@ const copy = bilingual({
     eyebrow: "أدمين",
     title: "المراقبة",
     lead: "التبليغات، طلبات السحب والتصاور اللي تستنّى.",
-    toVerifications: "التثبّت",
-    toAccounts: "الحسابات",
-    toPlans: "العروض", // phase-a lane L5 (A18.15)
     deniedTitle: "الدخول محجوز",
     deniedNote: "الصفحة هاذي محجوزة للأدمين برك.",
     signIn: "ادخل",

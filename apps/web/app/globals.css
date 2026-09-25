@@ -94,6 +94,9 @@
 /* keyframes — global (cascade layers don't apply to @keyframes) */
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes live-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.7)}}
+/* The live dot pulses ONLY for visitors who have not asked for reduced motion. */
+@media (prefers-reduced-motion: no-preference){.tag-live::before{animation:live-pulse 1.4s ease-in-out infinite}}
 
 @layer base {
   *{box-sizing:border-box;margin:0;padding:0}
@@ -156,7 +159,6 @@
   .btn:disabled{opacity:.5;cursor:not-allowed}
   .btn-primary{background:var(--ochre-btn);color:#fff;box-shadow:0 14px 24px -12px rgba(224,133,46,.85)}
   .btn-primary:hover:not(:disabled){background:var(--ochre-btn-hover)}
-  .btn-green{background:var(--green-btn);color:#fff;box-shadow:0 14px 24px -12px rgba(27,156,111,.8)}
   .btn-ghost{background:transparent;border:1.5px solid var(--line);color:var(--ink)}
   /* UI Option A (A3): the cobalt OUTLINE — a way in ("Tableau de bord", "Mes cours"
      in the header), not the screen's main action. Near-black is text only now:
@@ -204,6 +206,11 @@
   .tag-soon{background:var(--ochre-tint);color:var(--ochre-ink)}
   .tag-neutral{background:var(--blue50);color:var(--blue700)}
   .tag-success{background:var(--green50);color:var(--green-ink)}
+  /* Phase A+ (U3): "En direct". Paper and ink, with an 8px rose dot — the dot is
+     the only red, which keeps it apart from "Annulée" (.chip-rose). On the dark
+     phone mock and the live room the paper pill still reads. */
+  .tag-live{background:var(--paper);color:var(--ink);border:1px solid var(--line)}
+  .tag-live::before{content:"";width:8px;height:8px;border-radius:999px;background:var(--rose);flex:none}
   /* UI Option A (A4): VERIFIED IS GREEN — the one place green means "checked by
      Tnajem". --green-btn carries the white tick (4.61:1), and a 2px white ring
      keeps the badge readable on the cobalt storefront banner. */
@@ -299,6 +306,20 @@
   .trust{display:flex;gap:11px;align-items:flex-start;padding:13px 14px;background:var(--green50);border-radius:14px;min-width:0}
   .trust .ic{color:var(--green);width:22px;height:22px;flex:none;margin-top:1px}
   .trust p{font-size:13px;color:var(--green-ink);line-height:1.55;min-width:0;overflow-wrap:anywhere}
+  /* UI Phase A+ (U1): INFORMATION IS BLUE. Green is the Vérifié badge and real
+     success only, so every informational box that was a green .trust — the payment
+     note, the pilot banners, the payout note, the ID-upload notes — is a .note-info.
+     .trust keeps its rules for .trust-dark (on the dark panels) below. */
+  .note-info{display:flex;gap:11px;align-items:flex-start;padding:13px 14px;background:var(--blue50);color:var(--blue700);border-radius:14px;min-width:0}
+  .note-info>.ic{color:var(--blue);width:20px;height:20px;flex:none;margin-top:1px}
+  /* Direct children only: a tag nested inside (the "Bientôt" of PaymentStory) keeps its own colours. */
+  .note-info>p,.note-info>span{font-size:13px;color:var(--blue700);line-height:1.55;min-width:0;overflow-wrap:anywhere}
+  .note-info>p>b{color:var(--blue700)}
+  /* The one payment sentence always STARTS its own line with its "Bientôt" tag —
+     "[◷ Bientôt] Tu paies en ligne, via Tnajem, avant la séance." — never in the
+     middle of the sentence before it (PaymentStory). */
+  .payment-story{display:block;margin-block-start:6px}
+  .payment-story:first-child{margin-block-start:0}
   /* .trust on a DARK surface (the tutor-landing income panel). It used to be
      spelled out as three inline styles overriding .trust's green-on-green — the
      only way to win, since a Tailwind utility (0,1,0) loses to `.trust .ic`

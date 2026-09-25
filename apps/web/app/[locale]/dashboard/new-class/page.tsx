@@ -477,8 +477,8 @@ export default function NewClassPage() {
                       gap: 14,
                       cursor: ffDisabled ? "not-allowed" : "pointer",
                       opacity: ffDisabled ? 0.6 : 1,
-                      border: freeFirst && !ffDisabled ? "2px solid var(--green)" : "1px solid var(--line)",
-                      background: freeFirst && !ffDisabled ? "var(--green50)" : "var(--paper)",
+                      border: freeFirst && !ffDisabled ? "2px solid var(--blue)" : "1px solid var(--line)", // Phase A+ (U1): a selected state is cobalt
+                      background: freeFirst && !ffDisabled ? "var(--blue50)" : "var(--paper)",
                       transition: ".15s",
                     }}
                   >
@@ -490,7 +490,7 @@ export default function NewClassPage() {
                         minWidth: 22,
                         borderRadius: 7,
                         border: freeFirst && !ffDisabled ? "none" : "2px solid var(--line)",
-                        background: freeFirst && !ffDisabled ? "var(--green)" : "transparent",
+                        background: freeFirst && !ffDisabled ? "var(--blue)" : "transparent",
                         display: "grid",
                         placeItems: "center",
                         flexShrink: 0,

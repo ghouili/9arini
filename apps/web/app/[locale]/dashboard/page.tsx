@@ -654,8 +654,8 @@ function FreeFirstPanel({ d, c }: { d: DashboardData; c: CopyDict }) {
              the last control on this page that should be easy to mis-tap. */
           className="flex items-center gap-2.5 flex-none rounded-[12px] px-3 py-2 text-[14px] font-semibold min-h-11"
           style={{
-            border: on ? "2px solid var(--green)" : "1px solid var(--line)",
-            background: on ? "var(--green50)" : "var(--paper)",
+            border: on ? "2px solid var(--blue)" : "1px solid var(--line)", // Phase A+ (U1): a selected state is cobalt
+            background: on ? "var(--blue50)" : "var(--paper)",
             color: "inherit",
             cursor: busy ? "default" : "pointer",
             opacity: busy ? 0.65 : 1,
@@ -666,7 +666,7 @@ function FreeFirstPanel({ d, c }: { d: DashboardData; c: CopyDict }) {
             className="w-[22px] h-[22px] rounded-[7px] grid place-items-center flex-none"
             style={{
               border: on ? "none" : "2px solid var(--line)",
-              background: on ? "var(--green)" : "transparent",
+              background: on ? "var(--blue)" : "transparent",
               transition: ".15s",
             }}
           >
@@ -875,13 +875,14 @@ function BookingsPanel({ d }: { d: DashboardData }) {
 
 // phase-a lane L5 (A18.10): À venir · En direct · Terminée · Annulée.
 function PhaseChip({ phase, c }: { phase: ClassPhase; c: CopyDict }) {
-  const [label, kind] =
-    phase === "live" ? [c.phaseLive, "chip-free"]
-      : phase === "done" ? [c.phaseDone, "chip-sand"]
-      : phase === "cancelled" ? [c.phaseCancelled, "chip-rose"]
-      : [c.phaseUpcoming, "chip-soft"];
+  // Phase A+ (U3): "En direct" is the paper pill with a rose dot (.tag-live) — never green.
+  const [label, cls] =
+    phase === "live" ? [c.phaseLive, "tag tag-live"]
+      : phase === "done" ? [c.phaseDone, "chip chip-sand"]
+      : phase === "cancelled" ? [c.phaseCancelled, "chip chip-rose"]
+      : [c.phaseUpcoming, "chip chip-soft"];
   return (
-    <span className={`chip ${kind} mt-1.5`} data-e2e="class-phase" data-phase={phase}>
+    <span className={`${cls} mt-1.5`} data-e2e="class-phase" data-phase={phase}>
       {label}
     </span>
   );
@@ -986,7 +987,7 @@ function RealDashboard(
               key={p.id}
               style={{ display: "flex", gap: 12, alignItems: "center", padding: "13px 0", borderBottom: "1px solid var(--line)" }}
             >
-              <div aria-hidden="true" className="w-10 h-10 rounded-[12px] grid place-items-center flex-none bg-green50 text-green">
+              <div aria-hidden="true" className="w-10 h-10 rounded-[12px] grid place-items-center flex-none bg-blue50 text-blue" /* Phase A+ (U1): decorative, not a success — as the storefront pack tile */>
                 <Book />
               </div>
               <div className="flex-1 min-w-0">
@@ -1024,7 +1025,7 @@ function RealDashboard(
       {d.paymentsEnabled && (
         <div className="mb-[clamp(14px,2vw,22px)]">
           <Link href="/dashboard/payout">
-            <Button variant="green">
+            <Button variant="primary">{/* Phase A+ (U3): the one main action, ochre — green is Vérifié/success */}
               <Wallet />
               {t.dashboard.cashout}
             </Button>

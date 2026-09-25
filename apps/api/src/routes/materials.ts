@@ -685,15 +685,19 @@ export async function materialRoutes(app: FastifyInstance): Promise<void> {
        earlier (security review, 15 Sept 2026). The version and the status are
        conditions of the UPDATE itself. */
     const reviewedPath = `${t.avatarPath.slice(0, t.avatarPath.lastIndexOf("/") + 1)}${parsed.data.version}`;
-    const [decided] = await db
-      .update(tutors)
-      .set({ avatarStatus: parsed.data.approve ? "approved" : "rejected" })
-      .where(and(eq(tutors.id, t.id), eq(tutors.avatarStatus, "pending"), eq(tutors.avatarPath, reviewedPath)))
-      .returning({ id: tutors.id });
+    // Phase A+ (P3): the decision and its audit row commit together.
+    const decided = await db.transaction(async (tx) => {
+      const [d] = await tx
+        .update(tutors)
+        .set({ avatarStatus: parsed.data.approve ? "approved" : "rejected" })
+        .where(and(eq(tutors.id, t.id), eq(tutors.avatarStatus, "pending"), eq(tutors.avatarPath, reviewedPath)))
+        .returning({ id: tutors.id });
+      if (d) await auditAdmin(session.profile.id, parsed.data.approve ? "avatar.approve" : "avatar.reject", { kind: "tutor", id: t.id }, null, tx);
+      return d;
+    });
     if (!decided) {
       return { ok: false, error: t.avatarStatus === "pending" ? "changed-since-review" : "not-pending" };
     }
-    await auditAdmin(session.profile.id, parsed.data.approve ? "avatar.approve" : "avatar.reject", { kind: "tutor", id: t.id });
 
     /* An approval changes a PUBLIC page and the catalogue, so both caches go. */
     return { ok: true, revalidate: { tutors: [t.slug], publicTutors: true } };
@@ -802,6 +806,8 @@ export async function materialRoutes(app: FastifyInstance): Promise<void> {
           resolvedBy: session.profile.id,
         })
         .where(eq(materialTakedowns.id, claim.id));
+      // Phase A+ (P3): the decision's audit row commits with it.
+      await auditAdmin(session.profile.id, parsed.data.uphold ? "takedown.upheld" : "takedown.rejected", { kind: "material", id: claim.materialId }, null, tx);
 
       if (!m) return;
       if (!parsed.data.uphold) return;
@@ -820,7 +826,6 @@ export async function materialRoutes(app: FastifyInstance): Promise<void> {
         .values({ tutorId: m.tutorId, takedownId: claim.id, reason: "copyright-takedown" })
         .onConflictDoNothing();
     });
-    await auditAdmin(session.profile.id, parsed.data.uphold ? "takedown.upheld" : "takedown.rejected", { kind: "material", id: claim.materialId });
 
     return { ok: true };
   });

@@ -100,9 +100,10 @@ const PAGE_CSS = `
   .cd-cur{font-size:.72em;font-weight:600;color:var(--muted)}
   .cd-then{font-size:13px;color:var(--muted);font-weight:600;margin-top:3px;line-height:1.4}
 
-  .cd-callout{margin-top:14px;padding:11px 13px;background:var(--green50);border-radius:13px;
-    font-size:13px;color:var(--green-ink);line-height:1.55;display:flex;gap:9px;align-items:flex-start}
-  .cd-callout .ic{color:var(--green);flex:none;width:17px;height:17px;margin-top:1px}
+  /* Phase A+ (U1): information, in blue (was green). */
+  .cd-callout{margin-top:14px;padding:11px 13px;background:var(--blue50);border-radius:13px;
+    font-size:13px;color:var(--blue700);line-height:1.55;display:flex;gap:9px;align-items:flex-start}
+  .cd-callout .ic{color:var(--blue);flex:none;width:17px;height:17px;margin-top:1px}
 
   /* ── tutor card ── */
   .cd-tutor{flex-direction:row;align-items:center;gap:14px}

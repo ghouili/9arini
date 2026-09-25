@@ -40,7 +40,7 @@ after(async () => {
     for (const d of docs) await objectStore().delete(d.storage_path).catch(() => "missing");
     await objectStore().pruneEmpty(`verification/${id}`).catch(() => undefined);
     await sql`delete from verification_docs where tutor_id = ${id}`;
-    await sql`delete from admin_actions where subject_id = ${id}`;
+    // Audit rows stay: admin_actions is append-only since Phase A+ (0031).
     await sql`delete from rate_limits where key like ${`%${id}%`}`.catch(() => undefined);
   }
   await stopApp(app);
@@ -68,7 +68,8 @@ async function storefrontName(slug: string): Promise<string | null> {
 }
 
 async function inExplore(slug: string): Promise<{ full_name: string } | undefined> {
-  const res = await call(app, "GET", `/tutors/explore?q=${encodeURIComponent("Seeded by an API test")}`, null);
+  // Phase A+ (P2): Explore search no longer reads the bio; the slug finds exactly this tutor.
+  const res = await call(app, "GET", `/tutors/explore?q=${encodeURIComponent(slug)}`, null);
   return (res.body as { slug: string; full_name: string }[]).find((r) => r.slug === slug);
 }
 

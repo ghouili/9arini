@@ -31,7 +31,7 @@ before(async () => {
   adminCookie = await login(admin.id);
 });
 after(async () => {
-  for (const id of subjectIds) await sql`delete from admin_actions where subject_id = ${id}`;
+  // Audit rows stay: admin_actions is append-only since Phase A+ (0031).
   for (const id of reportIds) await sql`delete from reports where id = ${id}`;
   for (const id of reviewIds) await sql`delete from reviews where id = ${id}`;
   for (const id of threadIds) await sql`delete from message_threads where id = ${id}`; // messages cascade

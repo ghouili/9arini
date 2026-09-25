@@ -262,7 +262,7 @@ function ConsentInner() {
             )}
 
             <Button
-              variant="green"
+              variant="primary" /* Phase A+ (U3): the form's main action is ochre */
               onClick={handleSubmit}
               disabled={!canSubmit}
             >
