@@ -7,6 +7,7 @@ import { Verified } from "@/components/ui";
 import { Shield, Gift, Forward, Search, Video, Wallet, Users } from "@/components/icons";
 import { bilingual } from "@/lib/i18n";
 import { PaymentStory } from "@/components/PaymentStory"; // phase-a lane L3 (A22)
+import { PilotTag } from "@/components/PilotTag"; // Phase A+ (P4)
 
 /* =====================================================================
    STUDENT / PARENT LANDING — Tnajem (تنجّم)
@@ -329,7 +330,12 @@ export default function HomePage() {
           <div className="web-hero">
             {/* LEFT — headline, one primary CTA, the payment truth */}
             <div className="flex min-w-0 flex-col gap-5">
-              <p className="web-eyebrow">{c.eyebrow}</p>
+              {/* Phase A+ (P4): the adults-only pilot tag beside the eyebrow. min-h keeps the
+                  row the tag's height either way, so its arrival after hydration shifts nothing. */}
+              <div className="flex min-h-[28px] flex-wrap items-center gap-x-3 gap-y-2">
+                <p className="web-eyebrow">{c.eyebrow}</p>
+                <PilotTag />
+              </div>
 
               <h1 className="web-h1 max-w-[640px]">
                 {c.h1a}

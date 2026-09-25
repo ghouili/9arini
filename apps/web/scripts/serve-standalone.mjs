@@ -66,7 +66,14 @@ if (!serverDir) {
   process.exit(1);
 }
 
-await cp(join(appRoot, ".next", "static"), join(serverDir, ".next", "static"), { recursive: true });
+/* force:false — copy what is missing, never overwrite. Two processes started on ONE
+   build (e2e: the suite's server plus the ALLOW_MINORS-unset one, Phase A+ P4) used
+   to both overwrite the same files, and on Windows the second copy hit a file the
+   first was serving: EBUSY, and the first server died. Static chunks are
+   content-hashed, so a file that already exists is the same file. public/ is NOT
+   hashed (an image can change under the same name), so it still overwrites — and
+   its copy was already best-effort. */
+await cp(join(appRoot, ".next", "static"), join(serverDir, ".next", "static"), { recursive: true, force: false, errorOnExist: false });
 await cp(join(appRoot, "public"), join(serverDir, "public"), { recursive: true }).catch(() => {});
 
 const port = process.env.PORT || "3000";

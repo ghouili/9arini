@@ -64,6 +64,7 @@ const PAIRS = [
   // UI Option A (A5): the three status tags.
   ["Chips", "--ochre-ink", "--ochre-tint", "normal", ".tag-soon (Bientôt / Pas encore facturé)", "globals.css .tag-soon"],
   ["Chips", "--blue700", "--blue50", "normal", ".tag-neutral (Nouveau prof / levels / Recommandé)", "globals.css .tag-neutral"],
+  ["Chips", "--blue700", "--blue50", "normal", "pilot tag \"Pilote · réservé aux 18 ans et +\" (FR + AR, .tag-neutral)", "components/PilotTag.tsx"],
   ["Chips", "--green-ink", "--green50", "normal", ".tag-success", "globals.css .tag-success"],
   ["Chips", "--blue", "--blue50", "normal", ".thumb month", "globals.css:148"],
 

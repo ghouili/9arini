@@ -28,6 +28,7 @@ import { SiteShell } from "@/components/SiteShell";
 import { TutorStanding } from "@/components/TutorStanding";
 import { UserText } from "@/components/UserText";
 import { getExploreTutors } from "@/app/actions";
+import { PilotTag } from "@/components/PilotTag"; // Phase A+ (P4)
 import { demoStorefrontList } from "@/lib/demo";
 import { tutorStanding, type ExploreTutor } from "@tnajem/shared";
 import { bilingual } from "@/lib/i18n";
@@ -131,7 +132,8 @@ const SUBJECT_FILTERS = [
 const termFor = (slug: string): string | undefined =>
   SUBJECT_FILTERS.find((s) => s.slug === slug)?.term;
 
-export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
+/** adultsOnly: read per request by the (force-dynamic) server page — Phase A+ (P4). */
+export function ExploreClient({ initial, adultsOnly = false }: { initial: ExploreTutor[] | null; adultsOnly?: boolean }) {
   const { t, locale } = useLocale();
   const c = copy[locale === "ar" ? "ar" : "fr"];
 
@@ -242,9 +244,12 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
       <section className="border-b border-solid border-line bg-band">
         <div className="container py-10 sm:py-12">
           {/* Eyebrow + heading */}
-          <p className="mb-2 font-display text-[13px] font-semibold uppercase tracking-[0.16em] text-muted">
-            {t.nav.explore}
-          </p>
+          <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+            <p className="font-display text-[13px] font-semibold uppercase tracking-[0.16em] text-muted">
+              {t.nav.explore}
+            </p>
+            <PilotTag adultsOnly={adultsOnly} /> {/* Phase A+ (P4) */}
+          </div>
           <h1 className="web-h2 mb-2">{t.extra.featured}</h1>
           <p className="mb-6 max-w-[560px] text-[14.5px] leading-relaxed text-muted">{c.heroSub}</p>
 
