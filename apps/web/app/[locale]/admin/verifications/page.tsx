@@ -475,7 +475,7 @@ export default function AdminVerificationsPage() {
                     <div className="av-actions">
                       <div className="av-approve">
                         <Button
-                          variant="green"
+                          variant="primary" /* Phase A+ (U3): the card's main action is ochre */
                           onClick={() => handleApprove(t.tutorId, t.submittedAt, t.pendingName ?? null)}
                           disabled={disabled}
                         >

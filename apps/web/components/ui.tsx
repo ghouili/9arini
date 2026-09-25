@@ -11,7 +11,7 @@ import { Clock } from "./icons";
 
 type BtnProps = {
   children: ReactNode;
-  variant?: "primary" | "green" | "ghost" | "outline";
+  variant?: "primary" | "ghost" | "outline";
   sm?: boolean;
   onClick?: () => void;
   type?: "button" | "submit";
@@ -39,7 +39,6 @@ type BtnProps = {
    back into a template. */
 const BTN_VARIANT = {
   primary: "btn-primary",
-  green: "btn-green",
   ghost: "btn-ghost",
   outline: "btn-outline", // UI Option A (A3)
 } as const;

@@ -875,13 +875,14 @@ function BookingsPanel({ d }: { d: DashboardData }) {
 
 // phase-a lane L5 (A18.10): À venir · En direct · Terminée · Annulée.
 function PhaseChip({ phase, c }: { phase: ClassPhase; c: CopyDict }) {
-  const [label, kind] =
-    phase === "live" ? [c.phaseLive, "chip-free"]
-      : phase === "done" ? [c.phaseDone, "chip-sand"]
-      : phase === "cancelled" ? [c.phaseCancelled, "chip-rose"]
-      : [c.phaseUpcoming, "chip-soft"];
+  // Phase A+ (U3): "En direct" is the paper pill with a rose dot (.tag-live) — never green.
+  const [label, cls] =
+    phase === "live" ? [c.phaseLive, "tag tag-live"]
+      : phase === "done" ? [c.phaseDone, "chip chip-sand"]
+      : phase === "cancelled" ? [c.phaseCancelled, "chip chip-rose"]
+      : [c.phaseUpcoming, "chip chip-soft"];
   return (
-    <span className={`chip ${kind} mt-1.5`} data-e2e="class-phase" data-phase={phase}>
+    <span className={`${cls} mt-1.5`} data-e2e="class-phase" data-phase={phase}>
       {label}
     </span>
   );
@@ -1024,7 +1025,7 @@ function RealDashboard(
       {d.paymentsEnabled && (
         <div className="mb-[clamp(14px,2vw,22px)]">
           <Link href="/dashboard/payout">
-            <Button variant="green">
+            <Button variant="primary">{/* Phase A+ (U3): the one main action, ochre — green is Vérifié/success */}
               <Wallet />
               {t.dashboard.cashout}
             </Button>

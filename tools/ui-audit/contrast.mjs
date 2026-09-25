@@ -66,6 +66,9 @@ const PAIRS = [
   ["Chips", "--blue700", "--blue50", "normal", ".tag-neutral (Nouveau prof / levels / Recommandé)", "globals.css .tag-neutral"],
   ["Chips", "--blue700", "--blue50", "normal", "pilot tag \"Pilote · réservé aux 18 ans et +\" (FR + AR, .tag-neutral)", "components/PilotTag.tsx"],
   ["Chips", "--green-ink", "--green50", "normal", ".tag-success", "globals.css .tag-success"],
+  // Phase A+ (U3): "En direct" — paper + ink, the rose dot.
+  ["Chips", "--ink", "--paper", "normal", ".tag-live label (dashboard, live room, Pour les profs mock)", "globals.css .tag-live"],
+  ["UI (advisory)", "--rose", "--paper", "ui", ".tag-live rose dot", "globals.css .tag-live::before"],
   ["Chips", "--blue", "--blue50", "normal", ".thumb month", "globals.css:148"],
 
   // ── body / meta text on every surface ──

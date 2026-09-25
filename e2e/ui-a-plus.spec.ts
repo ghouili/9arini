@@ -1,4 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
+import { seedProfile, seedTutor, seedClass } from "./support/seed";
+import { loginAs } from "./support/session";
+import { BASE_URL } from "./support/env";
 
 /* Phase A+ — UI follow-ups to Option A. Colours are asserted as COMPUTED values. */
 
@@ -64,5 +67,51 @@ test.describe("U2 — the header CTA is a blue outline for everyone", () => {
       return { bg: s.backgroundColor, color: s.color };
     });
     expect(cta).toEqual({ bg: "rgba(0, 0, 0, 0)", color: "rgb(14, 90, 166)" });
+  });
+});
+
+/* ── U3: "En direct" is never green ───────────────────────────────────────────── */
+const GREENS = ["rgb(23, 133, 95)", "rgb(27, 156, 111)", "rgb(227, 244, 237)"]; // --green-btn, --green, --green50
+
+async function liveLabels(page: Page) {
+  // Every element whose own text is the live label, with its and its parent's background.
+  return page.locator("body *").evaluateAll((els) =>
+    els
+      .filter((el) => /^(en direct|live|دايركت|مباشر)$/i.test((el.textContent ?? "").trim()) && el.children.length <= 2)
+      .map((el) => ({
+        text: (el.textContent ?? "").trim(),
+        bg: getComputedStyle(el).backgroundColor,
+        parentBg: el.parentElement ? getComputedStyle(el.parentElement).backgroundColor : "",
+        dot: getComputedStyle(el, "::before").backgroundColor,
+      })),
+  );
+}
+
+test.describe("U3 — 'En direct' is a paper pill with a rose dot, never green", () => {
+  test("/fr/pour-les-profs: the phone mock's EN DIRECT is not green", async ({ page }) => {
+    await page.goto("/fr/pour-les-profs");
+    const labels = await liveLabels(page);
+    expect(labels.length, "the mock shows a live label").toBeGreaterThan(0);
+    for (const l of labels) {
+      expect(GREENS, JSON.stringify(l)).not.toContain(l.bg);
+      expect(GREENS, JSON.stringify(l)).not.toContain(l.parentBg);
+    }
+  });
+
+  test("the tutor dashboard: a class happening now shows 'En direct', not green, with a rose dot", async ({ browser }) => {
+    const profile = await seedProfile({ role: "tutor", birthYear: 1990 });
+    const tutor = await seedTutor({ status: "verified", profileId: profile.id });
+    await seedClass({ tutorId: tutor.id, at: new Date(Date.now() - 10 * 60_000) });
+    const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    await loginAs(ctx, profile.id);
+    await ctx.addCookies([{ name: "tnajem_role", value: "tutor", domain: new URL(BASE_URL).hostname, path: "/" }]);
+    const page = await ctx.newPage();
+    await page.goto("/fr/dashboard");
+    const chip = page.locator("[data-e2e=class-phase][data-phase=live]").first();
+    await expect(chip).toHaveText("En direct");
+    const c = await chip.evaluate((el) => ({ bg: getComputedStyle(el).backgroundColor, dot: getComputedStyle(el, "::before").backgroundColor }));
+    expect(GREENS).not.toContain(c.bg);
+    expect(c.dot, "the rose dot is the only red").toBe("rgb(201, 48, 43)"); // --rose
+    await ctx.close();
   });
 });

@@ -355,10 +355,8 @@ function HeroScene({ c }: { c: Copy }) {
                 <div className="lpp-card-price">{c.priceExample}</div>
               </div>
               <div className="flex gap-1.5 mt-2.5 flex-wrap">
-                <span className="chip lpp-live bg-green-btn text-white gap-[5px]">
-                  <span className="lpp-live-dot" />
-                  {c.live}
-                </span>
+                {/* Phase A+ (U3): the shared live pill — paper, ink, a rose dot. Was green. */}
+                <span className="tag tag-live">{c.live}</span>
                 <span className="lpp-mini">
                   <Users className="w-3 h-3" /> {c.classFilling}
                 </span>
@@ -673,8 +671,6 @@ export default function PourLesProfsPage() {
             lpp-seat-float 5s ease-in-out infinite calc(var(--sd, .6s) + .7s);
         }
         @media (max-width: 520px) { .lpp-seats { display: none; } .lpp-scene { min-height: 0; } }
-        .lpp-live { animation: lpp-ring 1.8s ease-out infinite; }
-        .lpp-live-dot { width: 7px; height: 7px; border-radius: 999px; background: #fff; display: inline-block; flex: none; animation: lpp-pulse 1.4s ease-in-out infinite; }
 
         /* ---- CTA ---- */
         .lpp-cta-primary { transition: transform .18s cubic-bezier(.2,.7,.2,1), box-shadow .18s, background .16s; }
@@ -800,10 +796,8 @@ export default function PourLesProfsPage() {
               <Reveal className="flex items-center gap-2.5 flex-wrap">
                 <span className="web-eyebrow">{c.eyebrow}</span>
                 {/* Pre-launch, not "live activity" — we claim newness, not traffic. */}
-                <span className="chip lpp-live bg-green-btn text-white gap-1.5">
-                  <span className="lpp-live-dot" aria-hidden="true" />
-                  {c.pilotChip}
-                </span>
+                {/* Phase A+ (U3): information, so neutral — green is Vérifié/success only. */}
+                <span className="tag tag-neutral">{c.pilotChip}</span>
               </Reveal>
 
               <Reveal delay={70} as="h1" className="web-h1">

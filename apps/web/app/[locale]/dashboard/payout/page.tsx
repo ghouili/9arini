@@ -196,7 +196,7 @@ export default function PayoutPage() {
           </div>
 
           {/* Never confirms a fake withdrawal: no submit, no toast, always disabled. */}
-          <Button type="button" variant="green" disabled={!canWithdraw}>
+          <Button type="button" variant="primary" disabled={!canWithdraw}>{/* Phase A+ (U3) */}
             <Wallet />
             {c.disabledBtn}
           </Button>
