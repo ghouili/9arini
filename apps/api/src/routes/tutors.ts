@@ -10,6 +10,7 @@ import {
   type ExploreTutor, type TutorReviews, type Storefront, type PublicTutorRef,
 } from "@tnajem/shared";
 import { parseLevels, isLevelCode, levelFromText } from "@tnajem/shared"; // phase-a lane L5 (A18.7)
+import { subjectSearchTerms } from "@tnajem/shared"; // Phase A+ (P2)
 import { db } from "../db";
 import { getSession } from "../lib/session";
 import { checkRateLimit } from "../lib/rate-limit";
@@ -364,17 +365,28 @@ export async function tutorRoutes(app: FastifyInstance): Promise<void> {
       const level = (req.query.level ?? "").trim();
       if (isLevelCode(level)) conds.push(raw`${level} = any(${tutors.levels})`);
       if (q) {
-        const like = `%${q}%`;
-        /* phase-a lane L2 (A23): students now see "Mohamed B.", so that exact form has
-           to find the tutor too (it is also what the class page searches with). */
-        const shown = /^(\S+)\s+(\p{L})\.$/u.exec(q);
+        /* Phase A+ · P2 (D10): NEVER THE LAST NAME. Students see "Mohamed B." (A23),
+           and matching the full name let "Ben Ali" confirm a surname the page never
+           shows. The search matches, in SQL:
+             • the FIRST NAME (a prefix), and the displayed form "Mohamed B" / "Mohamed B."
+               (first name + the initial students already see);
+             • the subject — free text, plus the code/labels/aliases when q names a
+               subject ("maths" → "math" ⊂ "Mathématiques");
+             • the levels (A18.7) and the slug (already public in every link).
+           Not the bio either: a tutor may well have written their full name in it. */
+        const esc = (s: string) => s.replace(/[\\%_]/g, (c) => "\\" + c); // a LIKE pattern: q is text, not wildcards
+        const like = `%${esc(q)}%`;
+        const name = raw`regexp_replace(btrim(${tutors.fullName}), '[[:space:]]+', ' ', 'g')`;
+        const first = raw`split_part(${name}, ' ', 1)`;
+        const shown = /^(\S+)\s+(\p{L})\.?$/u.exec(q);
         const qLevel = levelFromText(q); // phase-a lane L5 (A18.7): "bac" finds tutors who chose Bac, not every 'Bac' default
         const text = or(
-          ilike(tutors.fullName, like),
-          ...(shown ? [ilike(tutors.fullName, `${shown[1]} ${shown[2]}%`)] : []),
+          raw`${first} ilike ${`${esc(q)}%`}`,
+          shown ? raw`(${first} ilike ${esc(shown[1])} and split_part(${name}, ' ', 2) ilike ${`${esc(shown[2])}%`})` : undefined,
           ilike(tutors.subject, like),
+          ...subjectSearchTerms(q).map((term) => ilike(tutors.subject, `%${esc(term)}%`)),
           qLevel ? raw`${qLevel} = any(${tutors.levels})` : undefined, // phase-a lane L5 (A18.7): was ilike(tutors.level)
-          ilike(tutors.bio, like),
+          ilike(tutors.slug, like),
         );
         if (text) conds.push(text);
       }

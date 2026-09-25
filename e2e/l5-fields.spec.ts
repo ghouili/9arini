@@ -74,7 +74,9 @@ test.describe("A18.6 — the free-first box is disabled while the option is off"
 
 test.describe("A18.7 — levels, never a default 'Bac'", () => {
   test("a tutor with no levels shows none; chosen levels show on the storefront and filter Explore", async ({ page }) => {
-    const name = `L5 Niveaux ${Date.now().toString(36)}`;
+    /* Phase A+ (P2): Explore search matches the FIRST name (never "first + last"), so
+       both tutors share one unique first name and the search types that. */
+    const name = `L5niveaux${Date.now().toString(36)}`;
     const none = await seedTutor({ fullName: `${name} Zero` }); // tutors.level = 'Bac', the old default
     const some = await seedTutor({ fullName: `${name} Deux` });
     await sql`update tutors set levels = ${sql.array(["college", "bac"])} where id = ${some.id}`;

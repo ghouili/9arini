@@ -78,7 +78,8 @@ test("/explore's 'à partir de' ignores past classes", async () => {
   await seedClass({ tutorId: tutor.id, hoursFromNow: -48, priceTnd: 5 });
   await seedClass({ tutorId: tutor.id, hoursFromNow: 48, priceTnd: 40 });
 
-  const rows = (await (await fetch(`${API}/tutors/explore?q=${encodeURIComponent(name)}`)).json()) as {
+  // Phase A+ (P2): search matches the first name, not "first + last" — the slug is exact.
+  const rows = (await (await fetch(`${API}/tutors/explore?q=${encodeURIComponent(tutor.slug)}`)).json()) as {
     slug: string;
     price_from_tnd: number | null;
   }[];

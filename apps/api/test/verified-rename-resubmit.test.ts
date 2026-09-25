@@ -68,7 +68,8 @@ async function storefrontName(slug: string): Promise<string | null> {
 }
 
 async function inExplore(slug: string): Promise<{ full_name: string } | undefined> {
-  const res = await call(app, "GET", `/tutors/explore?q=${encodeURIComponent("Seeded by an API test")}`, null);
+  // Phase A+ (P2): Explore search no longer reads the bio; the slug finds exactly this tutor.
+  const res = await call(app, "GET", `/tutors/explore?q=${encodeURIComponent(slug)}`, null);
   return (res.body as { slug: string; full_name: string }[]).find((r) => r.slug === slug);
 }
 

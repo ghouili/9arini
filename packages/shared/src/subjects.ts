@@ -64,6 +64,17 @@ const ALIASES: Record<string, SubjectCode> = {
   technique: "technique", تقني: "technique", تقنية: "technique",
 };
 
+/** Phase A+ (P2): what a search for `q` should match in free-text subjects when `q`
+    names a subject — the code, both labels and every alias of that code. ilike is
+    not accent-insensitive, so "maths" alone would never find "Mathématiques"; the
+    code "math" (a substring of it) does. Empty when `q` names no subject. */
+export function subjectSearchTerms(q: string | null | undefined): string[] {
+  const code = subjectCodeFrom(q);
+  if (!code) return [];
+  const aliases = Object.keys(ALIASES).filter((k) => ALIASES[k] === code);
+  return [...new Set([code, SUBJECT_LABELS[code].fr, SUBJECT_LABELS[code].ar, ...aliases])];
+}
+
 /** A label or code, in either language → its code; null when it is none of them. */
 export function subjectCodeFrom(raw: string | null | undefined): SubjectCode | null {
   if (!raw) return null;
