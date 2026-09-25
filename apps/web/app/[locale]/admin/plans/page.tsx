@@ -6,7 +6,7 @@ import { Button, Spinner, Tag } from "@/components/ui";
 import { useLocale } from "@/components/LocaleProvider";
 import { useToast } from "@/components/useToast";
 import { SiteShell } from "@/components/SiteShell";
-import { Shield, Users } from "@/components/icons";
+import { Shield, Users, Info } from "@/components/icons";
 import { UserText } from "@/components/UserText";
 import { getAdminPlans, grantPlan, revokePlan, type AdminPlanRow } from "@/app/actions";
 import { PLANS, classLimitLabel, tnd, formatInTunis } from "@tnajem/shared";
@@ -250,8 +250,8 @@ export default function AdminPlansPage() {
             <>
               {/* THE BANNER, driven by the real switch — the same flag /tarifs
                   reads, so this page cannot claim billing is off after it is on. */}
-              <div className="trust mb-5">
-                <Shield />
+              <div className="note-info mb-5">{/* Phase A+ (U1) */}
+                <Info />
                 <p>{paymentsOn ? c.liveBanner : c.pilotBanner}</p>
               </div>
 

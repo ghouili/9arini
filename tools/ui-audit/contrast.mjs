@@ -90,6 +90,9 @@ const PAIRS = [
   ["Body text", "--muted", "--blue50", "normal", ".thumb span", "globals.css:150"],
   ["Body text", "--muted", "--green50", "normal", ".muted in green callout", "globals.css:178"],
   ["Body text", "--green-ink", "--green50", "normal", ".trust p / .cd-callout", "globals.css:180"],
+  // Phase A+ (U1): information is blue.
+  ["Body text", "--blue700", "--blue50", "normal", ".note-info text / .cd-callout / .ck-cancel", "globals.css .note-info"],
+  ["UI (advisory)", "--blue", "--blue50", "ui", ".note-info icon", "globals.css .note-info>.ic"],
 
   // ── coloured text on light surfaces ──
   ["Accent text", "--blue", "--paper", "normal", ".linklike / .sec a", "globals.css:313"],

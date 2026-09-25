@@ -299,6 +299,20 @@
   .trust{display:flex;gap:11px;align-items:flex-start;padding:13px 14px;background:var(--green50);border-radius:14px;min-width:0}
   .trust .ic{color:var(--green);width:22px;height:22px;flex:none;margin-top:1px}
   .trust p{font-size:13px;color:var(--green-ink);line-height:1.55;min-width:0;overflow-wrap:anywhere}
+  /* UI Phase A+ (U1): INFORMATION IS BLUE. Green is the Vérifié badge and real
+     success only, so every informational box that was a green .trust — the payment
+     note, the pilot banners, the payout note, the ID-upload notes — is a .note-info.
+     .trust keeps its rules for .trust-dark (on the dark panels) below. */
+  .note-info{display:flex;gap:11px;align-items:flex-start;padding:13px 14px;background:var(--blue50);color:var(--blue700);border-radius:14px;min-width:0}
+  .note-info>.ic{color:var(--blue);width:20px;height:20px;flex:none;margin-top:1px}
+  /* Direct children only: a tag nested inside (the "Bientôt" of PaymentStory) keeps its own colours. */
+  .note-info>p,.note-info>span{font-size:13px;color:var(--blue700);line-height:1.55;min-width:0;overflow-wrap:anywhere}
+  .note-info>p>b{color:var(--blue700)}
+  /* The one payment sentence always STARTS its own line with its "Bientôt" tag —
+     "[◷ Bientôt] Tu paies en ligne, via Tnajem, avant la séance." — never in the
+     middle of the sentence before it (PaymentStory). */
+  .payment-story{display:block;margin-block-start:6px}
+  .payment-story:first-child{margin-block-start:0}
   /* .trust on a DARK surface (the tutor-landing income panel). It used to be
      spelled out as three inline styles overriding .trust's green-on-green — the
      only way to win, since a Tailwind utility (0,1,0) loses to `.trust .ic`

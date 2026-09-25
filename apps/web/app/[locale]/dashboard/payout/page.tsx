@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "@/components/Link";
 import { Button, Spinner } from "@/components/ui";
 import { useLocale } from "@/components/LocaleProvider";
-import { Back, Wallet, Shield, Bank, Bulb } from "@/components/icons";
+import { Back, Wallet, Shield, Bank, Bulb, Info } from "@/components/icons";
 import { SiteShell } from "@/components/SiteShell";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { getDashboard } from "@/app/actions";
@@ -190,8 +190,8 @@ export default function PayoutPage() {
           {railRow(t.payout.wallet, Wallet)}
           {railRow(t.payout.bank, Bank)}
 
-          <div className="trust mt-[18px] mb-[18px]">
-            <Shield />
+          <div className="note-info mt-[18px] mb-[18px]">{/* Phase A+ (U1) */}
+            <Info />
             <p>{c.soonNote}</p>
           </div>
 

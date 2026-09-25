@@ -321,9 +321,10 @@ export default function CheckoutInner() {
       .ck-steps li{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.5;color:var(--ink2)}
       .ck-steps .ic{width:15px;height:15px;color:var(--blue);flex:none;margin-top:2px}
 
-      .ck-cancel{display:flex;gap:9px;align-items:flex-start;background:var(--green50);border-radius:13px;
-        padding:12px 13px;font-size:13px;color:var(--green-ink);line-height:1.55;margin-bottom:20px}
-      .ck-cancel .ic{color:var(--green);flex:none;margin-top:1px;width:17px;height:17px}
+      /* Phase A+ (U1): the cancellation rule is information, in blue (was green). */
+      .ck-cancel{display:flex;gap:9px;align-items:flex-start;background:var(--blue50);border-radius:13px;
+        padding:12px 13px;font-size:13px;color:var(--blue700);line-height:1.55;margin-bottom:20px}
+      .ck-cancel .ic{color:var(--blue);flex:none;margin-top:1px;width:17px;height:17px}
 
       /* ── errors / dead ends ── */
       .ck-alert{background:var(--rose50);border:1px solid var(--rose300);color:var(--rose700);border-radius:12px;

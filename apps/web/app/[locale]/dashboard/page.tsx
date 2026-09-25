@@ -654,8 +654,8 @@ function FreeFirstPanel({ d, c }: { d: DashboardData; c: CopyDict }) {
              the last control on this page that should be easy to mis-tap. */
           className="flex items-center gap-2.5 flex-none rounded-[12px] px-3 py-2 text-[14px] font-semibold min-h-11"
           style={{
-            border: on ? "2px solid var(--green)" : "1px solid var(--line)",
-            background: on ? "var(--green50)" : "var(--paper)",
+            border: on ? "2px solid var(--blue)" : "1px solid var(--line)", // Phase A+ (U1): a selected state is cobalt
+            background: on ? "var(--blue50)" : "var(--paper)",
             color: "inherit",
             cursor: busy ? "default" : "pointer",
             opacity: busy ? 0.65 : 1,
@@ -666,7 +666,7 @@ function FreeFirstPanel({ d, c }: { d: DashboardData; c: CopyDict }) {
             className="w-[22px] h-[22px] rounded-[7px] grid place-items-center flex-none"
             style={{
               border: on ? "none" : "2px solid var(--line)",
-              background: on ? "var(--green)" : "transparent",
+              background: on ? "var(--blue)" : "transparent",
               transition: ".15s",
             }}
           >

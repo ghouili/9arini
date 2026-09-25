@@ -4,7 +4,7 @@ import { Link } from "@/components/Link";
 import { SiteShell } from "@/components/SiteShell";
 import { useLocale } from "@/components/LocaleProvider";
 import { Card, CardFooter, Tag } from "@/components/ui";
-import { Check, Shield, Wallet, Star } from "@/components/icons";
+import { Check, Info, Wallet, Star } from "@/components/icons";
 import { bilingual } from "@/lib/i18n";
 import { Reveal } from "@/components/Reveal";
 import { PaymentStory } from "@/components/PaymentStory"; // phase-a lane L3 (A22)
@@ -582,8 +582,8 @@ export function TarifsInner({ paymentsEnabled }: { paymentsEnabled: boolean }) {
       {/* ── THE HONEST BANNER — driven by the real payments switch ───────── */}
       <section className="web-section tight">
         <div className="container">
-          <div className="trust">
-            <Shield />
+          <div className="note-info">{/* Phase A+ (U1) */}
+            <Info />
             <p>{paymentsEnabled ? c.liveBanner : c.pilotBanner}</p>
           </div>
         </div>

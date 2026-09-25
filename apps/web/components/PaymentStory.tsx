@@ -30,7 +30,7 @@ export function PaymentStory({
 }) {
   const s = PAYMENT_STORY[locale];
   return (
-    <span className={className} style={style} data-payment-story={enabled ? "live" : "soon"}>
+    <span className={`payment-story${className ? ` ${className}` : ""}`} style={style} data-payment-story={enabled ? "live" : "soon"}>
       {!enabled && (
         <>
           <Tag kind="soon">{s.soon}</Tag>{" "}

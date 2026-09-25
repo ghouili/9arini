@@ -9,6 +9,8 @@ export const Forward = (p: P) => <S className={`flip ${p.className ?? ""}`} styl
 export const Share = (p: P) => <S {...p}><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.6" y1="13.5" x2="15.4" y2="17.5" /><line x1="15.4" y1="6.5" x2="8.6" y2="10.5" /></S>;
 export const Copy = (p: P) => <S {...p}><rect x="9" y="9" width="11" height="11" rx="2.4" /><path d="M5 15V5a2 2 0 0 1 2-2h10" /></S>;
 export const Gear = (p: P) => <S {...p}><circle cx="12" cy="12" r="3" /><path d="M19.4 13.5a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.2a1.6 1.6 0 0 0-2.7-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.2a1.6 1.6 0 0 0 1.4-2.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H10a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.2a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V10a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.2a1.6 1.6 0 0 0-1.4 1z" /></S>;
+// Phase A+ (U1): the icon of a .note-info — information, not a guarantee (Shield) or a success (Check).
+export const Info = (p: P) => <S {...p}><circle cx="12" cy="12" r="8.5" /><line x1="12" y1="11" x2="12" y2="16" /><line x1="12" y1="7.8" x2="12" y2="8" /></S>;
 export const Lock = (p: P) => <S {...p}><rect x="4.5" y="10.5" width="15" height="10" rx="2.4" /><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" /></S>;
 export const Shield = (p: P) => <S {...p}><path d="M12 3l7 3v6c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6l7-3z" /><polyline points="9 12 11.3 14.3 15.3 10" /></S>;
 export const Check = (p: P) => <S {...p}><polyline points="5 13 10 18 19 7" /></S>;
