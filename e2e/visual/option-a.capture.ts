@@ -19,7 +19,10 @@ import { BASE_URL } from "../support/env";
    storefront yet for /dashboard (the "Crée ta vitrine" state), the pinned e2e admin
    for /admin. ui-option-a/ is gitignored. */
 
-const OUT = resolve("ui-option-a", process.env.UI_SHOTS === "after" ? "after" : "before");
+/* UI_SHOTS_DIR overrides the folder (Phase A+: ui-a-plus/after). */
+const OUT = process.env.UI_SHOTS_DIR
+  ? resolve(process.env.UI_SHOTS_DIR)
+  : resolve("ui-option-a", process.env.UI_SHOTS === "after" ? "after" : "before");
 
 type Who = "anon" | "student" | "tutor" | "admin";
 const PAGES: { name: string; path: string; who: Who }[] = [
