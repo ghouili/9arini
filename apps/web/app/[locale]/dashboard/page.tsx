@@ -987,7 +987,7 @@ function RealDashboard(
               key={p.id}
               style={{ display: "flex", gap: 12, alignItems: "center", padding: "13px 0", borderBottom: "1px solid var(--line)" }}
             >
-              <div aria-hidden="true" className="w-10 h-10 rounded-[12px] grid place-items-center flex-none bg-green50 text-green">
+              <div aria-hidden="true" className="w-10 h-10 rounded-[12px] grid place-items-center flex-none bg-blue50 text-blue" /* Phase A+ (U1): decorative, not a success — as the storefront pack tile */>
                 <Book />
               </div>
               <div className="flex-1 min-w-0">
