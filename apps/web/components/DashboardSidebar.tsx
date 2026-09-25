@@ -28,7 +28,7 @@ const CSS = `
   padding:10px 14px;border-radius:999px;font-weight:600;font-size:13.5px;min-height:44px;
   color:var(--ink2);background:var(--paper);border:1px solid var(--line)}
 .qs-nav a:hover{color:var(--blue);border-color:var(--blue)}
-.qs-nav a[aria-current="page"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.qs-nav a[aria-current="page"]{background:var(--blue50);color:var(--blue);border-color:var(--blue)} /* UI Option A (A3) */
 .qs-nav .ic{width:17px;height:17px;flex:none}
 .qs-title{display:none}
 @media (min-width:1024px){

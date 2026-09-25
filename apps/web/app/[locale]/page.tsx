@@ -258,8 +258,9 @@ export default function HomePage() {
           padding-block:clamp(28px,5vw,64px) clamp(34px,6vw,72px)}
         .lp-wash{position:absolute;inset:0;z-index:-1;pointer-events:none;
           background:
-            radial-gradient(720px 420px at 8% 0%,rgba(224,133,46,.10),transparent 60%),
-            radial-gradient(820px 520px at 100% 10%,rgba(14,90,166,.12),transparent 58%)}
+            radial-gradient(720px 420px at 8% 0%,rgba(224,133,46,.10),transparent 60%)}
+        /* UI Option A (A1): the blue radial is gone — no cobalt haze behind the hero;
+           only the faint warm wash stays. */
 
         /* primary CTA: lift + arrow nudge. In RTL the arrow already carries
            .flip (scaleX(-1)); re-declaring transform would silently un-flip
@@ -459,7 +460,7 @@ export default function HomePage() {
           Replaces the old trust / pre-launch / pricing trio. Everything the
           visitor still needs after the steps, said once. The note keeps the
           promise we made ourselves: zero lessons, zero reviews, no fakes. */}
-      <section className="lp-sec border-y border-solid border-line bg-cream">
+      <section className="lp-sec border-y border-solid border-line bg-band">
         <div className="container">
           <div className="lp-rv">
             <h2 className="web-h2 max-w-[620px]">{c.knowTitle}</h2>
@@ -537,7 +538,7 @@ export default function HomePage() {
             </div>
             <Link
               href="/pour-les-profs"
-              className="btn btn-ink w-auto flex-none rounded-[13px] px-6 py-3.5 text-[15px]"
+              className="btn btn-ghost w-auto flex-none rounded-[13px] px-6 py-3.5 text-[15px]"
             >
               {c.profCta}
             </Link>

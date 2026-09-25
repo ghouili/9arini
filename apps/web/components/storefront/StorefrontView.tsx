@@ -54,6 +54,7 @@ import { nextSessionOf } from "@tnajem/shared"; // phase-a lane L5 (A18.11)
 const copy = bilingual({
   fr: {
     verifiedLabel: "Prof vérifié par Tnajem",
+    verifiedPill: "Vérifié", // UI Option A (A4): the word on the hero badge
     reviewsTitle: "Avis des élèves",
     reviewsCount: (n: number) => (n === 1 ? "1 avis" : `${n} avis`),
     noReviewsTitle: "Pas encore d'avis",
@@ -73,6 +74,7 @@ const copy = bilingual({
     noClassesBody:
       "Sa page est ouverte, mais aucune séance à venir n'est programmée. Reviens bientôt — ou trouve un autre prof dès maintenant.",
     noClassesCta: "Voir d'autres profs",
+    noClassesLine: "Pas de séance programmée pour l'instant.", // UI Option A (A9): the main column's one line
 
     // ── Price / seats ──
     free: "Gratuite",
@@ -111,6 +113,7 @@ const copy = bilingual({
   },
   ar: {
     verifiedLabel: "أستاذ مؤكّد من Tnajem",
+    verifiedPill: "متثبّت منّو", // UI Option A (A4): Derija, the home page's own word (h1Hi)
     reviewsTitle: "آراء التلامذة",
     reviewsCount: (n: number) => (n === 1 ? "تقييم واحد" : `${n} تقييم`),
     noReviewsTitle: "ما فماش تقييمات توّا",
@@ -122,6 +125,7 @@ const copy = bilingual({
     noClassesBody:
       "الصفحة متاعو محلولة، أما ما فماش حصة جاية مبرمجة. عاود شوف قريب — ولا لوّج على أستاذ آخر توّا.",
     noClassesCta: "شوف أساتذة أخرين",
+    noClassesLine: "ما فماش حصة مبرمجة توّا.", // UI Option A (A9)
 
     free: "فابور",
     then: (p: number) => `من بعد ${p} د.ت للحصة`,
@@ -247,8 +251,9 @@ export function StorefrontView({
   }
 
   /* Shared dead-end state: no published class, or every class full. Rendered in the
-     main column AND in the aside so neither surface offers a CTA that resolves to
-     nothing — and both always hand the student a way out (/explore). */
+     ASIDE only since UI Option A (A9) — the main column says one muted line — and
+     it always hands the student a way out (/explore). With no class at all the
+     aside shows on phones too (data-sf-empty), so that way out never disappears. */
   function NoBooking({ center, full }: { center?: boolean; full?: boolean }) {
     return (
       <div className={`u-card u-card-pad sf-empty${center ? " sf-empty-center" : ""}`}>
@@ -287,14 +292,14 @@ export function StorefrontView({
               <div className="min-w-0">
                 <h1 className="web-h2 sf-name">
                   <UserText className="sf-name-txt">{tutor.full_name}</UserText>
-                  {tutor.verified && <Verified label={c.verifiedLabel} />}
+                  {tutor.verified && <Verified label={c.verifiedLabel} pill={c.verifiedPill} />}
                 </h1>
                 <UserText as="div" className="sf-subject">{tutor.subject}</UserText>
                 {/* phase-a lane L5 (A18.7): the levels this tutor chose — nothing when none, never a default. */}
                 {tutor.levels.length > 0 && (
                   <ul className="sf-levels flex flex-wrap gap-1.5 mt-1.5" role="list" aria-label={c.levelsAria} data-e2e="sf-levels">
                     {tutor.levels.map((code) => (
-                      <li key={code} className="chip chip-soft">{LEVEL_LABELS[code][locale === "ar" ? "ar" : "fr"]}</li>
+                      <li key={code} className="tag tag-neutral">{LEVEL_LABELS[code][locale === "ar" ? "ar" : "fr"]}</li>
                     ))}
                   </ul>
                 )}
@@ -356,8 +361,10 @@ export function StorefrontView({
 
               {!nextClass /* phase-a lane L5 (A18.11): no class at all, not "no class with a seat" */ ? (
                 /* Honest empty state — no phantom card, no CTA to a class that
-                   does not exist. */
-                <NoBooking />
+                   does not exist. UI Option A (A9): ONE muted line here; the full
+                   card, with "Voir d'autres profs", lives in the aside only — it
+                   used to be rendered twice. */
+                <p className="sf-noclass-line" data-e2e="sf-noclass-line">{c.noClassesLine}</p>
               ) : (
                 <ul className="sf-classes" role="list" aria-label={c.classesAria}>
                   {classes.map((cls) => {
@@ -509,7 +516,10 @@ export function StorefrontView({
             </div>
 
             {/* ── ASIDE (desktop sticky booking panel) ── */}
-            <aside data-sf-aside="true">
+            {/* data-sf-empty: with no class at all, this card is the page's ONLY way out
+                (UI Option A, A9 — the main column now says one line), so it also shows
+                below the main column on phones, where the aside is otherwise hidden. */}
+            <aside data-sf-aside="true" data-sf-empty={!firstClass ? "true" : undefined}>
               <div className="panel panel-pad sf-panel">
                 {/* No published class → nothing to book. Say so, and send the
                     student somewhere that works. NEVER a /checkout link without a
@@ -664,7 +674,9 @@ export function StorefrontView({
           display:flex;align-items:center;gap:8px;margin-top:10px;
           font-size:13.5px;color:var(--on-blue);flex-wrap:wrap;
         }
-        .sf-newtag{background:rgba(255,255,255,.16);border-radius:999px;padding:3px 10px;font-weight:700;font-size:13px;white-space:nowrap}
+        /* UI Option A (A5): "Nouveau prof" on the hero is the shared .tag.tag-neutral
+           (blue50 + blue700); this rule only keeps it from inheriting the hero's white. */
+        .sf-newtag{color:var(--blue700)}
         @media (max-width:520px){
           /* 88px avatar + Arabic name + share button do not fit at 320px. The size
              is an inline style on <Avatar>, hence !important. */
@@ -743,7 +755,7 @@ export function StorefrontView({
         .sf-pack-main{min-width:0;flex:1}
         .sf-pack-price{flex:none;margin-inline-start:auto;text-align:end;display:grid;gap:2px}
         .sf-pack-price b{font-family:var(--fd);font-size:15px;color:var(--ink);white-space:nowrap}
-        .sf-pack-price span{font-size:12px;color:var(--muted);white-space:nowrap}
+        .sf-pack-price span{font-size:13px;color:var(--muted);white-space:nowrap} /* 13px floor (ui-audit a11y); was 12px since phase-a A18.8 */
         .sf-pack-title{font-weight:700;font-size:13.5px;line-height:1.35;margin-bottom:4px;overflow-wrap:anywhere}
         .sf-packs-note{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.55}
 
@@ -771,6 +783,7 @@ export function StorefrontView({
            whatever the specificity — an mb-0 utility on the element is simply
            inert. The flush variant has to live here too. */
         .sf-empty-body.is-flush{margin-bottom:0}
+        .sf-noclass-line{font-size:14px;color:var(--muted);margin:0}
         .sf-empty-cta{display:inline-flex;width:auto}
         .sf-empty-center .sf-empty-cta{width:100%}
 
@@ -808,7 +821,7 @@ export function StorefrontView({
           [data-sf-mobilecta="true"]{display:none}
         }
         @media (max-width:959px){
-          [data-sf-aside="true"]{display:none}
+          [data-sf-aside="true"]:not([data-sf-empty="true"]){display:none}
         }
       `}} />
     </SiteShell>

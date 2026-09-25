@@ -604,9 +604,11 @@ export default function PourLesProfsPage() {
         .lpp-wash {
           position: absolute; inset: -12% 10%; z-index: 0; border-radius: 40px;
           background:
-            radial-gradient(46% 50% at 28% 26%, rgba(14,90,166,.30), transparent 70%),
-            radial-gradient(48% 52% at 76% 70%, rgba(241,231,214,.85), transparent 72%),
-            radial-gradient(40% 44% at 70% 18%, rgba(243,194,75,.30), transparent 70%);
+            /* UI Option A (A8): the cobalt radial (rgba(14,90,166,.30)) is gone — no blue
+               haze behind the headline on narrow screens, where the scene stacks under it.
+               The warm sand + amber washes stay, softer. */
+            radial-gradient(48% 52% at 76% 70%, rgba(241,231,214,.7), transparent 72%),
+            radial-gradient(40% 44% at 70% 18%, rgba(243,194,75,.20), transparent 70%);
           filter: blur(6px); animation: lpp-wash 14s ease-in-out infinite;
         }
         /* inset: -6% 0 — a symmetric -6% also bled 6% of the scene width past
@@ -623,7 +625,7 @@ export default function PourLesProfsPage() {
         .lpp-glow {
           position: absolute; inset-block-start: 8%; inset-inline: 0; margin-inline: auto;
           width: min(340px, 100%); aspect-ratio: 1; z-index: 0; border-radius: 999px;
-          background: radial-gradient(circle, rgba(14,90,166,.34), transparent 68%);
+          background: radial-gradient(circle, rgba(243,194,75,.22), transparent 68%); /* UI Option A (A8): warm, was a cobalt glow */
           filter: blur(10px); animation: lpp-glow 6s ease-in-out infinite;
         }
         .lpp-phone-wrap { position: relative; z-index: 2; animation: lpp-float 7s ease-in-out infinite; }
@@ -696,7 +698,7 @@ export default function PourLesProfsPage() {
         .lpp-step { position: relative; transition: transform .2s; height: 100%; }
         .lpp-step:hover { transform: translateY(-3px); }
         .lpp-node {
-          width: 46px; height: 46px; flex: none; border-radius: 14px; background: var(--ink); color: #fff;
+          width: 46px; height: 46px; flex: none; border-radius: 14px; background: var(--blue); color: #fff; /* UI Option A (A3): step numbers are cobalt */
           display: grid; place-items: center; font-family: var(--fd); font-size: 20px; font-weight: 700;
           box-shadow: var(--sh-s); position: relative; z-index: 2;
         }
@@ -807,7 +809,7 @@ export default function PourLesProfsPage() {
               <Reveal delay={70} as="h1" className="web-h1">
                 {c.h1a}
                 <br />
-                <span className="text-blue">{c.h1b}</span>
+                <span>{c.h1b}</span>{/* UI Option A (A8): ink, like line 1 — one accent (the green 100 %) per headline */}
                 <br />
                 <span className="text-green-ink">{c.h1c}</span>
               </Reveal>

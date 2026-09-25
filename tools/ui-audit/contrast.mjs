@@ -46,21 +46,40 @@ const PAIRS = [
   ["Buttons", W, "--blue", "normal", ".lp-chip-all / .verified", "page.tsx:271"],
   ["Buttons", W, "--blue700", "normal", ".lp-chip-all:hover", "page.tsx:272"],
   ["Buttons", W, "--rose", "normal", "student LIVE badge", "student/page.tsx"],
+  // UI Option A (A3): cobalt carries STATE and the header way-in; the rose pill is destructive.
+  ["Buttons", "--blue", "--bg", "normal", ".btn-outline label (header Tableau de bord)", "SiteHeader.tsx"],
+  ["Buttons", "--blue", "--blue50", "normal", "selected language / sidebar current / .btn-outline:hover", "LocaleToggle.tsx, DashboardSidebar.tsx"],
+  ["Buttons", W, "--blue", "normal", "step numbers (HowItWorks, .lpp-node)", "dashboard/page.tsx, pour-les-profs"],
+  ["Buttons", W, "--rose", "normal", "withdraw-consent confirm (rose destructive pill)", "guardian/page.tsx"],
 
   // ── chips & badges (11.5px/700 → normal) ──
   ["Chips", W, "--green-btn", "normal", ".chip-free", "globals.css:108"],
+  ["Chips", W, "--green-btn", "normal", ".verified tick + .verified-pill word (A4)", "globals.css .verified"],
   ["Chips", W, "--green-btn", "normal", "pilot chip", "pour-les-profs:715"],
   ["Chips", "--blue", "--blue50", "normal", ".chip-soft", "globals.css:109"],
   ["Chips", "--ink2", "--sand", "normal", ".chip-sand", "globals.css:110"],
   ["Chips", "--rose", "--rose50", "normal", ".chip-rose", "globals.css:111"],
   ["Chips", "--green-ink", "--green50", "normal", "Nouveau badge", "ExploreClient.tsx:405"],
   ["Chips", "--green-ink", "--green50", "normal", "done chip", "dashboard/page.tsx:405"],
+  // UI Option A (A5): the three status tags.
+  ["Chips", "--ochre-ink", "--ochre-tint", "normal", ".tag-soon (Bientôt / Pas encore facturé)", "globals.css .tag-soon"],
+  ["Chips", "--blue700", "--blue50", "normal", ".tag-neutral (Nouveau prof / levels / Recommandé)", "globals.css .tag-neutral"],
+  ["Chips", "--green-ink", "--green50", "normal", ".tag-success", "globals.css .tag-success"],
   ["Chips", "--blue", "--blue50", "normal", ".thumb month", "globals.css:148"],
 
   // ── body / meta text on every surface ──
   ["Body text", "--ink", "--paper", "normal", "default body", "globals.css:41"],
   ["Body text", "--ink", "--cream", "normal", "default body on .l-frame", "globals.css:58"],
   ["Body text", "--ink", "--sand", "normal", "default body on page bg", "globals.css:43"],
+  // UI Option A (A1): the page background and the band.
+  ["Body text", "--ink", "--bg", "normal", "body on the flat page bg", "globals.css body"],
+  ["Body text", "--ink2", "--bg", "normal", ".web-lead on page bg", "globals.css body"],
+  ["Body text", "--muted", "--bg", "normal", ".muted on page bg", "globals.css body"],
+  ["Body text", "--ink", "--band", "normal", "text in the one band section", "page.tsx lp-sec / ExploreClient"],
+  ["Body text", "--ink2", "--band", "normal", "lead in the band", "page.tsx lp-sec"],
+  ["Body text", "--muted", "--band", "normal", "muted in the band", "ExploreClient filters"],
+  ["Accent text", "--blue", "--band", "normal", "links / eyebrow in the band", "page.tsx lp-sec"],
+  ["Accent text", "--blue", "--bg", "normal", ".web-eyebrow on page bg", "globals.css"],
   ["Body text", "--ink2", "--paper", "normal", ".web-lead / .side-nav", "globals.css:229"],
   ["Body text", "--ink2", "--cream", "normal", ".web-lead", "globals.css:229"],
   ["Body text", "--ink2", "--sand", "normal", ".chip-sand / .land p", "globals.css:192"],

@@ -390,7 +390,9 @@ function StepMark({ state, n }: { state: StepState; n: number }) {
   );
 }
 
-function NextSteps({ steps }: { steps: OnboardingStep[] }) {
+/* heroOwnsCta: the no-storefront screen already shows "Créer ma page" as its ONE ochre
+   action in the hero card, so the checklist repeats it as a ghost button (UI Option A, A3). */
+function NextSteps({ steps, heroOwnsCta = false }: { steps: OnboardingStep[]; heroOwnsCta?: boolean }) {
   const { locale } = useLocale();
   const c = STEP_COPY[locale];
   return (
@@ -414,7 +416,7 @@ function NextSteps({ steps }: { steps: OnboardingStep[] }) {
             <div className="text-[13px] text-muted leading-[1.6] mt-[3px]">{s.body}</div>
           </div>
           {s.cta && (
-            <Link href={s.cta.href} className="btn btn-primary btn-sm qd-cta">
+            <Link href={s.cta.href} className={`btn ${heroOwnsCta ? "btn-ghost" : "btn-primary"} btn-sm qd-cta`}>
               {s.cta.label}
             </Link>
           )}
@@ -447,7 +449,7 @@ function HowItWorks({ c, paymentsOn = false }: { c: CopyDict; paymentsOn?: boole
           }}
         >
           <div
-            className="w-[27px] h-[27px] rounded-[9px] bg-ink text-white grid place-items-center font-display text-[13px] shrink-0"
+            className="w-[27px] h-[27px] rounded-[9px] bg-blue text-white grid place-items-center font-display text-[13px] shrink-0" /* UI Option A (A3): step numbers are cobalt */
           >
             {s.n}
           </div>
@@ -526,7 +528,7 @@ function SharePanel({ slug, c }: { slug: string; c: CopyDict }) {
       <p className="text-[13px] text-muted leading-[1.6] mb-3">{t.dashboard.shareBody}</p>
       <StoreLinkBox slug={slug} />
       <div className="mt-3 flex gap-2 flex-wrap">
-        <Link href={`/${slug}`} className="btn btn-ink btn-sm">
+        <Link href={`/${slug}`} className="btn btn-ghost btn-sm">
           <Eye />
           {t.dashboard.viewStore}
         </Link>
@@ -1069,7 +1071,7 @@ function RealNoStore({ steps }: { steps: OnboardingStep[] }) {
           {sc.st1cta}
         </Link>
       </div>
-      <NextSteps steps={steps} />
+      <NextSteps steps={steps} heroOwnsCta />
       <HowItWorks c={c} />
     </>
   );
@@ -1214,7 +1216,7 @@ export default function DashboardPage() {
         showTools
         actions={
           data.slug ? (
-            <Link href={`/${data.slug}`} className="btn btn-ink btn-sm">
+            <Link href={`/${data.slug}`} className="btn btn-ghost btn-sm">
               <Eye />
               {t.dashboard.viewStore}
             </Link>

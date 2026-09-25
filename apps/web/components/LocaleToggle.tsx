@@ -48,8 +48,10 @@ export function LocaleToggle({ onBlue, compact }: { onBlue?: boolean; compact?: 
               aria-label={l === "fr" ? "Français" : "العربية"}
               style={{
                 fontFamily: l === "ar" ? "var(--fa)" : "var(--fb)",
-                background: on ? (onBlue ? "#fff" : "var(--ink)") : "transparent",
-                color: on ? (onBlue ? "var(--ink)" : "#fff") : onBlue ? "#fff" : "var(--muted)",
+                /* UI Option A (A3): the selected language is a STATE, so it is cobalt on
+                   blue50 — not a near-black button. On the blue hero it stays white. */
+                background: on ? (onBlue ? "#fff" : "var(--blue50)") : "transparent",
+                color: on ? (onBlue ? "var(--ink)" : "var(--blue)") : onBlue ? "#fff" : "var(--muted)",
               }}
             >
               <span className="qlt-long">{l === "fr" ? "Français" : "العربية"}</span>

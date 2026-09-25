@@ -22,6 +22,11 @@
      clean readability win; white-on-rose surfaces (student live badge) also improve. */
   --green:#1B9C6F; --green50:#E3F4ED; --rose:#C9302B; --rose50:#FCEDEC;
   --line:#EADFCD; --lineCool:#E4EAF1;
+  /* UI Option A "Clair" (A1). ONE flat page background (= --cream) and ONE band
+     colour for the at-most-one alternating section per page. No gradients on the
+     page itself: the old sand + two radial washes (one a blue haze) tiled per
+     viewport and cut off mid-grid on /explore. */
+  --bg:#FBF7F0; --band:#F4ECDF;
 
   /* ── BRAND vs. TEXT-SAFE colour split ──────────────────────────────────────
      --ochre / --green above are the BRAND colours. At their brand value they are
@@ -75,7 +80,10 @@
   /* Rose steps for the legal notice and the checkout/booking alerts. */
   --rose700:#9E2C23; --rose600:#8A3A34; --rose300:#F5C2BC; --rose200:#FFD3CE;
   --r-s:12px; --r:18px; --r-l:24px; --r-xl:30px;
-  --sh-s:0 4px 14px -8px rgba(16,31,51,.30);
+  /* UI Option A (A2): cards read by their 1px --line border first; the shadow is
+     a soft lift, not the edge. Shared by .card, .panel, .u-card and every surface
+     that uses var(--sh-s). */
+  --sh-s:0 1px 2px rgba(16,31,51,.05), 0 8px 24px -18px rgba(16,31,51,.25);
   --sh:0 14px 34px -16px rgba(16,31,51,.40);
   --sh-l:0 26px 60px -26px rgba(16,31,51,.50);
   --fd:var(--font-display),'Space Grotesk',system-ui,sans-serif;
@@ -106,10 +114,12 @@
      what it says. Every explicit border in this file uses the shorthand (`border:
      1px solid var(--line)`), which has class-level specificity and is unaffected. */
   *,*::before,*::after{border-width:0;border-style:solid;border-color:var(--line)}
-  html,body{height:100%}
-  body{font-family:var(--fb);color:var(--ink);-webkit-font-smoothing:antialiased;
-    background:radial-gradient(1100px 600px at 10% -8%,#FFF4E0 0%,transparent 52%),
-               radial-gradient(900px 720px at 110% 6%,#E6EFFA 0%,transparent 48%),var(--sand)}
+  /* min-height, not height: with html,body{height:100%} the body box was exactly
+     one viewport tall and its background painted per viewport, so on a long page
+     (/explore) the wash stopped halfway down the grid. Flat --bg, no gradients. */
+  html{height:100%}
+  body{min-height:100%;font-family:var(--fb);color:var(--ink);-webkit-font-smoothing:antialiased;
+    background:var(--bg)}
   html[dir="rtl"] body{font-family:var(--fa)}
   html[dir="rtl"] .l-screen *{font-family:var(--fa)}
   a{color:inherit;text-decoration:none}
@@ -146,9 +156,14 @@
   .btn:disabled{opacity:.5;cursor:not-allowed}
   .btn-primary{background:var(--ochre-btn);color:#fff;box-shadow:0 14px 24px -12px rgba(224,133,46,.85)}
   .btn-primary:hover:not(:disabled){background:var(--ochre-btn-hover)}
-  .btn-ink{background:var(--ink);color:#fff}
   .btn-green{background:var(--green-btn);color:#fff;box-shadow:0 14px 24px -12px rgba(27,156,111,.8)}
   .btn-ghost{background:transparent;border:1.5px solid var(--line);color:var(--ink)}
+  /* UI Option A (A3): the cobalt OUTLINE — a way in ("Tableau de bord", "Mes cours"
+     in the header), not the screen's main action. Near-black is text only now:
+     .btn-ink is gone (its 18 uses became primary, ghost, outline or the rose
+     destructive pill — UI_OPTION_A_REPORT.md lists each). */
+  .btn-outline{background:transparent;border:1.5px solid var(--blue);color:var(--blue)}
+  .btn-outline:hover{background:var(--blue50)}
   .btn-sm{padding:10px 14px;font-size:13.5px;width:auto;border-radius:11px;min-height:44px}
   /* flex:none — a 44px square button squashes to an oblong when it sits in a
      tight flex row (appbar, toolbars). Same class of bug as .verified below. */
@@ -178,7 +193,24 @@
   .chip-soft{background:var(--blue50);color:var(--blue)}
   .chip-sand{background:var(--sand);color:var(--ink2)}
   .chip-rose{background:var(--rose50);color:var(--rose)}
-  .verified{display:inline-grid;place-items:center;width:18px;height:18px;flex:none;border-radius:50%;background:var(--blue);color:#fff;vertical-align:middle}
+  /* UI Option A (A5): STATUS TAGS — one meaning per colour. Use <Tag kind=…> from
+     components/ui.tsx (it adds the clock to .tag-soon).
+       .tag-soon     "Bientôt", "Pas encore facturé" — coming later (ochre, clock)
+       .tag-neutral  "Nouveau prof", levels, "Recommandé" — plain information
+       .tag-success  a real success state only (green is otherwise the Vérifié badge) */
+  .tag{display:inline-flex;align-items:center;gap:5px;flex:none;max-width:100%;font-size:13px;font-weight:700;
+    padding-block:4px;padding-inline:10px;border-radius:999px;line-height:1.3;white-space:nowrap}
+  .tag .ic{width:13px;height:13px;stroke-width:2.2}
+  .tag-soon{background:var(--ochre-tint);color:var(--ochre-ink)}
+  .tag-neutral{background:var(--blue50);color:var(--blue700)}
+  .tag-success{background:var(--green50);color:var(--green-ink)}
+  /* UI Option A (A4): VERIFIED IS GREEN — the one place green means "checked by
+     Tnajem". --green-btn carries the white tick (4.61:1), and a 2px white ring
+     keeps the badge readable on the cobalt storefront banner. */
+  .verified{display:inline-grid;place-items:center;width:18px;height:18px;flex:none;border-radius:50%;background:var(--green-btn);color:#fff;vertical-align:middle;box-shadow:0 0 0 2px var(--paper)}
+  /* The worded pill — the tutor page hero only. */
+  .verified.verified-pill{display:inline-flex;align-items:center;gap:5px;width:auto;height:auto;border-radius:999px;
+    padding-block:3px;padding-inline:7px 10px;font-family:var(--fb);font-size:13px;font-weight:700;letter-spacing:0;line-height:1.3}
   .verified .ic{width:11px;height:11px;stroke-width:3}
   .stars{display:inline-flex;gap:1px;flex:none;color:var(--amber)}
   .stars .ic{width:13px;height:13px;fill:var(--amber);stroke:var(--ochre600);stroke-width:1.1}
@@ -190,7 +222,10 @@
   .avatar.sq{border-radius:14px;border-width:2px}
 
   /* ---- forms ---- */
-  .field{margin-bottom:14px}
+  /* display:block — <Field> renders a <label class="field">, and a label is INLINE,
+     so this margin never applied and every label sat against the control above it
+     (new class, new pack, onboarding). UI Option A (A9). */
+  .field{display:block;margin-bottom:14px}
   .field label{font-size:13px;font-weight:700;display:block;margin-bottom:7px}
   /* The PADDING lives on the control, not on the wrapper, and the wrapper
      stretches its children. Before, `.inp` carried 13px of vertical padding and
@@ -409,7 +444,7 @@
   /* min-height:44px — WCAG 2.5.8 target size; 11px padding + 14px text landed at ~41px. */
   .side-nav a,.side-nav button{display:flex;align-items:center;gap:12px;min-height:44px;padding:11px 13px;border-radius:12px;font-weight:600;font-size:14px;color:var(--ink2);background:transparent;border:0;cursor:pointer;width:100%;min-width:0;text-align:start}
   .side-nav a:hover,.side-nav button:hover{background:var(--blue50);color:var(--blue)}
-  .side-nav .active{background:var(--ink);color:#fff}
+  .side-nav .active{background:var(--blue50);color:var(--blue)} /* UI Option A (A3): state is cobalt, never near-black */
   .side-nav .ic{width:19px;height:19px}
 
   /* ── .u-card — THE canonical card primitive ──────────────────────────────
@@ -452,9 +487,20 @@
      box: as a bare 16px-tall run of text it measured 156x16, well under the
      44px the rest of the system holds itself to. Inline uses inside a sentence
      opt out with .linklike-inline. */
+  /* A plain text link, also when it is a <button> ("Signaler un problème"): with the
+     preflight reset off, a button kept the browser's grey fill and border — the
+     "grey box". UI Option A (A9). */
   .linklike{color:var(--blue);font-weight:700;cursor:pointer;
-    display:inline-flex;align-items:center;min-height:44px}
+    display:inline-flex;align-items:center;min-height:44px;
+    background:none;border:0;padding:0;font-family:inherit;font-size:inherit;text-align:start}
+  .linklike:hover{text-decoration:underline;text-underline-offset:3px}
   .linklike-inline{display:inline;min-height:0}
+  /* The admin tab row (components/admin/AdminTabs.tsx) — the current page in cobalt. */
+  .adm-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-block-start:14px}
+  .adm-tab{display:inline-flex;align-items:center;min-height:44px;padding-inline:16px;border-radius:999px;
+    border:1px solid var(--line);background:var(--paper);color:var(--ink2);font-weight:700;font-size:13.5px}
+  .adm-tab:hover{color:var(--blue);border-color:var(--blue)}
+  .adm-tab[aria-current="page"]{background:var(--blue50);color:var(--blue);border-color:var(--blue)}
   /* .hide-mobile/.hide-desktop deleted (zero usages). `display:revert` was a trap:
      on <a class="btn hide-mobile"> it reverted the anchor to display:inline, which
      silently killed the button's flex box — gap gone, min-height:44px inert. A

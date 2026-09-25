@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Link } from "@/components/Link";
-import { Button, Spinner, Chip } from "@/components/ui";
+import { AdminTabs } from "@/components/admin/AdminTabs";
+import { Button, Spinner, Tag } from "@/components/ui";
 import { useLocale } from "@/components/LocaleProvider";
 import { useToast } from "@/components/useToast";
 import { SiteShell } from "@/components/SiteShell";
@@ -223,15 +224,7 @@ export default function AdminPlansPage() {
               </div>
             )}
             {/* phase-a lane L5 (A18.15): the admin nav, both ways — this page was reachable from nowhere. */}
-            {!loading && admin && (
-              <p className="mt-2.5" data-e2e="admin-nav">
-                <Link href="/admin/verifications" className="linklike">{c.toVerifications}</Link>
-                {" · "}
-                <Link href="/admin/accounts" className="linklike">{c.toAccounts}</Link>
-                {" · "}
-                <Link href="/admin/moderation" className="linklike">{c.toModeration}</Link>
-              </p>
-            )}
+            {!loading && admin && <AdminTabs current="plans" /> /* UI Option A (A9) */}
           </div>
 
           {loading && (
@@ -246,7 +239,7 @@ export default function AdminPlansPage() {
               <h2 className="font-display text-[20px] mb-2">{c.deniedTitle}</h2>
               <p className="text-[13px] text-muted leading-[1.6] mb-4">{c.deniedNote}</p>
               <Link href="/auth" className="w-auto">
-                <Button variant="ink" sm>
+                <Button variant="primary" sm>
                   {c.signIn}
                 </Button>
               </Link>
@@ -274,7 +267,7 @@ export default function AdminPlansPage() {
                         {c.priceUnit(tnd(p.monthlyMillimes))} {c.perMonth}
                       </span>
                       <span className="text-muted">· {classLimitLabel(p.maxClasses, locale)}</span>
-                      {p.exploreBoost > 0 && <Chip kind="sand">{c.boost}</Chip>}
+                      {p.exploreBoost > 0 && <Tag kind="neutral">{c.boost}</Tag>}
                     </li>
                   ))}
                 </ul>
@@ -296,12 +289,12 @@ export default function AdminPlansPage() {
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <UserText as="b" className="font-display text-[15px]">{row.fullName}</UserText>
-                              <Chip kind={row.granted ? "soft" : "sand"}>
+                              <Tag kind="neutral">
                                 {row.granted ? row.planCode : c.onPilot}
-                              </Chip>
-                              <Chip kind={row.status === "verified" ? "free" : "sand"}>
+                              </Tag>
+                              <Tag kind={row.status === "verified" ? "success" : "neutral"}>
                                 {c.statusLabels[row.status] ?? row.status}
-                              </Chip>
+                              </Tag>
                             </div>
                             <p className="text-[13px] text-muted mt-1">
                               {c.openClasses(row.openClasses)}{" "}
@@ -366,7 +359,7 @@ export default function AdminPlansPage() {
                           />
                           <Button
                             sm
-                            variant="ink"
+                            variant="primary"
                             onClick={() => handleGrant(row)}
                             disabled={working || !(choice[row.tutorId] ?? "")}
                           >

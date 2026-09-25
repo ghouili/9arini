@@ -532,7 +532,7 @@ export function OnboardingInner({ state }: { state: OnboardingState | null }) {
                     <Eye className="w-3.5 h-3.5" /> {t.onboarding.preview}
                   </span>
                   {/* No fake "Vérifié" badge here: the account is not verified yet. */}
-                  <span className="chip chip-sand ms-auto flex-none">{c.notPublic}</span>
+                  <span className="tag tag-neutral ms-auto flex-none">{c.notPublic}</span>
                 </div>
 
                 <div className="flex gap-3 items-center bg-paper rounded-[13px] p-3.5">

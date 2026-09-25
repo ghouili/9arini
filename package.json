@@ -35,7 +35,8 @@
     "brand:build": "npm run brand:build -w @tnajem/web",
     "dev:api": "npm run dev -w @tnajem/api",
     "build:api": "npm run build -w @tnajem/api",
-    "test:api": "npm run test -w @tnajem/api"
+    "test:api": "npm run test -w @tnajem/api",
+    "ui:shots-a": "playwright test -c e2e/visual/visual.config.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

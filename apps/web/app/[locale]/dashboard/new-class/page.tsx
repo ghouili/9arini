@@ -270,7 +270,7 @@ export default function NewClassPage() {
                       <p className="text-[13.5px] leading-relaxed text-ink2 mb-3">
                         {PLAN_LIMIT_MSG[locale](planLimit.limit, planLimit.plan)}
                       </p>
-                      <Link href="/tarifs" className="btn btn-ink btn-sm w-auto">
+                      <Link href="/tarifs" className="btn btn-ghost btn-sm w-auto">
                         {PLAN_LIMIT_CTA[locale]}
                       </Link>
                     </div>

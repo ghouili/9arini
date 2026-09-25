@@ -180,9 +180,9 @@ export function SiteHeader() {
           <LocaleToggle compact />
 
           {isTutor ? (
-            <Link href="/dashboard" className="btn btn-ink btn-sm qh-cta">{c.dashboard}</Link>
+            <Link href="/dashboard" className="btn btn-outline btn-sm qh-cta">{c.dashboard}</Link>
           ) : isStudent ? (
-            <Link href="/student" className="btn btn-ink btn-sm qh-cta">{c.myClasses}</Link>
+            <Link href="/student" className="btn btn-outline btn-sm qh-cta">{c.myClasses}</Link>
           ) : (
             <>
               <Link href="/auth" className="qh-signin">{c.signIn}</Link>

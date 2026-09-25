@@ -145,7 +145,7 @@ function ConsentBlock({ child, onChanged }: { child: GuardianChild; onChanged: (
         <div className="flex flex-col gap-2">
           <p className="text-[13px] leading-[1.6] m-0">{c.withdrawConfirm}</p>
           <div className="flex flex-wrap gap-2">
-            <button type="button" className="btn btn-ink btn-sm" disabled={busy} onClick={() => act("withdraw")}>{c.withdrawYes}</button>
+            <button type="button" className="border-0 bg-rose text-white font-bold text-[13px] py-3 px-4 rounded-[999px] cursor-pointer min-h-11" disabled={busy} onClick={() => act("withdraw")}>{c.withdrawYes}</button>
             <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => setConfirming(false)}>{c.keep}</button>
           </div>
         </div>

@@ -22,7 +22,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@/components/Link";
 import { useLocale } from "@/components/LocaleProvider";
-import { Verified, Chip } from "@/components/ui";
+import { Verified, Tag } from "@/components/ui";
 import { Search, Users, Bolt } from "@/components/icons";
 import { SiteShell } from "@/components/SiteShell";
 import { TutorStanding } from "@/components/TutorStanding";
@@ -239,7 +239,7 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
   return (
     <SiteShell>
       {/* Hero / filter section */}
-      <section className="border-b border-solid border-line bg-cream">
+      <section className="border-b border-solid border-line bg-band">
         <div className="container py-10 sm:py-12">
           {/* Eyebrow + heading */}
           <p className="mb-2 font-display text-[13px] font-semibold uppercase tracking-[0.16em] text-muted">
@@ -410,7 +410,10 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
                         meta row. It is now rendered ONCE, in flow, in the rating
                         slot below, which is exactly what it stands in for. */}
                     <div className="flex items-start gap-3.5">
-                      <div className="grid size-16 shrink-0 place-items-center rounded-[var(--r)] bg-gradient-to-br from-blue to-blue700 font-display text-xl font-bold text-paper">
+                      {/* UI Option A (A6): ONE avatar style for a tutor — the same .avatar
+                          (amber → ochre, ink initials) as their own page. It was
+                          cobalt here and ochre there for the same person. */}
+                      <div className="avatar sq size-16 text-xl font-bold">
                         {tutor.avatar_initials}
                       </div>
 
@@ -429,7 +432,7 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
                             layout hides at narrow widths is not a disclosure. */}
                         {tutor.featured && (
                           <div className="mt-1.5">
-                            <Chip kind="sand">{c.featuredBadge}</Chip>
+                            <Tag kind="neutral">{c.featuredBadge}</Tag>
                           </div>
                         )}
                         {/* line-clamp-2, not truncate: "Prof de Maths · Lycée & Bac"
@@ -441,7 +444,7 @@ export function ExploreClient({ initial }: { initial: ExploreTutor[] | null }) {
                         {tutor.levels.length > 0 && (
                           <div className="mt-1.5 flex flex-wrap gap-1.5" data-e2e="card-levels">
                             {tutor.levels.map((code) => (
-                              <span key={code} className="chip chip-soft">
+                              <span key={code} className="tag tag-neutral">
                                 {LEVEL_LABELS[code][locale === "ar" ? "ar" : "fr"]}
                               </span>
                             ))}

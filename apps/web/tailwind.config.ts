@@ -15,6 +15,7 @@ export default {
         ink: v("ink"), ink2: v("ink2"), muted: v("muted"),
         blue: v("blue"), cobalt: v("blue"), blue700: v("blue700"), blue50: v("blue50"),
         sand: v("sand"), cream: v("cream"), paper: v("paper"),
+        bg: v("bg"), band: v("band"), // UI Option A (A1): page background + the one band colour
         ochre: v("ochre"), ochre600: v("ochre600"), amber: v("amber"),
         green: v("green"), green50: v("green50"), rose: v("rose"), rose50: v("rose50"),
         line: v("line"), lineCool: v("lineCool"),

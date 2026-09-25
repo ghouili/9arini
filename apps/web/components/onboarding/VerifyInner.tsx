@@ -811,7 +811,7 @@ function FileDrop({
     <div className="mb-3.5">
       <div className="flex items-center gap-2 mb-[7px] flex-wrap">
         <label htmlFor={inputId} className="text-[13px] font-bold">{label}</label>
-        <span className={`chip ${required ? "chip-rose" : "chip-sand"}`}>
+        <span className={required ? "chip chip-rose" : "tag tag-neutral"}>
           {required ? c.s1Req : c.s2Opt}
         </span>
       </div>
@@ -962,7 +962,7 @@ function StatusPanel({
       )}
       <div className="mt-[22px] flex justify-center">
         <Link href="/dashboard">
-          <span className="btn btn-ink w-auto py-[13px] px-[22px]">{backLabel}</span>
+          <span className="btn btn-primary w-auto py-[13px] px-[22px]">{backLabel}</span>
         </Link>
       </div>
     </div>

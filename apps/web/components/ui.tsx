@@ -7,10 +7,11 @@
 import { Children, cloneElement, isValidElement, useId } from "react";
 import type { ReactNode, ReactElement, CSSProperties } from "react";
 import Image from "next/image";
+import { Clock } from "./icons";
 
 type BtnProps = {
   children: ReactNode;
-  variant?: "primary" | "ink" | "green" | "ghost";
+  variant?: "primary" | "green" | "ghost" | "outline";
   sm?: boolean;
   onClick?: () => void;
   type?: "button" | "submit";
@@ -38,9 +39,9 @@ type BtnProps = {
    back into a template. */
 const BTN_VARIANT = {
   primary: "btn-primary",
-  ink: "btn-ink",
   green: "btn-green",
   ghost: "btn-ghost",
+  outline: "btn-outline", // UI Option A (A3)
 } as const;
 
 export function Button({ children, variant = "primary", sm, onClick, type = "button", disabled, style, className = "", "aria-label": ariaLabel }: BtnProps) {
@@ -102,6 +103,24 @@ const CHIP_KIND = {
 
 export function Chip({ children, kind = "soft", className = "", style }: { children: ReactNode; kind?: "free" | "soft" | "sand" | "rose"; className?: string; style?: CSSProperties }) {
   return <span className={`chip ${CHIP_KIND[kind]}${className ? ` ${className}` : ""}`} style={style}>{children}</span>;
+}
+
+/* UI Option A (A5): status tags — one meaning per colour (see .tag-* in globals.css).
+   Literal class names in a map, for the same purge reason as BTN_VARIANT above.
+   "soon" carries the clock: it is the only tag that means "not yet". */
+const TAG_KIND = {
+  soon: "tag-soon",
+  neutral: "tag-neutral",
+  success: "tag-success",
+} as const;
+
+export function Tag({ children, kind = "neutral", className = "", style }: { children: ReactNode; kind?: keyof typeof TAG_KIND; className?: string; style?: CSSProperties }) {
+  return (
+    <span className={`tag ${TAG_KIND[kind]}${className ? ` ${className}` : ""}`} style={style}>
+      {kind === "soon" && <Clock />}
+      {children}
+    </span>
+  );
 }
 
 /* THE MONOGRAM IS THE DEFAULT, and it stays the default. Most tutors will never
@@ -235,16 +254,20 @@ export function Spinner({ label }: { label?: string } = {}) {
   );
 }
 
-/* The blue tick. `.verified` is a fixed 18px circle with flex:none — without
+/* The verified tick (green since UI Option A, A4). `.verified` is a fixed 18px circle with flex:none — without
    that it deformed into an ellipse whenever it sat next to a truncated name in
    a tight flex row (explore card, storefront header, home hero). `label` adds
    screen-reader text: the tick carries real meaning ("prof vérifié") that was
    previously invisible to AT. Pass the localized string; omit for decorative use
    next to an existing "Vérifié" label. */
-export function Verified({ label }: { label?: string } = {}) {
+export function Verified({ label, pill }: { label?: string; pill?: string } = {}) {
+  /* UI Option A (A4): `pill` shows the WORD ("Vérifié" / "متثبّت منّو") beside the
+     tick — the tutor page hero only. Everywhere else it stays the round icon. The
+     accessible name is unchanged: `label` when given, else decorative. */
   return (
-    <span className="verified" role={label ? "img" : undefined} aria-label={label} aria-hidden={label ? undefined : true}>
-      <svg viewBox="0 0 24 24" className="ic"><polyline points="5 13 10 18 19 7" /></svg>
+    <span className={pill ? "verified verified-pill" : "verified"} role={label ? "img" : undefined} aria-label={label} aria-hidden={label ? undefined : true} title={pill ? label : undefined}>
+      <svg viewBox="0 0 24 24" className="ic" aria-hidden="true"><polyline points="5 13 10 18 19 7" /></svg>
+      {pill && <span>{pill}</span>}
     </span>
   );
 }

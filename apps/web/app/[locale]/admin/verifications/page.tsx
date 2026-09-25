@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Link } from "@/components/Link";
+import { AdminTabs } from "@/components/admin/AdminTabs";
 import { Button, Avatar, Spinner } from "@/components/ui";
 import { useLocale } from "@/components/LocaleProvider";
 import { useToast } from "@/components/useToast";
@@ -283,15 +284,7 @@ export default function AdminVerificationsPage() {
                 {c.count(items.length)}
               </div>
             )}
-            {!loading && admin && (
-              <p className="mt-2.5">
-                <Link href="/admin/accounts" className="linklike">{c.toAccounts}</Link>
-                {" · "}
-                <Link href="/admin/moderation" className="linklike">{c.toModeration}</Link>
-                {" · "}
-                <Link href="/admin/plans" className="linklike">{c.toPlans}</Link>{/* phase-a lane L5 (A18.15) */}
-              </p>
-            )}
+            {!loading && admin && <AdminTabs current="verifications" /> /* UI Option A (A9) */}
           </div>
 
           {/* Loading */}
@@ -315,7 +308,7 @@ export default function AdminVerificationsPage() {
                 {c.deniedNote}
               </p>
               <Link href="/auth" className="w-auto">
-                <Button variant="ink" sm>{c.signIn}</Button>
+                <Button variant="primary" sm>{c.signIn}</Button>
               </Link>
             </div>
           )}

@@ -72,11 +72,11 @@ export function TutorStanding({
 
   if (standing.kind === "new") {
     return variant === "hero" ? (
-      <span className="sf-newtag">{c.isNew}</span>
+      <span className="tag tag-neutral sf-newtag">{c.isNew}</span>
     ) : (
-      <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-green50 px-2.5 py-0.5 text-[13px] font-semibold text-green-ink">
-        {c.isNew}
-      </span>
+      /* UI Option A (A5): "Nouveau prof" is plain information — neutral blue, not
+         green (green is the Vérifié badge and real success only). */
+      <span className="tag tag-neutral">{c.isNew}</span>
     );
   }
 

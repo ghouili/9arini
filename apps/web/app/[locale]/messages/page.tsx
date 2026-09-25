@@ -127,7 +127,7 @@ export default function MessagesPage() {
               <h2 className="font-display text-[16px] font-bold mb-1.5">{c.emptyTitle}</h2>
               <p className="text-[13px] text-muted leading-[1.6] mb-3.5">{c.emptyBody}</p>
               <div className="flex gap-2 justify-center flex-wrap">
-                <Link href="/explore" className="btn btn-ink btn-sm">{c.exploreCta}</Link>
+                <Link href="/explore" className="btn btn-primary btn-sm">{c.exploreCta}</Link>
                 <Link href="/student" className="btn btn-ghost btn-sm">{c.dashboardCta}</Link>
               </div>
             </div>

@@ -97,7 +97,7 @@ export default function GuardianThreadPage() {
           <div className="container container-narrow max-w-[760px]">
             <div className="panel panel-pad text-center">
               <p className="text-[14px] mb-3.5">{c.gone}</p>
-              <Link href="/guardian" className="btn btn-ink btn-sm">{c.backCta}</Link>
+              <Link href="/guardian" className="btn btn-primary btn-sm">{c.backCta}</Link>
             </div>
           </div>
         </section>
