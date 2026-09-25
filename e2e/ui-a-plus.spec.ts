@@ -115,3 +115,33 @@ test.describe("U3 — 'En direct' is a paper pill with a rose dot, never green",
     await ctx.close();
   });
 });
+
+/* ── U4: the sticky booking bar never covers the end of the page ───────────────
+   Checked on the live page, not a full-page screenshot: the bar is position:sticky
+   (bottom:0) and sits AFTER the content in the flow, so while scrolling it docks
+   over what passes under it, and at the end it rests below the last element —
+   nothing is ever out of reach. Not reproduced; this pins it. */
+test.describe("U4 — the mobile booking bar leaves the content visible", () => {
+  test("390x844, scrolled to the bottom: the last content element ends above the bar", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/fr/yassine-math");
+    const bar = page.locator("[data-sf-mobilecta=true]");
+    await expect(bar).toBeVisible();
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await page.waitForTimeout(200);
+    const r = await page.evaluate(() => {
+      const barEl = document.querySelector("[data-sf-mobilecta=true]")!.getBoundingClientRect();
+      const grid = document.querySelector("[data-sf-grid=true]")!;
+      // The lowest VISIBLE element of the page content — whatever the student reads last.
+      let lastBottom = -Infinity;
+      for (const el of grid.querySelectorAll("*")) {
+        const rect = el.getBoundingClientRect();
+        const st = getComputedStyle(el);
+        if (rect.width > 0 && rect.height > 0 && st.visibility !== "hidden" && st.display !== "none") lastBottom = Math.max(lastBottom, rect.bottom);
+      }
+      return { barTop: barEl.top, gridBottom: grid.getBoundingClientRect().bottom, lastBottom };
+    });
+    expect(r.gridBottom, JSON.stringify(r)).toBeLessThanOrEqual(r.barTop + 0.5);
+    expect(r.lastBottom, JSON.stringify(r)).toBeLessThanOrEqual(r.barTop + 0.5);
+  });
+});
