@@ -112,8 +112,9 @@ const CSS = `
   font-weight:600;font-size:15px;color:var(--ink);min-height:48px}
 .qh-menu a:hover,.qh-menu a:focus-visible{background:var(--blue50);color:var(--blue)}
 .qh-menu a[aria-current="page"]{background:var(--sand);color:var(--ink)}
-.qh-menu .qh-menu-cta{justify-content:center;background:var(--ochre);color:#fff;margin-top:8px}
-.qh-menu .qh-menu-cta:hover{background:var(--ochre-btn-hover);color:#fff}
+/* Phase A+ (U2): the menu's CTA is the same cobalt outline as the header's. */
+.qh-menu .qh-menu-cta{justify-content:center;background:transparent;color:var(--blue);border:1.5px solid var(--blue);margin-top:8px}
+.qh-menu .qh-menu-cta:hover{background:var(--blue50);color:var(--blue)}
 .qh-menu .qh-sep{height:1px;background:var(--line);margin:8px 4px}
 html[dir="rtl"] .qh-menu .qh-group{letter-spacing:normal}
 `;
@@ -190,7 +191,9 @@ export function SiteHeader() {
                   tutor's step-1 screen, which was reachable by any signed-in
                   profile and silently converted a student's account to a tutor
                   one on submit. The role is now chosen by choosing a page. */}
-              <Link href="/signup/prof" className="btn btn-primary btn-sm qh-cta">{c.createPage}</Link>
+              {/* Phase A+ (U2): the header is never orange — its CTA is the cobalt outline for
+                  everyone, so each page's own main action is the only ochre button in view. */}
+              <Link href="/signup/prof" className="btn btn-outline btn-sm qh-cta">{c.createPage}</Link>
             </>
           )}
 

@@ -41,3 +41,28 @@ test.describe("U1 — info notes are blue, and the payment sentence starts its o
     }
   });
 });
+
+/* ── U2: the header button is never orange ───────────────────────────────────── */
+test.describe("U2 — the header CTA is a blue outline for everyone", () => {
+  test("signed out on a tutor page: exactly ONE ochre button in view — 'Réserver la séance'", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/fr/yassine-math");
+    await expect(page.locator("header .qh-cta").first()).toBeVisible();
+    const inView = await page.locator(".btn-primary").evaluateAll((els) =>
+      els
+        .filter((el) => {
+          const r = el.getBoundingClientRect();
+          const s = getComputedStyle(el);
+          return r.width > 0 && r.height > 0 && s.visibility !== "hidden" && s.display !== "none" &&
+            r.bottom > 0 && r.top < window.innerHeight && r.right > 0 && r.left < window.innerWidth;
+        })
+        .map((el) => (el.textContent ?? "").trim()),
+    );
+    expect(inView).toEqual(["Réserver la séance"]);
+    const cta = await page.locator("header .qh-cta").first().evaluate((el) => {
+      const s = getComputedStyle(el);
+      return { bg: s.backgroundColor, color: s.color };
+    });
+    expect(cta).toEqual({ bg: "rgba(0, 0, 0, 0)", color: "rgb(14, 90, 166)" });
+  });
+});
