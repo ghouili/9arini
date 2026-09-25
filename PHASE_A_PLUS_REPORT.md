@@ -230,7 +230,12 @@ The prompt's order: merge `ui/option-a`, then `phase-a-plus`, into `launch-harde
 
 - **Tree.** `launch-hardening` (`d8821ce`) is the merge base of both branches, so the merged tree is the `phase-a-plus` tree.
 - **How.** The merge is built and tested in a separate worktree, with its own install, fresh scratch database and scratch ports. Your checkout is moved to the tested commit (fast-forward) only after the gate passes.
-- **Result:** see the commit that follows this report on `launch-hardening`.
+- **Result on 25 Sept: `GATE PASS`.** It ran on the merge commit `0a8d5ed`, with a fresh install and the fresh scratch database `tnajem_merge_lh` (all 32 migrations, seeded):
+  - build: passed;
+  - `npm run verify`: green, 0 contrast failures, 0 guardrail violations;
+  - API: **622 / 622**;
+  - Playwright: **391 / 391**.
+- `launch-hardening` was then fast-forwarded to the tested merge plus this doc-only line. The three branches are pushed. `main` is untouched, and nothing was deployed.
 
 ## 8 · Open items
 
