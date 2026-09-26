@@ -47,3 +47,38 @@ ui-option-a/
 .claude/
 # Phase A+ screenshots (ui:shots-a → ui-a-plus/after, the cash-out capture). Local only.
 ui-a-plus/
+
+# ── Added 26 Sept 2026 ───────────────────────────────────────────────────────
+# Tool caches and editor/OS noise
+.impeccable/
+.eslintcache
+.cache/
+.turbo/
+coverage/
+*.log
+npm-debug.log*
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+Thumbs.db
+desktop.ini
+
+# Secrets that must never be committed, whatever they are called
+*.pem
+*.key
+*_rsa
+*_ed25519
+tnajem_actions*
+tnajem.env
+*secrets*.txt
+
+# Database dumps anywhere in the tree (backups/ is already ignored)
+*.dump
+*.sql.gz
+*.backup
+
+# One-shot Claude Code prompts (kept on disk, not in the repo)
+PHASE_A_TRUST_BLOCKERS.md
+PHASE_A_PLUS.md
+UI_OPTION_A.md

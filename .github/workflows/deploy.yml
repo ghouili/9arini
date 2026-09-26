@@ -65,6 +65,7 @@ jobs:
           API_URL=http://127.0.0.1:4000
 
           DATABASE_URL=${{ secrets.DATABASE_URL }}
+          MIGRATION_DATABASE_URL=${{ secrets.MIGRATION_DATABASE_URL }}
           AUTH_SECRET=${{ secrets.AUTH_SECRET }}
           DOC_ENCRYPTION_KEY=${{ secrets.DOC_ENCRYPTION_KEY }}
           CRON_SECRET=${{ secrets.CRON_SECRET }}
@@ -79,6 +80,7 @@ jobs:
           ADMIN_EMAILS=${{ secrets.ADMIN_EMAILS }}
           OTP_CHANNEL=${{ secrets.OTP_CHANNEL }}
           PAYMENTS_ENABLED=${{ secrets.PAYMENTS_ENABLED }}
+          ALLOW_MINORS=${{ secrets.ALLOW_MINORS }}
           LOG_LEVEL=${{ secrets.LOG_LEVEL }}
 
           STORAGE_DRIVER=${{ secrets.STORAGE_DRIVER }}
@@ -131,7 +133,7 @@ jobs:
       - name: Check every required key is present
         run: |
           set -euo pipefail
-          required="DATABASE_URL AUTH_SECRET DOC_ENCRYPTION_KEY CRON_SECRET
+          required="DATABASE_URL MIGRATION_DATABASE_URL AUTH_SECRET DOC_ENCRYPTION_KEY CRON_SECRET
                     NEXT_PUBLIC_SITE_URL CORS_ORIGINS TRUSTED_PROXIES ADMIN_EMAILS
                     STORAGE_DIR MAIL_HOST MAIL_PORT MAIL_USER MAIL_PASS MAIL_FROM_ADDRESS"
           missing=""

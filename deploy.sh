@@ -113,7 +113,18 @@ WEB_ENTRY="apps/web/.next/standalone/apps/web/server.js"
 # only: there is no migrations ledger and no down migration — rolling back past a
 # migration is safe only because every file is additive. db:push is disabled.
 step "Applying migrations (npm run db:sql)"
-npm run db:sql
+# Two database roles (ops/vps-bootstrap.sh): migrations run as the OWNER, the apps
+# run as the limited tnajem_app role, which can never ALTER a table or disable the
+# admin_actions append-only trigger (0031). A real env var beats .env (dotenv never
+# overrides), so DATABASE_URL is swapped for this one command only. If
+# MIGRATION_DATABASE_URL is absent, fall back to DATABASE_URL (single-role boxes).
+MIGRATION_URL="$(grep -m1 '^MIGRATION_DATABASE_URL=' .env | cut -d= -f2- || true)"
+if [ -n "$MIGRATION_URL" ]; then
+  DATABASE_URL="$MIGRATION_URL" npm run db:sql
+else
+  echo "   (no MIGRATION_DATABASE_URL — migrating with DATABASE_URL)"
+  npm run db:sql
+fi
 
 # ── 4. Configuration gate ────────────────────────────────────────────────────
 # Reports every key as set/empty/missing (never a value), verifies every migration
